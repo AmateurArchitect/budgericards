@@ -1,0 +1,200 @@
+:root {
+	/* Shadcn HSL Tokens (Standardizing on a dark theme) */
+	--background: 240 10% 3.9%;
+	--foreground: 0 0% 98%;
+
+	--card: 240 10% 3.9%;
+	--card-foreground: 0 0% 98%;
+
+	--popover: 240 10% 3.9%;
+	--popover-foreground: 0 0% 98%;
+
+	--primary: 217 91% 60%;
+	--primary-hsl: 217, 91%, 60%;
+	--primary-foreground: 222 47% 11%;
+
+	--secondary: 240 3.7% 15.9%;
+	--secondary-foreground: 0 0% 98%;
+
+	--muted: 240 3.7% 15.9%;
+	--muted-foreground: 240 5% 64.9%;
+
+	--accent: 240 3.7% 15.9%;
+	--accent-foreground: 0 0% 98%;
+
+	--destructive: 0 62.8% 30.6%;
+	--destructive-foreground: 0 0% 98%;
+
+	--border: 240 3.7% 15.9%;
+	--input: 240 3.7% 15.9%;
+	--ring: 240 4.9% 83.9%;
+
+	--radius: 6px;
+
+	/* Translucent Shades of White (App Specific) */
+	--bg-dark: hsl(var(--background));
+	--bg-panel: hsla(0, 0%, 100%, 0.04);
+	--bg-input: hsla(0, 0%, 100%, 0.08);
+	--text-primary: hsla(0, 0%, 100%, 0.95);
+	--text-secondary: hsla(0, 0%, 100%, 0.65);
+	--text-muted: hsla(0, 0%, 100%, 0.4);
+
+	/* Accents & States */
+	--accent-hover: #60a5fa;
+	--accent-subtle: hsla(217, 91%, 60%, 0.1);
+
+	/* Semantic */
+	--danger: #ef4444;
+	--success: #10b981;
+	--warning: #f59e0b;
+
+	/* Effects */
+	--inner-glow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.05);
+	--glass: rgba(255, 255, 255, 0.03);
+	--glass-blur: blur(12px);
+
+	/* Shadows */
+	--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+	--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+	/* Spacing & Sizing */
+	--transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+	--radius-sm: 3px;
+	--radius-md: 6px;
+	--radius-lg: 12px; /* Link to shadcn token */
+	--radius-card: 5cqw; /* Specific to MTG Cards */
+	--scrollbar-width: 8px;
+	
+	/* Typography Tokens */
+	--font-base: 0.875rem;   /* 14px */
+	--font-sm: 0.875rem;     /* 14px */
+	--font-xs: 0.75rem;      /* 12px */
+	--font-xxs: 0.75rem;     /* 12px */
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+button,
+input,
+optgroup,
+select,
+textarea {
+	font-family: inherit;
+	font-feature-settings: inherit;
+	font-variation-settings: inherit;
+	font-size: inherit;
+	font-weight: inherit;
+	line-height: inherit;
+	color: inherit;
+}
+
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-size: 0.875rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Typography System */
+.h1 { font-size: 2.25rem; font-weight: 800; letter-spacing: -0.05em; line-height: 1.2; }
+.h2 { font-size: 1.875rem; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2; }
+.h3 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2; }
+.h4 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2; }
+
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-base { font-size: 1rem; line-height: 1.5rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+
+.font-normal { font-weight: 400; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.font-extrabold { font-weight: 800; }
+
+.tracking-tight { letter-spacing: -0.025em; }
+.tracking-tighter { letter-spacing: -0.05em; }
+
+.uppercase { text-transform: uppercase; }
+.lowercase { text-transform: lowercase; }
+.capitalize { text-transform: capitalize; }
+
+.leading-none { line-height: 1; }
+.leading-tight { line-height: 1.25; }
+.leading-snug { line-height: 1.375; }
+.leading-normal { line-height: 1.5; }
+.leading-relaxed { line-height: 1.625; }
+.leading-loose { line-height: 2; }
+
+
+
+/* Base Styles that were previously on global elements */
+.app-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Utilities */
+.hidden {
+    display: none !important;
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+    height: var(--scrollbar-width);
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Utility Classes */
+.mx-1 { margin-left: 0.25rem; margin-right: 0.25rem; }
+.mx-2 { margin-left: 0.5rem; margin-right: 0.5rem; }
+.ml-1 { margin-left: 0.25rem; }
+.ml-2 { margin-left: 0.5rem; }
+.mr-1 { margin-right: 0.25rem; }
+.mr-2 { margin-right: 0.5rem; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }

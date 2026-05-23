@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sandbox JSON Tester</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: rgba(30, 41, 59, 0.7);
+      --border: rgba(255, 255, 255, 0.1);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%);
+    }
+
+    .header {
+      padding: 2rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(15, 23, 42, 0.7);
+    }
+
+    .header h1 {
+      margin: 0;
+      font-weight: 700;
+      font-size: 2.5rem;
+      background: linear-gradient(to right, #38bdf8, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .header p {
+      margin: 0.5rem 0 0 0;
+      color: var(--text-muted);
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 3rem auto;
+      padding: 0 2rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    .card-image-container {
+      width: 100%;
+      aspect-ratio: 63 / 88;
+      overflow: hidden;
+      background: #0f172a;
+      position: relative;
+    }
+
+    .card-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.7s ease;
+    }
+
+    .card:hover .card-image {
+      transform: scale(1.05);
+    }
+
+    .card-content {
+      padding: 1.5rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.5rem;
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .card-mana {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fbbf24;
+      white-space: nowrap;
+      margin-left: 0.75rem;
+      background: rgba(0,0,0,0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .card-type {
+      font-size: 0.875rem;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-weight: 600;
+    }
+
+    .card-text {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+      white-space: pre-wrap;
+      margin-bottom: 1.5rem;
+      flex: 1;
+    }
+    
+    /* Small touch: italicize reminder text inside parentheses */
+    .card-text i {
+      color: rgba(148, 163, 184, 0.7);
+    }
+
+    .card-footer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: auto;
+    }
+
+    .tag {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.25rem 0.6rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: capitalize;
+      transition: background 0.2s ease;
+    }
+
+    .card:hover .tag {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Loader */
+    .loader-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 50vh;
+    }
+    .loader {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--border);
+      border-bottom-color: var(--accent);
+      border-radius: 50%;
+      display: inline-block;
+      box-sizing: border-box;
+      animation: rotation 1s linear infinite;
+    }
+    @keyframes rotation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Sandbox JSON Tester</h1>
+    <p id="count-display">Loading cards...</p>
+  </div>
+
+  <div class="container">
+    <div id="loader" class="loader-container">
+      <span class="loader"></span>
+    </div>
+    <div class="grid" id="card-grid"></div>
+  </div>
+
+  <script>
+    async function loadCards() {
+      try {
+        const response = await fetch('random-100.json');
+        if (!response.ok) throw new Error("Failed to fetch cards.json");
+        const cards = await response.json();
+        
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('count-display').innerText = `Displaying ${cards.length} compiled records`;
+        
+        const grid = document.getElementById('card-grid');
+        
+        cards.forEach(card => {
+          // Format rules text to italicize reminder text in parentheses
+          const formattedText = card.text.replace(/(\([^)]+\))/g, '<i>$1</i>');
+          
+          const cardEl = document.createElement('div');
+          cardEl.className = 'card';
+          
+          let tagsHtml = '';
+          if (card.colors && card.colors.length > 0) {
+            tagsHtml += `<span class="tag">Colors: ${card.colors.join('')}</span>`;
+          }
+          if (card.formats && card.formats.length > 0) {
+            // Just show top 3 formats for brevity
+            tagsHtml += `<span class="tag">${card.formats.slice(0,3).join(', ')}...</span>`;
+          }
+
+          cardEl.innerHTML = `
+            <div class="card-image-container">
+              ${card.image ? `<img src="${card.image}" alt="${card.name}" class="card-image" loading="lazy">` : `<div style="padding: 2rem; text-align: center; color: #64748b; height: 100%; display: flex; align-items: center; justify-content: center;">No Image Found</div>`}
+            </div>
+            <div class="card-content">
+              <div class="card-header">
+                <h2 class="card-title">${card.name}</h2>
+                ${card.mana ? `<span class="card-mana">${card.mana}</span>` : ''}
+              </div>
+              <div class="card-type">${card.type}</div>
+              <div class="card-text">${formattedText}</div>
+              <div class="card-footer">
+                ${tagsHtml}
+              </div>
+            </div>
+          `;
+          
+          grid.appendChild(cardEl);
+        });
+      } catch (e) {
+        document.getElementById('loader').innerHTML = `<p style="color: #ef4444;">Error loading cards: ${e.message}</p>`;
+      }
+    }
+
+    loadCards();
+  </script>
+</body>
+</html>

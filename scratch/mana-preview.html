@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MTG Mana Symbols Previewer & Comparison</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/mana-font@1.4.1/css/mana.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f1115;
+      --bg-light: #f8f9fa;
+      --card-bg-dark: rgba(255, 255, 255, 0.03);
+      --card-bg-light: rgba(0, 0, 0, 0.02);
+      --card-border-dark: rgba(255, 255, 255, 0.08);
+      --card-border-light: rgba(0, 0, 0, 0.08);
+      --text-dark: #f8f9fa;
+      --text-light: #212529;
+      --primary: #8a3ffc;
+      --primary-hover: #6f22d2;
+
+      --bg: var(--bg-dark);
+      --card-bg: var(--card-bg-dark);
+      --card-border: var(--card-border-dark);
+      --text: var(--text-dark);
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body.light-theme {
+      --bg: var(--bg-light);
+      --card-bg: var(--card-bg-light);
+      --card-border: var(--card-border-light);
+      --text: var(--text-light);
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      transition: var(--transition);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3rem;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 1.5rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 2.25rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a78bfa, #818cf8, #60a5fa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    button {
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      color: var(--text);
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    button:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+    }
+
+    .slider-container label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      opacity: 0.8;
+    }
+
+    input[type="range"] {
+      width: 120px;
+      cursor: pointer;
+    }
+
+    /* Filters Bar */
+    .filter-bar {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+
+    .filter-btn {
+      font-size: 0.9rem;
+    }
+
+    .filter-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    /* Symbols Grid */
+    .symbols-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .symbol-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.5rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+
+    .symbol-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+      border-color: var(--primary);
+    }
+
+    /* Comparison columns */
+    .comparison-container {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 0.5rem 0;
+    }
+
+    .comp-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .comp-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text);
+      opacity: 0.5;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .image-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 50%;
+      padding: 6px;
+      width: 50px;
+      height: 50px;
+    }
+
+    .symbol-image {
+      object-fit: contain;
+      transition: width 0.15s ease, height 0.15s ease;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+      will-change: transform;
+      transform: translate3d(0, 0, 0);
+    }
+
+    .font-symbol {
+      transition: font-size 0.15s ease;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      line-height: 1 !important;
+      vertical-align: middle !important;
+    }
+
+    .symbol-label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      margin-top: 0.25rem;
+    }
+
+    .symbol-markup {
+      font-size: 0.75rem;
+      opacity: 0.5;
+      font-family: monospace;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--primary);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: var(--transition);
+      z-index: 100;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>MTG Mana Symbols: Custom vs. Font</h1>
+      <div class="controls">
+        <div class="slider-container">
+          <label for="size-slider">Size: <span id="size-val">14px</span></label>
+          <input type="range" id="size-slider" min="10" max="48" value="14">
+        </div>
+        <button id="theme-toggle">Toggle Theme</button>
+      </div>
+    </header>
+
+    <div class="filter-bar">
+      <button class="filter-btn active" data-category="all">All Symbols</button>
+      <button class="filter-btn" data-category="colors">Colors</button>
+      <button class="filter-btn" data-category="generic">Generic</button>
+      <button class="filter-btn" data-category="hybrid">Hybrid</button>
+      <button class="filter-btn" data-category="phyrexian">Phyrexian</button>
+      <button class="filter-btn" data-category="others">Others/Actions</button>
+    </div>
+
+    <div class="symbols-grid" id="symbols-grid"></div>
+  </div>
+
+  <div class="toast" id="toast">Copied markup to clipboard!</div>
+
+  <script>
+    const symbolsData = [
+      // Colors
+      { sym: 'w', markup: '{W}', cat: 'colors' },
+      { sym: 'u', markup: '{U}', cat: 'colors' },
+      { sym: 'b', markup: '{B}', cat: 'colors' },
+      { sym: 'r', markup: '{R}', cat: 'colors' },
+      { sym: 'g', markup: '{G}', cat: 'colors' },
+      { sym: 'c', markup: '{C}', cat: 'colors' },
+      { sym: 'l', markup: '{L}', cat: 'colors' },
+
+      // Generic
+      { sym: '0', markup: '{0}', cat: 'generic' },
+      { sym: '1', markup: '{1}', cat: 'generic' },
+      { sym: '2', markup: '{2}', cat: 'generic' },
+      { sym: '3', markup: '{3}', cat: 'generic' },
+      { sym: '4', markup: '{4}', cat: 'generic' },
+      { sym: '5', markup: '{5}', cat: 'generic' },
+      { sym: '6', markup: '{6}', cat: 'generic' },
+      { sym: '7', markup: '{7}', cat: 'generic' },
+      { sym: '8', markup: '{8}', cat: 'generic' },
+      { sym: '9', markup: '{9}', cat: 'generic' },
+      { sym: '10', markup: '{10}', cat: 'generic' },
+      { sym: '11', markup: '{11}', cat: 'generic' },
+      { sym: '12', markup: '{12}', cat: 'generic' },
+      { sym: '13', markup: '{13}', cat: 'generic' },
+      { sym: '14', markup: '{14}', cat: 'generic' },
+      { sym: '15', markup: '{15}', cat: 'generic' },
+      { sym: '16', markup: '{16}', cat: 'generic' },
+      { sym: '17', markup: '{17}', cat: 'generic' },
+      { sym: '18', markup: '{18}', cat: 'generic' },
+      { sym: '19', markup: '{19}', cat: 'generic' },
+      { sym: '20', markup: '{20}', cat: 'generic' },
+      { sym: '100', markup: '{100}', cat: 'generic' },
+      { sym: 'x', markup: '{X}', cat: 'generic' },
+      { sym: 'y', markup: '{Y}', cat: 'generic' },
+      { sym: 'z', markup: '{Z}', cat: 'generic' },
+
+      // Hybrids
+      { sym: 'wu', markup: '{W/U}', cat: 'hybrid' },
+      { sym: 'wb', markup: '{W/B}', cat: 'hybrid' },
+      { sym: 'ub', markup: '{U/B}', cat: 'hybrid' },
+      { sym: 'ur', markup: '{U/R}', cat: 'hybrid' },
+      { sym: 'br', markup: '{B/R}', cat: 'hybrid' },
+      { sym: 'bg', markup: '{B/G}', cat: 'hybrid' },
+      { sym: 'rg', markup: '{R/G}', cat: 'hybrid' },
+      { sym: 'rw', markup: '{R/W}', cat: 'hybrid' },
+      { sym: 'gw', markup: '{G/W}', cat: 'hybrid' },
+      { sym: 'gu', markup: '{G/U}', cat: 'hybrid' },
+      { sym: '2w', markup: '{2/W}', cat: 'hybrid' },
+      { sym: '2u', markup: '{2/U}', cat: 'hybrid' },
+      { sym: '2b', markup: '{2/B}', cat: 'hybrid' },
+      { sym: '2r', markup: '{2/R}', cat: 'hybrid' },
+      { sym: '2g', markup: '{2/G}', cat: 'hybrid' },
+
+      // Phyrexian
+      { sym: 'wp', markup: '{W/P}', cat: 'phyrexian' },
+      { sym: 'up', markup: '{U/P}', cat: 'phyrexian' },
+      { sym: 'bp', markup: '{B/P}', cat: 'phyrexian' },
+      { sym: 'rp', markup: '{R/P}', cat: 'phyrexian' },
+      { sym: 'gp', markup: '{G/P}', cat: 'phyrexian' },
+      { sym: 'cp', markup: '{C/P}', cat: 'phyrexian' },
+
+      // Special & Actions
+      { sym: 't', markup: '{T}', cat: 'others' },
+      { sym: 'q', markup: '{Q}', cat: 'others' },
+      { sym: 's', markup: '{S}', cat: 'others' },
+      { sym: 'e', markup: '{E}', cat: 'others' },
+      { sym: 'chaos', markup: '{CHAOS}', cat: 'others' },
+      { sym: 'tk', markup: '{TK}', cat: 'others' },
+      { sym: 'p', markup: '{P}', cat: 'others' },
+      { sym: 'h', markup: '{H}', cat: 'others' },
+      { sym: 'hw', markup: '{HW}', cat: 'others' },
+      { sym: 'hr', markup: '{HR}', cat: 'others' }
+    ];
+
+    const grid = document.getElementById('symbols-grid');
+    const slider = document.getElementById('size-slider');
+    const sizeVal = document.getElementById('size-val');
+    const themeToggle = document.getElementById('theme-toggle');
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const toast = document.getElementById('toast');
+
+    let currentCategory = 'all';
+    let currentSize = 14;
+
+    const customMap = {
+      w: "(W)",
+      u: "(U)",
+      b: "(B)",
+      r: "(R)",
+      g: "(G)",
+      c: "(C)",
+      l: "(L)"
+    };
+    const getImagePath = (sym) => {
+      const name = customMap[sym] || sym;
+      return `../svelte-app/static/mana/${name}.svg`;
+    };
+
+    function render() {
+      grid.innerHTML = '';
+      const filtered = currentCategory === 'all'
+        ? symbolsData
+        : symbolsData.filter(s => s.cat === currentCategory);
+
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'symbol-card';
+        card.title = `Click to copy markup: ${item.markup}`;
+        card.onclick = () => {
+          navigator.clipboard.writeText(item.markup);
+          showToast();
+        };
+
+        // Comparison Container
+        const compContainer = document.createElement('div');
+        compContainer.className = 'comparison-container';
+
+        // 1. Custom SVG Column
+        const customCol = document.createElement('div');
+        customCol.className = 'comp-item';
+
+        const svgWrapper = document.createElement('div');
+        svgWrapper.className = 'image-wrapper';
+
+        const img = document.createElement('img');
+        img.src = getImagePath(item.sym);
+        img.alt = item.sym.toUpperCase();
+        img.className = 'symbol-image';
+        img.style.width = `${currentSize * 1.1}px`;
+        img.style.height = `${currentSize * 1.1}px`;
+
+        img.onerror = () => {
+          img.style.display = 'none';
+          const fallback = document.createElement('span');
+          fallback.style.width = `${currentSize * 1.1}px`;
+          fallback.style.height = `${currentSize * 1.1}px`;
+          fallback.style.borderRadius = '50%';
+          fallback.style.backgroundColor = '#666';
+          fallback.style.color = '#fff';
+          fallback.style.display = 'inline-flex';
+          fallback.style.alignItems = 'center';
+          fallback.style.justifyContent = 'center';
+          fallback.style.fontWeight = 'bold';
+          fallback.style.fontSize = `${currentSize * 0.6}px`;
+          fallback.innerText = item.sym.toUpperCase();
+          svgWrapper.appendChild(fallback);
+        };
+
+        const customLabel = document.createElement('span');
+        customLabel.className = 'comp-label';
+        customLabel.innerText = 'Custom';
+
+        svgWrapper.appendChild(img);
+        customCol.appendChild(svgWrapper);
+        customCol.appendChild(customLabel);
+
+        // 2. Font Icon Column
+        const fontCol = document.createElement('div');
+        fontCol.className = 'comp-item';
+
+        const fontWrapper = document.createElement('div');
+        fontWrapper.className = 'image-wrapper';
+
+        const fontSym = item.sym === '∞' ? 'infinity' : item.sym;
+        const fontIcon = document.createElement('i');
+        fontIcon.className = `ms ms-${fontSym} ms-cost font-symbol`;
+        fontIcon.style.fontSize = `${currentSize}px`;
+
+        const fontLabel = document.createElement('span');
+        fontLabel.className = 'comp-label';
+        fontLabel.innerText = 'Font';
+
+        fontWrapper.appendChild(fontIcon);
+        fontCol.appendChild(fontWrapper);
+        fontCol.appendChild(fontLabel);
+
+        // Append columns to container
+        compContainer.appendChild(customCol);
+        compContainer.appendChild(fontCol);
+
+        // Labels
+        const label = document.createElement('span');
+        label.className = 'symbol-label';
+        label.innerText = item.sym.toUpperCase();
+
+        const markup = document.createElement('span');
+        markup.className = 'symbol-markup';
+        markup.innerText = item.markup;
+
+        card.appendChild(compContainer);
+        card.appendChild(label);
+        card.appendChild(markup);
+        grid.appendChild(card);
+      });
+    }
+
+    function showToast() {
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2000);
+    }
+
+    // Size Slider Event
+    slider.oninput = (e) => {
+      currentSize = e.target.value;
+      sizeVal.innerText = `${currentSize}px`;
+
+      // Update SVG dimensions
+      const images = document.querySelectorAll('.symbol-image');
+      images.forEach(img => {
+        img.style.width = `${currentSize * 1.1}px`;
+        img.style.height = `${currentSize * 1.1}px`;
+      });
+
+      // Update Font glyph font-sizes
+      const fonts = document.querySelectorAll('.font-symbol');
+      fonts.forEach(f => {
+        f.style.fontSize = `${currentSize}px`;
+      });
+    };
+
+    // Theme Toggle Event
+    themeToggle.onclick = () => {
+      document.body.classList.toggle('light-theme');
+    };
+
+    // Filter Buttons Event
+    filterBtns.forEach(btn => {
+      btn.onclick = (e) => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        currentCategory = e.target.getAttribute('data-category');
+        render();
+      };
+    });
+
+    // Initial render
+    render();
+  </script>
+</body>
+
+</html>

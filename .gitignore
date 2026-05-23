@@ -1,0 +1,18 @@
+# Node & Svelte Framework Targets
+node_modules/
+.svelte-kit/
+build/
+dist/
+.DS_Store
+
+# Environment Secrets
+.env
+.env.*
+!.env.example
+
+# Local Heavy Data & Preprocessor Cache
+local-resources/
+data-preprocessor/node_modules/
+
+# Root-Level Raw Scryfall Downloads (Safety catch)
+default-cards*.json
