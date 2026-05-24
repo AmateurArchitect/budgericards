@@ -13,10 +13,12 @@
 		User,
 		Menu,
 		X,
+		LogOut,
 	} from "lucide-svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { priceStore } from "$lib/stores/prices.svelte.js";
+	import { authStore } from "$lib/stores/auth.svelte.js";
 
 	import Button from "./ui/Button.svelte";
 	import Input from "./ui/Input.svelte";
@@ -29,6 +31,12 @@
 	let showSearchOptions = $state(false);
 	/** @type {HTMLElement | null} */
 	let searchSettingsBtn = $state(null);
+	let showProfileDropdown = $state(false);
+
+	async function handleSignOut() {
+		showProfileDropdown = false;
+		await authStore.signOut();
+	}
 
 	const collections = [
 		{ id: "scryfall", label: "All Cards (Scryfall)" },
@@ -80,6 +88,9 @@
 		const target = /** @type {HTMLElement} */ (e.target);
 		if (!target.closest(".collection-selector")) {
 			showCollectionDropdown = false;
+		}
+		if (!target.closest(".profile-menu-container")) {
+			showProfileDropdown = false;
 		}
 	}
 
@@ -288,9 +299,49 @@
 		{/if}
 
 		<div class="user-auth-bug">
-			<button class="profile-trigger" aria-label="Log In">
-				<span class="user-name">Log In</span>
-			</button>
+			{#if authStore.isLoading}
+				<div class="auth-loading-spinner spinner"></div>
+			{:else if authStore.isAuthenticated && authStore.user}
+				<div class="profile-menu-container">
+					<button 
+						class="profile-trigger" 
+						onclick={() => showProfileDropdown = !showProfileDropdown}
+						aria-expanded={showProfileDropdown}
+						aria-haspopup="menu"
+						aria-label="User menu"
+					>
+						<div class="avatar-circle">
+							{#if authStore.user.user_metadata?.avatar_url}
+								<img src={authStore.user.user_metadata.avatar_url} alt="Avatar" class="avatar-img" />
+							{:else}
+								<span>{authStore.user.email?.charAt(0).toUpperCase()}</span>
+							{/if}
+						</div>
+						<span class="user-name">{authStore.user.email?.split('@')[0]}</span>
+						<ChevronDown size={14} class="chevron {showProfileDropdown ? 'open' : ''}" />
+					</button>
+
+					{#if showProfileDropdown}
+						<div class="profile-dropdown" transition:fade={{ duration: 150 }}>
+							<div class="dropdown-header">
+								<span class="dropdown-email">{authStore.user.email}</span>
+								{#if authStore.user.app_metadata?.provider}
+									<span class="provider-badge">{authStore.user.app_metadata.provider}</span>
+								{/if}
+							</div>
+							<div class="menu-divider"></div>
+							<button class="menu-item destructive" onclick={handleSignOut}>
+								<LogOut size={14} />
+								<span>Sign Out</span>
+							</button>
+						</div>
+					{/if}
+				</div>
+			{:else}
+				<a href="/login" class="profile-trigger font-semibold" style="text-decoration: none;" aria-label="Log In">
+					<span class="user-name">Log In</span>
+				</a>
+			{/if}
 		</div>
 	</div>
 </header>
@@ -620,14 +671,21 @@
 		border-left: 1px solid hsl(var(--border) / 0.5);
 	}
 
+	.profile-menu-container {
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+
 	.profile-trigger {
 		display: flex;
 		align-items: center;
+		gap: 0.625rem;
 		background: none;
 		border: none;
 		cursor: pointer;
-		padding: 0.5rem 1rem;
-		border-radius: var(--radius);
+		padding: 0.375rem 0.75rem;
+		border-radius: var(--radius-md);
 		transition: background-color 0.2s;
 	}
 
@@ -635,7 +693,99 @@
 		background-color: hsl(var(--accent) / 0.4);
 	}
 
+	.avatar-circle {
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		background: hsl(var(--primary));
+		color: #ffffff;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.75rem;
+		font-weight: 700;
+		overflow: hidden;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+	}
 
+	.avatar-img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.profile-trigger :global(.chevron) {
+		opacity: 0.5;
+		transition: transform 0.2s;
+	}
+
+	.profile-trigger :global(.chevron.open) {
+		transform: rotate(180deg);
+	}
+
+	.profile-dropdown {
+		position: absolute;
+		top: calc(100% + 6px);
+		right: 0;
+		width: 220px;
+		background: hsla(var(--popover) / 0.9);
+		backdrop-filter: blur(20px);
+		border: 1px solid hsla(var(--border) / 0.6);
+		border-radius: var(--radius-lg);
+		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+		padding: 6px;
+		z-index: 1000;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.dropdown-header {
+		padding: 8px 12px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.dropdown-email {
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: var(--text-secondary);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.provider-badge {
+		font-size: 0.625rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		border-radius: var(--radius-sm);
+		padding: 1px 4px;
+		width: max-content;
+		color: var(--text-muted);
+	}
+
+	.menu-item.destructive {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: #f87171;
+	}
+
+	.menu-item.destructive:hover {
+		background: #ef4444 !important;
+		color: white !important;
+	}
+
+	.auth-loading-spinner {
+		margin: 0 1rem;
+		width: 16px;
+		height: 16px;
+		border-width: 2px;
+	}
 
 	.user-name {
 		font-size: 0.8125rem;
