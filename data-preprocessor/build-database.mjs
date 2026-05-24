@@ -6,10 +6,22 @@ import StreamArray from 'stream-json/streamers/stream-array.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const INPUT_FILE = path.join(__dirname, '../default-cards-20260506211251.json');
-const OUTPUT_CARDS = path.join(__dirname, 'cards.json');
+const INPUT_FILE = process.argv[2] 
+  ? path.resolve(process.argv[2]) 
+  : path.join(__dirname, '../default-cards-20260506211251.json');
+
+const OUTPUT_DIR = process.argv[3] 
+  ? path.resolve(process.argv[3]) 
+  : path.join(__dirname);
+
+if (!fs.existsSync(OUTPUT_DIR)) {
+  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+}
+
+const OUTPUT_CARDS = path.join(OUTPUT_DIR, 'cards.json');
 const dateString = new Date().toISOString().split('T')[0].replace(/-/g, '_');
-const OUTPUT_PRICES = path.join(__dirname, `prices_${dateString}.json`);
+const OUTPUT_PRICES = path.join(OUTPUT_DIR, `prices_${dateString}.json`);
+const OUTPUT_MANIFEST = path.join(OUTPUT_DIR, 'manifest.json');
 
 const BANNED_LAYOUTS = new Set([
   'planar', 'scheme', 'vanguard', 'token', 'double_faced_token', 
@@ -254,7 +266,35 @@ pipeline.on('end', () => {
   fs.writeFileSync(OUTPUT_PRICES, JSON.stringify(finalPricesMap, null, 2));
   
   console.log(`Successfully compiled ${finalCards.length} cards and ${Object.keys(finalPricesMap).length} price records.`);
-  console.log(`Saved to cards.json and prices_${dateString}.json`);
+  console.log(`Saved output files to ${OUTPUT_DIR}`);
+
+  // Update or generate manifest.json
+  let manifest = { cards_version: "", prices_files: [] };
+  if (fs.existsSync(OUTPUT_MANIFEST)) {
+    try {
+      manifest = JSON.parse(fs.readFileSync(OUTPUT_MANIFEST, 'utf8'));
+    } catch (err) {
+      console.warn("Failed to parse existing manifest.json, creating new one:", err.message);
+    }
+  }
+  
+  // Set cards_version to the current date or random UUID
+  manifest.cards_version = dateString;
+  
+  // Add the newly created price file to the list of historical files if not already present
+  const priceFileName = `prices_${dateString}.json`;
+  if (!manifest.prices_files) {
+    manifest.prices_files = [];
+  }
+  if (!manifest.prices_files.includes(priceFileName)) {
+    manifest.prices_files.push(priceFileName);
+  }
+  
+  // Sort files chronologically if needed (optional)
+  manifest.prices_files.sort();
+  
+  fs.writeFileSync(OUTPUT_MANIFEST, JSON.stringify(manifest, null, 2));
+  console.log(`Updated manifest.json: version ${manifest.cards_version}, tracking ${manifest.prices_files.length} price file(s).`);
 });
 
 pipeline.on('error', (err) => {

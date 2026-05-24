@@ -1,0 +1,59 @@
+name: Weekly Scryfall Sync
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Every Sunday at midnight
+  workflow_dispatch: # Allows manual triggering for testing
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'data-preprocessor/package-lock.json'
+
+      - name: Install Dependencies
+        run: |
+          cd data-preprocessor
+          npm ci
+
+      - name: Create dist directory
+        run: mkdir -p dist
+
+      - name: Download Existing Manifest
+        run: |
+          aws s3 cp s3://mtg-deckbuilder-data/manifest.json dist/manifest.json --endpoint-url $AWS_S3_ENDPOINT || echo "No existing manifest.json found, starting fresh."
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{ secrets.R2_ENDPOINT_URL }}
+
+      - name: Fetch Scryfall Bulk Metadata and Download raw-default-cards.json
+        run: |
+          BULK_URL=$(curl -s https://api.scryfall.com/bulk-data | jq -r '.data[] | select(.type=="default_cards") | .download_uri')
+          curl -L -o raw-default-cards.json "$BULK_URL"
+
+      - name: Run Preprocessor Utility
+        run: node data-preprocessor/build-database.mjs raw-default-cards.json dist
+
+      - name: Compress Outputs with Brotli
+        run: |
+          brotli -q 9 dist/cards.json
+          brotli -q 9 dist/prices_*.json
+
+      - name: Upload to Cloudflare R2
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --acl public-read --follow-symlinks
+        env:
+          AWS_S3_BUCKET: 'mtg-deckbuilder-data'
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{ secrets.R2_ENDPOINT_URL }}
+          SOURCE_DIR: 'dist'
