@@ -83,4 +83,11 @@ const val = myMap[someStringKey];
 	font-size: 0.85em;
 }
 ```
+
+## TypeScript & SvelteKit Environment Types
+
+### Error Signature: "Cannot find module '$env/static/public' or its corresponding type declarations." (or other `$env` modules)
+**Fix Pattern**: Remove the explicit `"include"` block from the root `jsconfig.json` / `tsconfig.json` to allow full inheritance of SvelteKit's generated type files, or explicitly add SvelteKit's auto-generated definitions to the `"include"` array.
+**Logic**: Specifying an `"include"` array in a child `tsconfig.json` / `jsconfig.json` overrides the `"include"` array in SvelteKit's base configuration (`./.svelte-kit/tsconfig.json`). This excludes SvelteKit's generated ambient types (such as `ambient.d.ts`), preventing `$env` imports from resolving.
+
 ```

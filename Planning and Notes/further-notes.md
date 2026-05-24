@@ -33,6 +33,3 @@ Looking at community decks
 ---
 
 
-
-### Architecture & Platform
-

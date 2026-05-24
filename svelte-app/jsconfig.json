@@ -7,10 +7,5 @@
 		"checkJs": true,
 		"allowJs": true,
 		"types": ["node", "vite/client"]
-	},
-	"include": [
-		"src/**/*.js",
-		"src/**/*.svelte",
-		"src/**/*.d.ts"
-	]
+	}
 }
