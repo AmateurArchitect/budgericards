@@ -26,6 +26,7 @@
 	let currentBgIndex = $state(0);
 	let currentBg = $derived(BACKGROUNDS[currentBgIndex]);
 	let isImageLoaded = $state(false);
+	let artistName = $state('');
 
 	onMount(() => {
 		// Pick a random background on mount
@@ -36,6 +37,24 @@
 	$effect(() => {
 		if (authStore.isAuthenticated && !authStore.isLoading) {
 			goto('/');
+		}
+	});
+
+	// Reactively query Scryfall API to get the artist name
+	$effect(() => {
+		if (currentBg) {
+			artistName = '';
+			const queryTitle = currentBg.title.replace(/ (Token|Variant)$/i, '');
+			fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(queryTitle)}`)
+				.then(res => res.json())
+				.then(data => {
+					if (data.artist) {
+						artistName = `Art by ${data.artist}`;
+					}
+				})
+				.catch(err => {
+					console.error('Failed to fetch artist details:', err);
+				});
 		}
 	});
 
@@ -128,10 +147,9 @@
 			/>
 			<div class="art-gradient-overlay"></div>
 			
-			{#if isImageLoaded}
+			{#if isImageLoaded && artistName}
 				<div class="art-info" transition:fade={{ duration: 400 }}>
-					<h2 class="art-title">{currentBg.title}</h2>
-					<p class="art-set">{currentBg.set}</p>
+					<p class="art-artist">{artistName}</p>
 				</div>
 			{/if}
 		{/if}
@@ -146,6 +164,9 @@
 
 			<div class="form-header">
 				<h1 class="form-title">{activeTab === 'login' ? 'Sign In' : 'Create an account'}</h1>
+				<p class="form-description">
+					Welcome to Budgie, the fast, modern deckbuilder for Magic: The Gathering. Plan your decks, search cards instantly, and manage your collection.
+				</p>
 				<p class="form-subtitle">
 					{#if activeTab === 'login'}
 						New to Budgie? 
@@ -168,6 +189,40 @@
 					<p class="text-xs">{successMessage}</p>
 				</div>
 			{/if}
+
+			<!-- Google / Discord OAuth buttons above the email credentials -->
+			<div class="social-login-grid">
+				<button 
+					type="button" 
+					class="social-btn google" 
+					onclick={() => loginWithOAuth('google')}
+					disabled={isSubmitting}
+				>
+					<svg class="social-icon" viewBox="0 0 24 24" width="18" height="18">
+						<path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 14.98 1 12 1 7.35 1 3.37 3.65 1.4 7.56l3.85 2.99c.9-2.7 3.4-4.51 6.75-4.51z"/>
+						<path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.44h6.44c-.28 1.47-1.11 2.72-2.36 3.56l3.66 2.84c2.14-1.98 3.39-4.89 3.39-8.5z"/>
+						<path fill="#FBBC05" d="M5.25 14.57c-.24-.72-.38-1.5-.38-2.31s.14-1.59.38-2.31L1.4 6.95C.51 8.75 0 10.79 0 13s.51 4.25 1.4 6.05l3.85-2.98c-.24-.72-.38-1.5-.38-2.31z"/>
+						<path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.92l-3.66-2.84c-1.01.68-2.32 1.09-4.3 1.09-3.35 0-5.85-1.81-6.75-4.51L1.4 16.81C3.37 20.35 7.35 23 12 23z"/>
+					</svg>
+					<span>Google</span>
+				</button>
+				
+				<button 
+					type="button" 
+					class="social-btn discord" 
+					onclick={() => loginWithOAuth('discord')}
+					disabled={isSubmitting}
+				>
+					<svg class="social-icon" viewBox="0 0 127.14 96.36" width="18" height="18" fill="currentColor">
+						<path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.5-5c.88-.65,1.72-1.34,2.51-2a75.58,75.58,0,0,0,73,0c.79.71,1.63,1.4,2.51,2a68.43,68.43,0,0,1-10.5,5A77.7,77.7,0,0,0,111.41,96.36a105.73,105.73,0,0,0,31-18.83C145,54.65,139.14,31.58,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z"/>
+					</svg>
+					<span>Discord</span>
+				</button>
+			</div>
+
+			<div class="divider">
+				<span class="divider-text">Or continue with email</span>
+			</div>
 
 			<form onsubmit={handleSubmit} class="auth-form">
 				<div class="input-field">
@@ -235,39 +290,6 @@
 					{/if}
 				</Button>
 			</form>
-
-			<div class="divider">
-				<span class="divider-text">Or continue with</span>
-			</div>
-
-			<div class="social-login-grid">
-				<button 
-					type="button" 
-					class="social-btn google" 
-					onclick={() => loginWithOAuth('google')}
-					disabled={isSubmitting}
-				>
-					<svg class="social-icon" viewBox="0 0 24 24" width="18" height="18">
-						<path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 14.98 1 12 1 7.35 1 3.37 3.65 1.4 7.56l3.85 2.99c.9-2.7 3.4-4.51 6.75-4.51z"/>
-						<path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.44h6.44c-.28 1.47-1.11 2.72-2.36 3.56l3.66 2.84c2.14-1.98 3.39-4.89 3.39-8.5z"/>
-						<path fill="#FBBC05" d="M5.25 14.57c-.24-.72-.38-1.5-.38-2.31s.14-1.59.38-2.31L1.4 6.95C.51 8.75 0 10.79 0 13s.51 4.25 1.4 6.05l3.85-2.98c-.24-.72-.38-1.5-.38-2.31z"/>
-						<path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.92l-3.66-2.84c-1.01.68-2.32 1.09-4.3 1.09-3.35 0-5.85-1.81-6.75-4.51L1.4 16.81C3.37 20.35 7.35 23 12 23z"/>
-					</svg>
-					<span>Google</span>
-				</button>
-				
-				<button 
-					type="button" 
-					class="social-btn discord" 
-					onclick={() => loginWithOAuth('discord')}
-					disabled={isSubmitting}
-				>
-					<svg class="social-icon" viewBox="0 0 127.14 96.36" width="18" height="18" fill="currentColor">
-						<path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.5-5c.88-.65,1.72-1.34,2.51-2a75.58,75.58,0,0,0,73,0c.79.71,1.63,1.4,2.51,2a68.43,68.43,0,0,1-10.5,5A77.7,77.7,0,0,0,111.41,96.36a105.73,105.73,0,0,0,31-18.83C145,54.65,139.14,31.58,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z"/>
-					</svg>
-					<span>Discord</span>
-				</button>
-			</div>
 		</div>
 	</div>
 </div>
@@ -311,8 +333,8 @@
 		width: 100%;
 		height: 100%;
 		background: 
-			linear-gradient(to right, rgba(12, 12, 16, 0) 60%, rgba(12, 12, 16, 0.95) 100%),
-			linear-gradient(to top, rgba(12, 12, 16, 0.6) 0%, rgba(12, 12, 16, 0) 50%);
+			linear-gradient(to right, rgba(12, 12, 16, 0) 10%, rgba(12, 12, 16, 1) 92%),
+			linear-gradient(to top, rgba(12, 12, 16, 0.6) 0%, rgba(12, 12, 16, 0) 40%);
 		pointer-events: none;
 	}
 
@@ -327,19 +349,12 @@
 		text-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
 	}
 
-	.art-title {
-		font-size: 2.25rem;
-		font-weight: 800;
-		color: #ffffff;
-		letter-spacing: -0.03em;
-		line-height: 1.1;
-	}
-
-	.art-set {
-		font-size: 0.9375rem;
-		font-weight: 600;
-		color: rgba(255, 255, 255, 0.6);
-		letter-spacing: 0.01em;
+	.art-artist {
+		font-size: 0.6875rem;
+		font-weight: 700;
+		color: rgba(255, 255, 255, 0.45);
+		text-transform: uppercase;
+		letter-spacing: 0.15em;
 	}
 
 	/* Right side Form Pane */
@@ -370,7 +385,7 @@
 		text-decoration: none;
 		font-size: 0.8125rem;
 		font-weight: 600;
-		margin-bottom: 3rem;
+		margin-bottom: 2.5rem;
 		transition: color 0.15s;
 	}
 
@@ -379,20 +394,27 @@
 	}
 
 	.form-header {
-		margin-bottom: 2.5rem;
+		margin-bottom: 2rem;
 	}
 
 	.form-title {
-		font-size: 2rem;
+		font-size: 1.375rem;
 		font-weight: 700;
 		color: #ffffff;
-		letter-spacing: -0.02em;
-		margin-bottom: 0.5rem;
+		letter-spacing: -0.01em;
+		margin-bottom: 0.75rem;
+	}
+
+	.form-description {
+		font-size: 0.8125rem;
+		line-height: 1.5;
+		color: var(--text-secondary);
+		margin-bottom: 1.5rem;
 	}
 
 	.form-subtitle {
-		font-size: 0.875rem;
-		color: var(--text-secondary);
+		font-size: 0.8125rem;
+		color: var(--text-muted);
 	}
 
 	.link-btn {
@@ -519,7 +541,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		margin: 2rem 0;
+		margin: 1.75rem 0;
 	}
 
 	.divider::before {
@@ -617,12 +639,8 @@
 			left: 1.5rem;
 		}
 
-		.art-title {
-			font-size: 1.75rem;
-		}
-
-		.art-set {
-			font-size: 0.8125rem;
+		.art-artist {
+			font-size: 0.625rem;
 		}
 
 		.form-pane {
