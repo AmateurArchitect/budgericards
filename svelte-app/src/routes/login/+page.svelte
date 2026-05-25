@@ -8,7 +8,10 @@
 	import Input from '$lib/components/ui/Input.svelte';
 	import { Eye, EyeOff } from 'lucide-svelte';
 
-	// Auth page tab state: 'login' or 'signup'
+	// Toggle email auth panel visibility
+	let showEmailForm = $state(false);
+
+	// Auth mode switcher inside collapsible panel: 'login' or 'signup'
 	let activeTab = $state('login');
 
 	// Form inputs
@@ -26,7 +29,6 @@
 	let currentBgIndex = $state(0);
 	let currentBg = $derived(BACKGROUNDS[currentBgIndex]);
 	let isImageLoaded = $state(false);
-	let artistName = $state('');
 
 	onMount(() => {
 		// Pick a random background on mount
@@ -37,24 +39,6 @@
 	$effect(() => {
 		if (authStore.isAuthenticated && !authStore.isLoading) {
 			goto('/');
-		}
-	});
-
-	// Reactively query Scryfall API to get the artist name
-	$effect(() => {
-		if (currentBg) {
-			artistName = '';
-			const queryTitle = currentBg.title.replace(/ (Token|Variant)$/i, '');
-			fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(queryTitle)}`)
-				.then(res => res.json())
-				.then(data => {
-					if (data.artist) {
-						artistName = `Art by ${data.artist}`;
-					}
-				})
-				.catch(err => {
-					console.error('Failed to fetch artist details:', err);
-				});
 		}
 	});
 
@@ -147,9 +131,9 @@
 					referrerpolicy="no-referrer"
 				/>
 				
-				{#if isImageLoaded && artistName}
+				{#if isImageLoaded && currentBg.artist}
 					<div class="art-info" transition:fade={{ duration: 400 }}>
-						<p class="art-artist">{artistName}</p>
+						<p class="art-artist">Art by {currentBg.artist}</p>
 					</div>
 				{/if}
 			</div>
@@ -165,43 +149,10 @@
 
 			<div class="form-header">
 				<h1 class="form-title">Budgie</h1>
-				<p class="form-subtitle">
-					{activeTab === 'login' ? 'Sign in to save your work' : 'Register to start building'}
-				</p>
+				<p class="form-subtitle">Sign in to save your work</p>
 			</div>
 
-			<!-- Sliding login/signup switcher tab header -->
-			<div class="tabs-header">
-				<button 
-					class="tab-btn" 
-					class:active={activeTab === 'login'} 
-					onclick={() => { activeTab = 'login'; errorMessage = ''; successMessage = ''; }}
-				>
-					Log In
-				</button>
-				<button 
-					class="tab-btn" 
-					class:active={activeTab === 'signup'} 
-					onclick={() => { activeTab = 'signup'; errorMessage = ''; successMessage = ''; }}
-				>
-					Sign Up
-				</button>
-				<div class="tab-slider" class:slide-right={activeTab === 'signup'}></div>
-			</div>
-
-			{#if errorMessage}
-				<div class="alert alert-error" transition:slide={{ duration: 150 }}>
-					<p class="text-xs">{errorMessage}</p>
-				</div>
-			{/if}
-
-			{#if successMessage}
-				<div class="alert alert-success" transition:slide={{ duration: 150 }}>
-					<p class="text-xs">{successMessage}</p>
-				</div>
-			{/if}
-
-			<!-- Google / Discord OAuth buttons -->
+			<!-- Google / Discord OAuth buttons (Primary) -->
 			<div class="social-login-grid">
 				<button 
 					type="button" 
@@ -231,76 +182,118 @@
 				</button>
 			</div>
 
-			<div class="divider">
-				<span class="divider-text">Or continue with email</span>
+			<!-- Secondary Email Authorization Toggle Link -->
+			<div class="email-toggle-container">
+				<button 
+					type="button" 
+					class="email-toggle-btn"
+					onclick={() => showEmailForm = !showEmailForm}
+				>
+					{showEmailForm ? 'Hide email option' : 'Or sign in with email'}
+				</button>
 			</div>
 
-			<form onsubmit={handleSubmit} class="auth-form">
-				<div class="input-field">
-					<label for="email" class="input-label">Email address</label>
-					<div class="input-wrapper">
-						<Input 
-							type="email" 
-							id="email" 
-							placeholder="email@example.com" 
-							bind:value={email}
-							required
-							disabled={isSubmitting}
-						/>
-					</div>
-				</div>
-
-				<div class="input-field">
-					<label for="password" class="input-label">Password</label>
-					<div class="input-wrapper">
-						<Input 
-							type={showPassword ? "text" : "password"} 
-							id="password" 
-							placeholder="Enter your password" 
-							bind:value={password}
-							required
-							disabled={isSubmitting}
-						/>
+			{#if showEmailForm}
+				<div class="email-auth-section" transition:slide={{ duration: 200 }}>
+					<!-- Sliding login/signup switcher tab header -->
+					<div class="tabs-header">
 						<button 
-							type="button" 
-							class="eye-btn" 
-							onclick={() => showPassword = !showPassword}
-							title={showPassword ? "Hide password" : "Show password"}
+							class="tab-btn" 
+							class:active={activeTab === 'login'} 
+							onclick={() => { activeTab = 'login'; errorMessage = ''; successMessage = ''; }}
 						>
-							{#if showPassword}
-								<EyeOff size={16} />
-							{:else}
-								<Eye size={16} />
-							{/if}
+							Log In
 						</button>
+						<button 
+							class="tab-btn" 
+							class:active={activeTab === 'signup'} 
+							onclick={() => { activeTab = 'signup'; errorMessage = ''; successMessage = ''; }}
+						>
+							Sign Up
+						</button>
+						<div class="tab-slider" class:slide-right={activeTab === 'signup'}></div>
 					</div>
-				</div>
 
-				{#if activeTab === 'signup'}
-					<div class="input-field" transition:slide={{ duration: 150 }}>
-						<label for="confirm-password" class="input-label">Confirm password</label>
-						<div class="input-wrapper">
-							<Input 
-								type={showPassword ? "text" : "password"} 
-								id="confirm-password" 
-								placeholder="Confirm your password" 
-								bind:value={confirmPassword}
-								required
-								disabled={isSubmitting}
-							/>
+					{#if errorMessage}
+						<div class="alert alert-error" transition:slide={{ duration: 150 }}>
+							<p class="text-xs">{errorMessage}</p>
 						</div>
-					</div>
-				{/if}
-
-				<Button type="submit" variant="default" class="submit-btn" disabled={isSubmitting}>
-					{#if isSubmitting}
-						<div class="spinner"></div>
-						<span>Processing...</span>
-					{:else}
-						<span>{activeTab === 'login' ? 'Sign In' : 'Create Account'}</span>
 					{/if}
-				</Button>
-			</form>
+
+					{#if successMessage}
+						<div class="alert alert-success" transition:slide={{ duration: 150 }}>
+							<p class="text-xs">{successMessage}</p>
+						</div>
+					{/if}
+
+					<form onsubmit={handleSubmit} class="auth-form">
+						<div class="input-field">
+							<label for="email" class="input-label">Email address</label>
+							<div class="input-wrapper">
+								<Input 
+									type="email" 
+									id="email" 
+									placeholder="email@example.com" 
+									bind:value={email}
+									required
+									disabled={isSubmitting}
+								/>
+							</div>
+						</div>
+
+						<div class="input-field">
+							<label for="password" class="input-label">Password</label>
+							<div class="input-wrapper">
+								<Input 
+									type={showPassword ? "text" : "password"} 
+									id="password" 
+									placeholder="Enter your password" 
+									bind:value={password}
+									required
+									disabled={isSubmitting}
+								/>
+								<button 
+									type="button" 
+									class="eye-btn" 
+									onclick={() => showPassword = !showPassword}
+									title={showPassword ? "Hide password" : "Show password"}
+								>
+									{#if showPassword}
+										<EyeOff size={16} />
+									{:else}
+										<Eye size={16} />
+									{/if}
+								</button>
+							</div>
+						</div>
+
+						{#if activeTab === 'signup'}
+							<div class="input-field" transition:slide={{ duration: 150 }}>
+								<label for="confirm-password" class="input-label">Confirm password</label>
+								<div class="input-wrapper">
+									<Input 
+										type={showPassword ? "text" : "password"} 
+										id="confirm-password" 
+										placeholder="Confirm your password" 
+										bind:value={confirmPassword}
+										required
+										disabled={isSubmitting}
+									/>
+								</div>
+							</div>
+						{/if}
+
+						<Button type="submit" variant="default" class="submit-btn" disabled={isSubmitting}>
+							{#if isSubmitting}
+								<div class="spinner"></div>
+								<span>Processing...</span>
+							{:else}
+								<span>{activeTab === 'login' ? 'Sign In' : 'Create Account'}</span>
+							{/if}
+						</Button>
+					</form>
+				</div>
+			{/if}
 		</div>
 	</div>
 </div>
@@ -401,11 +394,11 @@
 	}
 
 	.form-header {
-		margin-bottom: 1.5rem;
+		margin-bottom: 2.5rem;
 	}
 
 	.form-title {
-		font-family: Georgia, serif;
+		font-family: Charter, Georgia, serif;
 		font-size: 2.75rem;
 		font-weight: 400;
 		color: #ffffff;
@@ -414,10 +407,39 @@
 	}
 
 	.form-subtitle {
-		font-family: Georgia, serif;
+		font-family: Charter, Georgia, serif;
 		font-style: italic;
 		font-size: 1.05rem;
 		color: #a1a1aa;
+	}
+
+	/* Toggle trigger for email form */
+	.email-toggle-container {
+		display: flex;
+		justify-content: center;
+		margin-top: 1.75rem;
+		margin-bottom: 1rem;
+	}
+
+	.email-toggle-btn {
+		background: none;
+		border: none;
+		color: var(--text-muted);
+		font-size: 0.8125rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: color 0.15s;
+	}
+
+	.email-toggle-btn:hover {
+		color: var(--text-primary);
+		text-decoration: underline;
+	}
+
+	.email-auth-section {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
 	}
 
 	/* Tab sliders */
@@ -568,34 +590,6 @@
 		color: #a7f3d0;
 	}
 
-	/* Divider */
-	.divider {
-		position: relative;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		margin: 1.5rem 0;
-	}
-
-	.divider::before {
-		content: "";
-		position: absolute;
-		width: 100%;
-		height: 1px;
-		background: rgba(255, 255, 255, 0.06);
-		left: 0;
-	}
-
-	.divider-text {
-		position: relative;
-		background: #121214;
-		padding: 0 0.75rem;
-		font-size: 0.75rem;
-		color: var(--text-muted);
-		z-index: 2;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
 
 	/* Social buttons */
 	.social-login-grid {
@@ -692,8 +686,5 @@
 			margin-bottom: 2rem;
 		}
 
-		.divider-text {
-			background: #121214;
-		}
 	}
 </style>
