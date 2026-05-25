@@ -25,10 +25,14 @@
 	let successMessage = $state('');
 	let isSubmitting = $state(false);
 
-	// Background index and load check
+	// Background index, load check, and aspect-ratio tracking
 	let currentBgIndex = $state(0);
 	let currentBg = $derived(BACKGROUNDS[currentBgIndex]);
 	let isImageLoaded = $state(false);
+	let aspectRatio = $state(1.5); // Defaults to landscape
+
+	// Calculate column weight based on aspect ratio (capped between 0.7 and 2.0)
+	let artColumnWeight = $derived(Math.max(0.7, Math.min(2.0, aspectRatio)));
 
 	onMount(() => {
 		// Pick a random background on mount
@@ -39,6 +43,20 @@
 	$effect(() => {
 		if (authStore.isAuthenticated && !authStore.isLoading) {
 			goto('/');
+		}
+	});
+
+	// Reactively detect the background image's natural aspect ratio
+	$effect(() => {
+		if (currentBg) {
+			isImageLoaded = false;
+			const img = new Image();
+			img.referrerPolicy = 'no-referrer';
+			img.src = currentBg.url;
+			img.onload = () => {
+				aspectRatio = img.naturalWidth / img.naturalHeight;
+				isImageLoaded = true;
+			};
 		}
 	});
 
@@ -117,7 +135,7 @@
 	}
 </script>
 
-<div class="login-layout">
+<div class="login-layout" style="grid-template-columns: {artColumnWeight}fr 1fr;">
 	<!-- Left Side: Framed Artwork Container -->
 	<div class="art-pane">
 		{#if currentBg}
@@ -142,17 +160,19 @@
 
 	<!-- Right Side: Minimalist Solid Form Pane -->
 	<div class="form-pane">
-		<div class="form-wrapper">
+		<div class="form-container-inner">
+			<!-- Attached top navigation link -->
 			<a href="/" class="back-link">
 				<span>← Back to deckbuilder</span>
 			</a>
 
+			<div class="form-wrapper">
 			<div class="form-header">
 				<h1 class="form-title">Budgie</h1>
 				<p class="form-subtitle">Sign in to save your work</p>
 			</div>
 
-			<!-- Google / Discord OAuth buttons (Primary) -->
+			<!-- Google / Discord OAuth buttons (Stacked Vertically, 3rem Tall) -->
 			<div class="social-login-grid">
 				<button 
 					type="button" 
@@ -195,7 +215,7 @@
 
 			{#if showEmailForm}
 				<div class="email-auth-section" transition:slide={{ duration: 200 }}>
-					<!-- Sliding login/signup switcher tab header -->
+					<!-- Sliding switcher tab header -->
 					<div class="tabs-header">
 						<button 
 							class="tab-btn" 
@@ -295,13 +315,13 @@
 				</div>
 			{/if}
 		</div>
+		</div>
 	</div>
 </div>
 
 <style>
 	.login-layout {
 		display: grid;
-		grid-template-columns: 1.1fr 1fr;
 		width: 100vw;
 		height: 100vh;
 		overflow: hidden;
@@ -309,6 +329,7 @@
 		padding: 0.75rem;
 		box-sizing: border-box;
 		gap: 0.75rem;
+		transition: grid-template-columns 0.4s cubic-bezier(0.25, 1, 0.5, 1);
 	}
 
 	/* Left side Art Pane */
@@ -359,6 +380,7 @@
 
 	/* Right side Form Pane */
 	.form-pane {
+		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -370,22 +392,41 @@
 		box-sizing: border-box;
 	}
 
+	@media (min-width: 861px) {
+		.form-pane {
+			min-width: 340px; /* Prevent form pane from shrinking below readable size */
+		}
+	}
+
+	.form-container-inner {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		max-width: 320px;
+		min-height: 100%;
+		box-sizing: border-box;
+		padding: 4.5rem 0 2rem 0; /* Space at top for back-link */
+	}
+
 	.form-wrapper {
-		max-width: 400px;
 		width: 100%;
 		display: flex;
 		flex-direction: column;
 	}
 
 	.back-link {
-		align-self: flex-start;
+		position: absolute;
+		top: 1rem;
+		left: 0;
 		display: flex;
 		align-items: center;
 		color: var(--text-muted);
 		text-decoration: none;
 		font-size: 0.8125rem;
 		font-weight: 600;
-		margin-bottom: 2.5rem;
 		transition: color 0.15s;
 	}
 
@@ -395,6 +436,7 @@
 
 	.form-header {
 		margin-bottom: 2.5rem;
+		text-align: center;
 	}
 
 	.form-title {
@@ -590,11 +632,10 @@
 		color: #a7f3d0;
 	}
 
-
-	/* Social buttons */
+	/* Social buttons (Stacked Vertically, 3rem Tall) */
 	.social-login-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
+		display: flex;
+		flex-direction: column;
 		gap: 0.75rem;
 		width: 100%;
 	}
@@ -603,13 +644,13 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.5rem;
+		gap: 0.75rem;
 		background: rgba(255, 255, 255, 0.02);
 		border: 1px solid rgba(255, 255, 255, 0.06);
 		color: var(--text-secondary);
-		height: 2.5rem;
+		height: 3rem;
 		border-radius: var(--radius-md);
-		font-size: 0.875rem;
+		font-size: 0.9375rem;
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.2s;
@@ -645,7 +686,7 @@
 	/* Responsive adaptation for narrow screens / tablets / mobile */
 	@media (max-width: 860px) {
 		.login-layout {
-			grid-template-columns: 1fr;
+			grid-template-columns: 1fr !important;
 			grid-template-rows: 320px 1fr;
 			height: auto;
 			min-height: 100vh;
@@ -672,18 +713,18 @@
 		}
 
 		.form-pane {
-			padding: 2.5rem 1.25rem;
-			align-items: flex-start;
+			padding: 0.5rem 1.25rem 2.5rem 1.25rem;
+			align-items: center;
 			height: auto;
 			overflow-y: visible;
 		}
 
-		.form-wrapper {
-			max-width: 100%;
+		.form-container-inner {
+			min-height: auto;
 		}
 
-		.back-link {
-			margin-bottom: 2rem;
+		.form-wrapper {
+			max-width: 100%;
 		}
 
 	}
