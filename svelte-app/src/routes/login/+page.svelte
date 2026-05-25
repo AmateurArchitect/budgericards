@@ -1,28 +1,28 @@
 <script>
-	import { onMount } from 'svelte';
-	import { fade, slide } from 'svelte/transition';
-	import { authStore } from '$lib/stores/auth.svelte.js';
-	import { BACKGROUNDS } from '$lib/constants/backgrounds.js';
-	import { goto } from '$app/navigation';
-	import Button from '$lib/components/ui/Button.svelte';
-	import Input from '$lib/components/ui/Input.svelte';
-	import { Eye, EyeOff } from 'lucide-svelte';
+	import { onMount } from "svelte";
+	import { fade, slide } from "svelte/transition";
+	import { authStore } from "$lib/stores/auth.svelte.js";
+	import { BACKGROUNDS } from "$lib/constants/backgrounds.js";
+	import { goto } from "$app/navigation";
+	import Button from "$lib/components/ui/Button.svelte";
+	import Input from "$lib/components/ui/Input.svelte";
+	import { Eye, EyeOff, ChevronUp } from "lucide-svelte";
 
 	// Toggle email auth panel visibility
 	let showEmailForm = $state(false);
 
 	// Auth mode switcher inside collapsible panel: 'login' or 'signup'
-	let activeTab = $state('login');
+	let activeTab = $state("login");
 
 	// Form inputs
-	let email = $state('');
-	let password = $state('');
-	let confirmPassword = $state('');
+	let email = $state("");
+	let password = $state("");
+	let confirmPassword = $state("");
 	let showPassword = $state(false);
 
 	// Error & Loading States
-	let errorMessage = $state('');
-	let successMessage = $state('');
+	let errorMessage = $state("");
+	let successMessage = $state("");
 	let isSubmitting = $state(false);
 
 	// Background index, load check, and aspect-ratio tracking
@@ -30,9 +30,7 @@
 	let currentBg = $derived(BACKGROUNDS[currentBgIndex]);
 	let isImageLoaded = $state(false);
 	let aspectRatio = $state(1.5); // Defaults to landscape
-
-	// Calculate column weight based on aspect ratio (capped between 0.7 and 2.0)
-	let artColumnWeight = $derived(Math.max(0.7, Math.min(2.0, aspectRatio)));
+	let formHeight = $state(380);
 
 	onMount(() => {
 		// Pick a random background on mount
@@ -42,7 +40,7 @@
 	// Reactively check if user gets authenticated and redirect
 	$effect(() => {
 		if (authStore.isAuthenticated && !authStore.isLoading) {
-			goto('/');
+			goto("/");
 		}
 	});
 
@@ -51,7 +49,7 @@
 		if (currentBg) {
 			isImageLoaded = false;
 			const img = new Image();
-			img.referrerPolicy = 'no-referrer';
+			img.referrerPolicy = "no-referrer";
 			img.src = currentBg.url;
 			img.onload = () => {
 				aspectRatio = img.naturalWidth / img.naturalHeight;
@@ -64,21 +62,21 @@
 	/** @param {SubmitEvent} e */
 	async function handleSubmit(e) {
 		e.preventDefault();
-		errorMessage = '';
-		successMessage = '';
+		errorMessage = "";
+		successMessage = "";
 
 		if (!email || !password) {
-			errorMessage = 'Please fill out all fields.';
+			errorMessage = "Please fill out all fields.";
 			return;
 		}
 
-		if (activeTab === 'signup') {
+		if (activeTab === "signup") {
 			if (password !== confirmPassword) {
-				errorMessage = 'Passwords do not match.';
+				errorMessage = "Passwords do not match.";
 				return;
 			}
 			if (password.length < 6) {
-				errorMessage = 'Password must be at least 6 characters.';
+				errorMessage = "Password must be at least 6 characters.";
 				return;
 			}
 		}
@@ -86,12 +84,12 @@
 		isSubmitting = true;
 
 		try {
-			const { supabase } = await import('$lib/supabase');
+			const { supabase } = await import("$lib/supabase");
 
-			if (activeTab === 'login') {
+			if (activeTab === "login") {
 				const { error } = await supabase.auth.signInWithPassword({
 					email,
-					password
+					password,
 				});
 				if (error) throw error;
 			} else {
@@ -99,56 +97,64 @@
 					email,
 					password,
 					options: {
-						emailRedirectTo: `${window.location.origin}/auth/callback`
-					}
+						emailRedirectTo: `${window.location.origin}/auth/callback`,
+					},
 				});
 				if (error) throw error;
-				successMessage = 'Sign up successful! Please check your email to verify your account.';
+				successMessage =
+					"Sign up successful! Please check your email to verify your account.";
 			}
 		} catch (err) {
-			console.error('Auth error:', err);
+			console.error("Auth error:", err);
 			// @ts-ignore
-			errorMessage = err.message || 'An error occurred during authentication.';
+			errorMessage =
+				err.message || "An error occurred during authentication.";
 		} finally {
 			isSubmitting = false;
 		}
 	}
 
-	async function loginWithOAuth(/** @type {'google' | 'discord'} */ provider) {
-		errorMessage = '';
+	async function loginWithOAuth(
+		/** @type {'google' | 'discord'} */ provider,
+	) {
+		errorMessage = "";
 		isSubmitting = true;
 		try {
-			const { supabase } = await import('$lib/supabase');
+			const { supabase } = await import("$lib/supabase");
 			const { error } = await supabase.auth.signInWithOAuth({
 				provider,
 				options: {
-					redirectTo: `${window.location.origin}/auth/callback`
-				}
+					redirectTo: `${window.location.origin}/auth/callback`,
+				},
 			});
 			if (error) throw error;
 		} catch (err) {
 			console.error(`${provider} OAuth login failed:`, err);
 			// @ts-ignore
-			errorMessage = err.message || `Could not start login with ${provider}.`;
+			errorMessage =
+				err.message || `Could not start login with ${provider}.`;
 			isSubmitting = false;
 		}
 	}
 </script>
 
-<div class="login-layout" style="grid-template-columns: {artColumnWeight}fr 1fr;">
+<div
+	class="login-layout"
+	style="grid-template-columns: min(calc((100vh - 1.5rem) * {aspectRatio}), 100vw - 2.25rem - 360px) 1fr;"
+>
 	<!-- Left Side: Framed Artwork Container -->
 	<div class="art-pane">
 		{#if currentBg}
 			<div class="art-container">
-				<img 
-					src={currentBg.url} 
-					alt={currentBg.title} 
-					class="art-image" 
+				<img
+					src={currentBg.url}
+					alt={currentBg.title}
+					class="art-image"
 					class:loaded={isImageLoaded}
-					onload={() => isImageLoaded = true}
+					onload={() => (isImageLoaded = true)}
 					referrerpolicy="no-referrer"
 				/>
-				
+
 				{#if isImageLoaded && currentBg.artist}
 					<div class="art-info" transition:fade={{ duration: 400 }}>
 						<p class="art-artist">Art by {currentBg.artist}</p>
@@ -160,161 +166,250 @@
 
 	<!-- Right Side: Minimalist Solid Form Pane -->
 	<div class="form-pane">
-		<div class="form-container-inner">
-			<!-- Attached top navigation link -->
-			<a href="/" class="back-link">
-				<span>← Back to deckbuilder</span>
-			</a>
+		<!-- Attached top navigation link -->
+		<a href="/" class="back-link">
+			<span>← Back to deckbuilder</span>
+		</a>
 
-			<div class="form-wrapper">
-			<div class="form-header">
-				<h1 class="form-title">Budgie</h1>
-				<p class="form-subtitle">Sign in to save your work</p>
-			</div>
+		<div
+			class="form-container-inner"
+			style="--form-height: {formHeight}px;"
+		>
+			<div class="form-wrapper" bind:clientHeight={formHeight}>
+				<div class="form-header">
+					<h1 class="form-title">Budgie</h1>
+					<p class="form-subtitle">Sign in to save your work</p>
+				</div>
 
-			<!-- Google / Discord OAuth buttons (Stacked Vertically, 3rem Tall) -->
-			<div class="social-login-grid">
-				<button 
-					type="button" 
-					class="social-btn google" 
-					onclick={() => loginWithOAuth('google')}
-					disabled={isSubmitting}
-				>
-					<svg class="social-icon" viewBox="0 0 24 24" width="18" height="18">
-						<path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 14.98 1 12 1 7.35 1 3.37 3.65 1.4 7.56l3.85 2.99c.9-2.7 3.4-4.51 6.75-4.51z"/>
-						<path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.44h6.44c-.28 1.47-1.11 2.72-2.36 3.56l3.66 2.84c2.14-1.98 3.39-4.89 3.39-8.5z"/>
-						<path fill="#FBBC05" d="M5.25 14.57c-.24-.72-.38-1.5-.38-2.31s.14-1.59.38-2.31L1.4 6.95C.51 8.75 0 10.79 0 13s.51 4.25 1.4 6.05l3.85-2.98c-.24-.72-.38-1.5-.38-2.31z"/>
-						<path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.92l-3.66-2.84c-1.01.68-2.32 1.09-4.3 1.09-3.35 0-5.85-1.81-6.75-4.51L1.4 16.81C3.37 20.35 7.35 23 12 23z"/>
-					</svg>
-					<span>Google</span>
-				</button>
-				
-				<button 
-					type="button" 
-					class="social-btn discord" 
-					onclick={() => loginWithOAuth('discord')}
-					disabled={isSubmitting}
-				>
-					<svg class="social-icon" viewBox="0 0 127.14 96.36" width="18" height="18" fill="currentColor">
-						<path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.5-5c.88-.65,1.72-1.34,2.51-2a75.58,75.58,0,0,0,73,0c.79.71,1.63,1.4,2.51,2a68.43,68.43,0,0,1-10.5,5A77.7,77.7,0,0,0,111.41,96.36a105.73,105.73,0,0,0,31-18.83C145,54.65,139.14,31.58,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z"/>
-					</svg>
-					<span>Discord</span>
-				</button>
-			</div>
-
-			<!-- Secondary Email Authorization Toggle Link -->
-			<div class="email-toggle-container">
-				<button 
-					type="button" 
-					class="email-toggle-btn"
-					onclick={() => showEmailForm = !showEmailForm}
-				>
-					{showEmailForm ? 'Hide email option' : 'Or sign in with email'}
-				</button>
-			</div>
-
-			{#if showEmailForm}
-				<div class="email-auth-section" transition:slide={{ duration: 200 }}>
-					<!-- Sliding switcher tab header -->
-					<div class="tabs-header">
-						<button 
-							class="tab-btn" 
-							class:active={activeTab === 'login'} 
-							onclick={() => { activeTab = 'login'; errorMessage = ''; successMessage = ''; }}
+				<!-- Google / Discord OAuth buttons (Stacked Vertically, 3rem Tall) -->
+				<div class="social-login-grid">
+					<button
+						type="button"
+						class="social-btn google"
+						onclick={() => loginWithOAuth("google")}
+						disabled={isSubmitting}
+					>
+						<svg
+							class="social-icon"
+							viewBox="0 0 24 24"
+							width="18"
+							height="18"
 						>
-							Log In
-						</button>
-						<button 
-							class="tab-btn" 
-							class:active={activeTab === 'signup'} 
-							onclick={() => { activeTab = 'signup'; errorMessage = ''; successMessage = ''; }}
+							<path
+								fill="#EA4335"
+								d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 14.98 1 12 1 7.35 1 3.37 3.65 1.4 7.56l3.85 2.99c.9-2.7 3.4-4.51 6.75-4.51z"
+							/>
+							<path
+								fill="#4285F4"
+								d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.44h6.44c-.28 1.47-1.11 2.72-2.36 3.56l3.66 2.84c2.14-1.98 3.39-4.89 3.39-8.5z"
+							/>
+							<path
+								fill="#FBBC05"
+								d="M5.25 14.57c-.24-.72-.38-1.5-.38-2.31s.14-1.59.38-2.31L1.4 6.95C.51 8.75 0 10.79 0 13s.51 4.25 1.4 6.05l3.85-2.98c-.24-.72-.38-1.5-.38-2.31z"
+							/>
+							<path
+								fill="#34A853"
+								d="M12 23c3.24 0 5.97-1.07 7.96-2.92l-3.66-2.84c-1.01.68-2.32 1.09-4.3 1.09-3.35 0-5.85-1.81-6.75-4.51L1.4 16.81C3.37 20.35 7.35 23 12 23z"
+							/>
+						</svg>
+						<span>Google</span>
+					</button>
+
+					<button
+						type="button"
+						class="social-btn discord"
+						onclick={() => loginWithOAuth("discord")}
+						disabled={isSubmitting}
+					>
+						<svg
+							class="social-icon"
+							viewBox="0 0 127.14 96.36"
+							width="18"
+							height="18"
+							fill="currentColor"
 						>
-							Sign Up
+							<path
+								d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.5-5c.88-.65,1.72-1.34,2.51-2a75.58,75.58,0,0,0,73,0c.79.71,1.63,1.4,2.51,2a68.43,68.43,0,0,1-10.5,5A77.7,77.7,0,0,0,111.41,96.36a105.73,105.73,0,0,0,31-18.83C145,54.65,139.14,31.58,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z"
+							/>
+						</svg>
+						<span>Discord</span>
+					</button>
+				</div>
+
+				<!-- Secondary Email Authorization Toggle Link -->
+				{#if !showEmailForm}
+					<div class="email-toggle-container">
+						<button
+							type="button"
+							class="email-toggle-btn"
+							onclick={() => (showEmailForm = true)}
+						>
+							Or sign in with email
 						</button>
-						<div class="tab-slider" class:slide-right={activeTab === 'signup'}></div>
 					</div>
+				{/if}
 
-					{#if errorMessage}
-						<div class="alert alert-error" transition:slide={{ duration: 150 }}>
-							<p class="text-xs">{errorMessage}</p>
+				{#if showEmailForm}
+					<div
+						class="email-auth-section"
+						transition:slide={{ duration: 200 }}
+					>
+						<!-- Sliding switcher tab header -->
+						<div class="tabs-header">
+							<button
+								class="tab-btn"
+								class:active={activeTab === "login"}
+								onclick={() => {
+									activeTab = "login";
+									errorMessage = "";
+									successMessage = "";
+								}}
+							>
+								Log In
+							</button>
+							<button
+								class="tab-btn"
+								class:active={activeTab === "signup"}
+								onclick={() => {
+									activeTab = "signup";
+									errorMessage = "";
+									successMessage = "";
+								}}
+							>
+								Create Account
+							</button>
+							<div
+								class="tab-slider"
+								class:slide-right={activeTab === "signup"}
+							></div>
 						</div>
-					{/if}
 
-					{#if successMessage}
-						<div class="alert alert-success" transition:slide={{ duration: 150 }}>
-							<p class="text-xs">{successMessage}</p>
-						</div>
-					{/if}
-
-					<form onsubmit={handleSubmit} class="auth-form">
-						<div class="input-field">
-							<label for="email" class="input-label">Email address</label>
-							<div class="input-wrapper">
-								<Input 
-									type="email" 
-									id="email" 
-									placeholder="email@example.com" 
-									bind:value={email}
-									required
-									disabled={isSubmitting}
-								/>
+						{#if errorMessage}
+							<div
+								class="alert alert-error"
+								transition:slide={{ duration: 150 }}
+							>
+								<p class="text-xs">{errorMessage}</p>
 							</div>
-						</div>
+						{/if}
 
-						<div class="input-field">
-							<label for="password" class="input-label">Password</label>
-							<div class="input-wrapper">
-								<Input 
-									type={showPassword ? "text" : "password"} 
-									id="password" 
-									placeholder="Enter your password" 
-									bind:value={password}
-									required
-									disabled={isSubmitting}
-								/>
-								<button 
-									type="button" 
-									class="eye-btn" 
-									onclick={() => showPassword = !showPassword}
-									title={showPassword ? "Hide password" : "Show password"}
+						{#if successMessage}
+							<div
+								class="alert alert-success"
+								transition:slide={{ duration: 150 }}
+							>
+								<p class="text-xs">{successMessage}</p>
+							</div>
+						{/if}
+
+						<form onsubmit={handleSubmit} class="auth-form">
+							<div class="input-field">
+								<label for="email" class="input-label"
+									>Email address</label
 								>
-									{#if showPassword}
-										<EyeOff size={16} />
-									{:else}
-										<Eye size={16} />
-									{/if}
-								</button>
-							</div>
-						</div>
-
-						{#if activeTab === 'signup'}
-							<div class="input-field" transition:slide={{ duration: 150 }}>
-								<label for="confirm-password" class="input-label">Confirm password</label>
 								<div class="input-wrapper">
-									<Input 
-										type={showPassword ? "text" : "password"} 
-										id="confirm-password" 
-										placeholder="Confirm your password" 
-										bind:value={confirmPassword}
+									<Input
+										type="email"
+										id="email"
+										placeholder="email@example.com"
+										bind:value={email}
 										required
 										disabled={isSubmitting}
 									/>
 								</div>
 							</div>
-						{/if}
 
-						<Button type="submit" variant="default" class="submit-btn" disabled={isSubmitting}>
-							{#if isSubmitting}
-								<div class="spinner"></div>
-								<span>Processing...</span>
-							{:else}
-								<span>{activeTab === 'login' ? 'Sign In' : 'Create Account'}</span>
+							<div class="input-field">
+								<label for="password" class="input-label"
+									>Password</label
+								>
+								<div class="input-wrapper">
+									<Input
+										type={showPassword
+											? "text"
+											: "password"}
+										id="password"
+										placeholder="Enter your password"
+										bind:value={password}
+										required
+										disabled={isSubmitting}
+									/>
+									<button
+										type="button"
+										class="eye-btn"
+										onclick={() =>
+											(showPassword = !showPassword)}
+										title={showPassword
+											? "Hide password"
+											: "Show password"}
+									>
+										{#if showPassword}
+											<EyeOff size={16} />
+										{:else}
+											<Eye size={16} />
+										{/if}
+									</button>
+								</div>
+							</div>
+
+							{#if activeTab === "signup"}
+								<div
+									class="input-field"
+									transition:slide={{ duration: 150 }}
+								>
+									<label
+										for="confirm-password"
+										class="input-label"
+										>Confirm password</label
+									>
+									<div class="input-wrapper">
+										<Input
+											type={showPassword
+												? "text"
+												: "password"}
+											id="confirm-password"
+											placeholder="Confirm your password"
+											bind:value={confirmPassword}
+											required
+											disabled={isSubmitting}
+										/>
+									</div>
+								</div>
 							{/if}
-						</Button>
-					</form>
-				</div>
-			{/if}
-		</div>
+
+							<Button
+								type="submit"
+								variant="default"
+								class="submit-btn"
+								disabled={isSubmitting}
+							>
+								{#if isSubmitting}
+									<div class="spinner"></div>
+									<span>Processing...</span>
+								{:else}
+									<span
+										>{activeTab === "login"
+											? "Sign In"
+											: "Create Account"}</span
+									>
+								{/if}
+							</Button>
+						</form>
+
+						<!-- Divider & Chevron Toggle Button to collapse the email section -->
+						<div class="email-collapse-divider">
+							<button
+								type="button"
+								class="chevron-collapse-btn"
+								onclick={() => (showEmailForm = false)}
+								aria-label="Hide email option"
+							>
+								<ChevronUp size={16} />
+							</button>
+						</div>
+					</div>
+				{/if}
+			</div>
 		</div>
 	</div>
 </div>
@@ -325,10 +420,10 @@
 		width: 100vw;
 		height: 100vh;
 		overflow: hidden;
-		background-color: #121214;
-		padding: 0.75rem;
+		background-color: #0d0d0f;
+		padding: 0.5rem;
 		box-sizing: border-box;
-		gap: 0.75rem;
+		gap: 0.5rem;
 		transition: grid-template-columns 0.4s cubic-bezier(0.25, 1, 0.5, 1);
 	}
 
@@ -343,10 +438,23 @@
 		position: relative;
 		width: 100%;
 		height: 100%;
-		border-radius: 12px;
+		border-radius: 6px;
 		overflow: hidden;
 		background-color: #0c0c0e;
-		border: 1px solid rgba(255, 255, 255, 0.08);
+		box-shadow: 0 0 32px -8px rgba(0, 0, 0, 1);
+	}
+
+	.art-container::after {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		border-radius: 12px;
+		pointer-events: none;
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+		z-index: 5;
 	}
 
 	.art-image {
@@ -386,15 +494,25 @@
 		justify-content: center;
 		width: 100%;
 		height: 100%;
-		background-color: #121214;
+		background: linear-gradient(
+				to bottom,
+				rgba(255, 255, 255, 0.08),
+				rgba(255, 255, 255, 0.05)
+			),
+			#0d0d0d;
+		box-shadow:
+			inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+			0 0 32px -8px rgba(0, 0, 0, 1);
+		border-radius: 6px;
 		padding: 2rem;
 		overflow-y: auto;
 		box-sizing: border-box;
+		container-type: size;
 	}
 
 	@media (min-width: 861px) {
 		.form-pane {
-			min-width: 340px; /* Prevent form pane from shrinking below readable size */
+			min-width: 360px; /* Prevent form pane from shrinking below readable size */
 		}
 	}
 
@@ -408,19 +526,25 @@
 		max-width: 320px;
 		min-height: 100%;
 		box-sizing: border-box;
-		padding: 4.5rem 0 2rem 0; /* Space at top for back-link */
+		padding: 3rem 0 0 0; /* Ensure space at top when scrolled */
 	}
 
 	.form-wrapper {
 		width: 100%;
 		display: flex;
 		flex-direction: column;
+		margin-top: auto;
+		margin-bottom: clamp(
+			1.5rem,
+			calc((100cqw - 320px) / 2),
+			calc((100cqh - 3rem - var(--form-height, 380px)) / 2)
+		);
 	}
 
 	.back-link {
 		position: absolute;
-		top: 1rem;
-		left: 0;
+		top: 2rem;
+		left: 2rem;
 		display: flex;
 		align-items: center;
 		color: var(--text-muted);
@@ -478,10 +602,59 @@
 		text-decoration: underline;
 	}
 
+	.email-collapse-divider {
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-top: 2rem;
+		width: 100%;
+		mask: linear-gradient(
+			to right,
+			transparent,
+			black 25%,
+			black 75%,
+			transparent
+		);
+	}
+
+	.email-collapse-divider::before {
+		content: "";
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: 50%;
+		height: 1px;
+		background: rgba(255, 255, 255, 0.08);
+		z-index: 1;
+	}
+
+	.chevron-collapse-btn {
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0 1rem;
+		height: 1.5rem;
+		background: #0d0d0d;
+		border: none;
+		border-radius: 0;
+		color: var(--text-muted);
+		cursor: pointer;
+		z-index: 2;
+		transition: all 0.2s;
+	}
+
+	.chevron-collapse-btn:hover {
+		color: var(--text-primary);
+		transform: translateY(-1px);
+	}
+
 	.email-auth-section {
 		display: flex;
 		flex-direction: column;
 		width: 100%;
+		margin-top: 1.75rem;
 	}
 
 	/* Tab sliders */
@@ -671,7 +844,7 @@
 	}
 
 	.discord {
-		color: #5865F2;
+		color: #5865f2;
 	}
 	.discord:hover {
 		background: rgba(88, 101, 242, 0.1);
@@ -700,7 +873,7 @@
 		}
 
 		.art-container {
-			border-radius: 8px;
+			border-radius: 6px;
 		}
 
 		.art-info {
@@ -717,6 +890,7 @@
 			align-items: center;
 			height: auto;
 			overflow-y: visible;
+			container-type: inline-size;
 		}
 
 		.form-container-inner {
@@ -727,5 +901,9 @@
 			max-width: 100%;
 		}
 
+		.back-link {
+			top: 1.5rem;
+			left: 1.5rem;
+		}
 	}
 </style>
