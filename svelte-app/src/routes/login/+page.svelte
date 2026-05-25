@@ -134,24 +134,25 @@
 </script>
 
 <div class="login-layout">
-	<!-- Left Side: Full-Height Full-Bleed Artwork Pane -->
+	<!-- Left Side: Framed Artwork Container -->
 	<div class="art-pane">
 		{#if currentBg}
-			<img 
-				src={currentBg.url} 
-				alt={currentBg.title} 
-				class="art-image" 
-				class:loaded={isImageLoaded}
-				onload={() => isImageLoaded = true}
-				referrerpolicy="no-referrer"
-			/>
-			<div class="art-gradient-overlay"></div>
-			
-			{#if isImageLoaded && artistName}
-				<div class="art-info" transition:fade={{ duration: 400 }}>
-					<p class="art-artist">{artistName}</p>
-				</div>
-			{/if}
+			<div class="art-container">
+				<img 
+					src={currentBg.url} 
+					alt={currentBg.title} 
+					class="art-image" 
+					class:loaded={isImageLoaded}
+					onload={() => isImageLoaded = true}
+					referrerpolicy="no-referrer"
+				/>
+				
+				{#if isImageLoaded && artistName}
+					<div class="art-info" transition:fade={{ duration: 400 }}>
+						<p class="art-artist">{artistName}</p>
+					</div>
+				{/if}
+			</div>
 		{/if}
 	</div>
 
@@ -163,19 +164,29 @@
 			</a>
 
 			<div class="form-header">
-				<h1 class="form-title">{activeTab === 'login' ? 'Sign In' : 'Create an account'}</h1>
-				<p class="form-description">
-					Welcome to Budgie, the fast, modern deckbuilder for Magic: The Gathering. Plan your decks, search cards instantly, and manage your collection.
-				</p>
+				<h1 class="form-title">Budgie</h1>
 				<p class="form-subtitle">
-					{#if activeTab === 'login'}
-						New to Budgie? 
-						<button class="link-btn" onclick={() => { activeTab = 'signup'; errorMessage = ''; successMessage = ''; }}>Sign Up</button>
-					{:else}
-						Already have an account? 
-						<button class="link-btn" onclick={() => { activeTab = 'login'; errorMessage = ''; successMessage = ''; }}>Log In</button>
-					{/if}
+					{activeTab === 'login' ? 'Sign in to save your work' : 'Register to start building'}
 				</p>
+			</div>
+
+			<!-- Sliding login/signup switcher tab header -->
+			<div class="tabs-header">
+				<button 
+					class="tab-btn" 
+					class:active={activeTab === 'login'} 
+					onclick={() => { activeTab = 'login'; errorMessage = ''; successMessage = ''; }}
+				>
+					Log In
+				</button>
+				<button 
+					class="tab-btn" 
+					class:active={activeTab === 'signup'} 
+					onclick={() => { activeTab = 'signup'; errorMessage = ''; successMessage = ''; }}
+				>
+					Sign Up
+				</button>
+				<div class="tab-slider" class:slide-right={activeTab === 'signup'}></div>
 			</div>
 
 			{#if errorMessage}
@@ -190,7 +201,7 @@
 				</div>
 			{/if}
 
-			<!-- Google / Discord OAuth buttons above the email credentials -->
+			<!-- Google / Discord OAuth buttons -->
 			<div class="social-login-grid">
 				<button 
 					type="button" 
@@ -301,16 +312,27 @@
 		width: 100vw;
 		height: 100vh;
 		overflow: hidden;
-		background-color: #0c0c10;
+		background-color: #121214;
+		padding: 0.75rem;
+		box-sizing: border-box;
+		gap: 0.75rem;
 	}
 
 	/* Left side Art Pane */
 	.art-pane {
+		width: 100%;
+		height: 100%;
+		box-sizing: border-box;
+	}
+
+	.art-container {
 		position: relative;
 		width: 100%;
 		height: 100%;
+		border-radius: 12px;
 		overflow: hidden;
-		background-color: #070709;
+		background-color: #0c0c0e;
+		border: 1px solid rgba(255, 255, 255, 0.08);
 	}
 
 	.art-image {
@@ -326,33 +348,18 @@
 		opacity: 1;
 	}
 
-	.art-gradient-overlay {
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		background: 
-			linear-gradient(to right, rgba(12, 12, 16, 0) 10%, rgba(12, 12, 16, 1) 92%),
-			linear-gradient(to top, rgba(12, 12, 16, 0.6) 0%, rgba(12, 12, 16, 0) 40%);
-		pointer-events: none;
-	}
-
 	.art-info {
 		position: absolute;
-		bottom: 3.5rem;
-		left: 3.5rem;
+		bottom: 2rem;
+		left: 2rem;
 		z-index: 10;
-		display: flex;
-		flex-direction: column;
-		gap: 0.375rem;
-		text-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+		text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 	}
 
 	.art-artist {
 		font-size: 0.6875rem;
 		font-weight: 700;
-		color: rgba(255, 255, 255, 0.45);
+		color: rgba(255, 255, 255, 0.55);
 		text-transform: uppercase;
 		letter-spacing: 0.15em;
 	}
@@ -364,8 +371,8 @@
 		justify-content: center;
 		width: 100%;
 		height: 100%;
-		background-color: #0c0c10;
-		padding: 4rem;
+		background-color: #121214;
+		padding: 2rem;
 		overflow-y: auto;
 		box-sizing: border-box;
 	}
@@ -394,58 +401,84 @@
 	}
 
 	.form-header {
-		margin-bottom: 2rem;
-	}
-
-	.form-title {
-		font-size: 1.375rem;
-		font-weight: 700;
-		color: #ffffff;
-		letter-spacing: -0.01em;
-		margin-bottom: 0.75rem;
-	}
-
-	.form-description {
-		font-size: 0.8125rem;
-		line-height: 1.5;
-		color: var(--text-secondary);
 		margin-bottom: 1.5rem;
 	}
 
-	.form-subtitle {
-		font-size: 0.8125rem;
-		color: var(--text-muted);
+	.form-title {
+		font-family: Georgia, serif;
+		font-size: 2.75rem;
+		font-weight: 400;
+		color: #ffffff;
+		letter-spacing: -0.02em;
+		margin-bottom: 0.5rem;
 	}
 
-	.link-btn {
+	.form-subtitle {
+		font-family: Georgia, serif;
+		font-style: italic;
+		font-size: 1.05rem;
+		color: #a1a1aa;
+	}
+
+	/* Tab sliders */
+	.tabs-header {
+		position: relative;
+		display: flex;
+		background: rgba(255, 255, 255, 0.03);
+		border: 1px solid rgba(255, 255, 255, 0.06);
+		border-radius: var(--radius-md);
+		padding: 4px;
+		margin-bottom: 1.75rem;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.tab-btn {
+		flex: 1;
 		background: none;
 		border: none;
-		padding: 0;
-		color: hsl(var(--primary));
+		color: var(--text-secondary);
+		font-size: 0.8125rem;
 		font-weight: 600;
+		padding: 0.625rem 0;
 		cursor: pointer;
-		text-decoration: none;
-		font-size: inherit;
-		transition: color 0.15s;
-		margin-left: 0.25rem;
+		z-index: 2;
+		transition: color 0.25s;
+		text-align: center;
 	}
 
-	.link-btn:hover {
-		color: hsl(var(--primary) / 0.8);
-		text-decoration: underline;
+	.tab-btn.active {
+		color: #ffffff;
+	}
+
+	.tab-slider {
+		position: absolute;
+		top: 4px;
+		left: 4px;
+		width: calc(50% - 4px);
+		height: calc(100% - 8px);
+		background: rgba(255, 255, 255, 0.08);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: var(--radius-sm);
+		z-index: 1;
+		transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+	}
+
+	.tab-slider.slide-right {
+		transform: translateX(100%);
 	}
 
 	/* Form Elements */
 	.auth-form {
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: 1.25rem;
 	}
 
 	.input-field {
 		display: flex;
 		flex-direction: column;
-		gap: 0.625rem;
+		gap: 0.5rem;
 	}
 
 	.input-label {
@@ -541,7 +574,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		margin: 1.75rem 0;
+		margin: 1.5rem 0;
 	}
 
 	.divider::before {
@@ -555,7 +588,7 @@
 
 	.divider-text {
 		position: relative;
-		background: #0c0c10;
+		background: #121214;
 		padding: 0 0.75rem;
 		font-size: 0.75rem;
 		color: var(--text-muted);
@@ -569,6 +602,7 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 0.75rem;
+		width: 100%;
 	}
 
 	.social-btn {
@@ -618,25 +652,25 @@
 	@media (max-width: 860px) {
 		.login-layout {
 			grid-template-columns: 1fr;
-			grid-template-rows: 280px 1fr;
+			grid-template-rows: 320px 1fr;
 			height: auto;
 			min-height: 100vh;
 			overflow-y: auto;
+			padding: 0.5rem;
+			gap: 0.5rem;
 		}
 
 		.art-pane {
-			height: 280px;
+			height: 320px;
 		}
 
-		.art-gradient-overlay {
-			background: 
-				linear-gradient(to top, #0c0c10 0%, rgba(12, 12, 16, 0) 100%),
-				linear-gradient(to bottom, rgba(12, 12, 16, 0.5) 0%, rgba(12, 12, 16, 0) 50%);
+		.art-container {
+			border-radius: 8px;
 		}
 
 		.art-info {
-			bottom: 1.5rem;
-			left: 1.5rem;
+			bottom: 1.25rem;
+			left: 1.25rem;
 		}
 
 		.art-artist {
@@ -644,7 +678,7 @@
 		}
 
 		.form-pane {
-			padding: 3rem 1.5rem;
+			padding: 2.5rem 1.25rem;
 			align-items: flex-start;
 			height: auto;
 			overflow-y: visible;
@@ -656,6 +690,10 @@
 
 		.back-link {
 			margin-bottom: 2rem;
+		}
+
+		.divider-text {
+			background: #121214;
 		}
 	}
 </style>
