@@ -106,9 +106,9 @@
 			}
 		} catch (err) {
 			console.error("Auth error:", err);
-			// @ts-ignore
+			const authError = /** @type {any} */ (err);
 			errorMessage =
-				err.message || "An error occurred during authentication.";
+				authError?.message || "An error occurred during authentication.";
 		} finally {
 			isSubmitting = false;
 		}
@@ -130,9 +130,9 @@
 			if (error) throw error;
 		} catch (err) {
 			console.error(`${provider} OAuth login failed:`, err);
-			// @ts-ignore
+			const oauthError = /** @type {any} */ (err);
 			errorMessage =
-				err.message || `Could not start login with ${provider}.`;
+				oauthError?.message || `Could not start login with ${provider}.`;
 			isSubmitting = false;
 		}
 	}
