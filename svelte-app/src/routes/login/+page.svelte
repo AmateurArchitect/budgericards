@@ -7,6 +7,9 @@
 	import Button from "$lib/components/ui/Button.svelte";
 	import Input from "$lib/components/ui/Input.svelte";
 	import { Eye, EyeOff, ChevronUp } from "lucide-svelte";
+	import googleLogo from "$lib/assets/logos/google-logo.svg?raw";
+	import discordLogo from "$lib/assets/logos/Discord-Symbol-Blurple.svg?raw";
+	import budgieLogo from "$lib/assets/logos/budgie-logo.svg?raw";
 
 	// Toggle email auth panel visibility
 	let showEmailForm = $state(false);
@@ -178,48 +181,7 @@
 			<div class="form-wrapper" bind:clientHeight={formHeight}>
 				<!-- Logo Badge -->
 				<div class="logo-badge">
-					<svg
-						viewBox="0 0 100 100"
-						width="44"
-						height="44"
-					>
-						<defs>
-							<linearGradient id="logo-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
-								<stop offset="0%" stop-color="#7be159" />
-								<stop offset="100%" stop-color="#bbf35b" />
-							</linearGradient>
-						</defs>
-						<!-- Back Card (Blue) -->
-						<rect
-							x="15"
-							y="20"
-							width="55"
-							height="38"
-							rx="6"
-							fill="#254bdb"
-							transform="rotate(-40 42.5 39)"
-						/>
-						<!-- Middle Card (Teal) -->
-						<rect
-							x="22"
-							y="27"
-							width="55"
-							height="38"
-							rx="6"
-							fill="#32b37b"
-							transform="rotate(-25 49.5 46)"
-						/>
-						<!-- Front Card (Lime Gradient) -->
-						<rect
-							x="30"
-							y="35"
-							width="55"
-							height="38"
-							rx="6"
-							fill="url(#logo-gradient)"
-							transform="rotate(-10 57.5 54)"
-						/>
-					</svg>
+					{@html budgieLogo}
 				</div>
 
 				<div class="form-header">
@@ -234,29 +196,7 @@
 						onclick={() => loginWithOAuth("google")}
 						disabled={isSubmitting}
 					>
-						<svg
-							class="social-icon"
-							viewBox="0 0 24 24"
-							width="18"
-							height="18"
-						>
-							<path
-								fill="#4285F4"
-								d="M24 12.287c0-.837-.073-1.652-.21-2.438H12.24v4.613h6.582c-.287 1.53-1.155 2.827-2.457 3.693v3.023h3.945c2.31-2.128 3.64-5.263 3.64-8.891z"
-							/>
-							<path
-								fill="#34A853"
-								d="M12.24 24c3.277 0 6.027-1.085 8.037-2.936l-3.945-3.024c-1.092.731-2.492 1.163-4.092 1.163-3.143 0-5.81-2.125-6.757-4.978H1.435v3.125C3.473 21.053 7.427 24 12.24 24z"
-							/>
-							<path
-								fill="#FBBC05"
-								d="M5.483 14.225c-.24-1.163-.37-2.392-.37-3.658 0-1.266.13-2.495.37-3.658V3.784H1.435C.52 5.56 0 7.567 0 9.683c0 2.115.52 4.122 1.435 5.899l4.048-3.125.07-.07.07.07z"
-							/>
-							<path
-								fill="#EA4335"
-								d="M12.24 4.757c1.785 0 3.39.613 4.65 1.815l3.488-3.488C18.267 1.257 15.517 0 12.24 0 7.427 0 3.473 2.947 1.435 6.908l4.048 3.125c.947-2.853 3.614-4.978 6.757-4.978z"
-							/>
-						</svg>
+						{@html googleLogo}
 						<span>Google</span>
 					</button>
 
@@ -266,17 +206,7 @@
 						onclick={() => loginWithOAuth("discord")}
 						disabled={isSubmitting}
 					>
-						<svg
-							class="social-icon"
-							viewBox="0 0 24 24"
-							width="18"
-							height="18"
-							fill="currentColor"
-						>
-							<path
-								d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58 1.33 21.096a.07.07 0 0 0 .038.058c1.33.982 2.656 1.672 3.84 2.156a.07.07 0 0 0 .077-.016c.46-.364.874-.772 1.229-1.226a.07.07 0 0 0-.022-.107c-.454-.25-1.077-.525-1.63-.82a.07.07 0 0 1-.035-.098.07.07 0 0 1 .067-.042c3.55 1.612 7.394 1.612 10.916 0a.07.07 0 0 1 .067.042.07.07 0 0 1-.035.098c-.553.295-1.176.57-1.63.82a.07.07 0 0 0-.022.107c.355.454.77.862 1.229 1.226a.07.07 0 0 0 .077.016c1.184-.484 2.51-1.174 3.84-2.156a.07.07 0 0 0 .038-.058c1.55-6.936.56-12.05-1.39-16.699a.07.07 0 0 0-.032-.027ZM8.02 15.332c-1.185 0-2.156-1.085-2.156-2.419 0-1.333.955-2.419 2.156-2.419 1.21 0 2.176 1.096 2.156 2.419 0 1.334-.955 2.419-2.156 2.419Zm7.975 0c-1.185 0-2.156-1.085-2.156-2.419 0-1.333.955-2.419 2.156-2.419 1.21 0 2.176 1.096 2.156 2.419 0 1.334-.946 2.419-2.156 2.419Z"
-							/>
-						</svg>
+						{@html discordLogo}
 						<span>Discord</span>
 					</button>
 				</div>
@@ -893,19 +823,19 @@
 		transform: translateY(1px);
 	}
 
-	.social-icon {
+	.social-btn :global(svg) {
 		width: 18px;
 		height: 18px;
 		flex-shrink: 0;
 		display: block;
 	}
 
-	.discord .social-icon {
+	.discord :global(svg) {
 		color: #5865f2;
 		transition: color 0.2s;
 	}
 
-	.discord:hover .social-icon {
+	.discord:hover :global(svg) {
 		color: #7289da;
 	}
 
