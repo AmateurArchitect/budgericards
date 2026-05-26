@@ -179,8 +179,8 @@
 			style="--form-height: {formHeight}px;"
 		>
 			<div class="form-wrapper" bind:clientHeight={formHeight}>
-				<!-- Logo Badge -->
-				<div class="logo-badge">
+				<!-- Logo Container -->
+				<div class="logo-container">
 					{@html budgieLogo}
 				</div>
 
@@ -534,20 +534,18 @@
 		color: var(--text-primary);
 	}
 
-	/* Circular Logo badge */
-	.logo-badge {
-		width: 72px;
-		height: 72px;
-		border-radius: 50%;
-		background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 100%);
-		border: 1px solid rgba(255, 255, 255, 0.08);
+	/* Logo container */
+	.logo-container {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		margin: 0 auto 1.5rem auto;
-		box-shadow: 
-			0 10px 25px rgba(0, 0, 0, 0.4),
-			inset 0 1px 0 rgba(255, 255, 255, 0.05);
+		margin: 0 auto 2rem auto;
+	}
+
+	.logo-container :global(svg) {
+		width: 80px;
+		height: auto;
+		display: block;
 	}
 
 	.form-header {
