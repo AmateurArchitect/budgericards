@@ -138,407 +138,437 @@
 	}
 </script>
 
-<div
-	class="login-layout"
-	style="grid-template-columns: min(calc((100vh - 1.5rem) * {aspectRatio}), 100vw - 2.25rem - 360px) 1fr;"
->
-	<!-- Left Side: Framed Artwork Container -->
-	<div class="art-pane">
-		{#if currentBg}
-			<div class="art-container">
-				<img
-					src={currentBg.url}
-					alt={currentBg.title}
-					class="art-image"
-					class:loaded={isImageLoaded}
-					onload={() => (isImageLoaded = true)}
-					referrerpolicy="no-referrer"
+<div class="login-layout">
+	<!-- Background image container with overlay -->
+	{#if currentBg}
+		<div class="bg-overlay-container">
+			<img
+				src={currentBg.url}
+				alt={currentBg.title}
+				class="bg-image"
+				class:loaded={isImageLoaded}
+				onload={() => (isImageLoaded = true)}
+				referrerpolicy="no-referrer"
+			/>
+			<div class="bg-blur-overlay"></div>
+			{#if isImageLoaded && currentBg.artist}
+				<div class="art-info" transition:fade={{ duration: 400 }}>
+					<p class="art-artist">Art by {currentBg.artist}</p>
+				</div>
+			{/if}
+		</div>
+	{/if}
+
+	<!-- Attached top navigation link -->
+	<a href="/" class="back-link">
+		<span>← Back to deckbuilder</span>
+	</a>
+
+	<!-- Centered Login Card -->
+	<div class="login-card" transition:fade={{ duration: 300 }}>
+		<!-- macOS Window Control Dots -->
+		<div class="window-controls">
+			<div class="window-dot red"></div>
+			<div class="window-dot yellow"></div>
+			<div class="window-dot green"></div>
+		</div>
+
+		<!-- Logo Badge -->
+		<div class="logo-badge">
+			<svg
+				viewBox="0 0 100 100"
+				width="44"
+				height="44"
+			>
+				<defs>
+					<linearGradient id="logo-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
+						<stop offset="0%" stop-color="#7be159" />
+						<stop offset="100%" stop-color="#bbf35b" />
+					</linearGradient>
+				</defs>
+				<!-- Back Card (Blue) -->
+				<rect
+					x="15"
+					y="20"
+					width="55"
+					height="38"
+					rx="6"
+					fill="#254bdb"
+					transform="rotate(-40 42.5 39)"
 				/>
+				<!-- Middle Card (Teal) -->
+				<rect
+					x="22"
+					y="27"
+					width="55"
+					height="38"
+					rx="6"
+					fill="#32b37b"
+					transform="rotate(-25 49.5 46)"
+				/>
+				<!-- Front Card (Lime Gradient) -->
+				<rect
+					x="30"
+					y="35"
+					width="55"
+					height="38"
+					rx="6"
+					fill="url(#logo-gradient)"
+					transform="rotate(-10 57.5 54)"
+				/>
+			</svg>
+		</div>
 
-				{#if isImageLoaded && currentBg.artist}
-					<div class="art-info" transition:fade={{ duration: 400 }}>
-						<p class="art-artist">Art by {currentBg.artist}</p>
-					</div>
-				{/if}
+		<div class="form-header">
+			<h1 class="form-title">Sign in to Budgie</h1>
+		</div>
+
+		<div class="form-wrapper">
+			<!-- Google / Discord OAuth buttons -->
+			<div class="social-login-grid">
+				<button
+					type="button"
+					class="social-btn google"
+					onclick={() => loginWithOAuth("google")}
+					disabled={isSubmitting}
+				>
+					<svg
+						class="social-icon"
+						viewBox="0 0 24 24"
+						width="18"
+						height="18"
+					>
+						<path
+							fill="#4285F4"
+							d="M24 12.287c0-.837-.073-1.652-.21-2.438H12.24v4.613h6.582c-.287 1.53-1.155 2.827-2.457 3.693v3.023h3.945c2.31-2.128 3.64-5.263 3.64-8.891z"
+						/>
+						<path
+							fill="#34A853"
+							d="M12.24 24c3.277 0 6.027-1.085 8.037-2.936l-3.945-3.024c-1.092.731-2.492 1.163-4.092 1.163-3.143 0-5.81-2.125-6.757-4.978H1.435v3.125C3.473 21.053 7.427 24 12.24 24z"
+						/>
+						<path
+							fill="#FBBC05"
+							d="M5.483 14.225c-.24-1.163-.37-2.392-.37-3.658 0-1.266.13-2.495.37-3.658V3.784H1.435C.52 5.56 0 7.567 0 9.683c0 2.115.52 4.122 1.435 5.899l4.048-3.125.07-.07.07.07z"
+						/>
+						<path
+							fill="#EA4335"
+							d="M12.24 4.757c1.785 0 3.39.613 4.65 1.815l3.488-3.488C18.267 1.257 15.517 0 12.24 0 7.427 0 3.473 2.947 1.435 6.908l4.048 3.125c.947-2.853 3.614-4.978 6.757-4.978z"
+						/>
+					</svg>
+					<span>Google</span>
+				</button>
+
+				<button
+					type="button"
+					class="social-btn discord"
+					onclick={() => loginWithOAuth("discord")}
+					disabled={isSubmitting}
+				>
+					<svg
+						class="social-icon"
+						viewBox="0 0 24 24"
+						width="18"
+						height="18"
+						fill="currentColor"
+					>
+						<path
+							d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58 1.33 21.096a.07.07 0 0 0 .038.058c1.33.982 2.656 1.672 3.84 2.156a.07.07 0 0 0 .077-.016c.46-.364.874-.772 1.229-1.226a.07.07 0 0 0-.022-.107c-.454-.25-1.077-.525-1.63-.82a.07.07 0 0 1-.035-.098.07.07 0 0 1 .067-.042c3.55 1.612 7.394 1.612 10.916 0a.07.07 0 0 1 .067.042.07.07 0 0 1-.035.098c-.553.295-1.176.57-1.63.82a.07.07 0 0 0-.022.107c.355.454.77.862 1.229 1.226a.07.07 0 0 0 .077.016c1.184-.484 2.51-1.174 3.84-2.156a.07.07 0 0 0 .038-.058c1.55-6.936.56-12.05-1.39-16.699a.07.07 0 0 0-.032-.027ZM8.02 15.332c-1.185 0-2.156-1.085-2.156-2.419 0-1.333.955-2.419 2.156-2.419 1.21 0 2.176 1.096 2.156 2.419 0 1.334-.955 2.419-2.156 2.419Zm7.975 0c-1.185 0-2.156-1.085-2.156-2.419 0-1.333.955-2.419 2.156-2.419 1.21 0 2.176 1.096 2.156 2.419 0 1.334-.946 2.419-2.156 2.419Z"
+						/>
+					</svg>
+					<span>Discord</span>
+				</button>
 			</div>
-		{/if}
-	</div>
 
-	<!-- Right Side: Minimalist Solid Form Pane -->
-	<div class="form-pane">
-		<!-- Attached top navigation link -->
-		<a href="/" class="back-link">
-			<span>← Back to deckbuilder</span>
-		</a>
-
-		<div
-			class="form-container-inner"
-			style="--form-height: {formHeight}px;"
-		>
-			<div class="form-wrapper" bind:clientHeight={formHeight}>
-				<div class="form-header">
-					<h1 class="form-title">Budgie</h1>
-					<p class="form-subtitle">Sign in to save your work</p>
-				</div>
-
-				<!-- Google / Discord OAuth buttons (Stacked Vertically, 3rem Tall) -->
-				<div class="social-login-grid">
+			<!-- Secondary Email Authorization Toggle Link -->
+			{#if !showEmailForm}
+				<div class="email-toggle-container">
 					<button
 						type="button"
-						class="social-btn google"
-						onclick={() => loginWithOAuth("google")}
-						disabled={isSubmitting}
+						class="email-toggle-btn"
+						onclick={() => (showEmailForm = true)}
 					>
-						<svg
-							class="social-icon"
-							viewBox="0 0 24 24"
-							width="18"
-							height="18"
-						>
-							<path
-								fill="#4285F4"
-								d="M24 12.287c0-.837-.073-1.652-.21-2.438H12.24v4.613h6.582c-.287 1.53-1.155 2.827-2.457 3.693v3.023h3.945c2.31-2.128 3.64-5.263 3.64-8.891z"
-							/>
-							<path
-								fill="#34A853"
-								d="M12.24 24c3.277 0 6.027-1.085 8.037-2.936l-3.945-3.024c-1.092.731-2.492 1.163-4.092 1.163-3.143 0-5.81-2.125-6.757-4.978H1.435v3.125C3.473 21.053 7.427 24 12.24 24z"
-							/>
-							<path
-								fill="#FBBC05"
-								d="M5.483 14.225c-.24-1.163-.37-2.392-.37-3.658 0-1.266.13-2.495.37-3.658V3.784H1.435C.52 5.56 0 7.567 0 9.683c0 2.115.52 4.122 1.435 5.899l4.048-3.125.07-.07.07.07z"
-							/>
-							<path
-								fill="#EA4335"
-								d="M12.24 4.757c1.785 0 3.39.613 4.65 1.815l3.488-3.488C18.267 1.257 15.517 0 12.24 0 7.427 0 3.473 2.947 1.435 6.908l4.048 3.125c.947-2.853 3.614-4.978 6.757-4.978z"
-							/>
-						</svg>
-						<span>Google</span>
-					</button>
-
-					<button
-						type="button"
-						class="social-btn discord"
-						onclick={() => loginWithOAuth("discord")}
-						disabled={isSubmitting}
-					>
-						<svg
-							class="social-icon"
-							viewBox="0 0 24 24"
-							width="18"
-							height="18"
-							fill="currentColor"
-						>
-							<path
-								d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58 1.33 21.096a.07.07 0 0 0 .038.058c1.33.982 2.656 1.672 3.84 2.156a.07.07 0 0 0 .077-.016c.46-.364.874-.772 1.229-1.226a.07.07 0 0 0-.022-.107c-.454-.25-1.077-.525-1.63-.82a.07.07 0 0 1-.035-.098.07.07 0 0 1 .067-.042c3.55 1.612 7.394 1.612 10.916 0a.07.07 0 0 1 .067.042.07.07 0 0 1-.035.098c-.553.295-1.176.57-1.63.82a.07.07 0 0 0-.022.107c.355.454.77.862 1.229 1.226a.07.07 0 0 0 .077.016c1.184-.484 2.51-1.174 3.84-2.156a.07.07 0 0 0 .038-.058c1.55-6.936.56-12.05-1.39-16.699a.07.07 0 0 0-.032-.027ZM8.02 15.332c-1.185 0-2.156-1.085-2.156-2.419 0-1.333.955-2.419 2.156-2.419 1.21 0 2.176 1.096 2.156 2.419 0 1.334-.955 2.419-2.156 2.419Zm7.975 0c-1.185 0-2.156-1.085-2.156-2.419 0-1.333.955-2.419 2.156-2.419 1.21 0 2.176 1.096 2.156 2.419 0 1.334-.946 2.419-2.156 2.419Z"
-							/>
-						</svg>
-						<span>Discord</span>
+						Or sign in with email
 					</button>
 				</div>
+			{/if}
 
-				<!-- Secondary Email Authorization Toggle Link -->
-				{#if !showEmailForm}
-					<div class="email-toggle-container">
+			{#if showEmailForm}
+				<div
+					class="email-auth-section"
+					transition:slide={{ duration: 200 }}
+				>
+					<!-- Sliding switcher tab header -->
+					<div class="tabs-header">
 						<button
-							type="button"
-							class="email-toggle-btn"
-							onclick={() => (showEmailForm = true)}
+							class="tab-btn"
+							class:active={activeTab === "login"}
+							onclick={() => {
+								activeTab = "login";
+								errorMessage = "";
+								successMessage = "";
+							}}
 						>
-							Or sign in with email
+							Log In
 						</button>
+						<button
+							class="tab-btn"
+							class:active={activeTab === "signup"}
+							onclick={() => {
+								activeTab = "signup";
+								errorMessage = "";
+								successMessage = "";
+							}}
+						>
+							Create Account
+						</button>
+						<div
+							class="tab-slider"
+							class:slide-right={activeTab === "signup"}
+						></div>
 					</div>
-				{/if}
 
-				{#if showEmailForm}
-					<div
-						class="email-auth-section"
-						transition:slide={{ duration: 200 }}
-					>
-						<!-- Sliding switcher tab header -->
-						<div class="tabs-header">
-							<button
-								class="tab-btn"
-								class:active={activeTab === "login"}
-								onclick={() => {
-									activeTab = "login";
-									errorMessage = "";
-									successMessage = "";
-								}}
+					{#if errorMessage}
+						<div
+							class="alert alert-error"
+							transition:slide={{ duration: 150 }}
+						>
+							<p class="text-xs">{errorMessage}</p>
+						</div>
+					{/if}
+
+					{#if successMessage}
+						<div
+							class="alert alert-success"
+							transition:slide={{ duration: 150 }}
+						>
+							<p class="text-xs">{successMessage}</p>
+						</div>
+					{/if}
+
+					<form onsubmit={handleSubmit} class="auth-form">
+						<div class="input-field">
+							<label for="email" class="input-label"
+								>Email address</label
 							>
-								Log In
-							</button>
-							<button
-								class="tab-btn"
-								class:active={activeTab === "signup"}
-								onclick={() => {
-									activeTab = "signup";
-									errorMessage = "";
-									successMessage = "";
-								}}
-							>
-								Create Account
-							</button>
-							<div
-								class="tab-slider"
-								class:slide-right={activeTab === "signup"}
-							></div>
+							<div class="input-wrapper">
+								<Input
+									type="email"
+									id="email"
+									placeholder="email@example.com"
+									bind:value={email}
+									required
+									disabled={isSubmitting}
+								/>
+							</div>
 						</div>
 
-						{#if errorMessage}
-							<div
-								class="alert alert-error"
-								transition:slide={{ duration: 150 }}
+						<div class="input-field">
+							<label for="password" class="input-label"
+								>Password</label
 							>
-								<p class="text-xs">{errorMessage}</p>
-							</div>
-						{/if}
-
-						{#if successMessage}
-							<div
-								class="alert alert-success"
-								transition:slide={{ duration: 150 }}
-							>
-								<p class="text-xs">{successMessage}</p>
-							</div>
-						{/if}
-
-						<form onsubmit={handleSubmit} class="auth-form">
-							<div class="input-field">
-								<label for="email" class="input-label"
-									>Email address</label
+							<div class="input-wrapper">
+								<Input
+									type={showPassword
+										? "text"
+										: "password"}
+									id="password"
+									placeholder="Enter your password"
+									bind:value={password}
+									required
+									disabled={isSubmitting}
+								/>
+								<button
+									type="button"
+									class="eye-btn"
+									onclick={() =>
+										(showPassword = !showPassword)}
+									title={showPassword
+										? "Hide password"
+										: "Show password"}
 								>
-								<div class="input-wrapper">
-									<Input
-										type="email"
-										id="email"
-										placeholder="email@example.com"
-										bind:value={email}
-										required
-										disabled={isSubmitting}
-									/>
-								</div>
+									{#if showPassword}
+										<EyeOff size={16} />
+									{:else}
+										<Eye size={16} />
+									{/if}
+								</button>
 							</div>
+						</div>
 
-							<div class="input-field">
-								<label for="password" class="input-label"
-									>Password</label
+						{#if activeTab === "signup"}
+							<div
+								class="input-field"
+								transition:slide={{ duration: 150 }}
+							>
+								<label
+									for="confirm-password"
+									class="input-label"
+									>Confirm password</label
 								>
 								<div class="input-wrapper">
 									<Input
 										type={showPassword
 											? "text"
 											: "password"}
-										id="password"
-										placeholder="Enter your password"
-										bind:value={password}
+										id="confirm-password"
+										placeholder="Confirm your password"
+										bind:value={confirmPassword}
 										required
 										disabled={isSubmitting}
 									/>
-									<button
-										type="button"
-										class="eye-btn"
-										onclick={() =>
-											(showPassword = !showPassword)}
-										title={showPassword
-											? "Hide password"
-											: "Show password"}
-									>
-										{#if showPassword}
-											<EyeOff size={16} />
-										{:else}
-											<Eye size={16} />
-										{/if}
-									</button>
 								</div>
 							</div>
+						{/if}
 
-							{#if activeTab === "signup"}
-								<div
-									class="input-field"
-									transition:slide={{ duration: 150 }}
+						<Button
+							type="submit"
+							variant="default"
+							class="submit-btn"
+							disabled={isSubmitting}
+						>
+							{#if isSubmitting}
+								<div class="spinner"></div>
+								<span>Processing...</span>
+							{:else}
+								<span
+									>{activeTab === "login"
+										? "Sign In"
+										: "Create Account"}</span
 								>
-									<label
-										for="confirm-password"
-										class="input-label"
-										>Confirm password</label
-									>
-									<div class="input-wrapper">
-										<Input
-											type={showPassword
-												? "text"
-												: "password"}
-											id="confirm-password"
-											placeholder="Confirm your password"
-											bind:value={confirmPassword}
-											required
-											disabled={isSubmitting}
-										/>
-									</div>
-								</div>
 							{/if}
+						</Button>
+					</form>
 
-							<Button
-								type="submit"
-								variant="default"
-								class="submit-btn"
-								disabled={isSubmitting}
-							>
-								{#if isSubmitting}
-									<div class="spinner"></div>
-									<span>Processing...</span>
-								{:else}
-									<span
-										>{activeTab === "login"
-											? "Sign In"
-											: "Create Account"}</span
-									>
-								{/if}
-							</Button>
-						</form>
-
-						<!-- Divider & Chevron Toggle Button to collapse the email section -->
-						<div class="email-collapse-divider">
-							<button
-								type="button"
-								class="chevron-collapse-btn"
-								onclick={() => (showEmailForm = false)}
-								aria-label="Hide email option"
-							>
-								<ChevronUp size={16} />
-							</button>
-						</div>
+					<!-- Divider & Chevron Toggle Button to collapse the email section -->
+					<div class="email-collapse-divider">
+						<button
+							type="button"
+							class="chevron-collapse-btn"
+							onclick={() => (showEmailForm = false)}
+							aria-label="Hide email option"
+						>
+							<ChevronUp size={16} />
+						</button>
 					</div>
-				{/if}
-			</div>
+				</div>
+			{/if}
 		</div>
 	</div>
 </div>
 
 <style>
 	.login-layout {
-		display: grid;
+		position: relative;
 		width: 100vw;
 		height: 100vh;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		overflow: hidden;
-		background-color: #0d0d0f;
-		padding: 0.5rem;
-		box-sizing: border-box;
-		gap: 0.5rem;
-		transition: grid-template-columns 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-	}
-
-	/* Left side Art Pane */
-	.art-pane {
-		width: 100%;
-		height: 100%;
+		background-color: #0b0b0c;
+		padding: 1.5rem;
 		box-sizing: border-box;
 	}
 
-	.art-container {
-		position: relative;
-		width: 100%;
-		height: 100%;
-		border-radius: 6px;
-		overflow: hidden;
-		background-color: #0c0c0e;
-		box-shadow: 0 0 32px -8px rgba(0, 0, 0, 1);
-	}
-
-	.art-container::after {
-		content: "";
+	/* Full screen background artwork */
+	.bg-overlay-container {
 		position: absolute;
 		top: 0;
 		left: 0;
-		right: 0;
-		bottom: 0;
-		border-radius: 12px;
-		pointer-events: none;
-		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-		z-index: 5;
+		width: 100%;
+		height: 100%;
+		z-index: 1;
 	}
 
-	.art-image {
+	.bg-image {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
-		object-position: center;
 		opacity: 0;
-		transition: opacity 0.8s ease-in-out;
+		filter: blur(24px) brightness(0.25);
+		transition: opacity 1s ease-in-out;
 	}
 
-	.art-image.loaded {
-		opacity: 1;
+	.bg-image.loaded {
+		opacity: 0.55;
+	}
+
+	.bg-blur-overlay {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background: radial-gradient(circle at center, transparent 30%, rgba(11, 11, 12, 0.95) 100%);
 	}
 
 	.art-info {
 		position: absolute;
-		bottom: 2rem;
-		left: 2rem;
+		bottom: 1.5rem;
+		left: 1.5rem;
 		z-index: 10;
-		text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+		text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 	}
 
 	.art-artist {
 		font-size: 0.6875rem;
 		font-weight: 700;
-		color: rgba(255, 255, 255, 0.55);
+		color: rgba(255, 255, 255, 0.35);
 		text-transform: uppercase;
 		letter-spacing: 0.15em;
 	}
 
-	/* Right side Form Pane */
-	.form-pane {
+	/* macOS-style Centered login card */
+	.login-card {
 		position: relative;
-		display: flex;
-		align-items: center;
-		justify-content: center;
 		width: 100%;
-		height: 100%;
-		background: linear-gradient(
-				to bottom,
-				rgba(255, 255, 255, 0.08),
-				rgba(255, 255, 255, 0.05)
-			),
-			#0d0d0d;
-		box-shadow:
-			inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-			0 0 32px -8px rgba(0, 0, 0, 1);
-		border-radius: 6px;
-		padding: 2rem;
-		overflow-y: auto;
-		box-sizing: border-box;
-		container-type: size;
-	}
-
-	@media (min-width: 861px) {
-		.form-pane {
-			min-width: 360px; /* Prevent form pane from shrinking below readable size */
-		}
-	}
-
-	.form-container-inner {
-		position: relative;
+		max-width: 420px;
+		background: rgba(20, 20, 24, 0.80);
+		backdrop-filter: blur(28px);
+		-webkit-backdrop-filter: blur(28px);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		border-radius: 16px;
+		box-shadow: 
+			0 30px 60px rgba(0, 0, 0, 0.6), 
+			inset 0 1px 0 rgba(255, 255, 255, 0.05);
+		padding: 3.5rem 2.5rem 2.5rem 2.5rem;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		justify-content: center;
-		width: 100%;
-		max-width: 320px;
-		min-height: 100%;
-		box-sizing: border-box;
-		padding: 3rem 0 0 0; /* Ensure space at top when scrolled */
+		z-index: 10;
 	}
 
-	.form-wrapper {
-		width: 100%;
+	/* macOS window controls */
+	.window-controls {
+		position: absolute;
+		top: 1.25rem;
+		left: 1.25rem;
 		display: flex;
-		flex-direction: column;
-		margin-top: auto;
-		margin-bottom: clamp(
-			1.5rem,
-			calc((100cqw - 320px) / 2),
-			calc((100cqh - 3rem - var(--form-height, 380px)) / 2)
-		);
+		gap: 6px;
+	}
+
+	.window-dot {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		background-color: rgba(255, 255, 255, 0.08);
+		border: 1px solid rgba(255, 255, 255, 0.03);
+	}
+
+	/* Circular Logo badge */
+	.logo-badge {
+		width: 72px;
+		height: 72px;
+		border-radius: 50%;
+		background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 100%);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-bottom: 1.5rem;
+		box-shadow: 
+			0 10px 25px rgba(0, 0, 0, 0.4),
+			inset 0 1px 0 rgba(255, 255, 255, 0.05);
 	}
 
 	.back-link {
@@ -560,24 +590,22 @@
 	}
 
 	.form-header {
-		margin-bottom: 2.5rem;
+		margin-bottom: 2rem;
 		text-align: center;
 	}
 
 	.form-title {
-		font-family: Charter, Georgia, serif;
-		font-size: 2.75rem;
-		font-weight: 400;
+		font-size: 1.375rem;
+		font-weight: 600;
 		color: #ffffff;
 		letter-spacing: -0.02em;
-		margin-bottom: 0.5rem;
+		margin: 0;
 	}
 
-	.form-subtitle {
-		font-family: Charter, Georgia, serif;
-		font-style: italic;
-		font-size: 1.05rem;
-		color: #a1a1aa;
+	.form-wrapper {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
 	}
 
 	/* Toggle trigger for email form */
@@ -866,53 +894,14 @@
 	}
 
 	/* Responsive adaptation for narrow screens / tablets / mobile */
-	@media (max-width: 860px) {
-		.login-layout {
-			grid-template-columns: 1fr !important;
-			grid-template-rows: 320px 1fr;
-			height: auto;
-			min-height: 100vh;
-			overflow-y: auto;
-			padding: 0.5rem;
-			gap: 0.5rem;
-		}
-
-		.art-pane {
-			height: 320px;
-		}
-
-		.art-container {
-			border-radius: 6px;
-		}
-
-		.art-info {
-			bottom: 1.25rem;
-			left: 1.25rem;
-		}
-
-		.art-artist {
-			font-size: 0.625rem;
-		}
-
-		.form-pane {
-			padding: 0.5rem 1.25rem 2.5rem 1.25rem;
-			align-items: center;
-			height: auto;
-			overflow-y: visible;
-			container-type: inline-size;
-		}
-
-		.form-container-inner {
-			min-height: auto;
-		}
-
-		.form-wrapper {
-			max-width: 100%;
+	@media (max-width: 480px) {
+		.login-card {
+			padding: 2.5rem 1.5rem 1.5rem 1.5rem;
 		}
 
 		.back-link {
-			top: 1.5rem;
-			left: 1.5rem;
+			top: 1rem;
+			left: 1rem;
 		}
 	}
 </style>
