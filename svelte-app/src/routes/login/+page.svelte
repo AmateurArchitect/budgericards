@@ -552,6 +552,7 @@
 		font-size: 0.8125rem;
 		font-weight: 600;
 		transition: color 0.15s;
+		z-index: 10;
 	}
 
 	.back-link:hover {

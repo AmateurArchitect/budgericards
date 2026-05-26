@@ -464,8 +464,7 @@
 		top: calc(100% + 6px);
 		left: 0;
 		width: 240px;
-		background: hsla(var(--popover) / 0.9);
-		backdrop-filter: blur(20px);
+		background: hsl(var(--popover));
 		border: 1px solid hsla(var(--border) / 0.6);
 		border-radius: var(--radius-lg);
 		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
@@ -728,8 +727,7 @@
 		top: calc(100% + 6px);
 		right: 0;
 		width: 220px;
-		background: hsla(var(--popover) / 0.9);
-		backdrop-filter: blur(20px);
+		background: hsl(var(--popover));
 		border: 1px solid hsla(var(--border) / 0.6);
 		border-radius: var(--radius-lg);
 		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
