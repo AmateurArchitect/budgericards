@@ -3,7 +3,7 @@
 	import { fade, scale } from "svelte/transition";
 	import { RESOLVED_ART } from "$lib/constants/resolved-art.js";
 	import selectedArtList from "$lib/constants/selected-art.json";
-	import { Search, X, ChevronLeft, ChevronRight, Eye, Check, Image as ImageIcon } from "lucide-svelte";
+	import { Search, X, ChevronLeft, ChevronRight, Check, Image as ImageIcon } from "lucide-svelte";
 
 	// Filter state
 	let searchQuery = $state("");
@@ -273,20 +273,12 @@
 											/>
 										</div>
 
-										<div class="art-badge">
-											{art.setCode}
-										</div>
-
 										<div class="art-overlay">
 											<div class="art-details">
 												<h3 class="art-name">{art.name}</h3>
-												<p class="art-artist">Art by {art.artist}</p>
-												{#if art.set}
-													<p class="art-set">{art.set} · #{art.collectorNumber}</p>
-												{/if}
-											</div>
-											<div class="view-indicator">
-												<Eye size={16} />
+												<p class="art-meta">
+													{art.setCode} {art.collectorNumber} <span class="meta-separator">|</span> <i class="ms ms-artist-nib" aria-hidden="true"></i> {art.artist}
+												</p>
 											</div>
 										</div>
 									</button>
@@ -353,20 +345,12 @@
 											/>
 										</div>
 
-										<div class="art-badge">
-											{art.setCode}
-										</div>
-
 										<div class="art-overlay text-muted-overlay">
 											<div class="art-details">
 												<h3 class="art-name">{art.name}</h3>
-												<p class="art-artist">Art by {art.artist}</p>
-												{#if art.set}
-													<p class="art-set">{art.set} · #{art.collectorNumber}</p>
-												{/if}
-											</div>
-											<div class="view-indicator">
-												<Eye size={16} />
+												<p class="art-meta">
+													{art.setCode} {art.collectorNumber} <span class="meta-separator">|</span> <i class="ms ms-artist-nib" aria-hidden="true"></i> {art.artist}
+												</p>
 											</div>
 										</div>
 									</button>
@@ -769,8 +753,8 @@
 		color: rgba(255, 255, 255, 0.7) !important;
 	}
 
-	.text-muted-overlay .art-artist {
-		color: rgba(255, 255, 255, 0.5) !important;
+	.text-muted-overlay .art-meta {
+		color: rgba(255, 255, 255, 0.45) !important;
 	}
 
 	/* CSS column masonry layout */
@@ -902,24 +886,6 @@
 		}
 	}
 
-	/* Subtle metadata badge */
-	.art-badge {
-		position: absolute;
-		top: 0.75rem;
-		right: 0.75rem;
-		background: rgba(12, 12, 14, 0.7);
-		backdrop-filter: blur(8px);
-		border: 1px solid rgba(255, 255, 255, 0.06);
-		color: rgba(255, 255, 255, 0.7);
-		font-size: 0.625rem;
-		font-weight: 700;
-		padding: 0.25rem 0.5rem;
-		border-radius: var(--radius-sm);
-		letter-spacing: 0.05em;
-		z-index: 10;
-		transition: opacity 0.2s;
-	}
-
 	/* Hover overlay for details */
 	.art-overlay {
 		position: absolute;
@@ -947,13 +913,6 @@
 		transform: translateY(0);
 	}
 
-	.art-details {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		max-width: 80%;
-	}
-
 	.art-name {
 		font-size: 0.875rem;
 		font-weight: 600;
@@ -963,27 +922,28 @@
 		white-space: nowrap;
 	}
 
-	.art-artist {
+	.art-details {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		max-width: 100%;
+	}
+
+	.art-meta {
 		font-size: 0.75rem;
 		font-weight: 500;
 		color: rgba(255, 255, 255, 0.6);
-	}
-
-	.art-set {
-		font-size: 0.6875rem;
-		color: var(--text-muted);
-	}
-
-	.view-indicator {
-		display: flex;
+		display: inline-flex;
 		align-items: center;
-		justify-content: center;
-		width: 1.75rem;
-		height: 1.75rem;
-		border-radius: 50%;
-		background: rgba(255, 255, 255, 0.08);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		color: #ffffff;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+		margin: 0;
+	}
+
+	.art-meta :global(.ms-artist-nib) {
+		font-size: 0.75rem;
+		color: rgba(255, 255, 255, 0.7);
+		transform: translateY(0.1em);
 	}
 
 	/* Empty state */
@@ -1265,7 +1225,7 @@
 	.select-toggle-btn {
 		position: absolute;
 		top: 0.75rem;
-		left: 0.75rem;
+		right: 0.75rem;
 		z-index: 15;
 		background: rgba(12, 12, 14, 0.6);
 		backdrop-filter: blur(8px);
@@ -1282,8 +1242,7 @@
 		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
-	.art-card-wrapper:hover .select-toggle-btn,
-	.select-toggle-btn.selected {
+	.art-card-wrapper:hover .select-toggle-btn {
 		opacity: 1;
 	}
 
