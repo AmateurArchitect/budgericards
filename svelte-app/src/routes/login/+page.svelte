@@ -3,6 +3,8 @@
 	import { fade, slide } from "svelte/transition";
 	import { authStore } from "$lib/stores/auth.svelte.js";
 	import { BACKGROUNDS } from "$lib/constants/backgrounds.js";
+	import { RESOLVED_ART } from "$lib/constants/resolved-art.js";
+	import selectedArtList from "$lib/constants/selected-art.json";
 	import { goto } from "$app/navigation";
 	import Button from "$lib/components/ui/Button.svelte";
 	import Input from "$lib/components/ui/Input.svelte";
@@ -28,16 +30,20 @@
 	let successMessage = $state("");
 	let isSubmitting = $state(false);
 
+	// Filter backgrounds based on gallery selection
+	const selectedCards = RESOLVED_ART.filter(card => selectedArtList.includes(card.url));
+	const availableBackgrounds = selectedCards.length > 0 ? selectedCards : BACKGROUNDS;
+
 	// Background index, load check, and aspect-ratio tracking
 	let currentBgIndex = $state(0);
-	let currentBg = $derived(BACKGROUNDS[currentBgIndex]);
+	let currentBg = $derived(availableBackgrounds[currentBgIndex]);
 	let isImageLoaded = $state(false);
 	let aspectRatio = $state(1.5); // Defaults to landscape
 	let formHeight = $state(380);
 
 	onMount(() => {
 		// Pick a random background on mount
-		currentBgIndex = Math.floor(Math.random() * BACKGROUNDS.length);
+		currentBgIndex = Math.floor(Math.random() * availableBackgrounds.length);
 	});
 
 	// Reactively check if user gets authenticated and redirect
@@ -151,7 +157,7 @@
 			<div class="art-container">
 				<img
 					src={currentBg.url}
-					alt={currentBg.title}
+					alt={currentBg.name || currentBg.title}
 					class="art-image"
 					class:loaded={isImageLoaded}
 					onload={() => (isImageLoaded = true)}

@@ -14,6 +14,7 @@
 		Menu,
 		X,
 		LogOut,
+		Palette,
 	} from "lucide-svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { searchStore } from "$lib/stores/search.svelte.js";
@@ -287,6 +288,10 @@
 					<Compass size={18} />
 					<span>Explore Decks</span>
 				</a>
+				<a href="/gallery" class="nav-item">
+					<Palette size={18} />
+					<span>Art Gallery</span>
+				</a>
 				<a href="/new" class="nav-item">
 					<PlusCircle size={18} />
 					<span>Create New</span>
@@ -518,7 +523,7 @@
 		min-width: 0;
 	}
 
-	:global(.search-icon) {
+	:global(.search-input-wrapper .search-icon) {
 		position: absolute;
 		left: 0.875rem;
 		color: hsl(var(--muted-foreground));
@@ -527,7 +532,7 @@
 		transition: color 0.2s ease;
 	}
 
-	.is-focused :global(.search-icon) {
+	.is-focused :global(.search-input-wrapper .search-icon) {
 		color: hsl(var(--primary));
 	}
 

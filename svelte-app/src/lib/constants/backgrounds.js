@@ -2,7 +2,7 @@
 export const BACKGROUNDS = [
     {
         "url": "https://www.artofmtg.com/wp-content/uploads/2021/02/Angel-Warrior-Token-Kaldheim-MtG-Art.jpg",
-        "title": "Angel Warrior Token",
+        "title": "Angel Warrior",
         "set": "Battle for Baldur's Gate Tokens",
         "artist": "Alexander Mokhov"
     },
@@ -62,7 +62,7 @@ export const BACKGROUNDS = [
     },
     {
         "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Hengegate-Pathway-Variant-Kaldheim-MtG-Art.jpg",
-        "title": "Hengegate Pathway",
+        "title": "Hengegate Pathway // Mistgate Pathway",
         "set": "Kaldheim",
         "artist": "Yeong-Hao Han"
     },

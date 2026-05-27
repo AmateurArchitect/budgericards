@@ -25,6 +25,26 @@ store.method(state.maybeNull || 'fallback-value');
 let el = $state(/** @type {HTMLElement | null} */ (null));
 ```
 
+### Error Signature: "Property 'X' does not exist on type 'EventTarget'."
+**Fix Pattern**: Narrow the type of `e.currentTarget` (or `e.target`) using an `instanceof HTMLElement` check.
+**Logic**: Svelte event handlers default the type of event targets to `EventTarget`, which does not contain HTML-specific properties or methods (like `blur()` or `focus()`). Checking if the target is an instance of `HTMLElement` allows the compiler to safely narrow its type.
+
+```javascript
+// Before
+if (e.currentTarget) {
+	e.currentTarget.blur();
+}
+// After
+if (e.currentTarget instanceof HTMLElement) {
+	e.currentTarget.blur();
+}
+```
+
+### Error Signature: "Block-scoped variable 'X' used before its declaration." or "Variable 'X' is used before being assigned."
+**Fix Pattern**: Reorder the declarations in the `<script>` tag so that dependent variables (like filtered lists or selections) are defined before they are referenced by other `$derived` or state variables.
+**Logic**: Svelte 5 `$derived` and `$state` statements are compiled into standard block-scoped JS declarations. Referencing a variable declared further down in the file triggers block-scoping errors during TypeScript/static checking.
+
+
 ## JSDoc / Type Definitions
 
 ### Error Signature: "Property 'X' does not exist on type 'Y'"
