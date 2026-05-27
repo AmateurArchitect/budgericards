@@ -111,6 +111,13 @@ const MANUAL_OVERRIDES = {
         set: "Magic 2010",
         setCode: "M10",
         collectorNumber: "68"
+    },
+    "https://www.mtgpics.com/pics/art/fvl/010.jpg": {
+        name: "Mikaeus, the Lunarch",
+        artist: "Steven Belledin",
+        set: "From the Vault: Legends",
+        setCode: "V11",
+        collectorNumber: "6"
     }
 };
 

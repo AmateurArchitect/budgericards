@@ -164,6 +164,15 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/fvl/010.jpg",
+        "name": "Mikaeus, the Lunarch",
+        "artist": "Steven Belledin",
+        "set": "From the Vault: Legends",
+        "setCode": "V11",
+        "collectorNumber": "6"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/eld/288.jpg",
         "name": "Order of Midnight // Alter Fate",
         "artist": "Seb McKinnon",
@@ -213,8 +222,8 @@ export const RESOLVED_ART = [
         "name": "Providence",
         "artist": "Zack Stella",
         "set": "Eldritch Moon",
-        "setCode": "EMN",
-        "collectorNumber": "37"
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -384,8 +393,8 @@ export const RESOLVED_ART = [
         "name": "Canopy Vista",
         "artist": "Adam Paquette",
         "set": "Tarkir: Dragonstorm Commander",
-        "setCode": "TDC",
-        "collectorNumber": "343"
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Landscapes",
@@ -438,8 +447,8 @@ export const RESOLVED_ART = [
         "name": "Flooded Strand",
         "artist": "Alexander Forssberg",
         "set": "Modern Horizons 3",
-        "setCode": "MH3",
-        "collectorNumber": "220"
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Landscapes",
@@ -798,8 +807,8 @@ export const RESOLVED_ART = [
         "name": "Strip Mine",
         "artist": "John Avon",
         "set": "Vintage Masters",
-        "setCode": "VMA",
-        "collectorNumber": "316"
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Landscapes",
