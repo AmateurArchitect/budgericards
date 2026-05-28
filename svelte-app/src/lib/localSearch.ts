@@ -2,41 +2,28 @@
  * localSearch.ts
  *
  * Client-side card search engine backed by IndexedDB (via Dexie).
- * Parses a Scryfall-compatible query string into filter conditions,
+ * Parses a Scryfall-compatible query string into an AST using @sillvva/search,
  * runs the most restrictive index query available, then filters the
- * remaining candidate set in memory.
- *
- * Supported tokens:
- *   bare text            → name contains (case-insensitive)
- *   t: / type:           → type contains
- *   o: / oracle:         → text contains
- *   c: / color:          → colors includes (e.g. c:r or c>=rg)
- *   id: / identity:      → color identity (e.g. id<=bug)
- *   cmc: / mv:           → numeric compare (e.g. cmc>=3 cmc=2 mv<5)
- *   f: / format:         → formats includes (e.g. f:commander)
- *   k: / keyword:        → keywords includes (e.g. k:flying)
- *   price:               → numeric compare against prices table
- *   -prefix              → negates any condition (e.g. -t:land)
- *
- * Printing-specific tokens (set:, cn:, artist:, etc.) are NOT handled here
- * and should be passed through to Scryfall instead. Use isPrintingQuery() to
- * detect these before calling runLocalSearch().
+ * remaining candidate set in memory by evaluating the AST.
  */
 
 import { db, type CleanCard } from '$lib/db';
+import { QueryParser, type ASTNode, type ConditionNode, type NumericOperator } from '@sillvva/search';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type Operator = ':' | '=' | '<' | '>' | '<=' | '>=';
-
-interface Condition {
-	key: string;
-	op: Operator;
-	value: string;
-	negate: boolean;
+// Subclass QueryParser to expose the protected _parse method publicly
+class LocalQueryParser extends QueryParser {
+	public parse(query: string) {
+		return this._parse(query);
+	}
 }
+
+const parser = new LocalQueryParser({
+	validKeys: [
+		't', 'type', 'o', 'oracle', 'c', 'color', 'cmc', 'mv', 'price',
+		'f', 'format', 'k', 'keyword', 'id', 'identity', 'power', 'toughness', 'loyalty'
+	],
+	defaultKey: 'name'
+});
 
 // ---------------------------------------------------------------------------
 // Public helpers
@@ -53,64 +40,16 @@ export function isPrintingQuery(query: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Parser
-// ---------------------------------------------------------------------------
-
-const TOKEN_RE =
-	/(-?)([a-z_]+)\s*(<=|>=|<|>|:|=)\s*"([^"]+)"|(-?)([a-z_]+)\s*(<=|>=|<|>|:|=)\s*(\S+)|(-?)("([^"]+)"|(\S+))/gi;
-
-function parse(query: string): Condition[] {
-	const conditions: Condition[] = [];
-	let match: RegExpExecArray | null;
-
-	// Reset lastIndex before using exec in a loop
-	TOKEN_RE.lastIndex = 0;
-
-	while ((match = TOKEN_RE.exec(query)) !== null) {
-		if (match[2]) {
-			// key op "quoted value"
-			conditions.push({
-				key:    match[2].toLowerCase(),
-				op:     match[3] as Operator,
-				value:  match[4].toLowerCase(),
-				negate: match[1] === '-'
-			});
-		} else if (match[6]) {
-			// key op value
-			conditions.push({
-				key:    match[6].toLowerCase(),
-				op:     match[7] as Operator,
-				value:  match[8].toLowerCase(),
-				negate: match[5] === '-'
-			});
-		} else {
-			// bare word (name search)
-			const raw = (match[11] || match[12] || '').toLowerCase();
-			if (raw) {
-				conditions.push({
-					key:    'name',
-					op:     ':',
-					value:  raw,
-					negate: match[9] === '-'
-				});
-			}
-		}
-	}
-
-	return conditions;
-}
-
-// ---------------------------------------------------------------------------
 // Condition evaluation
 // ---------------------------------------------------------------------------
 
-function evalNumeric(left: number, op: Operator, right: number): boolean {
+function evalNumeric(left: number, op: NumericOperator, right: number): boolean {
 	switch (op) {
 		case '>':  return left > right;
 		case '<':  return left < right;
 		case '>=': return left >= right;
 		case '<=': return left <= right;
-		default:   return left === right; // ':' and '=' both mean equals for numerics
+		default:   return left === right;
 	}
 }
 
@@ -120,53 +59,51 @@ function evalNumeric(left: number, op: Operator, right: number): boolean {
 function expandColors(raw: string): string[] {
 	const colorMap: Record<string, string> = {
 		w: 'W', u: 'U', b: 'B', r: 'R', g: 'G',
-		// guild shorthands
 		uw: 'UW', wb: 'WB', br: 'BR', rg: 'RG', gu: 'GU',
-		// shard / wedge shorthand (expand individually below)
 	};
-	// Try direct alias first, then expand character by character
 	if (colorMap[raw]) return [colorMap[raw]];
 	return raw.split('').map(c => c.toUpperCase()).filter(c => 'WUBRG'.includes(c));
 }
 
 /**
- * Evaluates one condition against one card. Returns true if it matches.
+ * Evaluates one condition node against one card. Returns true if it matches.
  */
-function evalCondition(card: CleanCard, cond: Condition, priceOverride?: number): boolean {
-	const { key, op, value } = cond;
+function evalCondition(card: CleanCard, cond: ConditionNode, priceOverride?: number): boolean {
+	const key = cond.key || 'name';
+	const op = cond.operator || ':';
+	const rawValue = String(cond.value).toLowerCase();
 
 	let match: boolean;
 
 	switch (key) {
 		case 'name':
-			match = card.name.toLowerCase().includes(value);
+			match = card.name.toLowerCase().includes(rawValue);
 			break;
 
 		case 't':
 		case 'type':
-			match = card.type.toLowerCase().includes(value);
+			match = card.type.toLowerCase().includes(rawValue);
 			break;
 
 		case 'o':
 		case 'oracle':
-			match = (card.text ?? '').toLowerCase().includes(value);
+			match = (card.text ?? '').toLowerCase().includes(rawValue);
 			break;
 
 		case 'k':
 		case 'keyword':
-			match = card.keywords.some(k => k.toLowerCase().includes(value));
+			match = card.keywords.some(k => k.toLowerCase().includes(rawValue));
 			break;
 
 		case 'f':
 		case 'format':
-			match = card.formats.map(f => f.toLowerCase()).includes(value);
+			match = card.formats.map(f => f.toLowerCase()).includes(rawValue);
 			break;
 
 		case 'c':
 		case 'color': {
-			const targets = expandColors(value);
+			const targets = expandColors(rawValue);
 			if (op === ':' || op === '=') {
-				// Exact color match (subset)
 				match = targets.every(t => card.colors.includes(t));
 			} else if (op === '>=') {
 				match = targets.every(t => card.colors.includes(t));
@@ -182,17 +119,14 @@ function evalCondition(card: CleanCard, cond: Condition, priceOverride?: number)
 
 		case 'id':
 		case 'identity': {
-			const targets = expandColors(value);
+			const targets = expandColors(rawValue);
 			if (op === ':' || op === '=') {
-				// Identity exactly equals
 				match =
 					targets.every(t => card.identity.includes(t)) &&
 					card.identity.every(c => targets.includes(c));
 			} else if (op === '>=') {
-				// Card's identity is a superset
 				match = targets.every(t => card.identity.includes(t));
 			} else if (op === '<=') {
-				// Card's identity is a subset (fits within commander identity)
 				match = card.identity.every(c => targets.includes(c));
 			} else if (op === '>') {
 				match = targets.every(t => card.identity.includes(t)) && card.identity.length > targets.length;
@@ -204,36 +138,56 @@ function evalCondition(card: CleanCard, cond: Condition, priceOverride?: number)
 
 		case 'cmc':
 		case 'mv':
-			match = evalNumeric(card.cmc ?? 0, op, parseFloat(value));
+			match = evalNumeric(card.cmc ?? 0, op as NumericOperator, parseFloat(rawValue));
 			break;
 
 		case 'power':
-			match = evalNumeric(parseFloat(card.power ?? 'NaN'), op, parseFloat(value));
+			match = evalNumeric(parseFloat(card.power ?? 'NaN'), op as NumericOperator, parseFloat(rawValue));
 			break;
 
 		case 'toughness':
-			match = evalNumeric(parseFloat(card.toughness ?? 'NaN'), op, parseFloat(value));
+			match = evalNumeric(parseFloat(card.toughness ?? 'NaN'), op as NumericOperator, parseFloat(rawValue));
 			break;
 
 		case 'loyalty':
-			match = evalNumeric(parseFloat(card.loyalty ?? 'NaN'), op, parseFloat(value));
+			match = evalNumeric(parseFloat(card.loyalty ?? 'NaN'), op as NumericOperator, parseFloat(rawValue));
 			break;
 
 		case 'price':
 			if (priceOverride === undefined) {
-				// No price data loaded yet — skip filter (include card)
 				match = true;
 			} else {
-				match = evalNumeric(priceOverride, op, parseFloat(value));
+				match = evalNumeric(priceOverride, op as NumericOperator, parseFloat(rawValue));
 			}
 			break;
 
 		default:
-			// Unknown key — skip (don't reject the card)
 			match = true;
 	}
 
-	return cond.negate ? !match : match;
+	return match;
+}
+
+/**
+ * Recursively evaluates an ASTNode against a card.
+ */
+function evaluateNode(node: ASTNode, card: CleanCard, price?: number): boolean {
+	let match = false;
+
+	if (node.type === 'binary') {
+		const leftMatch = evaluateNode(node.left, card, price);
+		if (node.operator === 'AND' || node.operator === '&') {
+			match = leftMatch && evaluateNode(node.right, card, price);
+		} else if (node.operator === 'OR' || node.operator === '|') {
+			match = leftMatch || evaluateNode(node.right, card, price);
+		} else {
+			match = leftMatch;
+		}
+	} else if (node.type === 'condition') {
+		match = evalCondition(card, node, price);
+	}
+
+	return node.negated ? !match : match;
 }
 
 // ---------------------------------------------------------------------------
@@ -241,11 +195,8 @@ function evalCondition(card: CleanCard, cond: Condition, priceOverride?: number)
 // ---------------------------------------------------------------------------
 
 export interface LocalSearchOptions {
-	/** Extra color identity constraint (from commander filter in the UI) */
 	commanderIdentity?: string[];
-	/** Whether lands bypass the color identity check */
 	bypassIdentityForLands?: boolean;
-	/** Max results to return (default: 175) */
 	limit?: number;
 }
 
@@ -258,52 +209,45 @@ export async function runLocalSearch(
 	const trimmed = query.trim();
 	if (!trimmed) return [];
 
-	const conditions = parse(trimmed);
-	if (conditions.length === 0) return [];
+	const parseResult = parser.parse(trimmed);
+	if (!parseResult.ast) return [];
 
-	// ------------------------------------------------------------------
-	// 1. Index-assisted pre-filter using the most selective condition
-	// ------------------------------------------------------------------
+	const needsPrice = parseResult.astConditions.some(c => c.key === 'price');
 
-	// Check if we need price lookups
-	const needsPrice = conditions.some(c => c.key === 'price');
-
-	// Find a good primary index condition (type or format — both are indexed)
-	const typeCond   = conditions.find(c => (c.key === 't' || c.key === 'type') && !c.negate);
-	const formatCond = conditions.find(c => (c.key === 'f' || c.key === 'format') && !c.negate);
-
+	// Determine if the query features logical OR operators.
+	// If it does, we avoid using index pre-filtering to prevent subset issues.
+	const hasOr = trimmed.toLowerCase().includes(' or ') || trimmed.includes('|');
 	let candidates: CleanCard[];
 
-	if (typeCond) {
-		// Use the type index for a prefix scan; we'll refine in-memory
-		candidates = await db.cards
-			.where('type')
-			.startsWithIgnoreCase(typeCond.value)
-			.toArray();
+	if (!hasOr) {
+		const typeCond = parseResult.astConditions.find(c => (c.key === 't' || c.key === 'type') && !c.isNegated);
+		const formatCond = parseResult.astConditions.find(c => (c.key === 'f' || c.key === 'format') && !c.isNegated);
 
-		// Also include cards where type *contains* (not just starts with) the term
-		// because Dexie's startsWith only covers prefix matches
-		if (!typeCond.value.startsWith(typeCond.value)) {
-			const broader = await db.cards
-				.filter(c => c.type.toLowerCase().includes(typeCond.value))
+		if (typeCond) {
+			const typeVal = String(typeCond.value);
+			candidates = await db.cards
+				.where('type')
+				.startsWithIgnoreCase(typeVal)
 				.toArray();
-			const ids = new Set(candidates.map(c => c.id));
-			for (const c of broader) if (!ids.has(c.id)) candidates.push(c);
+
+			if (!typeVal.startsWith(typeVal)) {
+				const broader = await db.cards
+					.filter(c => c.type.toLowerCase().includes(typeVal.toLowerCase()))
+					.toArray();
+				const ids = new Set(candidates.map(c => c.id));
+				for (const c of broader) if (!ids.has(c.id)) candidates.push(c);
+			}
+		} else if (formatCond) {
+			candidates = await db.cards
+				.where('formats')
+				.equals(String(formatCond.value))
+				.toArray();
+		} else {
+			candidates = await db.cards.toArray();
 		}
-	} else if (formatCond) {
-		// Multi-value index — where('*formats').equals(value)
-		candidates = await db.cards
-			.where('formats')
-			.equals(formatCond.value)
-			.toArray();
 	} else {
-		// No suitable index — full table scan (IndexedDB is fast enough for 30k cards)
 		candidates = await db.cards.toArray();
 	}
-
-	// ------------------------------------------------------------------
-	// 2. Fetch prices for price-filtered candidates (single bulk read)
-	// ------------------------------------------------------------------
 
 	let priceMap: Map<string, number> | undefined;
 	if (needsPrice) {
@@ -315,30 +259,16 @@ export async function runLocalSearch(
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// 3. In-memory filter pass
-	// ------------------------------------------------------------------
-
 	const results: CleanCard[] = [];
 
 	for (const card of candidates) {
-		// Skip if we're over the limit
 		if (results.length >= limit) break;
 
 		const price = priceMap?.get(card.id);
-
-		// Check all conditions
-		let pass = true;
-		for (const cond of conditions) {
-			if (!evalCondition(card, cond, price)) {
-				pass = false;
-				break;
-			}
-		}
+		const pass = evaluateNode(parseResult.ast, card, price);
 
 		if (!pass) continue;
 
-		// Commander identity check (applied after condition pass)
 		if (commanderIdentity && commanderIdentity.length > 0) {
 			const isLand = card.type.toLowerCase().includes('land');
 			if (!(bypassIdentityForLands && isLand)) {
