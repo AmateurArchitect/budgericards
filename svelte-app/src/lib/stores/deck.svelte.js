@@ -1,5 +1,8 @@
 import { fetchCollection } from '$lib/api/scryfall.js';
 import { settingsStore } from '$lib/stores/settings.svelte.js';
+import { authStore } from '$lib/stores/auth.svelte.js';
+import { syncService } from '$lib/syncService';
+
 
 const browser = typeof window !== 'undefined';
 
@@ -23,8 +26,9 @@ export const generateId = () => {
 };
 
 function createDeck() {
-	/** @type {Record<string, any> & { name: string, commander: DeckCard[], mainboard: DeckCard[], sideboard: DeckCard[], maybeboard: DeckCard[], garbage: DeckCard[], activeBoard: string, grouping: string, sorting: string, splitView: boolean, coverArt: string | null }} */
+	/** @type {Record<string, any> & { id: string, name: string, commander: DeckCard[], mainboard: DeckCard[], sideboard: DeckCard[], maybeboard: DeckCard[], garbage: DeckCard[], activeBoard: string, grouping: string, sorting: string, splitView: boolean, coverArt: string | null }} */
 	let deck = $state({
+		id: generateId(),
 		name: 'Untitled Deck',
 		commander: [],
 		companion: [],
@@ -101,6 +105,7 @@ function createDeck() {
 					return expanded;
 				};
 
+				deck.id = parsed.id || generateId();
 				deck.name = parsed.name || 'Untitled Deck';
 				deck.commander = expandBoard(parsed.commander);
 				deck.companion = expandBoard(parsed.companion);
@@ -124,10 +129,134 @@ function createDeck() {
 		}
 	}
 
+	let syncState = $state({
+		isSyncing: false,
+		lastSynced: null,
+		error: null
+	});
+
+	let syncTimeout = null;
+	function triggerCloudSync() {
+		if (!browser || !authStore.isAuthenticated) return;
+
+		if (syncTimeout) clearTimeout(syncTimeout);
+		syncTimeout = setTimeout(async () => {
+			await triggerCloudSyncNow();
+		}, 1000);
+	}
+
+	async function triggerCloudSyncNow() {
+		if (!browser || !authStore.isAuthenticated) return;
+
+		syncState.isSyncing = true;
+		try {
+			const deckData = $state.snapshot({
+				name: deck.name,
+				commander: deck.commander,
+				companion: deck.companion,
+				mainboard: deck.mainboard,
+				sideboard: deck.sideboard,
+				maybeboard: deck.maybeboard,
+				garbage: deck.garbage,
+				activeBoard: deck.activeBoard,
+				grouping: deck.grouping,
+				sorting: deck.sorting,
+				sortAscending: deck.sortAscending,
+				splitView: deck.splitView,
+				coverArt: deck.coverArt,
+				format: deck.format,
+				lastNaturalGrouping: deck.lastNaturalGrouping,
+				metadata: metadata
+			});
+
+			const { data, error, updatedId } = await syncService.saveDeck(deck.id, deckData);
+			if (error) throw error;
+
+			if (updatedId) {
+				deck.id = updatedId;
+				const localData = JSON.parse(localStorage.getItem('budgericards_deck') || '{}');
+				localData.id = updatedId;
+				localStorage.setItem('budgericards_deck', JSON.stringify(localData));
+			}
+
+			syncState.lastSynced = Date.now();
+			syncState.error = null;
+		} catch (err) {
+			console.error("Cloud sync failed:", err);
+			syncState.error = err.message || String(err);
+		} finally {
+			syncState.isSyncing = false;
+		}
+	}
+
+	function loadDeckData(cloudDeck) {
+		deck.id = cloudDeck.id;
+		deck.name = cloudDeck.name;
+		deck.commander = cloudDeck.cards.commander || [];
+		deck.companion = cloudDeck.cards.companion || [];
+		deck.mainboard = cloudDeck.cards.mainboard || [];
+		deck.sideboard = cloudDeck.cards.sideboard || [];
+		deck.maybeboard = cloudDeck.cards.maybeboard || [];
+		deck.garbage = cloudDeck.cards.garbage || [];
+		deck.activeBoard = cloudDeck.cards.activeBoard || 'mainboard';
+		deck.grouping = cloudDeck.cards.grouping || 'cmc';
+		deck.sorting = cloudDeck.cards.sorting || 'color';
+		deck.sortAscending = cloudDeck.cards.sortAscending !== false;
+		deck.splitView = !!cloudDeck.cards.splitView;
+		deck.coverArt = cloudDeck.cards.coverArt || null;
+		deck.format = cloudDeck.cards.format || 'Commander';
+		deck.lastNaturalGrouping = cloudDeck.cards.lastNaturalGrouping || 'cmc';
+		
+		Object.assign(metadata, cloudDeck.cards.metadata || {});
+		metadata.updatedAt = new Date(cloudDeck.updated_at).getTime();
+		
+		persist();
+	}
+
+	async function pullDecksFromCloud() {
+		syncState.isSyncing = true;
+		try {
+			const { data, error } = await syncService.fetchDecks();
+			if (error) throw error;
+			if (data && data.length > 0) {
+				const cloudDeck = data.find(d => d.id === deck.id);
+				if (cloudDeck) {
+					const cloudTime = new Date(cloudDeck.updated_at).getTime();
+					const localTime = metadata.updatedAt || 0;
+					if (cloudTime > localTime) {
+						console.log("Loading newer cloud version of deck:", cloudDeck.name);
+						loadDeckData(cloudDeck);
+					} else if (localTime > cloudTime) {
+						console.log("Pushing newer local version of deck to cloud:", deck.name);
+						await triggerCloudSyncNow();
+					}
+				} else {
+					const isEmpty = deck.commander.length === 0 && deck.companion.length === 0 && deck.mainboard.length === 0 && deck.sideboard.length === 0 && deck.maybeboard.length === 0;
+					if (isEmpty && deck.name === 'Untitled Deck') {
+						console.log("Loading latest cloud deck onto empty default local:", data[0].name);
+						loadDeckData(data[0]);
+					} else {
+						console.log("Saving local deck as a new cloud deck:", deck.name);
+						await triggerCloudSyncNow();
+					}
+				}
+			} else {
+				console.log("No cloud decks found. Backing up current local deck to cloud.");
+				await triggerCloudSyncNow();
+			}
+		} catch (err) {
+			console.error("Failed to sync decks with cloud:", err);
+			syncState.error = err.message || String(err);
+		} finally {
+			syncState.isSyncing = false;
+		}
+	}
+
 	function persist() {
 		if (!browser) return;
 		try {
 			const dataToSave = $state.snapshot({
+				id: deck.id,
 				name: deck.name,
 				commander: deck.commander,
 				companion: deck.companion,
@@ -146,6 +275,7 @@ function createDeck() {
 				metadata: metadata
 			});
 			localStorage.setItem('budgericards_deck', JSON.stringify(dataToSave));
+			triggerCloudSync();
 		} catch (err) {
 			const e = /** @type {any} */ (err);
 			if (e.name === 'QuotaExceededError') {
@@ -165,6 +295,13 @@ function createDeck() {
 				if (missingMetadata) {
 					syncMetadata();
 				}
+			}
+		});
+
+		// Watch for user authentication to trigger pulling/syncing cloud decks
+		$effect(() => {
+			if (browser && authStore.isAuthenticated && !authStore.isLoading) {
+				pullDecksFromCloud();
 			}
 		});
 	});
@@ -246,6 +383,9 @@ function createDeck() {
 	}
 
 	return {
+		get id() { return deck.id; },
+		get syncState() { return syncState; },
+		async syncNow() { await triggerCloudSyncNow(); },
 		get name() { return deck.name; },
 		set name(val) { saveHistory(); deck.name = val; persist(); },
 		get activeBoard() { return deck.activeBoard; },

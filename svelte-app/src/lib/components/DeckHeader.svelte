@@ -18,6 +18,9 @@
 		Check,
 		List,
 		Layers,
+		Cloud,
+		CloudOff,
+		RefreshCw,
 	} from "lucide-svelte";
 	import Button from "./ui/Button.svelte";
 	import Input from "./ui/Input.svelte";
@@ -28,6 +31,7 @@
 	import { fade, fly } from "svelte/transition";
 	import { cubicOut, backOut } from "svelte/easing";
 	import { horizontalSlide } from "$lib/utils/transitions.js";
+	import { authStore } from "$lib/stores/auth.svelte.js";
 
 	let showDeckOptionsModal = $state(false);
 	let showViewOptionsModal = $state(false);
@@ -438,6 +442,27 @@
 							</div>
 						{/if}
 					</div>
+
+					{#if authStore.isAuthenticated}
+						<div class="sync-indicator-container">
+							{#if deckStore.syncState.isSyncing}
+								<span class="sync-status is-syncing" title="Syncing with cloud...">
+									<RefreshCw size={11} class="icon animate-spin" />
+									<span>Syncing...</span>
+								</span>
+							{:else if deckStore.syncState.error}
+								<span class="sync-status has-error" title={deckStore.syncState.error}>
+									<CloudOff size={11} class="icon" />
+									<span>Error</span>
+								</span>
+							{:else}
+								<span class="sync-status is-synced" title={deckStore.syncState.lastSynced ? `Last synced at ${new Date(deckStore.syncState.lastSynced).toLocaleTimeString()}` : 'Saved to cloud'}>
+									<Cloud size={11} class="icon" />
+									<span>Synced</span>
+								</span>
+							{/if}
+						</div>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -1172,5 +1197,47 @@
 
 	.select-item:hover .checkbox-indicator {
 		border-color: white;
+	}
+
+	.sync-indicator-container {
+		display: flex;
+		align-items: center;
+		padding-left: 0.75rem;
+		border-left: 1px solid hsl(var(--border) / 0.5);
+		height: 14px;
+	}
+
+	.sync-status {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.sync-status.is-syncing {
+		color: hsl(var(--muted-foreground));
+	}
+
+	.sync-status.has-error {
+		color: #f87171;
+	}
+
+	.sync-status.is-synced {
+		color: #34d399;
+	}
+
+	.sync-status :global(.icon) {
+		opacity: 0.8;
+	}
+
+	@keyframes spin {
+		from { transform: rotate(0deg); }
+		to { transform: rotate(360deg); }
+	}
+
+	:global(.animate-spin) {
+		animation: spin 1s linear infinite;
 	}
 </style>
