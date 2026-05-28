@@ -47,7 +47,7 @@
 	const frontImgUrl = $derived(
 		isDfc
 			? card.card_faces[0].image_uris.normal
-			: card?.image_uris?.normal || "",
+			: card?.image_uris?.normal || card?.image || "",
 	);
 	const backImgUrl = $derived(
 		isDfc ? card.card_faces[1].image_uris.normal : "",

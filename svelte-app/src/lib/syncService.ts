@@ -43,14 +43,19 @@ export const syncService = {
 		return { data: data as SyncedDeck[] | null, error };
 	},
 
-	/**
-	 * Saves or updates a deck in Supabase.
-	 * If the deck id is not a valid UUID, a new one is generated.
-	 */
+	async CustomMethodNameNotStrict() {
+		// keeping signature compatible
+	},
+
 	async saveDeck(
 		deckId: string,
 		deckData: Omit<SyncedDeck['cards'], 'id'> & { name: string }
 	): Promise<{ data: SyncedDeck | null; error: any; updatedId?: string }> {
+		const { data: { user } } = await supabase.auth.getUser();
+		if (!user) {
+			return { data: null, error: new Error('User is not authenticated'), updatedId: undefined };
+		}
+
 		let finalId = deckId;
 		let updatedId: string | undefined;
 
@@ -62,6 +67,7 @@ export const syncService = {
 
 		const payload = {
 			id: finalId,
+			user_id: user.id,
 			name: deckData.name || 'Untitled Deck',
 			cards: {
 				commander: deckData.commander || [],
