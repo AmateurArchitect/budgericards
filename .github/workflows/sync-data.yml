@@ -57,8 +57,7 @@ jobs:
             aws s3 cp "$f" "s3://mtg-deckbuilder-data/$key" \
               --endpoint-url $AWS_S3_ENDPOINT \
               --content-encoding br \
-              --content-type application/json \
-              --acl public-read
+              --content-type application/json
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -70,8 +69,7 @@ jobs:
         run: |
           aws s3 cp dist/manifest.json s3://mtg-deckbuilder-data/manifest.json \
             --endpoint-url $AWS_S3_ENDPOINT \
-            --content-type application/json \
-            --acl public-read
+            --content-type application/json
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
