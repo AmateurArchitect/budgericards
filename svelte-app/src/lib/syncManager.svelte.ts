@@ -18,21 +18,20 @@
  */
 
 import { db, type CleanCard, type PriceRecord } from '$lib/db';
+import { PUBLIC_R2_BASE_URL } from '$env/static/public';
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
 
-// During dev, PUBLIC_R2_BASE_URL is unset → falls back to '/'.
-// In production, set it to your Cloudflare R2 public bucket URL,
-// e.g. https://pub-xxxxxxxx.r2.dev
-const BASE_URL: string =
-	(typeof import.meta !== 'undefined' &&
-		(import.meta as Record<string, any>).env?.PUBLIC_R2_BASE_URL) ||
-	'';
+// PUBLIC_R2_BASE_URL is set in .env (and in Cloudflare Pages environment variables).
+// Leave it blank to fall back to /static/ for local development.
+// Example: https://pub-xxxxxxxx.r2.dev
+const BASE_URL: string = PUBLIC_R2_BASE_URL || '';
 
-const MANIFEST_URL   = BASE_URL ? `${BASE_URL}/manifest.json`  : '/manifest.json';
-const CARDS_BASE_URL = BASE_URL ? `${BASE_URL}/cards.json`      : '/cards.json';
+const MANIFEST_URL   = BASE_URL ? `${BASE_URL}/manifest.json` : '/manifest.json';
+const CARDS_BASE_URL = BASE_URL ? `${BASE_URL}/cards.json`    : '/cards.json';
+
 
 const VERSION_KEY = 'budgericards_cards_version';
 const CHUNK_SIZE  = 500; // rows per bulk-insert batch

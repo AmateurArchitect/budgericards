@@ -44,18 +44,35 @@ jobs:
       - name: Run Preprocessor Utility
         run: node data-preprocessor/build-database.mjs raw-default-cards.json dist
 
-      - name: Compress Outputs with Brotli
+      - name: Compress Data Files with Brotli
         run: |
-          brotli -q 9 dist/cards.json
-          brotli -q 9 dist/prices_*.json
+          brotli -q 9 -o dist/cards.json.br dist/cards.json
+          for f in dist/prices_*.json; do brotli -q 9 -o "${f}.br" "$f"; done
 
-      - name: Upload to Cloudflare R2
-        uses: jakejarvis/s3-sync-action@master
-        with:
-          args: --acl public-read --follow-symlinks
+      - name: Upload Compressed Data Files to R2
+        # Upload .br files with correct Content-Encoding so browsers auto-decompress
+        run: |
+          for f in dist/*.br; do
+            key=$(basename "$f" .br)
+            aws s3 cp "$f" "s3://mtg-deckbuilder-data/$key" \
+              --endpoint-url $AWS_S3_ENDPOINT \
+              --content-encoding br \
+              --content-type application/json \
+              --acl public-read
+          done
         env:
-          AWS_S3_BUCKET: 'mtg-deckbuilder-data'
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_S3_ENDPOINT: ${{ secrets.R2_ENDPOINT_URL }}
-          SOURCE_DIR: 'dist'
+
+      - name: Upload Manifest to R2
+        # manifest.json is tiny — upload uncompressed so it always loads fast
+        run: |
+          aws s3 cp dist/manifest.json s3://mtg-deckbuilder-data/manifest.json \
+            --endpoint-url $AWS_S3_ENDPOINT \
+            --content-type application/json \
+            --acl public-read
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{ secrets.R2_ENDPOINT_URL }}
