@@ -2,6 +2,8 @@ import { scryfallFetch } from "$lib/api/scryfall.js";
 import { priceStore } from "$lib/stores/prices.svelte.js";
 import { deckStore } from "$lib/stores/deck.svelte.js";
 import { settingsStore } from "$lib/stores/settings.svelte.js";
+import { syncManager } from "$lib/syncManager.svelte.ts";
+import { runLocalSearch, isPrintingQuery } from "$lib/localSearch.ts";
 
 function createSearch() {
 	let state = $state({
@@ -82,27 +84,30 @@ function createSearch() {
 		} else if (type === "cmc") {
 			comparison = (a.cmc || 0) - (b.cmc || 0);
 		} else if (type === "price") {
-			const aP = a.prices?.usd ? parseFloat(a.prices.usd) : 0;
-			const bP = b.prices?.usd ? parseFloat(b.prices.usd) : 0;
+			// Support both Scryfall format (prices.usd) and local format (direct price field)
+			const aP = a.prices?.usd ? parseFloat(a.prices.usd) : (a._localPrice ?? 0);
+			const bP = b.prices?.usd ? parseFloat(b.prices.usd) : (b._localPrice ?? 0);
 			comparison = aP - bP;
 		} else if (type === "rarity") {
 			const rarityMap = { common: 0, uncommon: 1, rare: 2, mythic: 3, special: 4, bonus: 5 };
 			// @ts-ignore
 			comparison = (rarityMap[a.rarity] || 0) - (rarityMap[b.rarity] || 0);
 		} else if (type === "type") {
-			comparison = (a.type_line || "").localeCompare(b.type_line || "");
+			comparison = (a.type_line || a.type || "").localeCompare(b.type_line || b.type || "");
 		} else if (type === "is-creature") {
-			const aIs = a.type_line?.includes("Creature") ? 0 : 1;
-			const bIs = b.type_line?.includes("Creature") ? 0 : 1;
+			const aIs = (a.type_line || a.type)?.includes("Creature") ? 0 : 1;
+			const bIs = (b.type_line || b.type)?.includes("Creature") ? 0 : 1;
 			comparison = aIs - bIs;
 		} else if (type === "color-cat") {
 			const catOrder = { W: 0, U: 1, B: 2, R: 3, G: 4, C: 5, Gold: 6, L: 7 };
 			/** @param {any} c */
 			const getCat = (c) => {
-				if (c.type_line?.includes("Land")) return "L";
-				if (!c.color_identity || c.color_identity.length === 0) return "C";
-				if (c.color_identity.length > 1) return "Gold";
-				return c.color_identity[0];
+				const typeLine = c.type_line || c.type || "";
+				const colorId = c.color_identity || c.identity || [];
+				if (typeLine.includes("Land")) return "L";
+				if (!colorId || colorId.length === 0) return "C";
+				if (colorId.length > 1) return "Gold";
+				return colorId[0];
 			};
 			// @ts-ignore
 			comparison = (catOrder[getCat(a)] ?? 8) - (catOrder[getCat(b)] ?? 8);
@@ -110,8 +115,8 @@ function createSearch() {
 			const colorOrder = { W: 0, U: 1, B: 2, R: 3, G: 4 };
 			/** @type {any} */
 			const order = colorOrder;
-			const aColors = [...(a.color_identity || [])].sort((x, y) => order[x] - order[y]).join("");
-			const bColors = [...(b.color_identity || [])].sort((x, y) => order[x] - order[y]).join("");
+			const aColors = [...(a.color_identity || a.identity || [])].sort((x, y) => order[x] - order[y]).join("");
+			const bColors = [...(b.color_identity || b.identity || [])].sort((x, y) => order[x] - order[y]).join("");
 			comparison = aColors.localeCompare(bColors);
 		}
 		return comparison * direction;
@@ -153,14 +158,14 @@ function createSearch() {
 	function isCompanionLegal(card, companionName) {
 		const name = companionName.toLowerCase();
 		const cmc = card.cmc || 0;
-		const isLand = card.type_line?.includes("Land");
+		const isLand = (card.type_line || card.type)?.includes("Land");
 		
 		if (name.includes("gyruda")) return cmc % 2 === 0;
 		if (name.includes("obosh")) return cmc % 2 !== 0;
 		if (name.includes("lurrus")) return isLand || cmc <= 2;
 		if (name.includes("keruga")) return isLand || cmc >= 3;
 		if (name.includes("jegantha")) {
-			const cost = card.mana_cost || "";
+			const cost = card.mana_cost || card.mana || "";
 			const symbols = cost.match(/\{([^}]+)\}/g) || [];
 			/** @type {Record<string, number>} */
 			const counts = {};
@@ -172,15 +177,146 @@ function createSearch() {
 		}
 		if (name.includes("kaheera")) {
 			const types = ["Cat", "Elemental", "Nightmare", "Dinosaur", "Beast"];
-			return isLand || types.some(t => card.type_line?.includes(t));
+			return isLand || types.some(t => (card.type_line || card.type)?.includes(t));
 		}
 		if (name.includes("zirda")) {
-			return isLand || card.oracle_text?.includes(":") || card.card_faces?.[0]?.oracle_text?.includes(":");
+			const text = card.oracle_text || card.text || "";
+			return isLand || text.includes(":") || card.card_faces?.[0]?.oracle_text?.includes(":");
 		}
 		return true;
 	}
 
-	async function performSearch() {
+	// -------------------------------------------------------------------------
+	// LOCAL SEARCH (IndexedDB via localSearch.ts)
+	// -------------------------------------------------------------------------
+
+	async function performLocalSearch() {
+		if (!syncManager.isReady) {
+			// DB still bootstrapping — show a loading state and return
+			state.isSearching = true;
+			return;
+		}
+
+		const q = state.query.trim();
+		if (!q) {
+			state.results = [];
+			state.isSearching = false;
+			return;
+		}
+
+		state.isSearching = true;
+		state.error = "";
+
+		try {
+			// Build commander identity constraint
+			/** @type {string[]} */
+			let commanderIdentity = [];
+			if (settingsStore.useCommanderColors && deckStore.commander.length > 0) {
+				const identitySet = new Set();
+				deckStore.commander.forEach(c => {
+					const meta = deckStore.metadata[c.name.toLowerCase()];
+					if (meta?.color_identity) {
+						meta.color_identity.forEach(/** @param {string} col */ col => identitySet.add(col));
+					}
+				});
+				commanderIdentity = /** @type {string[]} */ ([...identitySet]);
+			}
+
+			// Run local search
+			const localResults = await runLocalSearch(q, {
+				commanderIdentity: commanderIdentity.length > 0 ? commanderIdentity : undefined,
+			});
+
+			// Apply color filter from UI (the localSearch engine handles identity/color
+			// filters from the query string itself; this handles the color-picker buttons)
+			let results = localResults;
+			if (state.filters.colors.length > 0) {
+				const colors = state.filters.colors;
+				const standardColors = colors.filter((c) => "WUBRG".includes(c));
+				const hasM = colors.includes("M");
+				const hasC = colors.includes("C");
+				const hasL = colors.includes("L");
+
+				results = results.filter(card => {
+					const isLand = card.type.includes("Land");
+					const cardColors = (settingsStore.useColorIdentity || isLand ? card.identity : card.colors) || [];
+
+					let colorMatch = false;
+					const hasColorFilter = standardColors.length > 0 || hasM || hasC;
+
+					if (hasM) {
+						const isMulti = cardColors.length > 1;
+						if (standardColors.length > 0) {
+							colorMatch = isMulti && standardColors.every(col => cardColors.includes(col));
+						} else {
+							colorMatch = isMulti;
+						}
+					} else {
+						if (standardColors.length > 0) {
+							colorMatch = standardColors.some(col => cardColors.includes(col));
+						}
+						if (hasC && cardColors.length === 0) colorMatch = true;
+					}
+
+					if (!hasColorFilter && hasL) colorMatch = true;
+
+					const landMatch = hasL ? isLand : !isLand;
+					return colorMatch && landMatch;
+				});
+			}
+
+			// Apply companion restriction
+			if (settingsStore.matchCompanion && deckStore.companion.length > 0) {
+				const companion = deckStore.companion[0];
+				results = results.filter(card => isCompanionLegal(card, companion.name));
+			}
+
+			// Normalize local cards to look like Scryfall cards for the rest of the UI
+			// (components reference type_line, color_identity, oracle_text, prices.usd etc.)
+			state.results = results.map(card => normalizeLocalCard(card));
+
+		} catch (err) {
+			const e = /** @type {any} */ (err);
+			console.error("Local search error:", e);
+			state.error = "Search error — please try again.";
+			state.results = [];
+		} finally {
+			state.isSearching = false;
+		}
+	}
+
+	/**
+	 * Adapts a CleanCard from our local schema to the shape the UI expects
+	 * (which was designed around Scryfall's API response format).
+	 * @param {any} card
+	 */
+	function normalizeLocalCard(card) {
+		// Get price from the static priceStore (for display), falling back to 0
+		const localPrice = priceStore.getPrice(card.name);
+
+		return {
+			// Preserve original local fields
+			...card,
+			// Add Scryfall-compatible aliases used by UI components
+			type_line:      card.type,
+			oracle_text:    card.text,
+			mana_cost:      card.mana,
+			color_identity: card.identity,
+			// Wrap price in Scryfall's prices object format
+			prices: {
+				usd: localPrice !== null ? String(localPrice) : null,
+				usd_foil: null
+			},
+			// Mark as locally sourced for debugging
+			_source: 'local'
+		};
+	}
+
+	// -------------------------------------------------------------------------
+	// SCRYFALL SEARCH (printing-specific queries + budget collections)
+	// -------------------------------------------------------------------------
+
+	async function performScryfallSearch() {
 		const signal = abortController?.signal;
 		try {
 			state.isSearching = true;
@@ -483,6 +619,33 @@ function createSearch() {
 		state.isSearching = false;
 	}
 
+	// -------------------------------------------------------------------------
+	// Router: decide whether to use local or Scryfall search
+	// -------------------------------------------------------------------------
+
+	async function performSearch() {
+		const q = state.query.trim();
+		const collection = state.collection;
+
+		// Local board browsing always uses the Scryfall path (reads from deckStore)
+		if (['sideboard', 'maybeboard', 'deleted'].includes(collection)) {
+			return performScryfallSearch();
+		}
+
+		// Budget collections always use Scryfall (they rely on priceStore list filtering)
+		if (collection === 'budget-edh-26.2' || collection === 'budget-staples') {
+			return performScryfallSearch();
+		}
+
+		// Printing-specific queries (set:, cn:) must go to Scryfall
+		if (q && isPrintingQuery(q)) {
+			return performScryfallSearch();
+		}
+
+		// Standard card search — use local IndexedDB first
+		return performLocalSearch();
+	}
+
 	$effect.root(() => {
 		$effect(() => {
 			const _ = state.query;
@@ -490,6 +653,8 @@ function createSearch() {
 			const ___ = state.collection;
 			const ____ = settingsStore.useCommanderColors;
 			const _____ = settingsStore.matchCompanion;
+			// Also react to sync manager becoming ready
+			const ______ = syncManager.isReady;
 
 			const isLocal = ['sideboard', 'maybeboard', 'deleted'].includes(state.collection);
 

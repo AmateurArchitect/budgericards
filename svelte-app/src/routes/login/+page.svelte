@@ -157,7 +157,7 @@
 			<div class="art-container">
 				<img
 					src={currentBg.url}
-					alt={currentBg.name || currentBg.title}
+					alt={'name' in currentBg ? currentBg.name : currentBg.title}
 					class="art-image"
 					class:loaded={isImageLoaded}
 					onload={() => (isImageLoaded = true)}
