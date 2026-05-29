@@ -29,7 +29,6 @@
 					showPrice={inSearchPanel && settingsStore.showPrices}
 					showLegalityLabel={inSearchPanel}
 					hideControlsUntilHover={!inSearchPanel}
-					lazy={inSearchPanel ? (index >= 12) : true}
 				/>
 
 				{#if !inSearchPanel}

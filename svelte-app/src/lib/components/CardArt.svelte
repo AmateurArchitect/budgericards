@@ -12,7 +12,6 @@
 	 * toggleRotate?: (e: MouseEvent) => void,
 	 * showLegalityLabel?: boolean,
 	 * hideControlsUntilHover?: boolean,
-	 * lazy?: boolean,
 	 * class?: string
 	 * }} */
 	let {
@@ -26,18 +25,8 @@
 		toggleRotate,
 		showLegalityLabel = false,
 		hideControlsUntilHover = false,
-		lazy = true,
 		class: className = "",
 	} = $props();
-
-	let imageLoaded = $state(false);
-	let imgRef = $state();
-
-	$effect(() => {
-		if (imgRef && imgRef.complete && !imageLoaded) {
-			imageLoaded = true;
-		}
-	});
 
 	const isDfc = $derived(
 		card?.card_faces &&
@@ -70,13 +59,9 @@
 {#snippet CardImage(/** @type {CardImageProps} */ { src, card, loading = false })}
 	{#if src}
 		<img
-			bind:this={imgRef}
 			{src}
-			class="card-image"
-			class:loaded={imageLoaded}
-			loading={lazy ? "lazy" : "eager"}
+			class="card-image loaded"
 			alt={card.name}
-			onload={() => (imageLoaded = true)}
 			draggable="false"
 		/>
 	{:else if loading}
@@ -93,7 +78,7 @@
 	class:is-dfc={isDfc}
 	class:flipped={isFlipped}
 	class:rotated={isRotated}
-	class:shimmering={loading || (frontImgUrl && !imageLoaded)}
+	class:shimmering={loading}
 	class:illegal={isIllegal}
 >
 	{#if isDfc || isFlip}
