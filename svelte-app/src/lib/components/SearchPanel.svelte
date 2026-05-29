@@ -330,7 +330,11 @@
 						<span>Searching...</span>
 					{:else if searchStore.query.length >= 3}
 						{#if searchStore.totalResults >= 500 && !searchStore.showLargeSearchOverride}
-							<span>Found <span class="count">{searchStore.totalResults}</span> matches.</span>
+							<span class="large-search-subheader-warning">
+								Your search matches <span class="count">{searchStore.totalResults}</span> cards. 
+								Narrow down your query, or 
+								<button class="override-link-btn" onclick={() => searchStore.overrideLargeSearch()}>search anyway</button>.
+							</span>
 						{:else}
 							<span>Found <span class="count">{searchStore.totalResults}</span> cards{#if searchStore.totalResults >= 500 && searchStore.totalResults > displayResults.length} (showing first {displayResults.length}){/if}.</span>
 						{/if}
@@ -652,14 +656,9 @@
 
 			<div bind:this={gridContainer} class="results-grid" onwheel={handleWheel} onscroll={handleScroll}>
 				{#if searchStore.totalResults >= 500 && !searchStore.showLargeSearchOverride}
-					<div class="large-search-warning" transition:fade={{ duration: 150 }}>
-						<div class="warning-box">
-							<Filter size={16} class="warning-icon" />
-							<span class="warning-text">
-								Your search matches <strong class="matches-count-bold">{searchStore.totalResults}</strong> cards. 
-								Narrow down your query, or 
-								<button class="override-link-btn" onclick={() => searchStore.overrideLargeSearch()}>search anyway</button>.
-							</span>
+					<div class="status-container" in:fade={{ duration: 150 }}>
+						<div class="status-msg">
+							Search results hidden to protect performance.
 						</div>
 					</div>
 				{:else if displayResults.length > 0}
