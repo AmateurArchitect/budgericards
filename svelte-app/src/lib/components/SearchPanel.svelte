@@ -709,7 +709,7 @@
 				{/if}
 			</div>
 
-			{#if searchStore.totalResults >= 500}
+			{#if searchStore.totalResults >= 500 && searchStore.showLargeSearchOverride && searchStore.query.length >= 3}
 				<div class="search-pagination" transition:slide={{ duration: 200 }}>
 					<button 
 						disabled={searchStore.currentPage === 1} 
