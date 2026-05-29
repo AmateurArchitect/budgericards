@@ -19,6 +19,9 @@ function createSearch() {
 			colors: /** @type {string[]} */ ([]),
 		},
 		activeSorts: /** @type {{type: string, direction: string}[]} */ ([]),
+		currentPage: 1,
+		scrollBatchLimit: 100,
+		progressiveLimit: 10,
 	});
 
 	/** @type {Map<string, any>} */
@@ -146,10 +149,17 @@ function createSearch() {
 			return 0;
 		});
 
-		return res;
+		// Slice based on pagination threshold (500 cards)
+		const currentSlice = res.length >= 500
+			? res.slice((state.currentPage - 1) * 100, state.currentPage * 100)
+			: res.slice(0, state.scrollBatchLimit);
+
+		// Apply progressive limit for pop-in animation
+		return currentSlice.slice(0, state.progressiveLimit);
 	});
 
 	let abortController = /** @type {AbortController | null} */ (null);
+	let progressiveTimer = /** @type {any} */ (null);
 
 	/** 
 	 * @param {any} card 
@@ -627,6 +637,10 @@ function createSearch() {
 		const q = state.query.trim();
 		const collection = state.collection;
 
+		// Reset page and batch limits for a new search context
+		state.currentPage = 1;
+		state.scrollBatchLimit = 100;
+
 		// Local board browsing always uses the Scryfall path (reads from deckStore)
 		if (['sideboard', 'maybeboard', 'deleted'].includes(collection)) {
 			return performScryfallSearch();
@@ -647,6 +661,7 @@ function createSearch() {
 	}
 
 	$effect.root(() => {
+		// 1. Search Query Runner
 		$effect(() => {
 			const _ = state.query;
 			const __ = state.filters.colors.length;
@@ -664,6 +679,26 @@ function createSearch() {
 				const timeout = setTimeout(performSearch, 300);
 				return () => clearTimeout(timeout);
 			}
+		});
+
+		// 2. Progressive Load Timer
+		$effect(() => {
+			const resLength = state.results.length;
+			const page = state.currentPage;
+			const batch = state.scrollBatchLimit;
+
+			const targetLimit = resLength >= 500 ? 100 : batch;
+
+			if (progressiveTimer) clearTimeout(progressiveTimer);
+			state.progressiveLimit = Math.min(10, resLength);
+
+			progressiveTimer = setTimeout(() => {
+				state.progressiveLimit = targetLimit;
+			}, 80);
+
+			return () => {
+				if (progressiveTimer) clearTimeout(progressiveTimer);
+			};
 		});
 	});
 
@@ -684,6 +719,30 @@ function createSearch() {
 			performSearch();
 		},
 		get results() { return sortedResults(); },
+		get totalResults() { return state.results.length; },
+		get currentPage() { return state.currentPage; },
+		get totalPages() { return Math.ceil(state.results.length / 100); },
+		get scrollBatchLimit() { return state.scrollBatchLimit; },
+		loadNextBatch() {
+			state.scrollBatchLimit = Math.min(state.scrollBatchLimit + 100, state.results.length);
+		},
+		nextPage() {
+			const max = Math.ceil(state.results.length / 100);
+			if (state.currentPage < max) {
+				state.currentPage++;
+			}
+		},
+		prevPage() {
+			if (state.currentPage > 1) {
+				state.currentPage--;
+			}
+		},
+		goToPage(p) {
+			const max = Math.ceil(state.results.length / 100);
+			if (p >= 1 && p <= max) {
+				state.currentPage = p;
+			}
+		},
 		get isSearching() { return state.isSearching; },
 		get error() { return state.error; },
 		get isCollapsed() { return state.isCollapsed; },

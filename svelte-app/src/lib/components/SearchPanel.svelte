@@ -385,6 +385,29 @@
 			showAddSortDropdown = false;
 		}
 	}
+
+	let gridContainer = $state(/** @type {HTMLElement | null} */ (null));
+
+	/** @param {Event} e */
+	function handleScroll(e) {
+		const target = /** @type {HTMLElement} */ (e.currentTarget);
+		if (searchStore.totalResults < 500) {
+			const scrollRemaining = target.scrollWidth - target.scrollLeft - target.clientWidth;
+			// 40 cards * 152px card width = 6080px
+			if (scrollRemaining < 6080) {
+				searchStore.loadNextBatch();
+			}
+		}
+	}
+
+	$effect(() => {
+		// Reset scroll position on query or page changes
+		const _q = searchStore.query;
+		const _p = searchStore.currentPage;
+		if (gridContainer) {
+			gridContainer.scrollLeft = 0;
+		}
+	});
 </script>
 
 <svelte:window onclick={handleClickOutside} />
@@ -420,7 +443,7 @@
 					{:else if preloading}
 						<div class="spinner"></div>
 						<span
-							>Found <span class="count">{displayResults.length}</span> cards. Loading assets ({loadedCount}/{threshold})...
+							>Found <span class="count">{searchStore.totalResults}</span> cards{#if searchStore.totalResults > displayResults.length} (showing first {displayResults.length}){/if}. Loading assets ({loadedCount}/{threshold})...
 							{#if showSlowMessage}
 								<Badge variant="warning" class="ml-2"
 									>Connection is slow...</Badge
@@ -429,7 +452,7 @@
 						</span>
 					{:else if searchStore.query.length >= 3}
 						<span
-							>Found <span class="count">{displayResults.length}</span> cards.</span
+							>Found <span class="count">{searchStore.totalResults}</span> cards{#if searchStore.totalResults > displayResults.length} (showing first {displayResults.length}){/if}.</span
 						>
 					{:else if searchStore.query.length > 0}
 						<span>Keep typing...</span>
@@ -747,7 +770,7 @@
 				{/if}
 			</div>
 
-			<div class="results-grid" onwheel={handleWheel}>
+			<div bind:this={gridContainer} class="results-grid" onwheel={handleWheel} onscroll={handleScroll}>
 				{#if showCards}
 					{#each displayResults as card, i (card.id)}
 						<div class="staggered-card" style="--i: {i}">
@@ -794,6 +817,49 @@
 					</div>
 				{/if}
 			</div>
+
+			{#if searchStore.totalResults >= 500}
+				<div class="search-pagination" transition:slide={{ duration: 200 }}>
+					<button 
+						disabled={searchStore.currentPage === 1} 
+						onclick={() => searchStore.goToPage(1)}
+						class="pagination-btn"
+						aria-label="First page"
+					>
+						&laquo;
+					</button>
+					<button 
+						disabled={searchStore.currentPage === 1} 
+						onclick={() => searchStore.prevPage()}
+						class="pagination-btn"
+						aria-label="Previous page"
+					>
+						&lsaquo;
+					</button>
+					
+					<span class="pagination-info" aria-live="polite">
+						Page <span class="page-num">{searchStore.currentPage}</span> of <span class="page-num">{searchStore.totalPages}</span>
+						<span class="matches-count">({searchStore.totalResults} matches)</span>
+					</span>
+					
+					<button 
+						disabled={searchStore.currentPage === searchStore.totalPages} 
+						onclick={() => searchStore.nextPage()}
+						class="pagination-btn"
+						aria-label="Next page"
+					>
+						&rsaquo;
+					</button>
+					<button 
+						disabled={searchStore.currentPage === searchStore.totalPages} 
+						onclick={() => searchStore.goToPage(searchStore.totalPages)}
+						class="pagination-btn"
+						aria-label="Last page"
+					>
+						&raquo;
+					</button>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </section>
@@ -1290,5 +1356,61 @@
 	:global(.search-panel .card-container) {
 		width: var(--card-width) !important;
 		flex-shrink: 0;
+	}
+
+	.search-pagination {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		padding: 0.5rem 1rem;
+		background: hsl(var(--muted) / 0.1);
+		border-top: 1px solid hsl(var(--border));
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+		height: 36px;
+	}
+
+	.pagination-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		border: 1px solid hsl(var(--border));
+		background: hsl(var(--background));
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+		transition: all 0.2s;
+	}
+
+	.pagination-btn:hover:not(:disabled) {
+		background: hsl(var(--accent));
+		border-color: hsl(var(--primary) / 0.3);
+	}
+
+	.pagination-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+		border-color: hsl(var(--border) / 0.5);
+	}
+
+	.pagination-info {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-weight: 500;
+	}
+
+	.page-num {
+		font-weight: 700;
+		color: hsl(var(--foreground));
+	}
+
+	.matches-count {
+		color: hsl(var(--muted-foreground) / 0.8);
+		font-size: 0.6875rem;
 	}
 </style>

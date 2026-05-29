@@ -230,13 +230,11 @@ export async function runLocalSearch(
 				.startsWithIgnoreCase(typeVal)
 				.toArray();
 
-			if (!typeVal.startsWith(typeVal)) {
-				const broader = await db.cards
-					.filter(c => c.type.toLowerCase().includes(typeVal.toLowerCase()))
-					.toArray();
-				const ids = new Set(candidates.map(c => c.id));
-				for (const c of broader) if (!ids.has(c.id)) candidates.push(c);
-			}
+			const broader = await db.cards
+				.filter(c => c.type.toLowerCase().includes(typeVal.toLowerCase()))
+				.toArray();
+			const ids = new Set(candidates.map(c => c.id));
+			for (const c of broader) if (!ids.has(c.id)) candidates.push(c);
 		} else if (formatCond) {
 			candidates = await db.cards
 				.where('formats')
@@ -262,8 +260,6 @@ export async function runLocalSearch(
 	const results: CleanCard[] = [];
 
 	for (const card of candidates) {
-		if (results.length >= limit) break;
-
 		const price = priceMap?.get(card.id);
 		const pass = evaluateNode(parseResult.ast, card, price);
 
