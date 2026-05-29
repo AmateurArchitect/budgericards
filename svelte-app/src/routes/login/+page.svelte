@@ -30,9 +30,10 @@
 	let successMessage = $state("");
 	let isSubmitting = $state(false);
 
-	// Filter backgrounds based on gallery selection
-	const selectedCards = RESOLVED_ART.filter(card => selectedArtList.includes(card.url));
-	const availableBackgrounds = selectedCards.length > 0 ? selectedCards : BACKGROUNDS;
+	// Filter backgrounds based on gallery selection dynamically
+	let selectedUrls = $state(selectedArtList || []);
+	const selectedCards = $derived(RESOLVED_ART.filter(card => selectedUrls.includes(card.url)));
+	const availableBackgrounds = $derived(selectedCards.length > 0 ? selectedCards : BACKGROUNDS);
 
 	// Background index, load check, and aspect-ratio tracking
 	let currentBgIndex = $state(0);
@@ -40,7 +41,7 @@
 	let aspectRatio = $state(1.5); // Defaults to landscape
 	let formHeight = $state(380);
 
-	onMount(() => {
+	onMount(async () => {
 		// Pick a random background on mount
 		currentBgIndex = Math.floor(Math.random() * availableBackgrounds.length);
 
@@ -50,6 +51,17 @@
 				currentBgIndex = (currentBgIndex + 1) % availableBackgrounds.length;
 			}
 		}, 20000);
+
+		// Load selection list dynamically to bypass Vite compile-time cache
+		try {
+			const res = await fetch("/api/save-selection");
+			if (res.ok) {
+				selectedUrls = await res.json();
+			}
+		} catch (err) {
+			console.warn("Could not fetch selections dynamically, using static list:", err);
+			selectedUrls = selectedArtList || [];
+		}
 
 		return () => clearInterval(interval);
 	});

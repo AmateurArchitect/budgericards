@@ -161,8 +161,21 @@
 		}
 	});
 
-	onMount(() => {
+	onMount(async () => {
 		window.addEventListener("keydown", handleKeyDown);
+
+		// Fetch the latest selected art from the local API to bypass Vite compile-time caching
+		try {
+			const res = await fetch("/api/save-selection");
+			if (res.ok) {
+				const data = await res.json();
+				selectedUrls = data;
+			}
+		} catch (err) {
+			console.warn("Could not fetch selections dynamically, using static list:", err);
+			selectedUrls = selectedArtList || [];
+		}
+
 		return () => {
 			window.removeEventListener("keydown", handleKeyDown);
 		};

@@ -785,15 +785,6 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
-        "url": "https://www.mtgpics.com/pics/art/dgm/150.jpg",
-        "name": "Gruul Guildgate",
-        "artist": "Randy Gallegos",
-        "set": "Dragon's Maze",
-        "setCode": "DGM",
-        "collectorNumber": "150"
-    },
-    {
-        "category": "Landscapes",
         "url": "https://www.artofmtg.com/wp-content/uploads/2021/12/Gruul-Guildgate-MtG-Art.jpg",
         "name": "Gruul Guildgate",
         "artist": "Randy Gallegos",
@@ -818,15 +809,6 @@ export const RESOLVED_ART = [
         "set": "Commander Legends: Battle for Baldur's Gate",
         "setCode": "CLB",
         "collectorNumber": "354"
-    },
-    {
-        "category": "Landscapes",
-        "url": "https://www.mtgpics.com/pics/art/khm/293.jpg",
-        "name": "Hengegate Pathway // Mistgate Pathway",
-        "artist": "Alayna Danner",
-        "set": "Kaldheim",
-        "setCode": "KHM",
-        "collectorNumber": "293"
     },
     {
         "category": "Landscapes",
