@@ -44,12 +44,12 @@
 		// Pick a random background on mount
 		currentBgIndex = Math.floor(Math.random() * availableBackgrounds.length);
 
-		// Slideshow interval: rotate backgrounds every 5 seconds
+		// Slideshow interval: rotate backgrounds every 20 seconds
 		const interval = setInterval(() => {
 			if (availableBackgrounds.length > 0) {
 				currentBgIndex = (currentBgIndex + 1) % availableBackgrounds.length;
 			}
-		}, 5000);
+		}, 20000);
 
 		return () => clearInterval(interval);
 	});
