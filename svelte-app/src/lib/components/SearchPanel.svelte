@@ -671,6 +671,7 @@
 									? card.prices?.usd || null
 									: priceStore.getPrice(card.name)}
 								inSearchPanel={true}
+								index={i}
 							/>
 						</div>
 					{/each}

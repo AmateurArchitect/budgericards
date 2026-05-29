@@ -12,6 +12,7 @@
 	 * toggleRotate?: (e: MouseEvent) => void,
 	 * showLegalityLabel?: boolean,
 	 * hideControlsUntilHover?: boolean,
+	 * lazy?: boolean,
 	 * class?: string
 	 * }} */
 	let {
@@ -25,6 +26,7 @@
 		toggleRotate,
 		showLegalityLabel = false,
 		hideControlsUntilHover = false,
+		lazy = true,
 		class: className = "",
 	} = $props();
 
@@ -72,7 +74,7 @@
 			{src}
 			class="card-image"
 			class:loaded={imageLoaded}
-			loading="lazy"
+			loading={lazy ? "lazy" : "eager"}
 			alt={card.name}
 			onload={() => (imageLoaded = true)}
 			draggable="false"

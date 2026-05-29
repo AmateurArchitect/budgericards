@@ -3,8 +3,8 @@
 	import CardArt from "./CardArt.svelte";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 
-	/** @type {{ card: any, price: number | null, inSearchPanel?: boolean }} */
-	let { card, price, inSearchPanel = false } = $props();
+	/** @type {{ card: any, price: number | null, inSearchPanel?: boolean, index?: number }} */
+	let { card, price, inSearchPanel = false, index = 0 } = $props();
 
 	const priceDisplay = $derived(
 		price !== null ? `$${Number(price).toFixed(2)}` : "Illegal",
@@ -29,6 +29,7 @@
 					showPrice={inSearchPanel && settingsStore.showPrices}
 					showLegalityLabel={inSearchPanel}
 					hideControlsUntilHover={!inSearchPanel}
+					lazy={inSearchPanel ? (index >= 12) : true}
 				/>
 
 				{#if !inSearchPanel}
