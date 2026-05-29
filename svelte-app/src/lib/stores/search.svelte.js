@@ -22,6 +22,7 @@ function createSearch() {
 		currentPage: 1,
 		scrollBatchLimit: 100,
 		progressiveLimit: 10,
+		showLargeSearchOverride: false,
 	});
 
 	/** @type {Map<string, any>} */
@@ -148,6 +149,12 @@ function createSearch() {
 			}
 			return 0;
 		});
+
+		// If it is a large search (>500 results) and the user has not overridden it,
+		// do not slice or render the cards yet to protect performance.
+		if (res.length >= 500 && !state.showLargeSearchOverride) {
+			return [];
+		}
 
 		// Slice based on pagination threshold (500 cards)
 		const currentSlice = res.length >= 500
@@ -640,6 +647,7 @@ function createSearch() {
 		// Reset page and batch limits for a new search context
 		state.currentPage = 1;
 		state.scrollBatchLimit = 100;
+		state.showLargeSearchOverride = false;
 
 		// Local board browsing always uses the Scryfall path (reads from deckStore)
 		if (['sideboard', 'maybeboard', 'deleted'].includes(collection)) {
@@ -723,6 +731,8 @@ function createSearch() {
 		get currentPage() { return state.currentPage; },
 		get totalPages() { return Math.ceil(state.results.length / 100); },
 		get scrollBatchLimit() { return state.scrollBatchLimit; },
+		get showLargeSearchOverride() { return state.showLargeSearchOverride; },
+		overrideLargeSearch() { state.showLargeSearchOverride = true; },
 		loadNextBatch() {
 			state.scrollBatchLimit = Math.min(state.scrollBatchLimit + 100, state.results.length);
 		},

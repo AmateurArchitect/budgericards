@@ -104,120 +104,8 @@
 		}
 	}
 
-	let preloading = $state(false);
-	let loadedCount = $state(0);
-	let threshold = $state(0);
-	let showSlowMessage = $state(false);
-	let showCards = $state(false);
-	let resultsKey = $state("");
-
 	// The Stage: Container expands if searching or results exist
 	const isExpanded = $derived(searchStore.isExpanded);
-
-	// Detect new search result sets and trigger preloading
-	$effect(() => {
-		const currentResultsKey = searchStore.results
-			.map((/** @type {any} */ c) => c.id)
-			.sort()
-			.join(",");
-		if (
-			currentResultsKey !== resultsKey &&
-			searchStore.results.length > 0
-		) {
-			resultsKey = currentResultsKey;
-			showCards = false; // Reset Gatekeeper immediately
-			startPreloading();
-		} else if (searchStore.results.length === 0) {
-			resultsKey = "";
-			preloading = false;
-			showCards = false;
-		}
-	});
-
-	// The Gatekeeper: Wait for Expansion + Preloading to be stable
-	$effect(() => {
-		if (isExpanded && !preloading && displayResults.length > 0) {
-			if (!showCards) {
-				const isLocal = ["sideboard", "maybeboard", "deleted"].includes(
-					searchStore.collection,
-				);
-				const delay = isLocal ? 50 : 400;
-				const timer = setTimeout(() => {
-					showCards = true;
-				}, delay);
-				return () => clearTimeout(timer);
-			}
-		} else {
-			if (preloading || displayResults.length === 0) {
-				showCards = false;
-			}
-		}
-	});
-
-	function startPreloading() {
-		preloading = true;
-		loadedCount = 0;
-		showSlowMessage = false;
-
-		const cardWidth = 140;
-		threshold = Math.min(
-			displayResults.length,
-			Math.ceil(window.innerWidth / cardWidth) + 1,
-		);
-
-		if (threshold === 0) {
-			preloading = false;
-			return;
-		}
-
-		const slowTimer = setTimeout(() => (showSlowMessage = true), 1500);
-		const failSafeTimer = setTimeout(() => (preloading = false), 3500);
-
-		function checkFinished() {
-			if (loadedCount >= threshold) {
-				preloading = false;
-				clearTimeout(slowTimer);
-				clearTimeout(failSafeTimer);
-			}
-		}
-
-		// Handle empty or small results immediately
-		if (threshold <= 0) {
-			preloading = false;
-			clearTimeout(slowTimer);
-			clearTimeout(failSafeTimer);
-			return;
-		}
-
-		displayResults
-			.slice(0, threshold)
-			.forEach((/** @type {any} */ card) => {
-				const isDfc = card.card_faces && 
-							card.card_faces.length > 1 && 
-							card.card_faces[0].image_uris;
-				
-				const url = isDfc
-					? card.card_faces[0].image_uris.normal
-					: card.image_uris?.normal;
-
-				if (!url) {
-					loadedCount++;
-					checkFinished();
-					return;
-				}
-
-				const img = new Image();
-				img.onload = () => {
-					loadedCount++;
-					checkFinished();
-				};
-				img.onerror = () => {
-					loadedCount++;
-					checkFinished();
-				};
-				img.src = url;
-			});
-	}
 
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 
@@ -439,21 +327,13 @@
 				<div class="info-left">
 					{#if searchStore.isSearching}
 						<div class="spinner"></div>
-						<span>Searching Scryfall...</span>
-					{:else if preloading}
-						<div class="spinner"></div>
-						<span
-							>Found <span class="count">{searchStore.totalResults}</span> cards{#if searchStore.totalResults > displayResults.length} (showing first {displayResults.length}){/if}. Loading assets ({loadedCount}/{threshold})...
-							{#if showSlowMessage}
-								<Badge variant="warning" class="ml-2"
-									>Connection is slow...</Badge
-								>
-							{/if}
-						</span>
+						<span>Searching...</span>
 					{:else if searchStore.query.length >= 3}
-						<span
-							>Found <span class="count">{searchStore.totalResults}</span> cards{#if searchStore.totalResults > displayResults.length} (showing first {displayResults.length}){/if}.</span
-						>
+						{#if searchStore.totalResults >= 500 && !searchStore.showLargeSearchOverride}
+							<span>Found <span class="count">{searchStore.totalResults}</span> matches.</span>
+						{:else}
+							<span>Found <span class="count">{searchStore.totalResults}</span> cards{#if searchStore.totalResults >= 500 && searchStore.totalResults > displayResults.length} (showing first {displayResults.length}){/if}.</span>
+						{/if}
 					{:else if searchStore.query.length > 0}
 						<span>Keep typing...</span>
 					{/if}
@@ -771,7 +651,18 @@
 			</div>
 
 			<div bind:this={gridContainer} class="results-grid" onwheel={handleWheel} onscroll={handleScroll}>
-				{#if showCards}
+				{#if searchStore.totalResults >= 500 && !searchStore.showLargeSearchOverride}
+					<div class="large-search-warning" transition:fade={{ duration: 150 }}>
+						<div class="warning-box">
+							<Filter size={16} class="warning-icon" />
+							<span class="warning-text">
+								Your search matches <strong class="matches-count-bold">{searchStore.totalResults}</strong> cards. 
+								Narrow down your query, or 
+								<button class="override-link-btn" onclick={() => searchStore.overrideLargeSearch()}>search anyway</button>.
+							</span>
+						</div>
+					</div>
+				{:else if displayResults.length > 0}
 					{#each displayResults as card, i (card.id)}
 						<div class="staggered-card" style="--i: {i}">
 							<Card
@@ -805,7 +696,7 @@
 							<div class="status-msg">
 								Keep typing to find cards...
 							</div>
-						{:else if searchStore.isSearching || preloading || !showCards}
+						{:else if searchStore.isSearching}
 							<div class="status-msg">Preparing results...</div>
 						{:else if displayResults.length === 0 && searchStore.hasTriggered}
 							<div class="status-msg">
@@ -1412,5 +1303,55 @@
 	.matches-count {
 		color: hsl(var(--muted-foreground) / 0.8);
 		font-size: 0.6875rem;
+	}
+
+	.large-search-warning {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 1rem 2rem;
+		width: 100%;
+	}
+
+	.warning-box {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		background: hsl(var(--muted) / 0.2);
+		border: 1px solid hsl(var(--border));
+		padding: 0.75rem 1.25rem;
+		border-radius: var(--radius);
+		max-width: 600px;
+		line-height: 1.4;
+		color: hsl(var(--muted-foreground));
+		font-size: 0.8125rem;
+	}
+
+	:global(.warning-box .warning-icon) {
+		color: hsl(var(--primary));
+		flex-shrink: 0;
+	}
+
+	.matches-count-bold {
+		color: hsl(var(--foreground));
+		font-weight: 700;
+	}
+
+	.override-link-btn {
+		background: none;
+		border: none;
+		padding: 0;
+		color: hsl(var(--primary));
+		font-weight: 600;
+		text-decoration: underline;
+		cursor: pointer;
+		display: inline;
+		font-size: inherit;
+		transition: color 0.2s;
+	}
+
+	.override-link-btn:hover {
+		color: var(--accent-hover);
 	}
 </style>
