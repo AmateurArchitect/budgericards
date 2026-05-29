@@ -1185,7 +1185,7 @@
 
 	.staggered-card {
 		opacity: 0;
-		transform: scale(0);
+		transform: translateY(10px);
 		animation: card-pop-in 450ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 		animation-delay: calc(var(--i) * 50ms);
 		flex-shrink: 0;
@@ -1194,7 +1194,7 @@
 	@keyframes card-pop-in {
 		0% {
 			opacity: 0;
-			transform: scale(0.5) translateY(10px);
+			transform: scale(0.95) translateY(10px);
 		}
 		100% {
 			opacity: 1;
