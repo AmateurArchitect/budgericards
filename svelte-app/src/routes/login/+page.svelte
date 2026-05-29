@@ -37,13 +37,21 @@
 	// Background index, load check, and aspect-ratio tracking
 	let currentBgIndex = $state(0);
 	let currentBg = $derived(availableBackgrounds[currentBgIndex]);
-	let isImageLoaded = $state(false);
 	let aspectRatio = $state(1.5); // Defaults to landscape
 	let formHeight = $state(380);
 
 	onMount(() => {
 		// Pick a random background on mount
 		currentBgIndex = Math.floor(Math.random() * availableBackgrounds.length);
+
+		// Slideshow interval: rotate backgrounds every 3 seconds
+		const interval = setInterval(() => {
+			if (availableBackgrounds.length > 0) {
+				currentBgIndex = (currentBgIndex + 1) % availableBackgrounds.length;
+			}
+		}, 3000);
+
+		return () => clearInterval(interval);
 	});
 
 	// Reactively check if user gets authenticated and redirect
@@ -53,16 +61,27 @@
 		}
 	});
 
+	// Preload the next image in the queue to ensure seamless transitions
+	$effect(() => {
+		if (availableBackgrounds.length > 1) {
+			const nextIndex = (currentBgIndex + 1) % availableBackgrounds.length;
+			const nextBg = availableBackgrounds[nextIndex];
+			if (nextBg) {
+				const img = new Image();
+				img.referrerPolicy = "no-referrer";
+				img.src = nextBg.url;
+			}
+		}
+	});
+
 	// Reactively detect the background image's natural aspect ratio
 	$effect(() => {
 		if (currentBg) {
-			isImageLoaded = false;
 			const img = new Image();
 			img.referrerPolicy = "no-referrer";
 			img.src = currentBg.url;
 			img.onload = () => {
 				aspectRatio = img.naturalWidth / img.naturalHeight;
-				isImageLoaded = true;
 			};
 		}
 	});
@@ -155,20 +174,21 @@
 	<div class="art-pane">
 		{#if currentBg}
 			<div class="art-container">
-				<img
-					src={currentBg.url}
-					alt={'name' in currentBg ? currentBg.name : currentBg.title}
-					class="art-image"
-					class:loaded={isImageLoaded}
-					onload={() => (isImageLoaded = true)}
-					referrerpolicy="no-referrer"
-				/>
+				{#key currentBg.url}
+					<img
+						src={currentBg.url}
+						alt={'name' in currentBg ? currentBg.name : currentBg.title}
+						class="art-image"
+						transition:fade={{ duration: 800 }}
+						referrerpolicy="no-referrer"
+					/>
 
-				{#if isImageLoaded && currentBg.artist}
-					<div class="art-info" transition:fade={{ duration: 400 }}>
-						<p class="art-artist">Art by {currentBg.artist}</p>
-					</div>
-				{/if}
+					{#if currentBg.artist}
+						<div class="art-info" transition:fade={{ duration: 400 }}>
+							<p class="art-artist">Art by {currentBg.artist}</p>
+						</div>
+					{/if}
+				{/key}
 			</div>
 		{/if}
 	</div>
@@ -439,16 +459,13 @@
 	}
 
 	.art-image {
+		position: absolute;
+		top: 0;
+		left: 0;
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
 		object-position: center;
-		opacity: 0;
-		transition: opacity 0.8s ease-in-out;
-	}
-
-	.art-image.loaded {
-		opacity: 1;
 	}
 
 	.art-info {

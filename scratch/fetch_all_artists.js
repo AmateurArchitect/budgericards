@@ -47,7 +47,36 @@ const CARD_NAMES = {
     "Tome-of-the-Guildpact-Ravnica-Allegiance-Art.jpg": "Tome of the Guildpact",
     "Sidar-Kondo-of-Jamuraa-MtG-Art.jpg": "Sidar Kondo of Jamuraa",
     "Grindstone-Kaladesh-Inventions-MtG-Art.jpg": "Grindstone",
-    "Cancel-MtG-Art.jpg": "Cancel"
+    "Cancel-MtG-Art.jpg": "Cancel",
+    "072.jpg": "Tolarian Terror",
+    "https://www.mtgpics.com/pics/art/dmr/441_1.jpg": "Sylvan Library",
+    "https://www.mtgpics.com/pics/art/stm/117.jpg": "Natural Order",
+    "https://www.mtgpics.com/pics/art/fdn/467.jpg": "Rite of the Dragoncaller",
+    "https://www.mtgpics.com/pics/art/stm/056.jpg": "Regrowth",
+    "https://www.mtgpics.com/pics/art/2xm/348.jpg": "Sneak Attack",
+    "https://www.mtgpics.com/pics/art/10m/112.jpg": "Sunken Hope",
+    "https://www.mtgpics.com/pics/art/sl1/247.jpg": "Kaya, Ghost Assassin",
+    "https://www.mtgpics.com/pics/art/wot/024.jpg": "Omniscience",
+    "https://www.mtgpics.com/pics/art/spg/042.jpg": "Persist",
+    "https://www.mtgpics.com/pics/art/wot/025.jpg": "Rhystic Study",
+    "https://www.mtgpics.com/pics/art/stx/151.jpg": "Jadzi, Oracle of Arcavios // Journey to the Oracle",
+    "https://www.mtgpics.com/pics/art/ltc/172.jpg": "Marshal's Anthem",
+    "https://www.mtgpics.com/pics/art/fdn/300.jpg": "Raise the Past",
+    "https://www.mtgpics.com/pics/art/m3c/171.jpg": "Legion Loyalty",
+    "https://www.mtgpics.com/pics/art/thb/024.jpg": "Idyllic Tutor",
+    "https://www.mtgpics.com/pics/art/mat/002.jpg": "Deification",
+    "https://www.mtgpics.com/pics/art/stm/006.jpg": "Gift of Estates",
+    "https://www.mtgpics.com/pics/art/gtc/142.jpg": "Assemble the Legion",
+    "https://www.mtgpics.com/pics/art/eld/187.jpg": "Doom Foretold",
+    "https://www.mtgpics.com/pics/art/fdn/116_1.jpg": "Anthem of Champions",
+    "https://www.mtgpics.com/pics/art/dsk/092.jpg": "Demonic Counsel",
+    "https://www.mtgpics.com/pics/art/avr/133.jpg": "Dual Casting",
+    "https://www.mtgpics.com/pics/art/sld/2142_2.jpg": "Memory Lapse",
+    "https://www.mtgpics.com/pics/art/avr/061.jpg": "Infinite Reflection",
+    "https://www.mtgpics.com/pics/art/ecl/027.jpg": "Morningtide's Light",
+    "https://www.mtgpics.com/pics/art/fdn/729.jpg": "Solemn Simulacrum",
+    "https://www.mtgpics.com/pics/art/inr/318.jpg": "Tireless Tracker",
+    "https://www.mtgpics.com/pics/art/bng/155.jpg": "Siren of the Silent Song"
 };
 
 async function sleep(ms) {
@@ -70,9 +99,9 @@ async function run() {
             const filename = parts[parts.length - 1];
             
             // Look up exact card name from dictionary
-            const cardName = CARD_NAMES[filename];
+            const cardName = CARD_NAMES[url] || CARD_NAMES[filename];
             if (!cardName) {
-                console.warn(`    Warning: No card name mapping found for filename: ${filename}`);
+                console.warn(`    Warning: No card name mapping found for URL: ${url}`);
                 continue;
             }
 

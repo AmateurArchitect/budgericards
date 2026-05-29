@@ -257,5 +257,179 @@ export const BACKGROUNDS = [
         "title": "Cancel",
         "set": "Foundations",
         "artist": "Mathias Kollros"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/dmu/072.jpg",
+        "title": "Tolarian Terror",
+        "set": "Dominaria United",
+        "artist": "Vincent Christiaens"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/dmr/441_1.jpg",
+        "title": "Sylvan Library",
+        "set": "Dominaria Remastered",
+        "artist": "Mark Poole"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/stm/117.jpg",
+        "title": "Natural Order",
+        "set": "Strixhaven Mystical Archive",
+        "artist": "Ayami Nakashima"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/fdn/467.jpg",
+        "title": "Rite of the Dragoncaller",
+        "set": "Foundations",
+        "artist": "PINDURSKI"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/stm/056.jpg",
+        "title": "Regrowth",
+        "set": "Strixhaven Mystical Archive",
+        "artist": "Minttu Hynninen"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/2xm/348.jpg",
+        "title": "Sneak Attack",
+        "set": "Double Masters",
+        "artist": "Mark Zug"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/10m/112.jpg",
+        "title": "Sunken Hope",
+        "set": "Tenth Edition",
+        "artist": "Volkan Baǵa"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/sl1/247.jpg",
+        "title": "Kaya, Ghost Assassin",
+        "set": "Secret Lair Drop",
+        "artist": "Dani Pendergast"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/wot/024.jpg",
+        "title": "Omniscience",
+        "set": "Wilds of Eldraine: Enchanting Tales",
+        "artist": "Justin Hernandez & Alexis Hernandez"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/spg/042.jpg",
+        "title": "Persist",
+        "set": "Special Guests",
+        "artist": "Jarel Threat"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/wot/025.jpg",
+        "title": "Rhystic Study",
+        "set": "Wilds of Eldraine: Enchanting Tales",
+        "artist": "Serena Malyon"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/stx/151.jpg",
+        "title": "Jadzi, Oracle of Arcavios // Journey to the Oracle",
+        "set": "Strixhaven: School of Mages",
+        "artist": "Chris Rahn"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/ltc/172.jpg",
+        "title": "Marshal's Anthem",
+        "set": "Tales of Middle-earth Commander",
+        "artist": "Erion Makuo"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/fdn/300.jpg",
+        "title": "Raise the Past",
+        "set": "Foundations",
+        "artist": "Jorge Jacinto"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/m3c/171.jpg",
+        "title": "Legion Loyalty",
+        "set": "Modern Horizons 3 Commander",
+        "artist": "Michal Ivan"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/thb/024.jpg",
+        "title": "Idyllic Tutor",
+        "set": "Theros Beyond Death",
+        "artist": "Jaime Jones"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/mat/002.jpg",
+        "title": "Deification",
+        "set": "March of the Machine: The Aftermath",
+        "artist": "Maxime Minard"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/stm/006.jpg",
+        "title": "Gift of Estates",
+        "set": "Strixhaven Mystical Archive",
+        "artist": "Justin Hernandez & Alexis Hernandez"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/gtc/142.jpg",
+        "title": "Assemble the Legion",
+        "set": "Gatecrash",
+        "artist": "Eric Deschamps"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/eld/187.jpg",
+        "title": "Doom Foretold",
+        "set": "Throne of Eldraine",
+        "artist": "Daniel Ljunggren"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/fdn/116_1.jpg",
+        "title": "Anthem of Champions",
+        "set": "Foundations",
+        "artist": "Chris Rallis"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/dsk/092.jpg",
+        "title": "Demonic Counsel",
+        "set": "Duskmourn: House of Horror",
+        "artist": "Babs Webb"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/avr/133.jpg",
+        "title": "Dual Casting",
+        "set": "Avacyn Restored",
+        "artist": "Johannes Voss"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/sld/2142_2.jpg",
+        "title": "Memory Lapse",
+        "set": "Secret Lair Drop",
+        "artist": "Wylie Beckert"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/avr/061.jpg",
+        "title": "Infinite Reflection",
+        "set": "Avacyn Restored",
+        "artist": "Igor Kieryluk"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/ecl/027.jpg",
+        "title": "Morningtide's Light",
+        "set": "Lorwyn Eclipsed",
+        "artist": "Mark Poole"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/fdn/729.jpg",
+        "title": "Solemn Simulacrum",
+        "set": "Foundations",
+        "artist": "Forrest Imel"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/inr/318.jpg",
+        "title": "Tireless Tracker",
+        "set": "Innistrad Remastered",
+        "artist": "Ekaterina Burmak"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/bng/155.jpg",
+        "title": "Siren of the Silent Song",
+        "set": "Born of the Gods",
+        "artist": "Anthony Palumbo"
     }
 ];
