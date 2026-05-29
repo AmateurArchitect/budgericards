@@ -268,6 +268,7 @@
 												class="art-image"
 												class:loaded={loadedImages[art.url]}
 												onload={() => handleImageLoad(art.url)}
+												loading="lazy"
 												referrerpolicy="no-referrer"
 											/>
 										</div>
@@ -339,6 +340,7 @@
 												class="art-image"
 												class:loaded={loadedImages[art.url]}
 												onload={() => handleImageLoad(art.url)}
+												loading="lazy"
 												referrerpolicy="no-referrer"
 											/>
 										</div>
