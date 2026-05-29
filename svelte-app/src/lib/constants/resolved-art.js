@@ -814,7 +814,7 @@ export const RESOLVED_ART = [
         "category": "Landscapes",
         "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Hengegate-Pathway-Variant-Kaldheim-MtG-Art.jpg",
         "name": "Hengegate Pathway // Mistgate Pathway",
-        "artist": "Yeong-Hao Han",
+        "artist": "Alayna Danner",
         "set": "Kaldheim",
         "setCode": "KHM",
         "collectorNumber": "260"

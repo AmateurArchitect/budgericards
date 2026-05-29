@@ -64,7 +64,7 @@ export const BACKGROUNDS = [
         "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Hengegate-Pathway-Variant-Kaldheim-MtG-Art.jpg",
         "title": "Hengegate Pathway // Mistgate Pathway",
         "set": "Kaldheim",
-        "artist": "Yeong-Hao Han"
+        "artist": "Alayna Danner"
     },
     {
         "url": "https://www.artofmtg.com/wp-content/uploads/2021/03/Harmonize-Planar-Chaos-MtG-Art.jpg",
