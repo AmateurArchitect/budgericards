@@ -1,262 +1,250 @@
 // Automatically generated with pre-fetched artist metadata
 export const BACKGROUNDS = [
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/02/Angel-Warrior-Token-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/407.jpg",
         "title": "Angel Warrior",
-        "set": "Battle for Baldur's Gate Tokens",
+        "set": "Kaldheim Tokens",
         "artist": "Alexander Mokhov"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Plains-Variant-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/394.jpg",
         "title": "Plains",
-        "set": "The Hobbit",
-        "artist": "WFlemming Illustration"
-    },
-    {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Swamp-Variant-Kaldheim-MtG-Art.jpg",
-        "title": "Swamp",
-        "set": "The Hobbit",
-        "artist": "WFlemming Illustration"
-    },
-    {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Cat-Token-Kaldheim-MtG-Art.jpg",
-        "title": "Cat Token",
         "set": "Kaldheim",
+        "artist": "Piotr Dura"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/khm/396.jpg",
+        "title": "Swamp",
+        "set": "Kaldheim",
+        "artist": "Piotr Dura"
+    },
+    {
+        "url": "https://www.mtgpics.com/pics/art/khm/419.jpg",
+        "title": "Cat Token",
+        "set": "Kaldheim Tokens",
         "artist": "Eschi"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Icy-Manalith-Token.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/422.jpg",
         "title": "Icy Manalith",
         "set": "Kaldheim Tokens",
         "artist": "Andrew Mar"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Highland-Forest-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/261.jpg",
         "title": "Highland Forest",
         "set": "Commander Legends: Battle for Baldur's Gate",
         "artist": "Alayna Danner"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Sulfurous-Mire-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/270.jpg",
         "title": "Sulfurous Mire",
         "set": "Kaldheim",
         "artist": "Titus Lunter"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Alpine-Meadow-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/248.jpg",
         "title": "Alpine Meadow",
         "set": "Kaldheim",
         "artist": "Piotr Dura"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Glacial-Floodplain-2-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/257.jpg",
         "title": "Glacial Floodplain",
         "set": "Kaldheim",
         "artist": "Sarah Finnigan"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Bretagard-Stronghold-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/253.jpg",
         "title": "Bretagard Stronghold",
         "set": "March of the Machine Commander",
         "artist": "Jung Park"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Hengegate-Pathway-Variant-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/293.jpg",
         "title": "Hengegate Pathway // Mistgate Pathway",
         "set": "Kaldheim",
         "artist": "Alayna Danner"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/03/Harmonize-Planar-Chaos-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/plc/149.jpg",
         "title": "Harmonize",
         "set": "Teenage Mutant Ninja Turtles Eternal",
         "artist": "Zoltan Boros"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2014/04/Anger-of-the-Gods-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/ths/112.jpg",
         "title": "Anger of the Gods",
         "set": "Double Masters 2022",
         "artist": "Yigit Koroglu"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2020/01/Treeshaker-Chimera-Theros-Beyond-Death-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/thb/297.jpg",
         "title": "Treeshaker Chimera",
         "set": "New Capenna Commander",
         "artist": "Vincent Proce"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2020/01/The-Birth-of-Meletis-Theros-Beyond-Death-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/thb/005.jpg",
         "title": "The Birth of Meletis",
         "set": "Theros Beyond Death",
         "artist": "Tyler Jacobson"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/02/Fyndhorn-Elves-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/fvt/004.jpg",
         "title": "Fyndhorn Elves",
-        "set": "Commander Legends",
-        "artist": "Igor Kieryluk"
+        "set": "From the Vault: Twenty",
+        "artist": "Kev Walker"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2020/11/Cuombajj-Witches-Commander-Legends-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/cmr/116.jpg",
         "title": "Cuombajj Witches",
         "set": "Commander Legends",
         "artist": "Seb McKinnon"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2020/11/War-Room-Commander-Legends-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/cmr/361.jpg",
         "title": "War Room",
         "set": "Secrets of Strixhaven Commander",
-        "artist": "Milivoj Ćeran"
+        "artist": "Milivoj \u0106eran"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2020/07/Mountain-2-Jumpstart-MtG-Art.jpg",
-        "title": "Mountain",
-        "set": "The Hobbit",
-        "artist": "WFlemming Illustration"
-    },
-    {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/02/Path-to-Exile-Conflux-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/con/015.jpg",
         "title": "Path to Exile",
         "set": "Secrets of Strixhaven Commander",
         "artist": "Todd Lockwood"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/02/Awakening-Zone-Rise-of-the-Eldrazi-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/roe/176.jpg",
         "title": "Awakening Zone",
         "set": "Secrets of Strixhaven Commander",
         "artist": "Johann Bodin"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2022/06/Thought-Scour-Double-Masters-2022-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/2x2/065.jpg",
         "title": "Thought Scour",
         "set": "Double Masters 2022",
         "artist": "Julie Dillon"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/06/Rustvale-Bridge-Modern-Horizons-2-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/mh2/253.jpg",
         "title": "Rustvale Bridge",
-        "set": "Edge of Eternities Commander",
+        "set": "Modern Horizons 2",
         "artist": "Craig J Spearing"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/02/Armament-Corps-Khans-of-Tarkir-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/ktk/163.jpg",
         "title": "Armament Corps",
         "set": "Khans of Tarkir",
         "artist": "Steven Belledin"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2014/09/Flooded-Strand-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/ktk/238.jpg",
         "title": "Flooded Strand",
-        "set": "Modern Horizons 3",
-        "artist": "Alexander Forssberg"
+        "set": "Khans of Tarkir",
+        "artist": "Andreas Rocha"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2015/09/Canopy-Vista-Expeditions-Battle-for-Zendikar-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/zex/005.jpg",
         "title": "Canopy Vista",
-        "set": "Tarkir: Dragonstorm Commander",
+        "set": "Zendikar Expeditions",
         "artist": "Adam Paquette"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/02/Strip-Mine-Expeditions-Battle-for-Zendikar-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/zex/043.jpg",
         "title": "Strip Mine",
-        "set": "Vintage Masters",
-        "artist": "John Avon"
+        "set": "Zendikar Expeditions",
+        "artist": "Howard Lyon"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2016/07/Providence-Eldritch-Moon-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/emn/037.jpg",
         "title": "Providence",
         "set": "Eldritch Moon",
         "artist": "Zack Stella"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2023/01/Precision-Bolt-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/grn/267.jpg",
         "title": "Precision Bolt",
         "set": "Guilds of Ravnica",
         "artist": "Grzegorz Rutkowski"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2023/01/Trostani-Discordant-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/grn/208.jpg",
         "title": "Trostani Discordant",
         "set": "Ravnica: Clue Edition",
         "artist": "Chase Stone"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2018/09/Knight-of-Autumn.jpg",
+        "url": "https://www.mtgpics.com/pics/art/grn/183.jpg",
         "title": "Knight of Autumn",
         "set": "Forgotten Realms Commander",
         "artist": "Ryan Pancoast"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2018/09/Boros-Guildgate-Guilds-of-Ravnica-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/grn/244.jpg",
         "title": "Boros Guildgate",
-        "set": "Foundations",
+        "set": "Guilds of Ravnica",
         "artist": "Titus Lunter"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2018/09/Plains-1-Guilds-of-Ravnica-MtG-Art.png",
-        "title": "Plains",
-        "set": "The Hobbit",
-        "artist": "WFlemming Illustration"
-    },
-    {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2018/09/Forest-Guilds-of-Ravnica-MtG-Art.png",
+        "url": "https://www.mtgpics.com/pics/art/gk1/127.jpg",
         "title": "Forest",
-        "set": "The Hobbit",
-        "artist": "WFlemming Illustration"
+        "set": "Guilds of Ravnica Guild Kits",
+        "artist": "Alayna Danner"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/12/Shock-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/aer/098.jpg",
         "title": "Shock",
-        "set": "Marvel's Spider-Man",
-        "artist": "Piotr Dura"
+        "set": "Aether Revolt",
+        "artist": "Magali Villeneuve"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2019/01/Whisper-Blood-Liturgist-Ravnica-Allegiance-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/dom/102.jpg",
         "title": "Whisper, Blood Liturgist",
         "set": "Commander Masters",
         "artist": "Kieran Yanner"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2017/12/Horizon-Canopy-Iconic-Masters-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/ima/240.jpg",
         "title": "Horizon Canopy",
         "set": "Iconic Masters",
         "artist": "Noah Bradley"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/02/Unknown-Shores-Ixalan-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/xln/259.jpg",
         "title": "Unknown Shores",
-        "set": "Theros Beyond Death",
+        "set": "Ixalan",
         "artist": "Adam Paquette"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/12/Gruul-Guildgate-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/gtc/239.jpg",
         "title": "Gruul Guildgate",
         "set": "Foundations",
         "artist": "Randy Gallegos"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2019/01/Tome-of-the-Guildpact-Ravnica-Allegiance-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/rna/242.jpg",
         "title": "Tome of the Guildpact",
         "set": "Ravnica Allegiance",
         "artist": "Randy Gallegos"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/12/Sidar-Kondo-of-Jamuraa-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/16c/042.jpg",
         "title": "Sidar Kondo of Jamuraa",
-        "set": "Tarkir: Dragonstorm Commander",
+        "set": "Commander 2016",
         "artist": "Ryan Alexander Lee"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2017/03/Grindstone-Kaladesh-Inventions-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/tem/126.jpg",
         "title": "Grindstone",
         "set": "Tempest Remastered",
         "artist": "Greg Simanson"
     },
     {
-        "url": "https://www.artofmtg.com/wp-content/uploads/2014/06/Cancel-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/soa/033.jpg",
         "title": "Cancel",
-        "set": "Foundations",
-        "artist": "Mathias Kollros"
+        "set": "Shards of Alara",
+        "artist": "Warren Mahy"
     },
     {
         "url": "https://www.mtgpics.com/pics/art/dmu/072.jpg",
@@ -298,7 +286,7 @@ export const BACKGROUNDS = [
         "url": "https://www.mtgpics.com/pics/art/10m/112.jpg",
         "title": "Sunken Hope",
         "set": "Tenth Edition",
-        "artist": "Volkan Baǵa"
+        "artist": "Volkan Ba\u01f5a"
     },
     {
         "url": "https://www.mtgpics.com/pics/art/sl1/247.jpg",

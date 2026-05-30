@@ -161,20 +161,22 @@
 		}
 	});
 
-	onMount(async () => {
+	onMount(() => {
 		window.addEventListener("keydown", handleKeyDown);
 
 		// Fetch the latest selected art from the local API to bypass Vite compile-time caching
-		try {
-			const res = await fetch("/api/save-selection");
-			if (res.ok) {
-				const data = await res.json();
+		fetch("/api/save-selection")
+			.then(res => {
+				if (res.ok) return res.json();
+				throw new Error("Failed to fetch selections");
+			})
+			.then(data => {
 				selectedUrls = data;
-			}
-		} catch (err) {
-			console.warn("Could not fetch selections dynamically, using static list:", err);
-			selectedUrls = selectedArtList || [];
-		}
+			})
+			.catch(err => {
+				console.warn("Could not fetch selections dynamically, using static list:", err);
+				selectedUrls = selectedArtList || [];
+			});
 
 		return () => {
 			window.removeEventListener("keydown", handleKeyDown);
@@ -259,7 +261,7 @@
 					</div>
 				{:else}
 					<div class="masonry-grid">
-						{#each checkedArt as art, index (art.url)}
+						{#each checkedArt as art, index (art.url + "_" + art.setCode + "_" + art.collectorNumber)}
 							<div class="masonry-item">
 								<div class="art-card-wrapper">
 									<button 
@@ -331,7 +333,7 @@
 					</div>
 				{:else}
 					<div class="masonry-grid">
-						{#each uncheckedArt as art, index (art.url)}
+						{#each uncheckedArt as art, index (art.url + "_" + art.setCode + "_" + art.collectorNumber)}
 							<div class="masonry-item">
 								<div class="art-card-wrapper">
 									<button 

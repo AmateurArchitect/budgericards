@@ -41,7 +41,7 @@
 	let aspectRatio = $state(1.5); // Defaults to landscape
 	let formHeight = $state(380);
 
-	onMount(async () => {
+	onMount(() => {
 		// Pick a random background on mount
 		currentBgIndex = Math.floor(Math.random() * availableBackgrounds.length);
 
@@ -53,15 +53,18 @@
 		}, 20000);
 
 		// Load selection list dynamically to bypass Vite compile-time cache
-		try {
-			const res = await fetch("/api/save-selection");
-			if (res.ok) {
-				selectedUrls = await res.json();
-			}
-		} catch (err) {
-			console.warn("Could not fetch selections dynamically, using static list:", err);
-			selectedUrls = selectedArtList || [];
-		}
+		fetch("/api/save-selection")
+			.then(res => {
+				if (res.ok) return res.json();
+				throw new Error("Failed to fetch selections");
+			})
+			.then(data => {
+				selectedUrls = data;
+			})
+			.catch(err => {
+				console.warn("Could not fetch selections dynamically, using static list:", err);
+				selectedUrls = selectedArtList || [];
+			});
 
 		return () => clearInterval(interval);
 	});

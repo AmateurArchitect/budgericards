@@ -11,16 +11,16 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/02/Angel-Warrior-Token-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/407.jpg",
         "name": "Angel Warrior",
         "artist": "Alexander Mokhov",
-        "set": "Battle for Baldur's Gate Tokens",
-        "setCode": "TCLB",
-        "collectorNumber": "25"
+        "set": "Kaldheim Tokens",
+        "setCode": "KHM",
+        "collectorNumber": "15"
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2014/04/Anger-of-the-Gods-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/ths/112.jpg",
         "name": "Anger of the Gods",
         "artist": "Yigit Koroglu",
         "set": "Double Masters 2022",
@@ -47,12 +47,12 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/02/Armament-Corps-Khans-of-Tarkir-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/ktk/163.jpg",
         "name": "Armament Corps",
         "artist": "Steven Belledin",
         "set": "Khans of Tarkir",
         "setCode": "KTK",
-        "collectorNumber": "165"
+        "collectorNumber": "163"
     },
     {
         "category": "Creatures",
@@ -74,7 +74,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/02/Awakening-Zone-Rise-of-the-Eldrazi-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/roe/176.jpg",
         "name": "Awakening Zone",
         "artist": "Johann Bodin",
         "set": "Secrets of Strixhaven Commander",
@@ -83,12 +83,12 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2014/06/Cancel-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/soa/033.jpg",
         "name": "Cancel",
-        "artist": "Mathias Kollros",
-        "set": "Foundations",
-        "setCode": "FDN",
-        "collectorNumber": "505"
+        "artist": "Warren Mahy",
+        "set": "Shards of Alara",
+        "setCode": "ALA",
+        "collectorNumber": "33"
     },
     {
         "category": "Creatures",
@@ -110,7 +110,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2020/11/Cuombajj-Witches-Commander-Legends-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/cmr/116.jpg",
         "name": "Cuombajj Witches",
         "artist": "Seb McKinnon",
         "set": "Commander Legends",
@@ -155,12 +155,12 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/02/Fyndhorn-Elves-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/fvt/004.jpg",
         "name": "Fyndhorn Elves",
-        "artist": "Igor Kieryluk",
-        "set": "Commander Legends",
-        "setCode": "CMR",
-        "collectorNumber": "228"
+        "artist": "Kev Walker",
+        "set": "From the Vault: Twenty",
+        "setCode": "FVT",
+        "collectorNumber": "4"
     },
     {
         "category": "Creatures",
@@ -173,7 +173,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/03/Harmonize-Planar-Chaos-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/plc/149.jpg",
         "name": "Harmonize",
         "artist": "Zoltan Boros",
         "set": "Teenage Mutant Ninja Turtles Eternal",
@@ -236,7 +236,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2018/09/Knight-of-Autumn.jpg",
+        "url": "https://www.mtgpics.com/pics/art/grn/183.jpg",
         "name": "Knight of Autumn",
         "artist": "Ryan Pancoast",
         "set": "Forgotten Realms Commander",
@@ -335,7 +335,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/02/Path-to-Exile-Conflux-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/con/015.jpg",
         "name": "Path to Exile",
         "artist": "Todd Lockwood",
         "set": "Secrets of Strixhaven Commander",
@@ -362,7 +362,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2023/01/Precision-Bolt-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/grn/267.jpg",
         "name": "Precision Bolt",
         "artist": "Grzegorz Rutkowski",
         "set": "Guilds of Ravnica",
@@ -380,7 +380,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2016/07/Providence-Eldritch-Moon-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/emn/037.jpg",
         "name": "Providence",
         "artist": "Zack Stella",
         "set": "Eldritch Moon",
@@ -443,21 +443,21 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/12/Shock-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/aer/098.jpg",
         "name": "Shock",
-        "artist": "Piotr Dura",
-        "set": "Marvel's Spider-Man",
-        "setCode": "SPM",
-        "collectorNumber": "88"
+        "artist": "Magali Villeneuve",
+        "set": "Aether Revolt",
+        "setCode": "AER",
+        "collectorNumber": "98"
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/12/Sidar-Kondo-of-Jamuraa-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/16c/042.jpg",
         "name": "Sidar Kondo of Jamuraa",
         "artist": "Ryan Alexander Lee",
-        "set": "Tarkir: Dragonstorm Commander",
-        "setCode": "TDC",
-        "collectorNumber": "303"
+        "set": "Commander 2016",
+        "setCode": "C16",
+        "collectorNumber": "42"
     },
     {
         "category": "Creatures",
@@ -499,7 +499,7 @@ export const RESOLVED_ART = [
         "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/stx/115.jpg",
         "name": "Storm-Kiln Artist",
-        "artist": "Manuel Castañón",
+        "artist": "Manuel Casta\u00f1\u00f3n",
         "set": "Strixhaven: School of Mages",
         "setCode": "STX",
         "collectorNumber": "115"
@@ -508,7 +508,7 @@ export const RESOLVED_ART = [
         "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/10m/112.jpg",
         "name": "Sunken Hope",
-        "artist": "Volkan Baǵa",
+        "artist": "Volkan Ba\u01f5a",
         "set": "Planechase Anthology",
         "setCode": "PCA",
         "collectorNumber": "26"
@@ -524,7 +524,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2022/06/Thought-Scour-Double-Masters-2022-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/2x2/065.jpg",
         "name": "Thought Scour",
         "artist": "Julie Dillon",
         "set": "Double Masters 2022",
@@ -551,7 +551,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2020/01/Treeshaker-Chimera-Theros-Beyond-Death-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/thb/297.jpg",
         "name": "Treeshaker Chimera",
         "artist": "Vincent Proce",
         "set": "New Capenna Commander",
@@ -560,7 +560,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2023/01/Trostani-Discordant-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/grn/208.jpg",
         "name": "Trostani Discordant",
         "artist": "Chase Stone",
         "set": "Ravnica: Clue Edition",
@@ -587,7 +587,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2019/01/Whisper-Blood-Liturgist-Ravnica-Allegiance-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/dom/102.jpg",
         "name": "Whisper, Blood Liturgist",
         "artist": "Kieran Yanner",
         "set": "Commander Masters",
@@ -605,7 +605,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Alpine-Meadow-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/248.jpg",
         "name": "Alpine Meadow",
         "artist": "Piotr Dura",
         "set": "Kaldheim",
@@ -623,16 +623,16 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2018/09/Boros-Guildgate-Guilds-of-Ravnica-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/grn/244.jpg",
         "name": "Boros Guildgate",
         "artist": "Titus Lunter",
-        "set": "Foundations",
-        "setCode": "FDN",
-        "collectorNumber": "684"
+        "set": "Guilds of Ravnica",
+        "setCode": "GRN",
+        "collectorNumber": "244"
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Bretagard-Stronghold-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/253.jpg",
         "name": "Bretagard Stronghold",
         "artist": "Jung Park",
         "set": "March of the Machine Commander",
@@ -650,12 +650,12 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2015/09/Canopy-Vista-Expeditions-Battle-for-Zendikar-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/zex/005.jpg",
         "name": "Canopy Vista",
         "artist": "Adam Paquette",
-        "set": "Tarkir: Dragonstorm Commander",
-        "setCode": "TDC",
-        "collectorNumber": "343"
+        "set": "Zendikar Expeditions",
+        "setCode": "EXP",
+        "collectorNumber": "5"
     },
     {
         "category": "Landscapes",
@@ -704,21 +704,21 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2014/09/Flooded-Strand-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/ktk/238.jpg",
         "name": "Flooded Strand",
-        "artist": "Alexander Forssberg",
-        "set": "Modern Horizons 3",
-        "setCode": "MH3",
-        "collectorNumber": "220"
+        "artist": "Andreas Rocha",
+        "set": "Khans of Tarkir",
+        "setCode": "KTK",
+        "collectorNumber": "238"
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2018/09/Forest-Guilds-of-Ravnica-MtG-Art.png",
+        "url": "https://www.mtgpics.com/pics/art/gk1/127.jpg",
         "name": "Forest",
-        "artist": "WFlemming Illustration",
-        "set": "The Hobbit",
-        "setCode": "HOB",
-        "collectorNumber": "198"
+        "artist": "Alayna Danner",
+        "set": "Guilds of Ravnica Guild Kits",
+        "setCode": "GK1",
+        "collectorNumber": "127"
     },
     {
         "category": "Landscapes",
@@ -740,7 +740,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Glacial-Floodplain-2-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/257.jpg",
         "name": "Glacial Floodplain",
         "artist": "Sarah Finnigan",
         "set": "Kaldheim",
@@ -785,7 +785,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/12/Gruul-Guildgate-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/gtc/239.jpg",
         "name": "Gruul Guildgate",
         "artist": "Randy Gallegos",
         "set": "Foundations",
@@ -812,16 +812,16 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Hengegate-Pathway-Variant-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/293.jpg",
         "name": "Hengegate Pathway // Mistgate Pathway",
         "artist": "Alayna Danner",
         "set": "Kaldheim",
         "setCode": "KHM",
-        "collectorNumber": "260"
+        "collectorNumber": "293"
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Highland-Forest-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/261.jpg",
         "name": "Highland Forest",
         "artist": "Alayna Danner",
         "set": "Commander Legends: Battle for Baldur's Gate",
@@ -848,7 +848,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2017/12/Horizon-Canopy-Iconic-Masters-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/ima/240.jpg",
         "name": "Horizon Canopy",
         "artist": "Noah Bradley",
         "set": "Iconic Masters",
@@ -947,15 +947,6 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2020/07/Mountain-2-Jumpstart-MtG-Art.jpg",
-        "name": "Mountain",
-        "artist": "WFlemming Illustration",
-        "set": "The Hobbit",
-        "setCode": "HOB",
-        "collectorNumber": "197"
-    },
-    {
-        "category": "Landscapes",
         "url": "https://www.mtgpics.com/pics/art/znr/505.jpg",
         "name": "Needleverge Pathway // Pillarverge Pathway",
         "artist": "Piotr Dura",
@@ -983,12 +974,12 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Plains-Variant-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/394.jpg",
         "name": "Plains",
-        "artist": "WFlemming Illustration",
-        "set": "The Hobbit",
-        "setCode": "HOB",
-        "collectorNumber": "194"
+        "artist": "Piotr Dura",
+        "set": "Kaldheim",
+        "setCode": "KHM",
+        "collectorNumber": "394"
     },
     {
         "category": "Landscapes",
@@ -1010,12 +1001,12 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/06/Rustvale-Bridge-Modern-Horizons-2-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/mh2/253.jpg",
         "name": "Rustvale Bridge",
         "artist": "Craig J Spearing",
-        "set": "Edge of Eternities Commander",
-        "setCode": "EOC",
-        "collectorNumber": "175"
+        "set": "Modern Horizons 2",
+        "setCode": "MH2",
+        "collectorNumber": "253"
     },
     {
         "category": "Landscapes",
@@ -1046,16 +1037,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/02/Strip-Mine-Expeditions-Battle-for-Zendikar-MtG-Art.jpg",
-        "name": "Strip Mine",
-        "artist": "John Avon",
-        "set": "Vintage Masters",
-        "setCode": "VMA",
-        "collectorNumber": "316"
-    },
-    {
-        "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Sulfurous-Mire-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/270.jpg",
         "name": "Sulfurous Mire",
         "artist": "Titus Lunter",
         "set": "Kaldheim",
@@ -1082,12 +1064,12 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Swamp-Variant-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/396.jpg",
         "name": "Swamp",
-        "artist": "WFlemming Illustration",
-        "set": "The Hobbit",
-        "setCode": "HOB",
-        "collectorNumber": "196"
+        "artist": "Piotr Dura",
+        "set": "Kaldheim",
+        "setCode": "KHM",
+        "collectorNumber": "396"
     },
     {
         "category": "Landscapes",
@@ -1154,18 +1136,18 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/02/Unknown-Shores-Ixalan-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/xln/259.jpg",
         "name": "Unknown Shores",
         "artist": "Adam Paquette",
-        "set": "Theros Beyond Death",
-        "setCode": "THB",
-        "collectorNumber": "249"
+        "set": "Ixalan",
+        "setCode": "XLN",
+        "collectorNumber": "259"
     },
     {
         "category": "Landscapes",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2020/11/War-Room-Commander-Legends-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/cmr/361.jpg",
         "name": "War Room",
-        "artist": "Milivoj Ćeran",
+        "artist": "Milivoj \u0106eran",
         "set": "Secrets of Strixhaven Commander",
         "setCode": "SOC",
         "collectorNumber": "422"
@@ -1217,12 +1199,12 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Objects",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Cat-Token-Kaldheim-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/419.jpg",
         "name": "Cat Token",
         "artist": "Eschi",
-        "set": "Kaldheim",
-        "setCode": "UNK",
-        "collectorNumber": "0"
+        "set": "Kaldheim Tokens",
+        "setCode": "KHM",
+        "collectorNumber": "14"
     },
     {
         "category": "Objects",
@@ -1253,7 +1235,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Objects",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2017/03/Grindstone-Kaladesh-Inventions-MtG-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/tem/126.jpg",
         "name": "Grindstone",
         "artist": "Greg Simanson",
         "set": "Tempest Remastered",
@@ -1262,7 +1244,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Objects",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2021/01/Icy-Manalith-Token.jpg",
+        "url": "https://www.mtgpics.com/pics/art/khm/422.jpg",
         "name": "Icy Manalith",
         "artist": "Andrew Mar",
         "set": "Kaldheim Tokens",
@@ -1325,7 +1307,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Objects",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2019/01/Tome-of-the-Guildpact-Ravnica-Allegiance-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/rna/242.jpg",
         "name": "Tome of the Guildpact",
         "artist": "Randy Gallegos",
         "set": "Ravnica Allegiance",
@@ -1345,7 +1327,7 @@ export const RESOLVED_ART = [
         "category": "Sagas",
         "url": "https://www.mtgpics.com/pics/art/acr/013.jpg",
         "name": "Ballad of the Black Flag",
-        "artist": "Miklós Ligeti",
+        "artist": "Mikl\u00f3s Ligeti",
         "set": "Assassin's Creed",
         "setCode": "ACR",
         "collectorNumber": "13"
@@ -1370,7 +1352,7 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Sagas",
-        "url": "https://www.artofmtg.com/wp-content/uploads/2020/01/The-Birth-of-Meletis-Theros-Beyond-Death-Art.jpg",
+        "url": "https://www.mtgpics.com/pics/art/thb/005.jpg",
         "name": "The Birth of Meletis",
         "artist": "Tyler Jacobson",
         "set": "Theros Beyond Death",
@@ -1390,7 +1372,7 @@ export const RESOLVED_ART = [
         "category": "Sagas",
         "url": "https://www.mtgpics.com/pics/art/dom/151.jpg",
         "name": "Warlord's Fury",
-        "artist": "Volkan Baǵa",
+        "artist": "Volkan Ba\u01f5a",
         "set": "Dominaria",
         "setCode": "DOM",
         "collectorNumber": "151"
