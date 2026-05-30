@@ -2,9 +2,7 @@
 	import { onMount } from "svelte";
 	import { fade, slide } from "svelte/transition";
 	import { authStore } from "$lib/stores/auth.svelte.js";
-	import { BACKGROUNDS } from "$lib/constants/backgrounds.js";
-	import { RESOLVED_ART } from "$lib/constants/resolved-art.js";
-	import selectedArtList from "$lib/constants/selected-art.json";
+	import { loginBgStore } from "$lib/stores/loginBg.svelte.js";
 	import { goto } from "$app/navigation";
 	import Button from "$lib/components/ui/Button.svelte";
 	import Input from "$lib/components/ui/Input.svelte";
@@ -30,41 +28,17 @@
 	let successMessage = $state("");
 	let isSubmitting = $state(false);
 
-	// Filter backgrounds based on gallery selection dynamically
-	let selectedUrls = $state(selectedArtList || []);
-	const selectedCards = $derived(RESOLVED_ART.filter(card => selectedUrls.includes(card.url)));
-	const availableBackgrounds = $derived(selectedCards.length > 0 ? selectedCards : BACKGROUNDS);
-
-	// Background index, load check, and aspect-ratio tracking
-	let currentBgIndex = $state(0);
-	let currentBg = $derived(availableBackgrounds[currentBgIndex]);
+	let currentBg = $derived(loginBgStore.currentBg);
 	let aspectRatio = $state(1.5); // Defaults to landscape
 	let formHeight = $state(380);
 
 	onMount(() => {
-		// Pick a random background on mount
-		currentBgIndex = Math.floor(Math.random() * availableBackgrounds.length);
-
 		// Slideshow interval: rotate backgrounds every 20 seconds
 		const interval = setInterval(() => {
-			if (availableBackgrounds.length > 0) {
-				currentBgIndex = (currentBgIndex + 1) % availableBackgrounds.length;
+			if (loginBgStore.availableBackgrounds.length > 0) {
+				loginBgStore.currentBgIndex = (loginBgStore.currentBgIndex + 1) % loginBgStore.availableBackgrounds.length;
 			}
 		}, 20000);
-
-		// Load selection list dynamically to bypass Vite compile-time cache
-		fetch("/api/save-selection")
-			.then(res => {
-				if (res.ok) return res.json();
-				throw new Error("Failed to fetch selections");
-			})
-			.then(data => {
-				selectedUrls = data;
-			})
-			.catch(err => {
-				console.warn("Could not fetch selections dynamically, using static list:", err);
-				selectedUrls = selectedArtList || [];
-			});
 
 		return () => clearInterval(interval);
 	});
@@ -78,9 +52,9 @@
 
 	// Preload the next image in the queue to ensure seamless transitions
 	$effect(() => {
-		if (availableBackgrounds.length > 1) {
-			const nextIndex = (currentBgIndex + 1) % availableBackgrounds.length;
-			const nextBg = availableBackgrounds[nextIndex];
+		if (loginBgStore.availableBackgrounds.length > 1) {
+			const nextIndex = (loginBgStore.currentBgIndex + 1) % loginBgStore.availableBackgrounds.length;
+			const nextBg = loginBgStore.availableBackgrounds[nextIndex];
 			if (nextBg) {
 				const img = new Image();
 				img.referrerPolicy = "no-referrer";
