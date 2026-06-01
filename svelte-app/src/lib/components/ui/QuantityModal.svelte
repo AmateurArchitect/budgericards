@@ -254,13 +254,13 @@
 	}
 
 	.btn-primary {
-		background: hsl(var(--primary));
+		background: hsl(var(--primary-dark));
 		color: hsl(var(--primary-foreground));
-		box-shadow: 0 4px 12px hsla(var(--primary-hsl), 0.3);
+		box-shadow: 0 4px 12px hsl(var(--primary) / 0.2);
 	}
 
 	.btn-primary:hover {
-		filter: brightness(1.1);
-		box-shadow: 0 6px 15px hsla(var(--primary-hsl), 0.4);
+		background: hsl(var(--primary));
+		box-shadow: 0 6px 15px hsl(var(--primary) / 0.3);
 	}
 </style>

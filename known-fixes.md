@@ -110,4 +110,18 @@ const val = myMap[someStringKey];
 **Fix Pattern**: Remove the explicit `"include"` block from the root `jsconfig.json` / `tsconfig.json` to allow full inheritance of SvelteKit's generated type files, or explicitly add SvelteKit's auto-generated definitions to the `"include"` array.
 **Logic**: Specifying an `"include"` array in a child `tsconfig.json` / `jsconfig.json` overrides the `"include"` array in SvelteKit's base configuration (`./.svelte-kit/tsconfig.json`). This excludes SvelteKit's generated ambient types (such as `ambient.d.ts`), preventing `$env` imports from resolving.
 
+## Module Imports & Extensions
+
+### Error Signature: "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+**Fix Pattern**: Remove the `.ts` extension from import paths (e.g. change `.svelte.ts` to `.svelte`, and `.ts` to `.js` or omit the extension entirely).
+**Logic**: Under standard module resolution configurations, TypeScript forbids importing modules with an explicit `.ts` extension. To resolve files properly for compilation/bundling, either omit the extension or use the corresponding target extension (.js or .svelte) that the environment/bundler compiles it into.
+
+```javascript
+// Before
+import { syncManager } from "$lib/syncManager.svelte.ts";
+import { runLocalSearch } from "$lib/localSearch.ts";
+
+// After
+import { syncManager } from "$lib/syncManager.svelte";
+import { runLocalSearch } from "$lib/localSearch";
 ```

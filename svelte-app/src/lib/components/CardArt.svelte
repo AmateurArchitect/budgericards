@@ -310,7 +310,7 @@
 		background: rgba(0, 0, 0, 0.8);
 		transform: scale(1.15) rotate(45deg);
 		border-color: var(--primary);
-		box-shadow: 0 0 15px hsla(var(--primary-hsl), 0.4);
+		box-shadow: 0 0 15px hsl(var(--primary) / 0.4);
 		opacity: 1;
 	}
 	

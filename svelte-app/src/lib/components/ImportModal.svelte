@@ -148,7 +148,7 @@
 					Cancel
 				</Button>
 				<Button 
-					variant="primary" 
+					variant="default" 
 					onclick={handleImport} 
 					disabled={isImporting || !decklistText.trim()}
 					class="import-btn"
@@ -268,7 +268,7 @@
 		background: hsl(var(--primary) / 0.05);
 		border: 1px solid hsl(var(--primary) / 0.1);
 		border-radius: var(--radius);
-		color: hsl(var(--primary) / 0.9);
+		color: hsl(var(--primary-light));
 		font-size: 0.8125rem;
 		line-height: 1.4;
 	}
@@ -360,12 +360,6 @@
 
 	:global(.import-btn) {
 		min-width: 140px;
-		background: hsl(var(--primary));
-		color: hsl(var(--primary-foreground));
-	}
-
-	:global(.import-btn:hover:not(:disabled)) {
-		background: hsl(var(--primary) / 0.9);
 	}
 
 	:global(.spinner) {

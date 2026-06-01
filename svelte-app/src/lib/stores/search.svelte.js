@@ -2,8 +2,8 @@ import { scryfallFetch } from "$lib/api/scryfall.js";
 import { priceStore } from "$lib/stores/prices.svelte.js";
 import { deckStore } from "$lib/stores/deck.svelte.js";
 import { settingsStore } from "$lib/stores/settings.svelte.js";
-import { syncManager } from "$lib/syncManager.svelte.ts";
-import { runLocalSearch, isPrintingQuery } from "$lib/localSearch.ts";
+import { syncManager } from "$lib/syncManager.svelte";
+import { runLocalSearch, isPrintingQuery } from "$lib/localSearch";
 
 function createSearch() {
 	let state = $state({

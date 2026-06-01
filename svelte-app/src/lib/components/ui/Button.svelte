@@ -48,11 +48,11 @@
 
 	/* Variants */
 	.variant-default {
-		background-color: hsl(var(--primary));
+		background-color: hsl(var(--primary-dark));
 		color: hsl(var(--primary-foreground));
 	}
 	.variant-default:hover {
-		background-color: hsl(var(--primary) / 0.9);
+		background-color: hsl(var(--primary));
 	}
 
 	.variant-destructive {

@@ -9,7 +9,7 @@
 	import ContextMenu from '$lib/components/ui/ContextMenu.svelte';
 	import AnimationLayer from '$lib/components/ui/AnimationLayer.svelte';
 	import QuantityModal from '$lib/components/ui/QuantityModal.svelte';
-	import { syncManager } from '$lib/syncManager.svelte.ts';
+	import { syncManager } from '$lib/syncManager.svelte';
 	import { loginBgStore } from '$lib/stores/loginBg.svelte.js';
 
 	let { children } = $props();

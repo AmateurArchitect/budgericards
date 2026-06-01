@@ -973,7 +973,7 @@
 	}
 
 	.dropdown-item.active {
-		background: hsla(var(--primary-hsl), 0.12);
+		background: hsl(var(--primary) / 0.12);
 		color: hsl(var(--foreground));
 	}
 
@@ -1115,7 +1115,7 @@
 	}
 
 	.select-item.active {
-		background: hsla(var(--primary-hsl), 0.12);
+		background: hsl(var(--primary) / 0.12);
 		color: hsl(var(--foreground));
 	}
 

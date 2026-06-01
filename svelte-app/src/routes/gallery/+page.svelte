@@ -630,7 +630,7 @@
 	.search-box:focus-within {
 		border-color: hsl(var(--primary));
 		background: rgba(0, 0, 0, 0.4);
-		box-shadow: 0 0 0 3px hsla(var(--primary-hsl), 0.15);
+		box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
 	}
 
 	:global(.search-box .search-icon) {
@@ -1268,9 +1268,9 @@
 	}
 
 	.select-toggle-btn.selected {
-		background: hsl(var(--primary));
-		border-color: hsl(var(--primary));
+		background: hsl(var(--primary-dark));
+		border-color: hsl(var(--primary-dark));
 		color: #ffffff;
-		box-shadow: 0 0 12px hsla(var(--primary-hsl), 0.5);
+		box-shadow: 0 0 12px hsl(var(--primary) / 0.4);
 	}
 </style>

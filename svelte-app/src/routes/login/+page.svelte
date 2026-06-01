@@ -740,7 +740,7 @@
 	:global(.input-wrapper .ui-input:focus-visible) {
 		border-color: hsl(var(--primary)) !important;
 		background-color: rgba(0, 0, 0, 0.4) !important;
-		box-shadow: 0 0 0 3px hsla(var(--primary-hsl), 0.15) !important;
+		box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15) !important;
 	}
 
 	.eye-btn {
@@ -766,15 +766,15 @@
 		height: 2.75rem !important;
 		margin-top: 0.5rem;
 		font-weight: 600 !important;
-		background-color: hsl(var(--primary)) !important;
+		background-color: hsl(var(--primary-dark)) !important;
 		color: #ffffff !important;
 		border-radius: var(--radius-md) !important;
 		transition: all 0.2s !important;
 	}
 
 	:global(.auth-form .submit-btn:hover) {
-		background-color: hsl(var(--primary) / 0.9) !important;
-		box-shadow: 0 0 16px hsla(var(--primary-hsl), 0.2);
+		background-color: hsl(var(--primary)) !important;
+		box-shadow: 0 0 16px hsl(var(--primary) / 0.2);
 	}
 
 	/* Alerts */

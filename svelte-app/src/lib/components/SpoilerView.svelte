@@ -581,7 +581,7 @@
 	}
 
 	.spoiler-view-container.drag-over {
-		background: rgba(var(--primary-hsl), 0.05);
+		background: hsl(var(--primary) / 0.05);
 	}
 
 	.spoiler-scroll-wrapper {
@@ -737,7 +737,7 @@
 		background: rgba(0, 0, 0, 0.85);
 		transform: scale(1.1);
 		border-color: hsl(var(--primary));
-		box-shadow: 0 0 15px hsla(var(--primary-hsl), 0.4);
+		box-shadow: 0 0 15px hsl(var(--primary) / 0.4);
 	}
 
 	.multiplier {
