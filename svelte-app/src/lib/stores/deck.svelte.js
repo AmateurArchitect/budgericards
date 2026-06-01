@@ -2,6 +2,8 @@ import { fetchCollection } from '$lib/api/scryfall.js';
 import { settingsStore } from '$lib/stores/settings.svelte.js';
 import { authStore } from '$lib/stores/auth.svelte.js';
 import { syncService } from '$lib/syncService';
+import { getCardByName } from '$lib/localSearch';
+import { db } from '$lib/db';
 
 
 const browser = typeof window !== 'undefined';
@@ -318,60 +320,100 @@ function createDeck() {
 
 		isSyncing = true;
 		try {
-			console.info(`🔄 Auto-syncing metadata for ${missingNames.length} missing cards...`);
-			const results = await fetchCollection(missingNames.map(name => ({ name })));
+			// First, try to resolve as many cards as possible locally
+			/** @type {string[]} */
+			const scryfallNames = [];
 			
-			// Map results for quick lookup
-			/** @type {Map<string, any>} */
-			const resultMap = new Map();
-			results.data.forEach(card => {
-				if (card.name) {
-					resultMap.set(card.name.toLowerCase(), card);
-					// Also index by card faces for split cards
-					if (card.card_faces) {
-						card.card_faces.forEach((/** @type {any} */ face) => {
-							if (face.name) resultMap.set(face.name.toLowerCase(), card);
-						});
-					}
-				}
-			});
-
-			missingNames.forEach(requestedName => {
+			for (const requestedName of missingNames) {
 				const lowName = requestedName.toLowerCase();
-				// Support both "A / B" and "A // B"
+				// Support both "A / B" and "A // B" for split cards
 				const normalizedName = lowName.replace(/\s+\/\s+/g, ' // ');
 				
-				// Try to find the card in the results
-				const card = resultMap.get(lowName) || resultMap.get(normalizedName);
+				let localCard = await getCardByName(lowName);
+				if (!localCard && normalizedName !== lowName) {
+					localCard = await getCardByName(normalizedName);
+				}
 				
-				if (card) {
+				if (localCard) {
+					// Fetch price from local database
+					const priceRecord = await db.prices.get(localCard.id);
+					
 					metadata[lowName] = {
-						image_uris: card.image_uris || null,
-						card_faces: card.card_faces || [],
-						type_line: card.type_line,
-						mana_cost: card.mana_cost || card.card_faces?.[0]?.mana_cost || "",
-						cmc: card.cmc,
-						colors: card.colors || card.card_faces?.[0]?.colors || [],
-						color_identity: card.color_identity || [],
-						oracle_text: card.oracle_text || card.card_faces?.[0]?.oracle_text || "",
-						prices: card.prices
+						image_uris: {
+							normal: localCard.image,
+							art_crop: localCard.image
+						},
+						card_faces: [],
+						type_line: localCard.type,
+						mana_cost: localCard.mana,
+						cmc: localCard.cmc,
+						colors: localCard.colors || [],
+						color_identity: localCard.identity || [],
+						oracle_text: localCard.text || "",
+						prices: {
+							usd: priceRecord ? String(priceRecord.price) : null
+						}
 					};
 				} else {
-					// Check if it was explicitly not found
-					const wasNotFound = results.not_found?.some((/** @type {any} */ nf) => 
-						nf.name?.toLowerCase() === lowName || nf.name?.toLowerCase() === normalizedName
-					);
-					
-					if (wasNotFound || true) { // Fallback safety: if it's not in data, it's effectively not found
-						metadata[lowName] = { 
-							notFound: true,
-							name: requestedName,
-							type_line: 'Unknown',
-							cmc: 0
-						};
-					}
+					scryfallNames.push(requestedName);
 				}
-			});
+			}
+
+			if (scryfallNames.length > 0) {
+				console.info(`🔄 Local lookup missed ${scryfallNames.length} cards. Syncing via Scryfall:`, scryfallNames);
+				const results = await fetchCollection(scryfallNames.map(name => ({ name })));
+				
+				// Map results for quick lookup
+				/** @type {Map<string, any>} */
+				const resultMap = new Map();
+				results.data.forEach(card => {
+					if (card.name) {
+						resultMap.set(card.name.toLowerCase(), card);
+						// Also index by card faces for split cards
+						if (card.card_faces) {
+							card.card_faces.forEach((/** @type {any} */ face) => {
+								if (face.name) resultMap.set(face.name.toLowerCase(), card);
+							});
+						}
+					}
+				});
+
+				scryfallNames.forEach(requestedName => {
+					const lowName = requestedName.toLowerCase();
+					const normalizedName = lowName.replace(/\s+\/\s+/g, ' // ');
+					
+					// Try to find the card in the results
+					const card = resultMap.get(lowName) || resultMap.get(normalizedName);
+					
+					if (card) {
+						metadata[lowName] = {
+							image_uris: card.image_uris || null,
+							card_faces: card.card_faces || [],
+							type_line: card.type_line,
+							mana_cost: card.mana_cost || card.card_faces?.[0]?.mana_cost || "",
+							cmc: card.cmc,
+							colors: card.colors || card.card_faces?.[0]?.colors || [],
+							color_identity: card.color_identity || [],
+							oracle_text: card.oracle_text || card.card_faces?.[0]?.oracle_text || "",
+							prices: card.prices
+						};
+					} else {
+						// Check if it was explicitly not found
+						const wasNotFound = results.not_found?.some((/** @type {any} */ nf) => 
+							nf.name?.toLowerCase() === lowName || nf.name?.toLowerCase() === normalizedName
+						);
+						
+						if (wasNotFound || true) {
+							metadata[lowName] = { 
+								notFound: true,
+								name: requestedName,
+								type_line: 'Unknown',
+								cmc: 0
+							};
+						}
+					}
+				});
+			}
 
 			metadata.updatedAt = Date.now();
 		} catch (e) {
