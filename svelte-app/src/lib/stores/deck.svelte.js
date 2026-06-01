@@ -782,6 +782,13 @@ function createDeck() {
 				deck.mainboard = [];
 				deck.sideboard = [];
 				deck.maybeboard = [];
+				
+				// Clear old card metadata so we fetch fresh copies from the local database
+				for (const key in metadata) {
+					if (key !== 'createdBy' && key !== 'createdAt' && key !== 'updatedAt') {
+						delete metadata[key];
+					}
+				}
 			}
 
 			saveHistory();
