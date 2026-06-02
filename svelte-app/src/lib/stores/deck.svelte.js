@@ -341,7 +341,7 @@ function createDeck() {
 					metadata[lowName] = {
 						image_uris: {
 							normal: localCard.image,
-							art_crop: localCard.image
+							art_crop: localCard.image ? localCard.image.replace('/normal/', '/art_crop/') : null
 						},
 						card_faces: [],
 						type_line: localCard.type,
