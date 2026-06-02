@@ -437,9 +437,7 @@
 						{@const heightPct = (count / manaCurve.maxCount) * 100}
 						<div class="curve-bar-wrapper" title="{count} cards at CMC {i === 7 ? '7+' : i}">
 							<div class="curve-bar" style="height: {heightPct}%">
-								{#if count > 0}
-									<span class="bar-count">{count}</span>
-								{/if}
+								<!-- No bar-count label inside -->
 							</div>
 							<span class="bar-label">{i === 7 ? '7+' : i}</span>
 						</div>
@@ -723,7 +721,7 @@ Sol Ring</code></pre>
 
 	.curve-bar {
 		background: linear-gradient(to top, hsl(var(--primary) / 0.8), hsl(var(--primary-light) / 0.9));
-		border-radius: 1px 1px 0 0;
+		border-radius: var(--radius-sm);
 		width: 100%;
 		min-height: 2px;
 		position: relative;
