@@ -51,9 +51,11 @@
 								usd: priceRecord ? String(priceRecord.price) : null
 							}
 						};
+					} else {
+						details[name] = null;
 					}
 				} catch (e) {
-					// Fallback
+					details[name] = null;
 				}
 			}
 
@@ -378,13 +380,16 @@
 				{#each lines as line}
 					{@const cardInfo = getCardInfo(line)}
 					{@const isHeader = line.trim().startsWith('//') || line.trim().startsWith('#')}
-					{@const isResolved = cardInfo && resolvedMetadataMap[cardInfo.name.toLowerCase()]}
-					{@const isUnresolved = cardInfo && !resolvedMetadataMap[cardInfo.name.toLowerCase()]}
+					{@const metadata = cardInfo ? resolvedMetadataMap[cardInfo.name.toLowerCase()] : undefined}
+					{@const isResolved = cardInfo && metadata !== undefined && metadata !== null}
+					{@const isUnrecognized = cardInfo && metadata === null}
+					{@const isUnresolved = cardInfo && metadata === undefined}
 					<div 
 						class="line-row" 
 						class:header-line={isHeader} 
 						class:resolved-line={isResolved} 
 						class:unresolved-line={isUnresolved}
+						class:unrecognized-line={isUnrecognized}
 					>
 						<span class="line-text">{line || ' '}</span>
 					</div>
@@ -735,21 +740,25 @@ Sol Ring</code></pre>
 		background: transparent;
 		padding: 0;
 		margin: 0;
-		color: hsl(var(--muted-foreground) / 0.5); /* low contrast fallback for unmatched/plain text lines */
+		color: hsl(var(--muted-foreground));
 	}
 
 	.line-row.header-line {
-		color: hsl(var(--muted-foreground) / 0.7);
+		color: hsl(var(--muted-foreground));
 		font-weight: 500;
 		font-style: italic;
 	}
 
 	.line-row.resolved-line {
-		color: hsl(var(--foreground)); /* high contrast */
+		color: hsl(var(--muted-foreground));
 	}
 
 	.line-row.unresolved-line {
-		color: hsl(var(--muted-foreground) / 0.35); /* low contrast */
+		color: hsl(var(--foreground));
+	}
+
+	.line-row.unrecognized-line {
+		color: #ef4444;
 	}
 
 	.line-text {
