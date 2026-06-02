@@ -250,6 +250,69 @@
 		return null;
 	}
 
+	/**
+	 * Splits a line into distinct highlight segments.
+	 * @param {string} line
+	 * @param {boolean} isCursorOnLine
+	 */
+	function highlightLineParts(line, isCursorOnLine) {
+		const trimmed = line.trim();
+		if (!trimmed) {
+			return [{ text: line || ' ', className: '' }];
+		}
+		
+		const isHeader = trimmed.startsWith('//') || trimmed.startsWith('#');
+		if (isHeader) {
+			return [{ text: line, className: 'header-part' }];
+		}
+
+		const leadingSpacesMatch = line.match(/^(\s*)/);
+		const leadingSpaces = leadingSpacesMatch ? leadingSpacesMatch[1] : '';
+		
+		const textToParse = line.slice(leadingSpaces.length);
+		
+		const qtyMatch = textToParse.match(/^(?:(x\s*\d+|\d+\s*x?)\s+)(.+)$/i);
+		let quantityText = '';
+		let remainingText = textToParse;
+		
+		if (qtyMatch) {
+			quantityText = qtyMatch[1] + ' ';
+			remainingText = qtyMatch[2];
+		}
+		
+		const suffixIndexMatch = remainingText.match(/\s+([([][A-Za-z0-9]{2,6}[)\]]|\*[a-zA-Z]+\*|#|\||[\$€£])/);
+		let cardName = remainingText;
+		let suffixText = '';
+		
+		if (suffixIndexMatch && suffixIndexMatch.index !== undefined) {
+			cardName = remainingText.substring(0, suffixIndexMatch.index);
+			suffixText = remainingText.substring(suffixIndexMatch.index);
+		}
+
+		const cleanedName = cardName.trim().replace(/\s*$/, '');
+		let nameClass = 'unresolved-name';
+		
+		if (cleanedName) {
+			const lowName = cleanedName.toLowerCase();
+			const metadata = resolvedMetadataMap[lowName];
+			
+			if (isCursorOnLine) {
+				nameClass = 'unresolved-name';
+			} else if (metadata !== undefined && metadata !== null) {
+				nameClass = 'resolved-name';
+			} else if (metadata === null) {
+				nameClass = 'unrecognized-name';
+			}
+		}
+
+		return [
+			{ text: leadingSpaces, className: '' },
+			{ text: quantityText, className: 'qty-part' },
+			{ text: cardName, className: nameClass },
+			{ text: suffixText, className: 'suffix-part' }
+		];
+	}
+
 	/** @param {string} lineText */
 	function getActiveLineParts(lineText) {
 		const trimmed = lineText.trim();
@@ -471,23 +534,15 @@
 			<!-- Background Layer: Highlighted plain text lines -->
 			<div class="highlights-layer" bind:this={highlightsEl}>
 				{#each lines as line, idx}
-					{@const cardInfo = getCardInfo(line)}
-					{@const isHeader = line.trim().startsWith('//') || line.trim().startsWith('#')}
-					{@const metadata = cardInfo ? resolvedMetadataMap[cardInfo.name.toLowerCase()] : undefined}
 					{@const isCursorOnLine = idx === activeLineIndex}
-					{@const isResolved = !isCursorOnLine && cardInfo && metadata !== undefined && metadata !== null}
-					{@const isUnrecognized = !isCursorOnLine && cardInfo && metadata === null}
-					{@const isUnresolved = isCursorOnLine || (cardInfo && metadata === undefined)}
-					<div 
-						class="line-row" 
-						class:header-line={isHeader} 
-						class:resolved-line={isResolved} 
-						class:unresolved-line={isUnresolved}
-						class:unrecognized-line={isUnrecognized}
-					>
-						<span class="line-text">{line || ' '}</span>
+					{@const parts = highlightLineParts(line, isCursorOnLine)}
+					<div class="line-row">
+						{#each parts as part}
+							<span class={part.className}>{part.text}</span>
+						{/each}
 						{#if isCursorOnLine && activeSuggestion}
 							<span class="suggestion-ghost">{activeSuggestion}</span>
+							<kbd class="shortcut-badge">Tab</kbd>
 						{/if}
 					</div>
 				{/each}
@@ -843,38 +898,51 @@ Sol Ring</code></pre>
 		background: transparent;
 		padding: 0;
 		margin: 0;
-		color: hsl(var(--muted-foreground));
 	}
 
-	.line-row.header-line {
+	.header-part {
 		color: hsl(var(--muted-foreground));
 		font-weight: 500;
 		font-style: italic;
 	}
 
-	.line-row.resolved-line {
+	.qty-part,
+	.suffix-part {
 		color: hsl(var(--muted-foreground));
 	}
 
-	.line-row.unresolved-line {
+	.resolved-name {
 		color: hsl(var(--foreground));
 	}
 
-	.line-row.unrecognized-line {
+	.unresolved-name {
+		color: hsl(var(--muted-foreground));
+	}
+
+	.unrecognized-name {
 		color: #ef4444;
 	}
 
-	.line-text {
-		font-family: inherit;
-		font-size: inherit;
-		line-height: inherit;
-	}
-
 	.suggestion-ghost {
-		color: hsl(var(--muted-foreground) / 0.5);
+		color: #22c55e;
 		font-style: italic;
 		pointer-events: none;
 		margin-left: 0px;
+	}
+
+	.shortcut-badge {
+		display: inline-flex;
+		align-items: center;
+		background: hsl(var(--muted) / 0.15);
+		border: 1px solid hsl(var(--border) / 0.4);
+		border-radius: var(--radius-sm, 3px);
+		padding: 0.1rem 0.3rem;
+		font-size: 0.65rem;
+		font-family: inherit;
+		color: hsl(var(--muted-foreground));
+		margin-left: 0.5rem;
+		line-height: 1;
+		text-transform: uppercase;
 	}
 
 	.actions-pane {
