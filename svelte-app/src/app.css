@@ -268,16 +268,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-	background: var(--bg-dark);
+	background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-	background: var(--border);
+	background: hsl(var(--muted-foreground) / 0.3);
 	border-radius: var(--radius-sm);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-	background: var(--text-secondary);
+	background: hsl(var(--muted-foreground) / 0.6);
 }
 
 /* Utility Classes */
