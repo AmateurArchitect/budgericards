@@ -103,10 +103,27 @@ function pickBestImage(printings) {
   }
   
   const veryFirstPrinting = sorted[0];
+  
+  // Find the newest frame style available (2015 > 2003 > 1997 > 1993)
+  const availableFrames = new Set(defaults.map(c => c.frame));
+  let bestFrame = '1993';
+  if (availableFrames.has('2015')) {
+    bestFrame = '2015';
+  } else if (availableFrames.has('2003')) {
+    bestFrame = '2003';
+  } else if (availableFrames.has('1997')) {
+    bestFrame = '1997';
+  }
+  
+  const bestFramePrintings = defaults.filter(c => c.frame === bestFrame);
+  
   if (veryFirstPrinting.frame === '2015') {
-    return getImageUrl(defaults[0]);
+    // If first printed in 2015 frame, we want the oldest printing (original art)
+    return getImageUrl(bestFramePrintings[0]);
   } else {
-    return getImageUrl(defaults[defaults.length - 1]);
+    // If first printed in older frame but reprinted in newer frame, or never printed in 2015,
+    // we want the newest printing of the best frame style available.
+    return getImageUrl(bestFramePrintings[bestFramePrintings.length - 1]);
   }
 }
 
