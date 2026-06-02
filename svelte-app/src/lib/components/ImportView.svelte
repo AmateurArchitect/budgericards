@@ -1,19 +1,16 @@
 <script>
 	import { deckStore } from '$lib/stores/deck.svelte.js';
-	import { Info, HelpCircle, Trash2, Sparkles, BookOpen, X, Eye } from 'lucide-svelte';
+	import { Info, HelpCircle, Trash2, Sparkles, BookOpen, X } from 'lucide-svelte';
 	import { fade } from 'svelte/transition';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { parseDecklist } from '$lib/utils/decklistParser.js';
 	import { getCardByName } from '$lib/localSearch';
 	import { db } from '$lib/db';
-	import { interactionStore } from '$lib/stores/interaction.svelte.js';
 
 	/** @type {HTMLTextAreaElement | null} */
 	let textareaEl = $state(null);
 	/** @type {HTMLDivElement | null} */
 	let highlightsEl = $state(null);
-	/** @type {HTMLDivElement | null} */
-	let iconsEl = $state(null);
 
 	let showGuide = $state(false);
 
@@ -246,7 +243,7 @@
 		return null;
 	}
 
-	// Synchronize scroll of textarea to highlights and icons
+	// Synchronize scroll of textarea to highlights
 	function handleScroll() {
 		if (textareaEl) {
 			const scrollTop = textareaEl.scrollTop;
@@ -254,9 +251,6 @@
 			if (highlightsEl) {
 				highlightsEl.scrollTop = scrollTop;
 				highlightsEl.scrollLeft = scrollLeft;
-			}
-			if (iconsEl) {
-				iconsEl.scrollTop = scrollTop;
 			}
 		}
 	}
@@ -379,17 +373,25 @@
 		</div>
 		
 		<div class="editor-wrapper">
-			<!-- Background Layer: Card Name Containers -->
+			<!-- Background Layer: Highlighted plain text lines -->
 			<div class="highlights-layer" bind:this={highlightsEl}>
 				{#each lines as line}
 					{@const cardInfo = getCardInfo(line)}
-					<div class="line-row" class:recognized={cardInfo}>
+					{@const isHeader = line.trim().startsWith('//') || line.trim().startsWith('#')}
+					{@const isResolved = cardInfo && resolvedMetadataMap[cardInfo.name.toLowerCase()]}
+					{@const isUnresolved = cardInfo && !resolvedMetadataMap[cardInfo.name.toLowerCase()]}
+					<div 
+						class="line-row" 
+						class:header-line={isHeader} 
+						class:resolved-line={isResolved} 
+						class:unresolved-line={isUnresolved}
+					>
 						<span class="line-text">{line || ' '}</span>
 					</div>
 				{/each}
 			</div>
 
-			<!-- Middle Layer: Real Textarea -->
+			<!-- Foreground Layer: Real Textarea -->
 			<textarea
 				bind:this={textareaEl}
 				bind:value={deckStore.importText}
@@ -398,33 +400,6 @@
 				onscroll={handleScroll}
 				aria-label="Decklist Text Input"
 			></textarea>
-
-			<!-- Foreground Layer: Interactive Eye Icons -->
-			<div class="icons-layer" bind:this={iconsEl}>
-				{#each lines as line}
-					{@const cardInfo = getCardInfo(line)}
-					<div class="icon-row-placeholder">
-						{#if cardInfo}
-							{@const lowName = cardInfo.name.toLowerCase()}
-							{@const meta = resolvedMetadataMap[lowName]}
-							{#if meta}
-								<button
-									class="eye-trigger"
-									onmouseenter={() => {
-										interactionStore.registerHover(meta, cardInfo.board || 'mainboard', parseFloat(meta.prices?.usd || '0'));
-									}}
-									onmouseleave={() => {
-										interactionStore.unregisterHover();
-									}}
-									aria-label="Preview {cardInfo.name}"
-								>
-									<Eye size={14} />
-								</button>
-							{/if}
-						{/if}
-					</div>
-				{/each}
-			</div>
 		</div>
 	</div>
 
@@ -714,7 +689,6 @@ Sol Ring</code></pre>
 		overflow: hidden;
 	}
 
-	/* Height is calculated as: 1.2em (line-height) + 0.4em (vertical padding) + 0.2em (vertical margin) = 1.8em */
 	textarea,
 	.highlights-layer {
 		position: absolute;
@@ -726,7 +700,7 @@ Sol Ring</code></pre>
 		box-sizing: border-box;
 		font-family: system-ui, -apple-system, sans-serif;
 		font-size: 0.9375rem;
-		line-height: 1.8em;
+		line-height: 1.6;
 		letter-spacing: 0.01em;
 	}
 
@@ -736,7 +710,7 @@ Sol Ring</code></pre>
 		border: none;
 		color: transparent;
 		caret-color: hsl(var(--foreground));
-		padding: 0 48px 0 8px;
+		padding: 0;
 		resize: none;
 		outline: none;
 		overflow-y: auto;
@@ -745,8 +719,7 @@ Sol Ring</code></pre>
 
 	.highlights-layer {
 		z-index: 1;
-		color: hsl(var(--foreground));
-		padding: 0 48px 0 8px;
+		padding: 0;
 		overflow-y: hidden;
 		overflow-x: auto;
 		white-space: pre;
@@ -754,64 +727,35 @@ Sol Ring</code></pre>
 	}
 
 	.line-row {
-		height: 1.6em; /* 1.2em text + 0.4em padding */
+		height: 1.6em;
 		display: flex;
 		align-items: center;
-		border: 1px solid transparent;
 		box-sizing: border-box;
-		padding: 0.2em 8px;
-		margin-bottom: 0.2em; /* 0.2em gap in between cards */
-		line-height: 1.2em; /* Dropping line height to 1.2 */
+		border: none;
+		background: transparent;
+		padding: 0;
+		margin: 0;
+		color: hsl(var(--muted-foreground) / 0.5); /* low contrast fallback for unmatched/plain text lines */
 	}
 
-	.line-row.recognized {
-		background: hsl(var(--primary) / 0.04);
-		border-color: hsl(var(--primary) / 0.15);
-		border-radius: var(--radius-sm);
+	.line-row.header-line {
+		color: hsl(var(--muted-foreground) / 0.7);
+		font-weight: 500;
+		font-style: italic;
+	}
+
+	.line-row.resolved-line {
+		color: hsl(var(--foreground)); /* high contrast */
+	}
+
+	.line-row.unresolved-line {
+		color: hsl(var(--muted-foreground) / 0.35); /* low contrast */
 	}
 
 	.line-text {
 		font-family: inherit;
 		font-size: inherit;
 		line-height: inherit;
-	}
-
-	.icons-layer {
-		position: absolute;
-		top: 0;
-		right: 8px;
-		width: 24px;
-		height: 100%;
-		z-index: 3;
-		overflow-y: hidden;
-		pointer-events: none;
-	}
-
-	.icon-row-placeholder {
-		height: 1.6em;
-		margin-bottom: 0.2em;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.eye-trigger {
-		background: transparent;
-		border: none;
-		color: hsl(var(--muted-foreground) / 0.7);
-		cursor: pointer;
-		pointer-events: auto;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 4px;
-		border-radius: var(--radius-sm);
-		transition: all 0.15s ease;
-	}
-
-	.eye-trigger:hover {
-		color: hsl(var(--primary));
-		background: hsl(var(--primary) / 0.1);
 	}
 
 	.actions-pane {
