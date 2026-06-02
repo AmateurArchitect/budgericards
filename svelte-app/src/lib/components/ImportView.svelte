@@ -1,7 +1,88 @@
 <script>
 	import { deckStore } from '$lib/stores/deck.svelte.js';
-	import { Info, HelpCircle } from 'lucide-svelte';
+	import { Info, HelpCircle, Trash2, Copy, Sparkles, BookOpen, X, CheckSquare } from 'lucide-svelte';
 	import { fade } from 'svelte/transition';
+	import Button from '$lib/components/ui/Button.svelte';
+	import { parseDecklist } from '$lib/utils/decklistParser.js';
+
+	/** @type {HTMLTextAreaElement | null} */
+	let textareaEl = $state(null);
+	let showGuide = $state(false);
+
+	function handleClear() {
+		deckStore.importText = '';
+	}
+
+	function handleSelectAll() {
+		if (textareaEl) {
+			textareaEl.focus();
+			textareaEl.select();
+		}
+	}
+
+	function handleConsolidateDuplicates() {
+		if (!deckStore.importText.trim()) return;
+
+		const parsed = parseDecklist(deckStore.importText);
+		const seen = new Set();
+		const duplicates = [];
+		
+		for (const card of parsed) {
+			const key = `${card.board || 'mainboard'}:${card.name.toLowerCase()}`;
+			if (seen.has(key)) {
+				duplicates.push(card.name);
+			}
+			seen.add(key);
+		}
+
+		if (duplicates.length === 0) {
+			alert("No duplicate entries found.");
+			return;
+		}
+
+		// Consolidate quantities per board
+		/** @type {Record<string, Record<string, number>>} */
+		const boards = {
+			commander: {},
+			companion: {},
+			mainboard: {},
+			sideboard: {},
+			maybeboard: {}
+		};
+
+		for (const card of parsed) {
+			const board = card.board || 'mainboard';
+			// Ensure safe indexing
+			if (!boards[board]) {
+				boards[board] = {};
+			}
+			const name = card.name;
+			boards[board][name] = (boards[board][name] || 0) + card.quantity;
+		}
+
+		// Re-serialize consolidated deck
+		let newText = '';
+		const boardLabels = [
+			{ name: 'commander', label: 'Commander' },
+			{ name: 'companion', label: 'Companion' },
+			{ name: 'mainboard', label: 'Deck' },
+			{ name: 'sideboard', label: 'Sideboard' },
+			{ name: 'maybeboard', label: 'Maybeboard' }
+		];
+
+		for (const board of boardLabels) {
+			const cards = boards[board.name];
+			if (!cards || Object.keys(cards).length === 0) continue;
+			newText += `// ${board.label}\n`;
+			for (const [name, qty] of Object.entries(cards)) {
+				newText += `${qty} ${name}\n`;
+			}
+			newText += '\n';
+		}
+
+		deckStore.importText = newText.trim();
+		alert(`Consolidated duplicate entries for: ${[...new Set(duplicates)].join(', ')}`);
+	}
 </script>
 
 <div class="import-view-container" in:fade={{ duration: 200 }}>
@@ -11,6 +92,7 @@
 			<span class="info-badge">Plain Text Format</span>
 		</div>
 		<textarea
+			bind:this={textareaEl}
 			bind:value={deckStore.importText}
 			placeholder="// Commander&#10;1 Atraxa, Praetors' Voice&#10;&#10;// Deck&#10;1 Sol Ring&#10;1 Arcane Signet&#10;38 Island&#10;..."
 			spellcheck="false"
@@ -18,25 +100,76 @@
 		></textarea>
 	</div>
 
-	<div class="guide-pane">
-		<div class="guide-header">
-			<HelpCircle size={18} class="guide-icon" />
-			<h3>Decklist Format Guide</h3>
+	<div class="actions-pane">
+		<div class="actions-header">
+			<h3>Editor Actions</h3>
 		</div>
 		
-		<div class="guide-scroll">
-			<div class="guide-section">
-				<h4>General Syntax</h4>
-				<p>List cards one per line with their quantity at the beginning. If no quantity is specified, 1 is assumed.</p>
-				<pre><code>4 Brainstorm
+		<div class="actions-list">
+			<Button variant="outline" class="action-btn" onclick={handleSelectAll}>
+				<CheckSquare size={16} />
+				Select All
+			</Button>
+
+			<Button variant="outline" class="action-btn" onclick={handleConsolidateDuplicates}>
+				<Sparkles size={16} />
+				Consolidate Duplicates
+			</Button>
+
+			<Button variant="outline" class="action-btn" onclick={() => showGuide = true}>
+				<BookOpen size={16} />
+				Import Format Guide
+			</Button>
+
+			<div class="danger-zone">
+				<Button variant="outline" class="action-btn delete-btn" onclick={handleClear}>
+					<Trash2 size={16} />
+					Clear Editor
+				</Button>
+			</div>
+		</div>
+
+		<div class="info-note">
+			<Info size={16} />
+			<p>Saving changes will replace the entire current deck with the contents of this editor.</p>
+		</div>
+	</div>
+</div>
+
+{#if showGuide}
+	<div class="guide-modal-backdrop" onclick={() => showGuide = false} role="presentation" transition:fade={{ duration: 150 }}>
+		<div 
+			class="guide-modal-content" 
+			onclick={(e) => e.stopPropagation()} 
+			onkeydown={(e) => e.stopPropagation()}
+			tabindex="-1"
+			role="dialog" 
+			aria-modal="true" 
+			aria-label="Format Guide"
+		>
+			<div class="modal-header">
+				<div class="modal-title-row">
+					<HelpCircle size={18} class="guide-icon-class" />
+					<h3>Decklist Format Guide</h3>
+				</div>
+				<button class="close-btn" onclick={() => showGuide = false} aria-label="Close guide">
+					<X size={18} />
+				</button>
+			</div>
+			
+			<div class="guide-scroll">
+				<div class="guide-section">
+					<h4>General Syntax</h4>
+					<p>List cards one per line with their quantity at the beginning. If no quantity is specified, 1 is assumed.</p>
+					<pre><code>4 Brainstorm
 1 Force of Will
 Sol Ring</code></pre>
-			</div>
+				</div>
 
-			<div class="guide-section">
-				<h4>Board Categories</h4>
-				<p>Use section headers starting with <code>//</code> to assign cards to specific boards (Mainboard/Deck, Commander, Companion, Sideboard, Maybeboard).</p>
-				<pre><code>// Commander
+				<div class="guide-section">
+					<h4>Board Categories</h4>
+					<p>Use section headers starting with <code>//</code> to assign cards to specific boards (Mainboard/Deck, Commander, Companion, Sideboard, Maybeboard).</p>
+					<pre><code>// Commander
 1 Atraxa, Praetors' Voice
 
 // Companion
@@ -51,28 +184,24 @@ Sol Ring</code></pre>
 
 // Maybeboard
 1 Cyclonic Rift</code></pre>
-			</div>
+				</div>
 
-			<div class="guide-section">
-				<h4>Extras & Set Tags</h4>
-				<p>You can paste lists directly from MTG Arena, MTGO, or Archidekt. Extra metadata tags (set codes, collector numbers, and prices) are automatically parsed and cleaned up.</p>
-				<pre><code>1 Arcane Signet (CLB) 298
+				<div class="guide-section">
+					<h4>Extras & Set Tags</h4>
+					<p>You can paste lists directly from MTG Arena, MTGO, or Archidekt. Extra metadata tags (set codes, collector numbers, and prices) are automatically parsed and cleaned up.</p>
+					<pre><code>1 Arcane Signet (CLB) 298
 4 Lightning Bolt *F*
 1 Swords to Plowshares #Removal</code></pre>
+				</div>
 			</div>
 		</div>
-
-		<div class="info-note">
-			<Info size={16} />
-			<p>Saving changes will replace the entire current deck with the contents of this editor. Make sure to back up anything important first.</p>
-		</div>
 	</div>
-</div>
+{/if}
 
 <style>
 	.import-view-container {
 		display: grid;
-		grid-template-columns: 1fr 340px;
+		grid-template-columns: 1fr 280px;
 		gap: 1.5rem;
 		padding: 1.25rem;
 		height: calc(100vh - 88px);
@@ -84,12 +213,7 @@ Sol Ring</code></pre>
 	.editor-pane {
 		display: flex;
 		flex-direction: column;
-		background: hsl(var(--card) / 0.3);
-		backdrop-filter: blur(12px);
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-lg);
-		padding: 1.25rem;
-		gap: 1rem;
+		gap: 0.75rem;
 		overflow: hidden;
 	}
 
@@ -102,9 +226,11 @@ Sol Ring</code></pre>
 
 	.pane-header h3 {
 		margin: 0;
-		font-size: 1.125rem;
+		font-size: 0.875rem;
 		font-weight: 600;
-		color: hsl(var(--foreground));
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: hsl(var(--muted-foreground));
 	}
 
 	.info-badge {
@@ -114,14 +240,14 @@ Sol Ring</code></pre>
 		color: hsl(var(--primary-light));
 		border-radius: var(--radius-full);
 		font-weight: 500;
-		border: 1px solid hsl(var(--primary) / 0.2);
+		border: 1px solid hsl(var(--primary) / 0.15);
 	}
 
 	textarea {
 		flex: 1;
 		width: 100%;
 		background: hsl(var(--muted) / 0.15);
-		border: 1px solid hsl(var(--border) / 0.8);
+		border: 1px solid hsl(var(--border) / 0.6);
 		border-radius: var(--radius);
 		padding: 1.25rem;
 		color: hsl(var(--foreground));
@@ -129,71 +255,172 @@ Sol Ring</code></pre>
 		font-size: 0.875rem;
 		line-height: 1.6;
 		resize: none;
-		transition: border-color 0.2s, box-shadow 0.2s;
+		transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 		outline: none;
 		box-sizing: border-box;
 	}
 
 	textarea:focus {
-		border-color: hsl(var(--primary) / 0.5);
-		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.1);
+		border-color: hsl(var(--primary) / 0.4);
+		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.08);
 		background: hsl(var(--muted) / 0.2);
 	}
 
-	.guide-pane {
+	.actions-pane {
 		display: flex;
 		flex-direction: column;
-		background: hsl(var(--card) / 0.2);
-		backdrop-filter: blur(12px);
-		border: 1px solid hsl(var(--border) / 0.4);
-		border-radius: var(--radius-lg);
-		padding: 1.25rem;
 		gap: 1.25rem;
 		overflow: hidden;
+		padding-top: 2rem;
 	}
 
-	.guide-header {
+	.actions-header h3 {
+		margin: 0;
+		font-size: 0.875rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.actions-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	:global(.action-btn) {
+		width: 100%;
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		flex-shrink: 0;
-		border-bottom: 1px solid hsl(var(--border) / 0.3);
-		padding-bottom: 0.75rem;
+		justify-content: flex-start;
+		gap: 0.75rem;
+		height: 38px;
+		font-size: 0.8125rem;
+		font-weight: 500;
+		background: hsl(var(--muted) / 0.1) !important;
+		border-color: hsl(var(--border) / 0.4) !important;
+		transition: all 0.2s !important;
 	}
 
-	.guide-header h3 {
+	:global(.action-btn:hover) {
+		background: hsl(var(--muted) / 0.25) !important;
+		border-color: hsl(var(--border) / 0.8) !important;
+	}
+
+	.danger-zone {
+		margin-top: 0.75rem;
+		border-top: 1px solid hsl(var(--border) / 0.3);
+		padding-top: 1.5rem;
+	}
+
+	:global(.delete-btn) {
+		color: #ef4444 !important;
+		border-color: rgba(239, 68, 68, 0.2) !important;
+		background: rgba(239, 68, 68, 0.03) !important;
+	}
+
+	:global(.delete-btn:hover) {
+		background: rgba(239, 68, 68, 0.1) !important;
+		border-color: rgba(239, 68, 68, 0.4) !important;
+	}
+
+	.info-note {
+		display: flex;
+		gap: 0.625rem;
+		padding: 0.75rem;
+		background: hsl(var(--primary) / 0.03);
+		border: 1px solid hsl(var(--primary) / 0.06);
+		border-radius: var(--radius);
+		color: hsl(var(--primary-light));
+		font-size: 0.75rem;
+		line-height: 1.4;
+		margin-top: auto;
+	}
+
+	.info-note p {
 		margin: 0;
-		font-size: 0.9375rem;
+	}
+
+	/* Guide Modal Styles */
+	.guide-modal-backdrop {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100vw;
+		height: 100vh;
+		background: rgba(0, 0, 0, 0.5);
+		backdrop-filter: blur(4px);
+		z-index: 10005;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.guide-modal-content {
+		width: 480px;
+		max-width: 90vw;
+		background: hsl(var(--popover));
+		border: 1px solid hsl(var(--border) / 0.6);
+		border-radius: var(--radius-lg);
+		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+		display: flex;
+		flex-direction: column;
+		max-height: 80vh;
+		overflow: hidden;
+		outline: none;
+	}
+
+	.modal-header {
+		padding: 1.25rem 1.5rem;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		border-bottom: 1px solid hsl(var(--border) / 0.3);
+		flex-shrink: 0;
+	}
+
+	.modal-title-row {
+		display: flex;
+		align-items: center;
+		gap: 0.625rem;
+	}
+
+	.modal-title-row h3 {
+		margin: 0;
+		font-size: 1rem;
 		font-weight: 600;
 		color: hsl(var(--foreground));
 	}
 
-	:global(.guide-icon) {
+	:global(.guide-icon-class) {
 		color: hsl(var(--primary));
 	}
 
+	.close-btn {
+		background: transparent;
+		border: none;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		padding: 4px;
+		border-radius: var(--radius);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: background-color 0.2s;
+	}
+
+	.close-btn:hover {
+		background: hsl(var(--muted) / 0.4);
+		color: hsl(var(--foreground));
+	}
+
 	.guide-scroll {
-		flex: 1;
+		padding: 1.5rem;
 		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
-		gap: 1.25rem;
-		padding-right: 4px;
-	}
-
-	/* Custom Scrollbar for Guide Scroll */
-	.guide-scroll::-webkit-scrollbar {
-		width: 6px;
-	}
-	.guide-scroll::-webkit-scrollbar-track {
-		background: transparent;
-	}
-	.guide-scroll::-webkit-scrollbar-thumb {
-		background: hsl(var(--border) / 0.5);
-		border-radius: 3px;
-	}
-	.guide-scroll::-webkit-scrollbar-thumb:hover {
-		background: hsl(var(--border));
+		gap: 1.5rem;
 	}
 
 	.guide-section {
@@ -233,29 +460,12 @@ Sol Ring</code></pre>
 		color: hsl(var(--foreground));
 	}
 
-	.info-note {
-		display: flex;
-		gap: 0.625rem;
-		padding: 0.75rem;
-		background: hsl(var(--primary) / 0.05);
-		border: 1px solid hsl(var(--primary) / 0.1);
-		border-radius: var(--radius);
-		color: hsl(var(--primary-light));
-		font-size: 0.75rem;
-		line-height: 1.4;
-		flex-shrink: 0;
-	}
-
-	.info-note p {
-		margin: 0;
-	}
-
 	@media (max-width: 768px) {
 		.import-view-container {
 			grid-template-columns: 1fr;
 		}
-		.guide-pane {
-			display: none;
+		.actions-pane {
+			padding-top: 0;
 		}
 	}
 </style>
