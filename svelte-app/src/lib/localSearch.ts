@@ -308,9 +308,9 @@ export async function runLocalSearch(
  * Used for metadata hydration in the deck store.
  */
 export async function getCardByName(name: string): Promise<CleanCard | undefined> {
-	const lower = name.toLowerCase();
 	return db.cards
-		.filter(c => c.name.toLowerCase() === lower)
+		.where('name')
+		.equalsIgnoreCase(name)
 		.first();
 }
 
