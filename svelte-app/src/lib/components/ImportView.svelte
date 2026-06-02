@@ -1,6 +1,6 @@
 <script>
 	import { deckStore } from '$lib/stores/deck.svelte.js';
-	import { Info, HelpCircle, Trash2, Copy, Sparkles, BookOpen, X, CheckSquare } from 'lucide-svelte';
+	import { Info, HelpCircle, X } from 'lucide-svelte';
 	import { fade } from 'svelte/transition';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { parseDecklist } from '$lib/utils/decklistParser.js';
@@ -83,50 +83,47 @@
 		deckStore.importText = newText.trim();
 		alert(`Consolidated duplicate entries for: ${[...new Set(duplicates)].join(', ')}`);
 	}
+
+	const placeholderText = `// Commander
+1 Atraxa, Praetors' Voice
+
+// Deck
+1 Sol Ring
+1 Arcane Signet
+38 Island`;
 </script>
 
 <div class="import-view-container" in:fade={{ duration: 200 }}>
 	<div class="editor-pane">
 		<div class="pane-header">
 			<h3>Decklist Editor</h3>
-			<span class="info-badge">Plain Text Format</span>
 		</div>
 		<textarea
 			bind:this={textareaEl}
 			bind:value={deckStore.importText}
-			placeholder="// Commander&#10;1 Atraxa, Praetors' Voice&#10;&#10;// Deck&#10;1 Sol Ring&#10;1 Arcane Signet&#10;38 Island&#10;..."
+			placeholder={placeholderText}
 			spellcheck="false"
 			aria-label="Decklist Text Input"
 		></textarea>
 	</div>
 
 	<div class="actions-pane">
-		<div class="actions-header">
-			<h3>Editor Actions</h3>
-		</div>
-		
 		<div class="actions-list">
 			<Button variant="outline" class="action-btn" onclick={handleSelectAll}>
-				<CheckSquare size={16} />
 				Select All
 			</Button>
 
 			<Button variant="outline" class="action-btn" onclick={handleConsolidateDuplicates}>
-				<Sparkles size={16} />
 				Consolidate Duplicates
 			</Button>
 
 			<Button variant="outline" class="action-btn" onclick={() => showGuide = true}>
-				<BookOpen size={16} />
 				Import Format Guide
 			</Button>
 
-			<div class="danger-zone">
-				<Button variant="outline" class="action-btn delete-btn" onclick={handleClear}>
-					<Trash2 size={16} />
-					Clear Editor
-				</Button>
-			</div>
+			<Button variant="outline" class="action-btn delete-btn" onclick={handleClear}>
+				Clear Deck
+			</Button>
 		</div>
 
 		<div class="info-note">
@@ -233,37 +230,19 @@ Sol Ring</code></pre>
 		color: hsl(var(--muted-foreground));
 	}
 
-	.info-badge {
-		font-size: 0.75rem;
-		padding: 0.25rem 0.625rem;
-		background: hsl(var(--primary) / 0.1);
-		color: hsl(var(--primary-light));
-		border-radius: var(--radius-full);
-		font-weight: 500;
-		border: 1px solid hsl(var(--primary) / 0.15);
-	}
-
 	textarea {
 		flex: 1;
 		width: 100%;
-		background: hsl(var(--muted) / 0.15);
-		border: 1px solid hsl(var(--border) / 0.6);
-		border-radius: var(--radius);
-		padding: 1.25rem;
+		background: transparent;
+		border: none;
+		padding: 0.5rem 0;
 		color: hsl(var(--foreground));
 		font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
 		font-size: 0.875rem;
 		line-height: 1.6;
 		resize: none;
-		transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 		outline: none;
 		box-sizing: border-box;
-	}
-
-	textarea:focus {
-		border-color: hsl(var(--primary) / 0.4);
-		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.08);
-		background: hsl(var(--muted) / 0.2);
 	}
 
 	.actions-pane {
@@ -271,17 +250,9 @@ Sol Ring</code></pre>
 		flex-direction: column;
 		gap: 1.25rem;
 		overflow: hidden;
-		padding-top: 2rem;
+		padding-top: 0.5rem;
 	}
 
-	.actions-header h3 {
-		margin: 0;
-		font-size: 0.875rem;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: hsl(var(--muted-foreground));
-	}
 
 	.actions-list {
 		display: flex;
@@ -308,11 +279,7 @@ Sol Ring</code></pre>
 		border-color: hsl(var(--border) / 0.8) !important;
 	}
 
-	.danger-zone {
-		margin-top: 0.75rem;
-		border-top: 1px solid hsl(var(--border) / 0.3);
-		padding-top: 1.5rem;
-	}
+
 
 	:global(.delete-btn) {
 		color: #ef4444 !important;

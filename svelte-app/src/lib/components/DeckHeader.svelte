@@ -1261,14 +1261,16 @@
 	}
 
 	.import-mode-actions {
-		display: flex;
+		display: grid;
+		grid-template-columns: 1fr 1fr;
 		gap: 0.75rem;
+		width: 280px;
 		align-items: center;
 	}
 
 	.import-mode-actions :global(.cancel-btn),
 	.import-mode-actions :global(.save-btn) {
-		min-width: 110px;
+		width: 100%;
 		height: 36px;
 		font-size: 0.8125rem;
 		font-weight: 600;
