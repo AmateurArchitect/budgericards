@@ -22,6 +22,7 @@
 	const lines = $derived(deckStore.importText.split('\n'));
 
 	// Local reactive state for fully resolved card metadata (live stats)
+	/** @type {any[]} */
 	let resolvedCards = $state([]);
 
 	$effect(() => {
