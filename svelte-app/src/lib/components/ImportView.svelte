@@ -1,18 +1,25 @@
 <script>
 	import { deckStore } from '$lib/stores/deck.svelte.js';
-	import { Info, HelpCircle, Trash2, Sparkles, BookOpen, X } from 'lucide-svelte';
+	import { Info, HelpCircle, Trash2, Sparkles, BookOpen, X, Eye } from 'lucide-svelte';
 	import { fade } from 'svelte/transition';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { parseDecklist } from '$lib/utils/decklistParser.js';
 	import { getCardByName } from '$lib/localSearch';
 	import { db } from '$lib/db';
+	import { interactionStore } from '$lib/stores/interaction.svelte.js';
 
 	/** @type {HTMLTextAreaElement | null} */
 	let textareaEl = $state(null);
+	/** @type {HTMLDivElement | null} */
+	let highlightsEl = $state(null);
+	/** @type {HTMLDivElement | null} */
+	let iconsEl = $state(null);
+
 	let showGuide = $state(false);
 
 	// Reactive parsing of current text
 	const parsedCards = $derived(parseDecklist(deckStore.importText));
+	const lines = $derived(deckStore.importText.split('\n'));
 
 	// Local reactive state for fully resolved card metadata (live stats)
 	let resolvedCards = $state([]);
@@ -25,26 +32,29 @@
 			/** @type {Record<string, any>} */
 			const details = {};
 			for (const name of uniqueNames) {
-				// First check store metadata cache
 				if (deckStore.metadata[name]) {
 					details[name] = deckStore.metadata[name];
 					continue;
 				}
-				// Otherwise query local db
 				try {
 					const localCard = await getCardByName(name);
 					if (localCard) {
 						const priceRecord = await db.prices.get(localCard.id);
 						details[name] = {
+							name: localCard.name,
 							type_line: localCard.type || '',
 							cmc: localCard.cmc ?? 0,
+							image_uris: {
+								normal: localCard.image,
+								art_crop: localCard.image ? localCard.image.replace('/normal/', '/art_crop/') : null
+							},
 							prices: {
 								usd: priceRecord ? String(priceRecord.price) : null
 							}
 						};
 					}
 				} catch (e) {
-					// Fallback if lookup fails
+					// Fallback
 				}
 			}
 
@@ -125,7 +135,7 @@
 
 	// Mana curve calculations for mainboard spells (excluding lands)
 	const manaCurve = $derived.by(() => {
-		const counts = Array(8).fill(0); // 0, 1, 2, 3, 4, 5, 6, 7+
+		const counts = Array(8).fill(0);
 		const mainSpells = resolvedCards.filter(c => (c.board || 'mainboard') === 'mainboard' && !c.type.includes('Land'));
 		
 		for (const card of mainSpells) {
@@ -179,7 +189,6 @@
 			return;
 		}
 
-		// Consolidate quantities per board
 		/** @type {Record<string, Record<string, number>>} */
 		const boards = {
 			commander: {},
@@ -198,7 +207,6 @@
 			boards[board][name] = (boards[board][name] || 0) + card.quantity;
 		}
 
-		// Re-serialize consolidated deck
 		let newText = '';
 		const boardLabels = [
 			{ name: 'commander', label: 'Commander' },
@@ -220,6 +228,34 @@
 
 		deckStore.importText = newText.trim();
 		alert(`Consolidated duplicate entries for: ${[...new Set(duplicates)].join(', ')}`);
+	}
+
+	// Helper to check if a line represents a recognized card
+	/** @param {string} line */
+	function getCardInfo(line) {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) return null;
+		
+		const parsed = parseDecklist(trimmed);
+		if (parsed.length === 1) {
+			return parsed[0];
+		}
+		return null;
+	}
+
+	// Synchronize scroll of textarea to highlights and icons
+	function handleScroll() {
+		if (textareaEl) {
+			const scrollTop = textareaEl.scrollTop;
+			const scrollLeft = textareaEl.scrollLeft;
+			if (highlightsEl) {
+				highlightsEl.scrollTop = scrollTop;
+				highlightsEl.scrollLeft = scrollLeft;
+			}
+			if (iconsEl) {
+				iconsEl.scrollTop = scrollTop;
+			}
+		}
 	}
 
 	const placeholderText = `// Commander
@@ -290,7 +326,6 @@
 					<span class="item-name">Mainboard</span>
 					<span class="item-stats">{boardStats.mainboard.qty} <span class="muted">•</span> ${boardStats.mainboard.price.toFixed(2)}</span>
 				</div>
-				<!-- Mainboard subcategories -->
 				<div class="mainboard-subcategories">
 					{#if mainboardStats.creatures.qty > 0}
 						<div class="sub-item">
@@ -339,13 +374,56 @@
 		<div class="pane-header">
 			<h3>Decklist Editor</h3>
 		</div>
-		<textarea
-			bind:this={textareaEl}
-			bind:value={deckStore.importText}
-			placeholder={placeholderText}
-			spellcheck="false"
-			aria-label="Decklist Text Input"
-		></textarea>
+		
+		<div class="editor-wrapper">
+			<!-- Background Layer: Card Name Containers -->
+			<div class="highlights-layer" bind:this={highlightsEl}>
+				{#each lines as line}
+					{@const cardInfo = getCardInfo(line)}
+					<div class="line-row" class:recognized={cardInfo}>
+						<!-- Double space for matching exact textarea text alignment -->
+						<span class="line-text">{line || ' '}</span>
+					</div>
+				{/each}
+			</div>
+
+			<!-- Middle Layer: Real Textarea -->
+			<textarea
+				bind:this={textareaEl}
+				bind:value={deckStore.importText}
+				placeholder={placeholderText}
+				spellcheck="false"
+				onscroll={handleScroll}
+				aria-label="Decklist Text Input"
+			></textarea>
+
+			<!-- Foreground Layer: Interactive Eye Icons -->
+			<div class="icons-layer" bind:this={iconsEl}>
+				{#each lines as line}
+					{@const cardInfo = getCardInfo(line)}
+					<div class="icon-row-placeholder">
+						{#if cardInfo}
+							{@const lowName = cardInfo.name.toLowerCase()}
+							{@const meta = deckStore.metadata[lowName]}
+							{#if meta}
+								<button
+									class="eye-trigger"
+									onmouseenter={() => {
+										interactionStore.registerHover(meta, cardInfo.board || 'mainboard', parseFloat(meta.prices?.usd || '0'));
+									}}
+									onmouseleave={() => {
+										interactionStore.unregisterHover();
+									}}
+									aria-label="Preview {cardInfo.name}"
+								>
+									<Eye size={14} />
+								</button>
+							{/if}
+						{/if}
+					</div>
+				{/each}
+			</div>
+		</div>
 	</div>
 
 	<!-- Action Sidebar Panel (Right Column) -->
@@ -472,7 +550,6 @@ Sol Ring</code></pre>
 		color: hsl(var(--muted-foreground));
 	}
 
-	/* Mini Mana Curve graphic */
 	.curve-graphic {
 		height: 75px;
 		display: flex;
@@ -551,7 +628,7 @@ Sol Ring</code></pre>
 	}
 
 	.price-text {
-		color: #34d399; /* Green Est. price text matching Scryfall USD style */
+		color: #34d399;
 	}
 
 	.stats-divider {
@@ -626,19 +703,110 @@ Sol Ring</code></pre>
 		color: hsl(var(--muted-foreground));
 	}
 
-	textarea {
+	/* Layered Code/Text Editor Styling */
+	.editor-wrapper {
+		position: relative;
 		flex: 1;
 		width: 100%;
+		height: 100%;
+		overflow: hidden;
+	}
+
+	textarea,
+	.highlights-layer {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		margin: 0;
+		box-sizing: border-box;
+		font-family: system-ui, -apple-system, sans-serif;
+		font-size: 0.9375rem;
+		line-height: 28px;
+		letter-spacing: 0.01em;
+	}
+
+	textarea {
+		z-index: 2;
 		background: transparent;
 		border: none;
-		padding: 0.5rem 0;
-		color: hsl(var(--foreground));
-		font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
-		font-size: 0.875rem;
-		line-height: 1.6;
+		color: transparent; /* Makes raw text invisible, rendering highlights instead */
+		caret-color: hsl(var(--foreground)); /* Blinking caret remains visible */
+		padding: 0 48px 0 8px;
 		resize: none;
 		outline: none;
+		overflow-y: auto;
+		white-space: pre;
+	}
+
+	.highlights-layer {
+		z-index: 1;
+		color: hsl(var(--foreground));
+		padding: 0 48px 0 8px;
+		overflow-y: hidden;
+		overflow-x: auto;
+		white-space: pre;
+		pointer-events: none;
+	}
+
+	.line-row {
+		height: 28px;
+		display: flex;
+		align-items: center;
+		border: 1px solid transparent;
 		box-sizing: border-box;
+	}
+
+	.line-row.recognized {
+		background: hsl(var(--primary) / 0.04);
+		border-color: hsl(var(--primary) / 0.15);
+		border-radius: var(--radius-sm);
+	}
+
+	.line-text {
+		/* Inherits core typography */
+		font-family: inherit;
+		font-size: inherit;
+		line-height: inherit;
+	}
+
+	/* Interactive eye icons on top right area */
+	.icons-layer {
+		position: absolute;
+		top: 0;
+		right: 8px;
+		width: 24px;
+		height: 100%;
+		z-index: 3; /* Placed above textarea */
+		overflow-y: hidden;
+		pointer-events: none;
+	}
+
+	.icon-row-placeholder {
+		height: 28px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.eye-trigger {
+		background: transparent;
+		border: none;
+		color: hsl(var(--muted-foreground) / 0.7);
+		cursor: pointer;
+		pointer-events: auto;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 4px;
+		border-radius: var(--radius-sm);
+		transition: all 0.15s ease;
+	}
+
+	.eye-trigger:hover {
+		color: hsl(var(--primary));
+		background: hsl(var(--primary) / 0.1);
 	}
 
 	.actions-pane {
