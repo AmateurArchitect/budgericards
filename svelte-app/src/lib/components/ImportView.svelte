@@ -24,6 +24,9 @@
 	/** @type {Record<string, any>} */
 	let resolvedMetadataMap = $state({});
 
+	let activeLineIndex = $state(-1);
+	let activeSuggestion = $state('');
+
 	$effect(() => {
 		const cards = parsedCards;
 		const uniqueNames = [...new Set(cards.map(c => c.name.toLowerCase()))];
@@ -235,7 +238,7 @@
 	}
 
 	// Helper to check if a line represents a recognized card
-	/** @param {string} line */
+	/** @type {(line: string) => any} */
 	function getCardInfo(line) {
 		const trimmed = line.trim();
 		if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) return null;
@@ -245,6 +248,94 @@
 			return parsed[0];
 		}
 		return null;
+	}
+
+	/** @param {string} lineText */
+	function getActiveLineParts(lineText) {
+		const trimmed = lineText.trim();
+		if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) return null;
+		
+		const qtyMatch = trimmed.match(/^(?:x\s*(\d+)|(\d+)\s*x?)\s+(.+)$/);
+		if (qtyMatch) {
+			return {
+				qtyPrefix: trimmed.substring(0, trimmed.length - qtyMatch[3].length),
+				namePart: qtyMatch[3]
+			};
+		}
+		return {
+			qtyPrefix: '',
+			namePart: trimmed
+		};
+	}
+
+	$effect(() => {
+		const lineText = lines[activeLineIndex] || '';
+		const parts = getActiveLineParts(lineText);
+		
+		if (!parts || !parts.namePart || parts.namePart.length < 2) {
+			activeSuggestion = '';
+			return;
+		}
+
+		const queryName = parts.namePart;
+		
+		const fetchSuggestion = async () => {
+			try {
+				const matches = await db.cards
+					.where('name')
+					.startsWithIgnoreCase(queryName)
+					.limit(2)
+					.toArray();
+				
+				const uniqueMatches = [...new Set(matches.map(m => m.name))];
+				if (uniqueMatches.length === 1) {
+					const cardName = uniqueMatches[0];
+					if (cardName.toLowerCase().startsWith(queryName.toLowerCase()) && cardName.length > queryName.length) {
+						activeSuggestion = cardName.substring(queryName.length);
+						return;
+					}
+				}
+			} catch (e) {
+				// Ignored
+			}
+			activeSuggestion = '';
+		};
+
+		fetchSuggestion();
+	});
+
+	function updateActiveLine() {
+		if (!textareaEl) return;
+		const textBeforeCursor = textareaEl.value.substring(0, textareaEl.selectionStart);
+		activeLineIndex = textBeforeCursor.split('\n').length - 1;
+	}
+
+	/** @param {KeyboardEvent} e */
+	function handleKeyDown(e) {
+		if ((e.key === 'Tab' || e.key === 'Enter') && activeSuggestion) {
+			e.preventDefault();
+			
+			const currentText = deckStore.importText;
+			const linesArr = currentText.split('\n');
+			const activeLine = linesArr[activeLineIndex];
+			
+			const parts = getActiveLineParts(activeLine);
+			if (parts) {
+				const completedName = parts.namePart + activeSuggestion;
+				linesArr[activeLineIndex] = (parts.qtyPrefix || '1 ') + completedName;
+				deckStore.importText = linesArr.join('\n');
+				
+				activeSuggestion = '';
+				
+				setTimeout(() => {
+					if (!textareaEl) return;
+					const linesUpToActive = linesArr.slice(0, activeLineIndex + 1);
+					const cursorOffset = linesUpToActive.join('\n').length;
+					textareaEl.selectionStart = textareaEl.selectionEnd = cursorOffset;
+					updateActiveLine();
+				}, 0);
+			}
+		}
 	}
 
 	// Synchronize scroll of textarea to highlights
@@ -379,13 +470,14 @@
 		<div class="editor-wrapper">
 			<!-- Background Layer: Highlighted plain text lines -->
 			<div class="highlights-layer" bind:this={highlightsEl}>
-				{#each lines as line}
+				{#each lines as line, idx}
 					{@const cardInfo = getCardInfo(line)}
 					{@const isHeader = line.trim().startsWith('//') || line.trim().startsWith('#')}
 					{@const metadata = cardInfo ? resolvedMetadataMap[cardInfo.name.toLowerCase()] : undefined}
-					{@const isResolved = cardInfo && metadata !== undefined && metadata !== null}
-					{@const isUnrecognized = cardInfo && metadata === null}
-					{@const isUnresolved = cardInfo && metadata === undefined}
+					{@const isCursorOnLine = idx === activeLineIndex}
+					{@const isResolved = !isCursorOnLine && cardInfo && metadata !== undefined && metadata !== null}
+					{@const isUnrecognized = !isCursorOnLine && cardInfo && metadata === null}
+					{@const isUnresolved = isCursorOnLine || (cardInfo && metadata === undefined)}
 					<div 
 						class="line-row" 
 						class:header-line={isHeader} 
@@ -394,6 +486,9 @@
 						class:unrecognized-line={isUnrecognized}
 					>
 						<span class="line-text">{line || ' '}</span>
+						{#if isCursorOnLine && activeSuggestion}
+							<span class="suggestion-ghost">{activeSuggestion}</span>
+						{/if}
 					</div>
 				{/each}
 			</div>
@@ -405,6 +500,12 @@
 				placeholder={placeholderText}
 				spellcheck="false"
 				onscroll={handleScroll}
+				oninput={updateActiveLine}
+				onkeyup={updateActiveLine}
+				onclick={updateActiveLine}
+				onfocus={updateActiveLine}
+				onblur={() => { activeLineIndex = -1; activeSuggestion = ''; }}
+				onkeydown={handleKeyDown}
 				aria-label="Decklist Text Input"
 			></textarea>
 		</div>
@@ -767,6 +868,13 @@ Sol Ring</code></pre>
 		font-family: inherit;
 		font-size: inherit;
 		line-height: inherit;
+	}
+
+	.suggestion-ghost {
+		color: hsl(var(--muted-foreground) / 0.5);
+		font-style: italic;
+		pointer-events: none;
+		margin-left: 0px;
 	}
 
 	.actions-pane {
