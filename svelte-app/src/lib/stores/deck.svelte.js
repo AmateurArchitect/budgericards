@@ -4,6 +4,7 @@ import { authStore } from '$lib/stores/auth.svelte.js';
 import { syncService } from '$lib/syncService';
 import { getCardByName } from '$lib/localSearch';
 import { db } from '$lib/db';
+import { parseDecklist } from '$lib/utils/decklistParser.js';
 
 
 const browser = typeof window !== 'undefined';
@@ -60,6 +61,8 @@ function createDeck() {
 	/** @type {string[]} */
 	let redoStack = $state([]);
 
+	let importText = $state('');
+	let previousViewMode = $state('stacks');
 
 	function saveHistory() {
 		const snapshot = JSON.stringify($state.snapshot({
@@ -811,6 +814,53 @@ function createDeck() {
 			metadata.updatedAt = Date.now();
 			persist();
 			// syncMetadata() will be triggered by the $effect automatically
+		},
+
+		get importText() { return importText; },
+		set importText(val) { importText = val; },
+
+		enterImportMode() {
+			let text = '';
+			const boardsList = [
+				{ name: 'commander', label: 'Commander' },
+				{ name: 'companion', label: 'Companion' },
+				{ name: 'mainboard', label: 'Deck' },
+				{ name: 'sideboard', label: 'Sideboard' },
+				{ name: 'maybeboard', label: 'Maybeboard' }
+			];
+			for (const board of boardsList) {
+				const cards = deck[board.name] || [];
+				if (cards.length === 0) continue;
+				
+				text += `// ${board.label}\n`;
+				/** @type {Record<string, number>} */
+				const counts = {};
+				for (const card of cards) {
+					counts[card.name] = (counts[card.name] || 0) + 1;
+				}
+				for (const [name, qty] of Object.entries(counts)) {
+					text += `${qty} ${name}\n`;
+				}
+				text += '\n';
+			}
+			importText = text.trim();
+			
+			if (settingsStore.deckViewMode !== 'import') {
+				previousViewMode = settingsStore.deckViewMode;
+			}
+			settingsStore.deckViewMode = 'import';
+		},
+
+		cancelImport() {
+			settingsStore.deckViewMode = previousViewMode || 'stacks';
+			importText = '';
+		},
+
+		async saveImport() {
+			const parsedCards = parseDecklist(importText);
+			await this.importCards(parsedCards, { replace: true });
+			settingsStore.deckViewMode = previousViewMode || 'stacks';
+			importText = '';
 		}
 	};
 }

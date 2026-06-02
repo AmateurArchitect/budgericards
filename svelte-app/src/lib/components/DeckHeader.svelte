@@ -474,253 +474,107 @@
 	</div>
 
 	<div class="deck-controls">
-		<div class="header-select-group">
-			<span class="group-label">LAYOUT</span>
-			<div class="toggle-group">
-				<div class="group-content">
-					<Button
-						variant={settingsStore.deckViewMode === "stacks"
-							? "toggle-active"
-							: "ghost"}
-						size="icon"
-						class="display-toggle-btn"
-						onclick={() => (settingsStore.deckViewMode = "stacks")}
-						title="Stacks View"
-					>
-						<Layers size={14} />
-					</Button>
-					<Button
-						variant={settingsStore.deckViewMode === "table"
-							? "toggle-active"
-							: "ghost"}
-						size="icon"
-						class="display-toggle-btn"
-						onclick={() => (settingsStore.deckViewMode = "table")}
-						title="Table View"
-					>
-						<Table size={14} />
-					</Button>
-					<Button
-						variant={settingsStore.deckViewMode === "list"
-							? "toggle-active"
-							: "ghost"}
-						size="icon"
-						class="display-toggle-btn"
-						onclick={() => (settingsStore.deckViewMode = "list")}
-						title="List View"
-					>
-						<List size={14} />
-					</Button>
-					<Button
-						variant={settingsStore.deckViewMode === "spoiler"
-							? "toggle-active"
-							: "ghost"}
-						size="icon"
-						class="display-toggle-btn"
-						onclick={() => (settingsStore.deckViewMode = "spoiler")}
-						title="Spoiler View"
-					>
-						<Image size={14} />
-					</Button>
-				</div>
-			</div>
-		</div>
-
-		<div class="action-buttons">
-			<!-- Grouping Dropdown (Renamed from Columns) -->
-			<div class="header-select-group">
-				<span class="group-label">GROUPING</span>
-				<div class="header-select-container">
-					<button
-						class="header-select-trigger"
-						onclick={() =>
-							(showColumnsDropdown = !showColumnsDropdown)}
-						aria-expanded={showColumnsDropdown}
-						aria-haspopup="listbox"
-					>
-						<span class="trigger-value"
-							>{columns.find((c) => c.id === deckStore.grouping)
-								?.label}</span
-						>
-						<ChevronDown
-							size={14}
-							class="trigger-chevron {showColumnsDropdown
-								? 'open'
-								: ''}"
-						/>
-					</button>
-
-					{#if showColumnsDropdown}
-						<div
-							class="dropdown-backdrop"
-							role="presentation"
-							onclick={(e) => {
-								e.stopPropagation();
-								showColumnsDropdown = false;
-							}}
-							in:fade={{ duration: 200 }}
-							out:fade={{ duration: 150 }}
-						></div>
-						<div
-							class="header-select-menu"
-							in:fly={{ y: 5, duration: 250 }}
-							out:fly={{ y: 5, duration: 200 }}
-						>
-							{#each visibleGroupings as col}
-								<button
-									class="select-item"
-									class:active={deckStore.grouping === col.id}
-									onclick={() => selectGrouping(col.id)}
-								>
-									{col.label}
-								</button>
-							{/each}
-						</div>
-					{/if}
-				</div>
-			</div>
-
-			<!-- Columns multi-select dropdown (visible only in table view) -->
-			{#if settingsStore.deckViewMode === "table"}
-				<div
-					class="header-select-group"
-					in:horizontalSlide={{ duration: 400, delay: 300 }}
-					out:horizontalSlide={{ duration: 300 }}
+		{#if settingsStore.deckViewMode === 'import'}
+			<div class="import-mode-actions">
+				<Button
+					variant="outline"
+					class="cancel-btn"
+					onclick={() => deckStore.cancelImport()}
 				>
-					<span class="group-label">COLUMNS</span>
-					<div class="header-select-container">
-						<button
-							class="header-select-trigger"
-							onclick={() =>
-								(showTableColumnsDropdown =
-									!showTableColumnsDropdown)}
-							aria-expanded={showTableColumnsDropdown}
-							aria-haspopup="listbox"
+					Cancel
+				</Button>
+				<Button
+					variant="default"
+					class="save-btn"
+					onclick={() => deckStore.saveImport()}
+				>
+					Save Changes
+				</Button>
+			</div>
+		{:else}
+			<div class="header-select-group">
+				<span class="group-label">LAYOUT</span>
+				<div class="toggle-group">
+					<div class="group-content">
+						<Button
+							variant={settingsStore.deckViewMode === "stacks"
+								? "toggle-active"
+								: "ghost"}
+							size="icon"
+							class="display-toggle-btn"
+							onclick={() => (settingsStore.deckViewMode = "stacks")}
+							title="Stacks View"
 						>
-							<span class="trigger-value">
-								{settingsStore.visibleColumns.length === 8
-									? "All"
-									: `${settingsStore.visibleColumns.length} Selected`}
-							</span>
-							<ChevronDown
-								size={14}
-								class="trigger-chevron {showTableColumnsDropdown
-									? 'open'
-									: ''}"
-							/>
-						</button>
-
-						{#if showTableColumnsDropdown}
-							<div
-								class="dropdown-backdrop"
-								role="presentation"
-								onclick={(e) => {
-									e.stopPropagation();
-									showTableColumnsDropdown = false;
-								}}
-								in:fade={{ duration: 200 }}
-								out:fade={{ duration: 150 }}
-							></div>
-							<div
-								class="header-select-menu"
-								in:fly={{ y: 5, duration: 250 }}
-								out:fly={{ y: 5, duration: 200 }}
-							>
-								{#each toggleableColumns as col}
-									<button
-										class="select-item multi-select-item"
-										class:active={settingsStore.visibleColumns.includes(
-											col.id,
-										)}
-										onclick={(e) => {
-											e.stopPropagation();
-											toggleTableColumn(col.id);
-										}}
-									>
-										<div class="checkbox-indicator">
-											{#if settingsStore.visibleColumns.includes(col.id)}
-												<Check size={10} />
-											{/if}
-										</div>
-										<span>{col.label}</span>
-									</button>
-								{/each}
-							</div>
-						{/if}
+							<Layers size={14} />
+						</Button>
+						<Button
+							variant={settingsStore.deckViewMode === "table"
+								? "toggle-active"
+								: "ghost"}
+							size="icon"
+							class="display-toggle-btn"
+							onclick={() => (settingsStore.deckViewMode = "table")}
+							title="Table View"
+						>
+							<Table size={14} />
+						</Button>
+						<Button
+							variant={settingsStore.deckViewMode === "list"
+								? "toggle-active"
+								: "ghost"}
+							size="icon"
+							class="display-toggle-btn"
+							onclick={() => (settingsStore.deckViewMode = "list")}
+							title="List View"
+						>
+							<List size={14} />
+						</Button>
+						<Button
+							variant={settingsStore.deckViewMode === "spoiler"
+								? "toggle-active"
+								: "ghost"}
+							size="icon"
+							class="display-toggle-btn"
+							onclick={() => (settingsStore.deckViewMode = "spoiler")}
+							title="Spoiler View"
+						>
+							<Image size={14} />
+						</Button>
 					</div>
 				</div>
-			{/if}
+			</div>
 
-			{#if settingsStore.deckViewMode === "stacks" || settingsStore.deckViewMode === "spoiler"}
-				<div
-					class="header-select-group"
-					style="position: relative;"
-					in:horizontalSlide={{ duration: 400, delay: 300 }}
-					out:horizontalSlide={{ duration: 300 }}
-				>
-					<span class="group-label" style="visibility: hidden;"
-						>SPLIT</span
-					>
-					<Button
-						variant={deckStore.splitView
-							? "toggle-active"
-							: "ghost"}
-						size="icon"
-						class="split-view-btn {deckStore.splitView
-							? 'bg-secondary'
-							: ''}"
-						onclick={() =>
-							(deckStore.splitView = !deckStore.splitView)}
-						title={settingsStore.deckViewMode === "spoiler"
-							? "Toggle Category Dividers"
-							: (deckStore.grouping === "type"
-								? "Toggle Type Split View (Creatures / Non-Creatures)"
-								: "Toggle Spell / Land Row Split View")}
-					>
-						{#if settingsStore.deckViewMode === "spoiler"}
-							<StretchHorizontal size={16} />
-						{:else if deckStore.grouping === "type"}
-							<StretchVertical size={16} />
-						{:else}
-							<StretchHorizontal size={16} />
-						{/if}
-					</Button>
-				</div>
-			{/if}
-
-			<!-- Sort Dropdown -->
-			<div class="header-select-group">
-				<span class="group-label">SORT</span>
-				<div class="sort-group-container">
+			<div class="action-buttons">
+				<!-- Grouping Dropdown (Renamed from Columns) -->
+				<div class="header-select-group">
+					<span class="group-label">GROUPING</span>
 					<div class="header-select-container">
 						<button
 							class="header-select-trigger"
 							onclick={() =>
-								(showSortDropdown = !showSortDropdown)}
-							aria-expanded={showSortDropdown}
+								(showColumnsDropdown = !showColumnsDropdown)}
+							aria-expanded={showColumnsDropdown}
 							aria-haspopup="listbox"
 						>
-							<ArrowDownWideNarrow size={14} class="sort-icon" />
 							<span class="trigger-value"
-								>{visibleSorts.find(
-									(s) => s.id === deckStore.sorting,
-								)?.label || "Color"}</span
+								>{columns.find((c) => c.id === deckStore.grouping)
+									?.label}</span
 							>
 							<ChevronDown
 								size={14}
-								class="trigger-chevron {showSortDropdown
+								class="trigger-chevron {showColumnsDropdown
 									? 'open'
 									: ''}"
 							/>
 						</button>
 
-						{#if showSortDropdown}
+						{#if showColumnsDropdown}
 							<div
 								class="dropdown-backdrop"
 								role="presentation"
 								onclick={(e) => {
 									e.stopPropagation();
-									showSortDropdown = false;
+									showColumnsDropdown = false;
 								}}
 								in:fade={{ duration: 200 }}
 								out:fade={{ duration: 150 }}
@@ -730,40 +584,205 @@
 								in:fly={{ y: 5, duration: 250 }}
 								out:fly={{ y: 5, duration: 200 }}
 							>
-								{#each visibleSorts.filter((s) => s.id !== deckStore.grouping) as sort}
+								{#each visibleGroupings as col}
 									<button
 										class="select-item"
-										class:active={deckStore.sorting ===
-											sort.id}
-										onclick={() => selectSorting(sort.id)}
+										class:active={deckStore.grouping === col.id}
+										onclick={() => selectGrouping(col.id)}
 									>
-										{sort.label}
+										{col.label}
 									</button>
 								{/each}
 							</div>
 						{/if}
 					</div>
 				</div>
-			</div>
 
-			<div class="header-select-group" style="position: relative;">
-				<span class="group-label" style="visibility: hidden;">OPT</span>
-				<Button
-					variant={showViewOptionsModal ? "toggle-active" : "ghost"}
-					size="icon"
-					class="view-options-btn"
-					bind:el={viewOptionsBtn}
-					onclick={() => (showViewOptionsModal = true)}
-					title="View Options"
-				>
-					<MoreVertical size={16} />
-				</Button>
-				<ViewOptionsModal
-					bind:isOpen={showViewOptionsModal}
-					triggerElement={viewOptionsBtn}
-				/>
+				<!-- Columns multi-select dropdown (visible only in table view) -->
+				{#if settingsStore.deckViewMode === "table"}
+					<div
+						class="header-select-group"
+						in:horizontalSlide={{ duration: 400, delay: 300 }}
+						out:horizontalSlide={{ duration: 300 }}
+					>
+						<span class="group-label">COLUMNS</span>
+						<div class="header-select-container">
+							<button
+								class="header-select-trigger"
+								onclick={() =>
+									(showTableColumnsDropdown =
+										!showTableColumnsDropdown)}
+								aria-expanded={showTableColumnsDropdown}
+								aria-haspopup="listbox"
+							>
+								<span class="trigger-value">
+									{settingsStore.visibleColumns.length === 8
+										? "All"
+										: `${settingsStore.visibleColumns.length} Selected`}
+								</span>
+								<ChevronDown
+									size={14}
+									class="trigger-chevron {showTableColumnsDropdown
+										? 'open'
+										: ''}"
+								/>
+							</button>
+
+							{#if showTableColumnsDropdown}
+								<div
+									class="dropdown-backdrop"
+									role="presentation"
+									onclick={(e) => {
+										e.stopPropagation();
+										showTableColumnsDropdown = false;
+									}}
+									in:fade={{ duration: 200 }}
+									out:fade={{ duration: 150 }}
+								></div>
+								<div
+									class="header-select-menu"
+									in:fly={{ y: 5, duration: 250 }}
+									out:fly={{ y: 5, duration: 200 }}
+								>
+									{#each toggleableColumns as col}
+										<button
+											class="select-item multi-select-item"
+											class:active={settingsStore.visibleColumns.includes(
+												col.id,
+											)}
+											onclick={(e) => {
+												e.stopPropagation();
+												toggleTableColumn(col.id);
+											}}
+										>
+											<div class="checkbox-indicator">
+												{#if settingsStore.visibleColumns.includes(col.id)}
+													<Check size={10} />
+												{/if}
+											</div>
+											<span>{col.label}</span>
+										</button>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/if}
+
+				{#if settingsStore.deckViewMode === "stacks" || settingsStore.deckViewMode === "spoiler"}
+					<div
+						class="header-select-group"
+						style="position: relative;"
+						in:horizontalSlide={{ duration: 400, delay: 300 }}
+						out:horizontalSlide={{ duration: 300 }}
+					>
+						<span class="group-label" style="visibility: hidden;"
+							>SPLIT</span
+						>
+						<Button
+							variant={deckStore.splitView
+								? "toggle-active"
+								: "ghost"}
+							size="icon"
+							class="split-view-btn {deckStore.splitView
+								? 'bg-secondary'
+								: ''}"
+							onclick={() =>
+								(deckStore.splitView = !deckStore.splitView)}
+							title={settingsStore.deckViewMode === "spoiler"
+								? "Toggle Category Dividers"
+								: (deckStore.grouping === "type"
+									? "Toggle Type Split View (Creatures / Non-Creatures)"
+									: "Toggle Spell / Land Row Split View")}
+						>
+							{#if settingsStore.deckViewMode === "spoiler"}
+								<StretchHorizontal size={16} />
+							{:else if deckStore.grouping === "type"}
+								<StretchVertical size={16} />
+							{:else}
+								<StretchHorizontal size={16} />
+							{/if}
+						</Button>
+					</div>
+				{/if}
+
+				<!-- Sort Dropdown -->
+				<div class="header-select-group">
+					<span class="group-label">SORT</span>
+					<div class="sort-group-container">
+						<div class="header-select-container">
+							<button
+								class="header-select-trigger"
+								onclick={() =>
+									(showSortDropdown = !showSortDropdown)}
+								aria-expanded={showSortDropdown}
+								aria-haspopup="listbox"
+							>
+								<ArrowDownWideNarrow size={14} class="sort-icon" />
+								<span class="trigger-value"
+									>{visibleSorts.find(
+										(s) => s.id === deckStore.sorting,
+									)?.label || "Color"}</span
+								>
+								<ChevronDown
+									size={14}
+									class="trigger-chevron {showSortDropdown
+										? 'open'
+										: ''}"
+								/>
+							</button>
+
+							{#if showSortDropdown}
+								<div
+									class="dropdown-backdrop"
+									role="presentation"
+									onclick={(e) => {
+										e.stopPropagation();
+										showSortDropdown = false;
+									}}
+									in:fade={{ duration: 200 }}
+									out:fade={{ duration: 150 }}
+								></div>
+								<div
+									class="header-select-menu"
+									in:fly={{ y: 5, duration: 250 }}
+									out:fly={{ y: 5, duration: 200 }}
+								>
+									{#each visibleSorts.filter((s) => s.id !== deckStore.grouping) as sort}
+										<button
+											class="select-item"
+											class:active={deckStore.sorting ===
+												sort.id}
+											onclick={() => selectSorting(sort.id)}
+										>
+											{sort.label}
+										</button>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					</div>
+				</div>
+
+				<div class="header-select-group" style="position: relative;">
+					<span class="group-label" style="visibility: hidden;">OPT</span>
+					<Button
+						variant={showViewOptionsModal ? "toggle-active" : "ghost"}
+						size="icon"
+						class="view-options-btn"
+						bind:el={viewOptionsBtn}
+						onclick={() => (showViewOptionsModal = true)}
+						title="View Options"
+					>
+						<MoreVertical size={16} />
+					</Button>
+					<ViewOptionsModal
+						bind:isOpen={showViewOptionsModal}
+						triggerElement={viewOptionsBtn}
+					/>
+				</div>
 			</div>
-		</div>
+		{/if}
 	</div>
 </div>
 
@@ -1239,5 +1258,19 @@
 
 	:global(.animate-spin) {
 		animation: spin 1s linear infinite;
+	}
+
+	.import-mode-actions {
+		display: flex;
+		gap: 0.75rem;
+		align-items: center;
+	}
+
+	.import-mode-actions :global(.cancel-btn),
+	.import-mode-actions :global(.save-btn) {
+		min-width: 110px;
+		height: 36px;
+		font-size: 0.8125rem;
+		font-weight: 600;
 	}
 </style>

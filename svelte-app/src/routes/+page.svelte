@@ -6,6 +6,7 @@
 	import TableView from "$lib/components/TableView.svelte";
 	import ListView from "$lib/components/ListView.svelte";
 	import SpoilerView from "$lib/components/SpoilerView.svelte";
+	import ImportView from "$lib/components/ImportView.svelte";
 	import { priceStore } from "$lib/stores/prices.svelte.js";
 	import { onMount } from "svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
@@ -124,7 +125,9 @@
 		
 		<div class="deck-area">
 			<DeckHeader />
-			{#if settingsStore.deckViewMode === 'table'}
+			{#if settingsStore.deckViewMode === 'import'}
+				<ImportView />
+			{:else if settingsStore.deckViewMode === 'table'}
 				<TableView />
 			{:else if settingsStore.deckViewMode === 'list'}
 				<ListView />

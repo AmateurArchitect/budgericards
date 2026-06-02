@@ -4,7 +4,6 @@
 	import { deckStore } from '$lib/stores/deck.svelte.js';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
-	import ImportModal from '$lib/components/ImportModal.svelte';
 	import { onMount, tick } from 'svelte';
 
 	/** @type {{ isOpen: boolean, fallbackArt: string | null, triggerElement: HTMLElement | null }} */
@@ -57,7 +56,6 @@
 
 	let showFormatDropdown = $state(false);
 	let isMoreFormatsVisible = $state(false);
-	let isImportModalOpen = $state(false);
 	/** @type {any} */
 	let closeTimer = null;
 
@@ -352,9 +350,9 @@
 					Export Deck
 				</Button>
 				<Button 
-					variant={isImportModalOpen ? "default" : "outline"} 
+					variant="outline" 
 					class="modal-action-btn" 
-					onclick={() => isImportModalOpen = true}
+					onclick={() => { deckStore.enterImportMode(); close(); }}
 				>
 					<Upload size={16} class="btn-icon" />
 					Import Cards
@@ -377,8 +375,6 @@
 		</div>
 	</div>
 {/if}
-
-<ImportModal bind:isOpen={isImportModalOpen} onSuccess={() => isOpen = false} />
 
 <style>
 	.modal-portal-wrapper {
