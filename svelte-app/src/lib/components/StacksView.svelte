@@ -1172,34 +1172,41 @@
 		background: rgba(var(--primary-hsl), 0.05);
 	}
 
-	@keyframes card-entrance {
+	/* 
+	   Combined bloom keyframes that handle both staggered page entrance 
+	   and individual new card insertion animations.
+	*/
+	@keyframes card-bloom {
 		from {
 			opacity: 0;
-			transform: translateY(8px);
+			transform: scale(0.97) translateY(8px);
 		}
 		to {
 			opacity: 1;
-			transform: translateY(0);
+			transform: scale(1) translateY(0);
 		}
 	}
 
+	/* 
+	   CRITICAL BROWSER WORKAROUND:
+	   When Svelte removes the '.initial-load' class from the parent container after 1.2s,
+	   the browser switches card styling from this selector to the generic '.curve-card-item' below.
+	   If these selectors used different animation-names (e.g. 'card-entrance' vs 'card-bloom'), 
+	   the browser would re-evaluate the style change as a brand new animation and re-trigger 
+	   the bloom for ALL cards at once. 
+	   
+	   By standardizing on the SAME animation-name ('card-bloom') for both, the browser knows 
+	   the animation is already completed and does not restart it when '.initial-load' is removed.
+	*/
 	:global(.initial-load .curve-card-item) {
-		animation: card-entrance 0.2s ease backwards;
+		animation-name: card-bloom;
+		animation-duration: 200ms;
+		animation-timing-function: ease;
 		animation-delay: var(--delay);
+		animation-fill-mode: backwards;
 	}
 
 	:global(.curve-card-item) {
 		animation: card-bloom 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-	}
-
-	@keyframes card-bloom {
-		from {
-			opacity: 0.9;
-			transform: scale(0.97);
-		}
-		to {
-			opacity: 1;
-			transform: scale(1);
-		}
 	}
 </style>
