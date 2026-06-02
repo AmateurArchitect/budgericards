@@ -22,8 +22,9 @@
 	const lines = $derived(deckStore.importText.split('\n'));
 
 	// Local reactive state for fully resolved card metadata (live stats)
-	/** @type {any[]} */
 	let resolvedCards = $state([]);
+	/** @type {Record<string, any>} */
+	let resolvedMetadataMap = $state({});
 
 	$effect(() => {
 		const cards = parsedCards;
@@ -59,6 +60,7 @@
 				}
 			}
 
+			resolvedMetadataMap = details;
 			resolvedCards = cards.map(c => {
 				const lowName = c.name.toLowerCase();
 				const meta = details[lowName];
@@ -382,7 +384,6 @@
 				{#each lines as line}
 					{@const cardInfo = getCardInfo(line)}
 					<div class="line-row" class:recognized={cardInfo}>
-						<!-- Double space for matching exact textarea text alignment -->
 						<span class="line-text">{line || ' '}</span>
 					</div>
 				{/each}
@@ -405,7 +406,7 @@
 					<div class="icon-row-placeholder">
 						{#if cardInfo}
 							{@const lowName = cardInfo.name.toLowerCase()}
-							{@const meta = deckStore.metadata[lowName]}
+							{@const meta = resolvedMetadataMap[lowName]}
 							{#if meta}
 								<button
 									class="eye-trigger"
@@ -713,6 +714,7 @@ Sol Ring</code></pre>
 		overflow: hidden;
 	}
 
+	/* Height is calculated as: 1.2em (line-height) + 0.4em (vertical padding) + 0.2em (vertical margin) = 1.8em */
 	textarea,
 	.highlights-layer {
 		position: absolute;
@@ -724,7 +726,7 @@ Sol Ring</code></pre>
 		box-sizing: border-box;
 		font-family: system-ui, -apple-system, sans-serif;
 		font-size: 0.9375rem;
-		line-height: 28px;
+		line-height: 1.8em;
 		letter-spacing: 0.01em;
 	}
 
@@ -732,8 +734,8 @@ Sol Ring</code></pre>
 		z-index: 2;
 		background: transparent;
 		border: none;
-		color: transparent; /* Makes raw text invisible, rendering highlights instead */
-		caret-color: hsl(var(--foreground)); /* Blinking caret remains visible */
+		color: transparent;
+		caret-color: hsl(var(--foreground));
 		padding: 0 48px 0 8px;
 		resize: none;
 		outline: none;
@@ -752,11 +754,14 @@ Sol Ring</code></pre>
 	}
 
 	.line-row {
-		height: 28px;
+		height: 1.6em; /* 1.2em text + 0.4em padding */
 		display: flex;
 		align-items: center;
 		border: 1px solid transparent;
 		box-sizing: border-box;
+		padding: 0.2em 8px;
+		margin-bottom: 0.2em; /* 0.2em gap in between cards */
+		line-height: 1.2em; /* Dropping line height to 1.2 */
 	}
 
 	.line-row.recognized {
@@ -766,26 +771,25 @@ Sol Ring</code></pre>
 	}
 
 	.line-text {
-		/* Inherits core typography */
 		font-family: inherit;
 		font-size: inherit;
 		line-height: inherit;
 	}
 
-	/* Interactive eye icons on top right area */
 	.icons-layer {
 		position: absolute;
 		top: 0;
 		right: 8px;
 		width: 24px;
 		height: 100%;
-		z-index: 3; /* Placed above textarea */
+		z-index: 3;
 		overflow-y: hidden;
 		pointer-events: none;
 	}
 
 	.icon-row-placeholder {
-		height: 28px;
+		height: 1.6em;
+		margin-bottom: 0.2em;
 		display: flex;
 		align-items: center;
 		justify-content: center;
