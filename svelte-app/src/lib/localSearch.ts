@@ -20,7 +20,7 @@ class LocalQueryParser extends QueryParser {
 const parser = new LocalQueryParser({
 	validKeys: [
 		't', 'type', 'o', 'oracle', 'c', 'color', 'cmc', 'mv', 'price',
-		'f', 'format', 'k', 'keyword', 'id', 'identity', 'power', 'toughness', 'loyalty'
+		'f', 'format', 'k', 'keyword', 'id', 'identity', 'id_exact', 'c_exact', 'power', 'toughness', 'loyalty'
 	],
 	defaultKey: 'name'
 });
@@ -103,36 +103,54 @@ function evalCondition(card: CleanCard, cond: ConditionNode, priceOverride?: num
 		case 'c':
 		case 'color': {
 			const targets = expandColors(rawValue);
-			if (op === ':' || op === '=') {
-				match = targets.every(t => card.colors.includes(t));
-			} else if (op === '>=') {
+			if (op === '>=') {
 				match = targets.every(t => card.colors.includes(t));
 			} else if (op === '<=') {
 				match = card.colors.every(c => targets.includes(c));
 			} else if (op === '>') {
 				match = targets.every(t => card.colors.includes(t)) && card.colors.length > targets.length;
-			} else {
+			} else if (op === '<') {
 				match = card.colors.every(c => targets.includes(c)) && card.colors.length < targets.length;
+			} else {
+				// Default color contains target colors (e.g. c:w contains white)
+				match = targets.every(t => card.colors.includes(t));
 			}
+			break;
+		}
+
+		case 'c_exact': {
+			const targets = expandColors(rawValue);
+			// Exact color match (e.g. c=w matches mono-white cards)
+			match =
+				targets.every(t => card.colors.includes(t)) &&
+				card.colors.every(c => targets.includes(c));
 			break;
 		}
 
 		case 'id':
 		case 'identity': {
 			const targets = expandColors(rawValue);
-			if (op === ':' || op === '=') {
-				match =
-					targets.every(t => card.identity.includes(t)) &&
-					card.identity.every(c => targets.includes(c));
-			} else if (op === '>=') {
+			if (op === '>=') {
 				match = targets.every(t => card.identity.includes(t));
 			} else if (op === '<=') {
 				match = card.identity.every(c => targets.includes(c));
 			} else if (op === '>') {
 				match = targets.every(t => card.identity.includes(t)) && card.identity.length > targets.length;
-			} else {
+			} else if (op === '<') {
 				match = card.identity.every(c => targets.includes(c)) && card.identity.length < targets.length;
+			} else {
+				// Default identity fits within target colors (e.g. id:w contains only white/colorless)
+				match = card.identity.every(c => targets.includes(c));
 			}
+			break;
+		}
+
+		case 'id_exact': {
+			const targets = expandColors(rawValue);
+			// Exact identity match (e.g. id=w matches exactly white cards)
+			match =
+				targets.every(t => card.identity.includes(t)) &&
+				card.identity.every(c => targets.includes(c));
 			break;
 		}
 
@@ -209,14 +227,20 @@ export async function runLocalSearch(
 	const trimmed = query.trim();
 	if (!trimmed) return [];
 
-	const parseResult = parser.parse(trimmed);
+	// Pre-process query: map '=' to '_exact:' for exact color/identity matches, and to ':' for other non-numeric keywords
+	const normalizedQuery = trimmed
+		.replace(/\b(id|identity)\s*=\s*([a-zA-Z]+)/gi, 'id_exact:$2')
+		.replace(/\b(c|color)\s*=\s*([a-zA-Z]+)/gi, 'c_exact:$2')
+		.replace(/\b(t|type|o|oracle|f|format|k|keyword)\s*=\s*/gi, '$1:');
+
+	const parseResult = parser.parse(normalizedQuery);
 	if (!parseResult.ast) return [];
 
 	const needsPrice = parseResult.astConditions.some(c => c.key === 'price');
 
 	// Determine if the query features logical OR operators.
 	// If it does, we avoid using index pre-filtering to prevent subset issues.
-	const hasOr = trimmed.toLowerCase().includes(' or ') || trimmed.includes('|');
+	const hasOr = normalizedQuery.toLowerCase().includes(' or ') || normalizedQuery.includes('|');
 	let candidates: CleanCard[];
 
 	if (!hasOr) {
