@@ -862,9 +862,10 @@ Sol Ring</code></pre>
 		margin: 0;
 		box-sizing: border-box;
 		font-family: system-ui, -apple-system, sans-serif;
-		font-size: 0.9375rem;
+		font-size: var(--font-sm);
 		line-height: 1.6;
 		letter-spacing: 0.01em;
+		font-variant-numeric: tabular-nums;
 	}
 
 	textarea {
