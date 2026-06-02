@@ -35,7 +35,7 @@ export function parseDecklist(text) {
 		const isHeader = line.startsWith('//') || line.endsWith(':') || isKnownBoard;
 
 		if (isHeader) {
-			if (lowerLine === 'deck' || lowerLine === 'main' || lowerLine.includes('mainboard') || lowerLine.startsWith('// main')) {
+			if (lowerLine === 'deck' || lowerLine === 'main' || lowerLine.includes('mainboard') || lowerLine.startsWith('// main') || lowerLine.startsWith('// deck')) {
 				currentBoard = 'mainboard';
 				continue;
 			} else if (lowerLine.includes('commander')) {
