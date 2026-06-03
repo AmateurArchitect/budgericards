@@ -25,7 +25,55 @@
 	let resolvedMetadataMap = $state({});
 
 	let activeLineIndex = $state(-1);
+	let previousLineIndex = $state(-1);
 	let activeSuggestion = $state('');
+
+	/** @param {any} card */
+	function getNormalizedCardName(card) {
+		if (!card || !card.name) return '';
+		
+		const name = card.name;
+		if (!name.includes(' // ')) {
+			return name;
+		}
+		
+		const type = (card.type_line || card.type || '').toLowerCase();
+		const isPermanent = type.includes('creature') || type.includes('land') || type.includes('artifact') || type.includes('planeswalker') || type.includes('enchantment');
+		
+		if (isPermanent) {
+			return name.split(' // ')[0].trim();
+		} else {
+			return name;
+		}
+	}
+
+	$effect(() => {
+		const currentActive = activeLineIndex;
+		if (currentActive !== previousLineIndex) {
+			const indexToCorrect = previousLineIndex;
+			previousLineIndex = currentActive;
+
+			if (indexToCorrect >= 0) {
+				const currentText = deckStore.importText;
+				const linesArr = currentText.split('\n');
+				const lineText = linesArr[indexToCorrect];
+				if (lineText) {
+					const cardInfo = getCardInfo(lineText);
+					if (cardInfo) {
+						const metadata = resolvedMetadataMap[cardInfo.name.toLowerCase()];
+						if (metadata) {
+							const normalized = getNormalizedCardName(metadata);
+							const parts = getActiveLineParts(lineText);
+							if (parts && normalized && parts.namePart !== normalized) {
+								linesArr[indexToCorrect] = (parts.qtyPrefix || '1 ') + normalized;
+								deckStore.importText = linesArr.join('\n');
+							}
+						}
+					}
+				}
+			}
+		}
+	});
 
 	$effect(() => {
 		const cards = parsedCards;
@@ -44,10 +92,15 @@
 					const localCard = await getCardByName(name);
 					if (localCard) {
 						const priceRecord = await db.prices.get(localCard.id);
-						details[name] = {
+						const cardMetadata = {
 							name: localCard.name,
 							type_line: localCard.type || '',
+							mana_cost: localCard.mana || '',
 							cmc: localCard.cmc ?? 0,
+							colors: localCard.colors || [],
+							color_identity: localCard.identity || [],
+							oracle_text: localCard.text || '',
+							card_faces: [],
 							image_uris: {
 								normal: localCard.image,
 								art_crop: localCard.image ? localCard.image.replace('/normal/', '/art_crop/') : null
@@ -56,6 +109,16 @@
 								usd: priceRecord ? String(priceRecord.price) : null
 							}
 						};
+						
+						// Hydrate deckStore metadata cache in background
+						deckStore.metadata[name] = cardMetadata;
+						details[name] = cardMetadata;
+
+						// Pre-fetch the card image in background for instant rendering
+						if (typeof window !== 'undefined' && localCard.image) {
+							const img = new window.Image();
+							img.src = localCard.image;
+						}
 					} else {
 						details[name] = null;
 					}
@@ -353,8 +416,9 @@
 				const uniqueMatches = [...new Set(matches.map(m => m.name))];
 				if (uniqueMatches.length === 1) {
 					const cardName = uniqueMatches[0];
-					if (cardName.toLowerCase().startsWith(queryName.toLowerCase()) && cardName.length > queryName.length) {
-						activeSuggestion = cardName.substring(queryName.length);
+					const normalized = getNormalizedCardName(matches[0]);
+					if (normalized.toLowerCase().startsWith(queryName.toLowerCase()) && normalized.length > queryName.length) {
+						activeSuggestion = normalized.substring(queryName.length);
 						return;
 					}
 				}
