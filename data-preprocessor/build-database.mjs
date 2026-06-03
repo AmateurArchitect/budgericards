@@ -60,7 +60,11 @@ function isDefaultFrame(card) {
   if (card.set_type === 'masterpiece') return false;
   if (card.set === 'sld' || card.set_type === 'box' || card.set_type === 'arsenal' || card.set_type === 'treasure_chest') return false;
   
+  if (card.security_stamp === 'triangle') return false;
+  
   const pTypes = card.promo_types || [];
+  if (pTypes.includes('universesbeyond')) return false;
+  
   const badPromoTypes = [
     'masterpiece', 'invocation', 'invention', 'expedition', 
     'borderless', 'extendedart', 'neonink', 'gilded', 'stepandcompleat', 
@@ -246,6 +250,7 @@ pipeline.on('data', data => {
     textless: card.textless,
     frame_effects: card.frame_effects,
     promo_types: card.promo_types,
+    security_stamp: card.security_stamp,
     watermark: card.watermark,
     games: card.games
   };
