@@ -786,10 +786,13 @@ function createDeck() {
 				deck.sideboard = [];
 				deck.maybeboard = [];
 				
-				// Clear old card metadata so we fetch fresh copies from the local database
+				// Clear old card metadata that are not in the new import, preserving newly resolved metadata
+				const newCardNames = new Set(parsedCards.map(c => c.name.toLowerCase()));
 				for (const key in metadata) {
 					if (key !== 'createdBy' && key !== 'createdAt' && key !== 'updatedAt') {
-						delete metadata[key];
+						if (!newCardNames.has(key)) {
+							delete metadata[key];
+						}
 					}
 				}
 			}
