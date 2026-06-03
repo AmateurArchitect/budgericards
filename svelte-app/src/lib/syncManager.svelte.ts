@@ -146,6 +146,18 @@ export const syncManager = {
 				await downloadAndPopulateCards(manifest.cards_version);
 			}
 
+			// Load the latest price file if missing or updated
+			if (manifest.prices_files && manifest.prices_files.length > 0) {
+				const latestPriceFile = manifest.prices_files[manifest.prices_files.length - 1];
+				const loadedPriceFile = localStorage.getItem('budgericards_loaded_price_file') ?? '';
+				const priceCount = await db.prices.count();
+				
+				if (latestPriceFile !== loadedPriceFile || priceCount === 0) {
+					await loadPriceFile(latestPriceFile);
+					localStorage.setItem('budgericards_loaded_price_file', latestPriceFile);
+				}
+			}
+
 			isReady = true;
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : String(e);

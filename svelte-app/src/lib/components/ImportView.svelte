@@ -1,6 +1,6 @@
 <script>
 	import { deckStore } from '$lib/stores/deck.svelte.js';
-	import { Info, HelpCircle, Trash2, Sparkles, BookOpen, X } from 'lucide-svelte';
+	import { Info, HelpCircle, Trash2, Sparkles, BookOpen, X, AlertTriangle } from 'lucide-svelte';
 	import { fade } from 'svelte/transition';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { parseDecklist } from '$lib/utils/decklistParser.js';
@@ -239,26 +239,44 @@
 		}
 	}
 
-	function handleConsolidateDuplicates() {
-		if (!deckStore.importText.trim()) return;
-
-		const parsed = parseDecklist(deckStore.importText);
+	// Detect duplicates: a card name appearing more than once within the same board, excluding the active cursor line
+	const duplicateCardsInfo = $derived.by(() => {
 		const seen = new Set();
-		const duplicates = [];
+		const duplicateNames = new Set();
+		let duplicateCount = 0;
 		
-		for (const card of parsed) {
+		const activeLineText = lines[activeLineIndex] || '';
+		const activeCardInfo = getCardInfo(activeLineText);
+		const activeCardKey = activeCardInfo 
+			? `${activeCardInfo.board || 'mainboard'}:${activeCardInfo.name.toLowerCase()}` 
+			: null;
+		
+		for (const card of parsedCards) {
 			const key = `${card.board || 'mainboard'}:${card.name.toLowerCase()}`;
+			if (key === activeCardKey) {
+				continue;
+			}
+			
 			if (seen.has(key)) {
-				duplicates.push(card.name);
+				duplicateNames.add(card.name.toLowerCase());
+				duplicateCount++;
 			}
 			seen.add(key);
 		}
+		
+		return {
+			duplicateNames,
+			count: duplicateCount
+		};
+	});
 
-		if (duplicates.length === 0) {
-			alert("No duplicate entries found.");
-			return;
-		}
+	// Check if any card has a set tag (e.g. (SET) or [SET])
+	const hasPrintings = $derived(/\s*[([][A-Za-z0-9]{2,6}[)\]]/.test(deckStore.importText));
 
+	function handleMergeDuplicates() {
+		if (!deckStore.importText.trim()) return;
+		const parsed = parseDecklist(deckStore.importText);
+		
 		/** @type {Record<string, Record<string, number>>} */
 		const boards = {
 			commander: {},
@@ -297,7 +315,95 @@
 		}
 
 		deckStore.importText = newText.trim();
-		alert(`Consolidated duplicate entries for: ${[...new Set(duplicates)].join(', ')}`);
+	}
+
+	function handleKeepFirstInstance() {
+		if (!deckStore.importText.trim()) return;
+		const parsed = parseDecklist(deckStore.importText);
+		const seen = new Set();
+		const filtered = [];
+		
+		for (const card of parsed) {
+			const key = `${card.board || 'mainboard'}:${card.name.toLowerCase()}`;
+			if (!seen.has(key)) {
+				seen.add(key);
+				filtered.push(card);
+			}
+		}
+		
+		rebuildTextFromParsed(filtered);
+	}
+
+	function handleKeepLastInstance() {
+		if (!deckStore.importText.trim()) return;
+		const parsed = parseDecklist(deckStore.importText);
+		const seen = new Set();
+		const filteredReversed = [];
+		
+		for (let i = parsed.length - 1; i >= 0; i--) {
+			const card = parsed[i];
+			const key = `${card.board || 'mainboard'}:${card.name.toLowerCase()}`;
+			if (!seen.has(key)) {
+				seen.add(key);
+				filteredReversed.push(card);
+			}
+		}
+		
+		rebuildTextFromParsed(filteredReversed.reverse());
+	}
+
+	/** @param {any[]} cardList */
+	function rebuildTextFromParsed(cardList) {
+		/** @type {Record<string, any[]>} */
+		const groups = {
+			commander: [],
+			companion: [],
+			mainboard: [],
+			sideboard: [],
+			maybeboard: []
+		};
+		
+		for (const card of cardList) {
+			const board = card.board || 'mainboard';
+			if (groups[board]) {
+				groups[board].push(card);
+			}
+		}
+		
+		let newText = '';
+		const boardLabels = [
+			{ name: 'commander', label: 'Commander' },
+			{ name: 'companion', label: 'Companion' },
+			{ name: 'mainboard', label: 'Deck' },
+			{ name: 'sideboard', label: 'Sideboard' },
+			{ name: 'maybeboard', label: 'Maybeboard' }
+		];
+
+		for (const board of boardLabels) {
+			const cards = groups[board.name];
+			if (!cards || cards.length === 0) continue;
+			newText += `// ${board.label}\n`;
+			for (const c of cards) {
+				newText += `${c.quantity} ${c.name}\n`;
+			}
+			newText += '\n';
+		}
+
+		deckStore.importText = newText.trim();
+	}
+
+	function handleClearPrintings() {
+		const linesArr = deckStore.importText.split('\n');
+		const cleanedLines = linesArr.map(line => {
+			const trimmed = line.trim();
+			if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) return line;
+			
+			let cleaned = line;
+			cleaned = cleaned.replace(/\s*[([][A-Za-z0-9]{2,6}[)\]](\s+[A-Za-z0-9★\-]+)?/g, '');
+			cleaned = cleaned.replace(/\s*\|\s*[A-Za-z0-9]{2,6}(\s+[A-Za-z0-9★\-]+)?/g, '');
+			return cleaned;
+		});
+		deckStore.importText = cleanedLines.join('\n');
 	}
 
 	// Helper to check if a line represents a recognized card
@@ -361,6 +467,8 @@
 			
 			if (isCursorOnLine) {
 				nameClass = 'unresolved-name';
+			} else if (duplicateCardsInfo.duplicateNames.has(lowName)) {
+				nameClass = 'duplicate-warning-name';
 			} else if (metadata !== undefined && metadata !== null) {
 				nameClass = 'resolved-name';
 			} else if (metadata === null) {
@@ -639,9 +747,11 @@
 				Select All
 			</Button>
 
-			<Button variant="outline" class="action-btn" onclick={handleConsolidateDuplicates}>
-				Consolidate Duplicates
-			</Button>
+			{#if hasPrintings}
+				<Button variant="outline" class="action-btn" onclick={handleClearPrintings}>
+					Clear Printings
+				</Button>
+			{/if}
 
 			<Button variant="outline" class="action-btn" onclick={() => showGuide = true}>
 				Formatting Help
@@ -651,6 +761,21 @@
 				Clear Deck
 			</Button>
 		</div>
+
+		{#if duplicateCardsInfo.count > 0}
+			<div class="duplicate-warning-box">
+				<div class="warning-header-row">
+					<AlertTriangle size={16} class="warning-icon" />
+					<span>Found {duplicateCardsInfo.count} duplicate {duplicateCardsInfo.count === 1 ? 'entry' : 'entries'}</span>
+				</div>
+				<p class="warning-description">Resolve duplicates by combining quantities or choosing a specific instance.</p>
+				<div class="warning-actions-grid">
+					<button class="warn-btn" onclick={handleMergeDuplicates}>Combine Quantities</button>
+					<button class="warn-btn" onclick={handleKeepFirstInstance}>Keep First</button>
+					<button class="warn-btn" onclick={handleKeepLastInstance}>Keep Last</button>
+				</div>
+			</div>
+		{/if}
 
 		<div class="info-note">
 			<Info size={16} />
@@ -984,6 +1109,70 @@ Sol Ring</code></pre>
 
 	.unrecognized-name {
 		color: #ef4444;
+	}
+
+	.duplicate-warning-name {
+		color: #f59e0b;
+		background: hsl(45 100% 50% / 0.12);
+		border-radius: var(--radius-sm);
+		padding: 0px 4px;
+		margin: 0px -4px;
+	}
+
+	.duplicate-warning-box {
+		background: hsl(45 100% 50% / 0.06);
+		border: 1px solid hsl(45 100% 50% / 0.2);
+		border-radius: var(--radius-md);
+		padding: 0.875rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-top: 0.75rem;
+	}
+
+	.warning-header-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: #eab308;
+	}
+
+	:global(.warning-icon) {
+		color: #eab308;
+	}
+
+	.warning-description {
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+		line-height: 1.35;
+		margin: 0;
+	}
+
+	.warning-actions-grid {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 0.375rem;
+		margin-top: 0.25rem;
+	}
+
+	.warn-btn {
+		background: hsl(45 100% 50% / 0.1);
+		border: 1px solid hsl(45 100% 50% / 0.25);
+		color: #f59e0b;
+		font-size: 0.75rem;
+		font-weight: 500;
+		padding: 0.375rem 0.5rem;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		transition: all 0.15s ease;
+		text-align: center;
+	}
+
+	.warn-btn:hover {
+		background: hsl(45 100% 50% / 0.2);
+		border-color: #f59e0b;
 	}
 
 	.suggestion-ghost {
