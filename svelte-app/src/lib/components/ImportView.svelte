@@ -203,18 +203,20 @@
 		return stats;
 	});
 
-	// Mana curve calculations for mainboard spells (excluding lands)
+	// Mana curve calculations for mainboard spells (excluding lands) - 6 columns
 	const manaCurve = $derived.by(() => {
-		const counts = Array(8).fill(0);
+		const counts = Array(6).fill(0); // 0-1, 2, 3, 4, 5, 6+
 		const mainSpells = resolvedCards.filter(c => (c.board || 'mainboard') === 'mainboard' && !c.type.includes('Land'));
 		
 		for (const card of mainSpells) {
 			const cmc = Math.floor(card.cmc);
 			if (cmc < 0) continue;
-			if (cmc >= 7) {
-				counts[7] += card.quantity;
+			if (cmc <= 1) {
+				counts[0] += card.quantity;
+			} else if (cmc >= 6) {
+				counts[5] += card.quantity;
 			} else {
-				counts[cmc] += card.quantity;
+				counts[cmc - 1] += card.quantity;
 			}
 		}
 
@@ -601,79 +603,73 @@
 			<h3>Live Stats</h3>
 		</div>
 
-		<!-- Mini Mana Curve Graphic -->
 		{#if manaCurve.totalSpells > 10}
 			<div class="curve-graphic">
 				<div class="curve-bars">
 					{#each manaCurve.counts as count, i}
 						{@const heightPct = (count / manaCurve.maxCount) * 100}
-						<div class="curve-bar-wrapper" title="{count} cards at CMC {i === 7 ? '7+' : i}">
-							<div class="curve-bar" style="height: {heightPct}%">
-								<!-- No bar-count label inside -->
+						{@const label = i === 0 ? '0-1' : i === 5 ? '6+' : String(i + 1)}
+						<div class="curve-bar-col" title="{count} cards at CMC {label}">
+							<div class="curve-bar-track">
+								<div class="curve-bar" style="height: {heightPct}%"></div>
 							</div>
-							<span class="bar-label">{i === 7 ? '7+' : i}</span>
+							<span class="bar-label">{label}</span>
 						</div>
 					{/each}
 				</div>
 			</div>
 		{/if}
 
+		<!-- CARD COUNTS SECTION -->
 		<div class="stats-overview">
-			<div class="stat-row main-price">
-				<span class="stat-label">Est. Price</span>
-				<span class="stat-value price-text">${totalPrice.toFixed(2)}</span>
-			</div>
 			<div class="stat-row">
-				<span class="stat-label">Total Cards</span>
-				<span class="stat-value">{totalCount}</span>
+				<span class="stat-label" style="font-weight: 600; color: hsl(var(--foreground));">Total Cards</span>
+				<span class="stat-value" style="font-weight: 600; color: hsl(var(--foreground));">{totalCount}</span>
 			</div>
 		</div>
 
-		<div class="stats-divider"></div>
-
-		<!-- Board Breakdowns -->
 		<div class="breakdown-list">
 			{#if boardStats.commander.qty > 0}
 				<div class="breakdown-item">
 					<span class="item-name">Commander</span>
-					<span class="item-stats">{boardStats.commander.qty} <span class="muted">•</span> ${boardStats.commander.price.toFixed(2)}</span>
+					<span class="item-stats">{boardStats.commander.qty}</span>
 				</div>
 			{/if}
 			{#if boardStats.companion.qty > 0}
 				<div class="breakdown-item">
 					<span class="item-name">Companion</span>
-					<span class="item-stats">{boardStats.companion.qty} <span class="muted">•</span> ${boardStats.companion.price.toFixed(2)}</span>
+					<span class="item-stats">{boardStats.companion.qty}</span>
 				</div>
 			{/if}
 			
 			{#if boardStats.mainboard.qty > 0}
 				<div class="breakdown-item mainboard-header">
 					<span class="item-name">Mainboard</span>
-					<span class="item-stats">{boardStats.mainboard.qty} <span class="muted">•</span> ${boardStats.mainboard.price.toFixed(2)}</span>
+					<span class="item-stats">{boardStats.mainboard.qty}</span>
 				</div>
 				<div class="mainboard-subcategories">
 					{#if mainboardStats.creatures.qty > 0}
 						<div class="sub-item">
 							<span class="sub-name">Creature</span>
-							<span class="sub-stats">{mainboardStats.creatures.qty} <span class="muted">•</span> ${mainboardStats.creatures.price.toFixed(2)}</span>
+							<span class="sub-stats">{mainboardStats.creatures.qty}</span>
 						</div>
 					{/if}
 					{#if mainboardStats.spells.qty > 0}
 						<div class="sub-item">
 							<span class="sub-name">Non-Creature</span>
-							<span class="sub-stats">{mainboardStats.spells.qty} <span class="muted">•</span> ${mainboardStats.spells.price.toFixed(2)}</span>
+							<span class="sub-stats">{mainboardStats.spells.qty}</span>
 						</div>
 					{/if}
 					{#if mainboardStats.nonBasicLands.qty > 0}
 						<div class="sub-item">
 							<span class="sub-name">Non-Basic Land</span>
-							<span class="sub-stats">{mainboardStats.nonBasicLands.qty} <span class="muted">•</span> ${mainboardStats.nonBasicLands.price.toFixed(2)}</span>
+							<span class="sub-stats">{mainboardStats.nonBasicLands.qty}</span>
 						</div>
 					{/if}
 					{#if mainboardStats.basicLands.qty > 0}
 						<div class="sub-item">
 							<span class="sub-name">Basic Land</span>
-							<span class="sub-stats">{mainboardStats.basicLands.qty} <span class="muted">•</span> ${mainboardStats.basicLands.price.toFixed(2)}</span>
+							<span class="sub-stats">{mainboardStats.basicLands.qty}</span>
 						</div>
 					{/if}
 				</div>
@@ -682,13 +678,73 @@
 			{#if boardStats.sideboard.qty > 0}
 				<div class="breakdown-item">
 					<span class="item-name">Sideboard</span>
-					<span class="item-stats">{boardStats.sideboard.qty} <span class="muted">•</span> ${boardStats.sideboard.price.toFixed(2)}</span>
+					<span class="item-stats">{boardStats.sideboard.qty}</span>
 				</div>
 			{/if}
 			{#if boardStats.maybeboard.qty > 0}
 				<div class="breakdown-item">
 					<span class="item-name">Maybeboard</span>
-					<span class="item-stats">{boardStats.maybeboard.qty} <span class="muted">•</span> ${boardStats.maybeboard.price.toFixed(2)}</span>
+					<span class="item-stats">{boardStats.maybeboard.qty}</span>
+				</div>
+			{/if}
+		</div>
+
+		<div class="stats-divider"></div>
+
+		<!-- ESTIMATED PRICE SECTION -->
+		<div class="stats-overview">
+			<div class="stat-row main-price">
+				<span class="stat-label">Est. Price</span>
+				<span class="stat-value price-text">${totalPrice.toFixed(2)}</span>
+			</div>
+		</div>
+
+		<div class="breakdown-list">
+			{#if boardStats.commander.price > 0}
+				<div class="breakdown-item">
+					<span class="item-name">Commander</span>
+					<span class="item-stats">${boardStats.commander.price.toFixed(2)}</span>
+				</div>
+			{/if}
+			{#if boardStats.companion.price > 0}
+				<div class="breakdown-item">
+					<span class="item-name">Companion</span>
+					<span class="item-stats">${boardStats.companion.price.toFixed(2)}</span>
+				</div>
+			{/if}
+			
+			{#if boardStats.mainboard.price > 0}
+				{@const restPrice = boardStats.mainboard.price - mainboardStats.basicLands.price}
+				<div class="breakdown-item mainboard-header">
+					<span class="item-name">Mainboard</span>
+					<span class="item-stats">${boardStats.mainboard.price.toFixed(2)}</span>
+				</div>
+				<div class="mainboard-subcategories">
+					{#if mainboardStats.basicLands.price > 0}
+						<div class="sub-item">
+							<span class="sub-name">Basic Land</span>
+							<span class="sub-stats">${mainboardStats.basicLands.price.toFixed(2)}</span>
+						</div>
+					{/if}
+					{#if restPrice > 0}
+						<div class="sub-item">
+							<span class="sub-name">Rest of Deck</span>
+							<span class="sub-stats">${restPrice.toFixed(2)}</span>
+						</div>
+					{/if}
+				</div>
+			{/if}
+
+			{#if boardStats.sideboard.price > 0}
+				<div class="breakdown-item">
+					<span class="item-name">Sideboard</span>
+					<span class="item-stats">${boardStats.sideboard.price.toFixed(2)}</span>
+				</div>
+			{/if}
+			{#if boardStats.maybeboard.price > 0}
+				<div class="breakdown-item">
+					<span class="item-name">Maybeboard</span>
+					<span class="item-stats">${boardStats.maybeboard.price.toFixed(2)}</span>
 				</div>
 			{/if}
 		</div>
@@ -892,14 +948,14 @@ Sol Ring</code></pre>
 
 	.curve-bars {
 		display: grid;
-		grid-template-columns: repeat(8, 1fr);
+		grid-template-columns: repeat(6, 1fr);
 		gap: 3px;
 		align-items: flex-end;
 		height: 100%;
 		width: 100%;
 	}
 
-	.curve-bar-wrapper {
+	.curve-bar-col {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -908,9 +964,25 @@ Sol Ring</code></pre>
 		position: relative;
 	}
 
+	.curve-bar-track {
+		flex-grow: 1;
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		position: relative;
+		height: 47px;
+	}
+
 	.curve-bar {
-		background: linear-gradient(to top, hsl(var(--primary) / 0.8), hsl(var(--primary-light) / 0.9));
+		background-image: linear-gradient(to top, hsl(var(--primary-light)) 0%, hsl(var(--primary-dark)) 100%);
+		background-size: 100% 47px;
+		background-position: bottom;
+		background-repeat: no-repeat;
 		border-radius: var(--radius-sm);
+		box-shadow: 
+			0 2px 8px rgba(0, 0, 0, 1.0),
+			inset 0 0 2px 0 rgba(255, 255, 255, 1.0);
 		width: 100%;
 		min-height: 2px;
 		position: relative;
