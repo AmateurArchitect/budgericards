@@ -62,7 +62,35 @@ function createDeck() {
 	let redoStack = $state([]);
 
 	let importText = $state('');
-	let previousViewMode = $state('stacks');
+
+	const cleanDecklistText = $derived.by(() => {
+		let text = '';
+		const boardsList = [
+			{ name: 'commander', label: 'Commander' },
+			{ name: 'companion', label: 'Companion' },
+			{ name: 'mainboard', label: 'Deck' },
+			{ name: 'sideboard', label: 'Sideboard' },
+			{ name: 'maybeboard', label: 'Maybeboard' }
+		];
+		for (const board of boardsList) {
+			const cards = deck[board.name] || [];
+			if (cards.length === 0) continue;
+			
+			text += `// ${board.label}\n`;
+			/** @type {Record<string, number>} */
+			const counts = {};
+			for (const card of cards) {
+				counts[card.name] = (counts[card.name] || 0) + 1;
+			}
+			for (const [name, qty] of Object.entries(counts)) {
+				text += `${qty} ${name}\n`;
+			}
+			text += '\n';
+		}
+		return text.trim();
+	});
+
+	const isImportDirty = $derived(importText.trim() !== cleanDecklistText);
 
 	function saveHistory() {
 		const snapshot = JSON.stringify($state.snapshot({
@@ -821,49 +849,21 @@ function createDeck() {
 
 		get importText() { return importText; },
 		set importText(val) { importText = val; },
+		get cleanDecklistText() { return cleanDecklistText; },
+		get isImportDirty() { return isImportDirty; },
 
 		enterImportMode() {
-			let text = '';
-			const boardsList = [
-				{ name: 'commander', label: 'Commander' },
-				{ name: 'companion', label: 'Companion' },
-				{ name: 'mainboard', label: 'Deck' },
-				{ name: 'sideboard', label: 'Sideboard' },
-				{ name: 'maybeboard', label: 'Maybeboard' }
-			];
-			for (const board of boardsList) {
-				const cards = deck[board.name] || [];
-				if (cards.length === 0) continue;
-				
-				text += `// ${board.label}\n`;
-				/** @type {Record<string, number>} */
-				const counts = {};
-				for (const card of cards) {
-					counts[card.name] = (counts[card.name] || 0) + 1;
-				}
-				for (const [name, qty] of Object.entries(counts)) {
-					text += `${qty} ${name}\n`;
-				}
-				text += '\n';
-			}
-			importText = text.trim();
-			
-			if (settingsStore.deckViewMode !== 'import') {
-				previousViewMode = settingsStore.deckViewMode;
-			}
-			settingsStore.deckViewMode = 'import';
+			importText = cleanDecklistText;
+			settingsStore.deckViewMode = 'list';
 		},
 
 		cancelImport() {
-			settingsStore.deckViewMode = previousViewMode || 'stacks';
-			importText = '';
+			importText = cleanDecklistText;
 		},
 
 		async saveImport() {
 			const parsedCards = parseDecklist(importText);
 			await this.importCards(parsedCards, { replace: true });
-			settingsStore.deckViewMode = previousViewMode || 'stacks';
-			importText = '';
 		}
 	};
 }

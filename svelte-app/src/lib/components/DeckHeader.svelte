@@ -474,7 +474,7 @@
 	</div>
 
 	<div class="deck-controls">
-		{#if settingsStore.deckViewMode === 'import'}
+		{#if settingsStore.deckViewMode === 'list' && deckStore.isImportDirty}
 			<div class="import-mode-actions">
 				<Button
 					variant="outline"

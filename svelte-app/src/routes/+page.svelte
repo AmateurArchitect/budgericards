@@ -4,7 +4,6 @@
 	import DeckHeader from "$lib/components/DeckHeader.svelte";
 	import StacksView from "$lib/components/StacksView.svelte";
 	import TableView from "$lib/components/TableView.svelte";
-	import ListView from "$lib/components/ListView.svelte";
 	import SpoilerView from "$lib/components/SpoilerView.svelte";
 	import ImportView from "$lib/components/ImportView.svelte";
 	import { priceStore } from "$lib/stores/prices.svelte.js";
@@ -108,6 +107,12 @@
 			e.dataTransfer.dropEffect = "copy";
 		}
 	}
+
+	$effect(() => {
+		if (settingsStore.deckViewMode === 'list' && !deckStore.isImportDirty) {
+			deckStore.importText = deckStore.cleanDecklistText;
+		}
+	});
 </script>
 
 <div 
@@ -125,12 +130,10 @@
 		
 		<div class="deck-area">
 			<DeckHeader />
-			{#if settingsStore.deckViewMode === 'import'}
+			{#if settingsStore.deckViewMode === 'list'}
 				<ImportView />
 			{:else if settingsStore.deckViewMode === 'table'}
 				<TableView />
-			{:else if settingsStore.deckViewMode === 'list'}
-				<ListView />
 			{:else if settingsStore.deckViewMode === 'spoiler'}
 				<SpoilerView />
 			{:else}
