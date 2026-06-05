@@ -1,11 +1,19 @@
 <script>
-	import { deckStore } from '$lib/stores/deck.svelte.js';
-	import { Info, HelpCircle, Trash2, Sparkles, BookOpen, X, AlertTriangle } from 'lucide-svelte';
-	import { fade } from 'svelte/transition';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { parseDecklist } from '$lib/utils/decklistParser.js';
-	import { getCardByName } from '$lib/localSearch';
-	import { db } from '$lib/db';
+	import { deckStore } from "$lib/stores/deck.svelte.js";
+	import {
+		Info,
+		HelpCircle,
+		Trash2,
+		Sparkles,
+		BookOpen,
+		X,
+		AlertTriangle,
+	} from "lucide-svelte";
+	import { fade } from "svelte/transition";
+	import Button from "$lib/components/ui/Button.svelte";
+	import { parseDecklist } from "$lib/utils/decklistParser.js";
+	import { getCardByName } from "$lib/localSearch";
+	import { db } from "$lib/db";
 
 	/** @type {HTMLTextAreaElement | null} */
 	let textareaEl = $state(null);
@@ -16,7 +24,7 @@
 
 	// Reactive parsing of current text
 	const parsedCards = $derived(parseDecklist(deckStore.importText));
-	const lines = $derived(deckStore.importText.split('\n'));
+	const lines = $derived(deckStore.importText.split("\n"));
 
 	// Local reactive state for fully resolved card metadata (live stats)
 	/** @type {any[]} */
@@ -26,22 +34,27 @@
 
 	let activeLineIndex = $state(-1);
 	let previousLineIndex = $state(-1);
-	let activeSuggestion = $state('');
+	let activeSuggestion = $state("");
 
 	/** @param {any} card */
 	function getNormalizedCardName(card) {
-		if (!card || !card.name) return '';
-		
+		if (!card || !card.name) return "";
+
 		const name = card.name;
-		if (!name.includes(' // ')) {
+		if (!name.includes(" // ")) {
 			return name;
 		}
-		
-		const type = (card.type_line || card.type || '').toLowerCase();
-		const isPermanent = type.includes('creature') || type.includes('land') || type.includes('artifact') || type.includes('planeswalker') || type.includes('enchantment');
-		
+
+		const type = (card.type_line || card.type || "").toLowerCase();
+		const isPermanent =
+			type.includes("creature") ||
+			type.includes("land") ||
+			type.includes("artifact") ||
+			type.includes("planeswalker") ||
+			type.includes("enchantment");
+
 		if (isPermanent) {
-			return name.split(' // ')[0].trim();
+			return name.split(" // ")[0].trim();
 		} else {
 			return name;
 		}
@@ -55,18 +68,24 @@
 
 			if (indexToCorrect >= 0) {
 				const currentText = deckStore.importText;
-				const linesArr = currentText.split('\n');
+				const linesArr = currentText.split("\n");
 				const lineText = linesArr[indexToCorrect];
 				if (lineText) {
 					const cardInfo = getCardInfo(lineText);
 					if (cardInfo) {
-						const metadata = resolvedMetadataMap[cardInfo.name.toLowerCase()];
+						const metadata =
+							resolvedMetadataMap[cardInfo.name.toLowerCase()];
 						if (metadata) {
 							const normalized = getNormalizedCardName(metadata);
 							const parts = getActiveLineParts(lineText);
-							if (parts && normalized && parts.namePart !== normalized) {
-								linesArr[indexToCorrect] = (parts.qtyPrefix || '1 ') + normalized;
-								deckStore.importText = linesArr.join('\n');
+							if (
+								parts &&
+								normalized &&
+								parts.namePart !== normalized
+							) {
+								linesArr[indexToCorrect] =
+									(parts.qtyPrefix || "1 ") + normalized;
+								deckStore.importText = linesArr.join("\n");
 							}
 						}
 					}
@@ -77,65 +96,81 @@
 
 	$effect(() => {
 		const cards = parsedCards;
-		const uniqueNames = [...new Set(cards.map(c => c.name.toLowerCase()))];
-		
+		const uniqueNames = [
+			...new Set(cards.map((c) => c.name.toLowerCase())),
+		];
+
 		const resolveAll = async () => {
 			/** @type {Record<string, any>} */
 			const details = {};
-			
-			await Promise.all(uniqueNames.map(async (name) => {
-				if (deckStore.metadata[name]) {
-					details[name] = deckStore.metadata[name];
-					return;
-				}
-				try {
-					const localCard = await getCardByName(name);
-					if (localCard) {
-						const priceRecord = await db.prices.get(localCard.id);
-						const cardMetadata = {
-							name: localCard.name,
-							type_line: localCard.type || '',
-							mana_cost: localCard.mana || '',
-							cmc: localCard.cmc ?? 0,
-							colors: localCard.colors || [],
-							color_identity: localCard.identity || [],
-							oracle_text: localCard.text || '',
-							card_faces: [],
-							image_uris: {
-								normal: localCard.image,
-								art_crop: localCard.image ? localCard.image.replace('/normal/', '/art_crop/') : null
-							},
-							prices: {
-								usd: priceRecord ? String(priceRecord.price) : null
-							}
-						};
-						
-						// Hydrate deckStore metadata cache in background
-						deckStore.metadata[name] = cardMetadata;
-						details[name] = cardMetadata;
 
-						// Pre-fetch the card image in background for instant rendering
-						if (typeof window !== 'undefined' && localCard.image) {
-							const img = new window.Image();
-							img.src = localCard.image;
+			await Promise.all(
+				uniqueNames.map(async (name) => {
+					if (deckStore.metadata[name]) {
+						details[name] = deckStore.metadata[name];
+						return;
+					}
+					try {
+						const localCard = await getCardByName(name);
+						if (localCard) {
+							const priceRecord = await db.prices.get(
+								localCard.id,
+							);
+							const cardMetadata = {
+								name: localCard.name,
+								type_line: localCard.type || "",
+								mana_cost: localCard.mana || "",
+								cmc: localCard.cmc ?? 0,
+								colors: localCard.colors || [],
+								color_identity: localCard.identity || [],
+								oracle_text: localCard.text || "",
+								card_faces: [],
+								image_uris: {
+									normal: localCard.image,
+									art_crop: localCard.image
+										? localCard.image.replace(
+												"/normal/",
+												"/art_crop/",
+											)
+										: null,
+								},
+								prices: {
+									usd: priceRecord
+										? String(priceRecord.price)
+										: null,
+								},
+							};
+
+							// Hydrate deckStore metadata cache in background
+							deckStore.metadata[name] = cardMetadata;
+							details[name] = cardMetadata;
+
+							// Pre-fetch the card image in background for instant rendering
+							if (
+								typeof window !== "undefined" &&
+								localCard.image
+							) {
+								const img = new window.Image();
+								img.src = localCard.image;
+							}
+						} else {
+							details[name] = null;
 						}
-					} else {
+					} catch (e) {
 						details[name] = null;
 					}
-				} catch (e) {
-					details[name] = null;
-				}
-			}));
+				}),
+			);
 
 			resolvedMetadataMap = details;
-			resolvedCards = cards.map(c => {
+			resolvedCards = cards.map((c) => {
 				const lowName = c.name.toLowerCase();
 				const meta = details[lowName];
 				return {
 					...c,
 					cmc: meta ? (meta.cmc ?? 0) : 0,
-					type: meta ? (meta.type_line || '') : '',
-					price: meta ? parseFloat(meta.prices?.usd || '0') : 0
+					type: meta ? meta.type_line || "" : "",
+					price: meta ? parseFloat(meta.prices?.usd || "0") : 0,
 				};
 			});
 		};
@@ -144,8 +179,12 @@
 	});
 
 	// Derivations for stats
-	const totalCount = $derived(parsedCards.reduce((sum, c) => sum + c.quantity, 0));
-	const totalPrice = $derived(resolvedCards.reduce((sum, c) => sum + (c.quantity * c.price), 0));
+	const totalCount = $derived(
+		parsedCards.reduce((sum, c) => sum + c.quantity, 0),
+	);
+	const totalPrice = $derived(
+		resolvedCards.reduce((sum, c) => sum + c.quantity * c.price, 0),
+	);
 
 	const boardStats = $derived.by(() => {
 		/** @type {Record<string, { qty: number, price: number }>} */
@@ -154,11 +193,11 @@
 			companion: { qty: 0, price: 0 },
 			mainboard: { qty: 0, price: 0 },
 			sideboard: { qty: 0, price: 0 },
-			maybeboard: { qty: 0, price: 0 }
+			maybeboard: { qty: 0, price: 0 },
 		};
 
 		for (const card of resolvedCards) {
-			const board = card.board || 'mainboard';
+			const board = card.board || "mainboard";
 			if (stats[board]) {
 				stats[board].qty += card.quantity;
 				stats[board].price += card.quantity * card.price;
@@ -172,15 +211,17 @@
 			creatures: { qty: 0, price: 0 },
 			spells: { qty: 0, price: 0 },
 			basicLands: { qty: 0, price: 0 },
-			nonBasicLands: { qty: 0, price: 0 }
+			nonBasicLands: { qty: 0, price: 0 },
 		};
 
-		const mainCards = resolvedCards.filter(c => (c.board || 'mainboard') === 'mainboard');
+		const mainCards = resolvedCards.filter(
+			(c) => (c.board || "mainboard") === "mainboard",
+		);
 
 		for (const card of mainCards) {
-			const isLand = card.type.includes('Land');
-			const isBasic = card.type.includes('Basic Land');
-			const isCreature = card.type.includes('Creature');
+			const isLand = card.type.includes("Land");
+			const isBasic = card.type.includes("Basic Land");
+			const isCreature = card.type.includes("Creature");
 
 			if (isLand) {
 				if (isBasic) {
@@ -206,8 +247,12 @@
 	// Mana curve calculations for mainboard spells (excluding lands) - 6 columns
 	const manaCurve = $derived.by(() => {
 		const counts = Array(6).fill(0); // 0-1, 2, 3, 4, 5, 6+
-		const mainSpells = resolvedCards.filter(c => (c.board || 'mainboard') === 'mainboard' && !c.type.includes('Land'));
-		
+		const mainSpells = resolvedCards.filter(
+			(c) =>
+				(c.board || "mainboard") === "mainboard" &&
+				!c.type.includes("Land"),
+		);
+
 		for (const card of mainSpells) {
 			const cmc = Math.floor(card.cmc);
 			if (cmc < 0) continue;
@@ -226,12 +271,12 @@
 		return {
 			counts,
 			maxCount,
-			totalSpells
+			totalSpells,
 		};
 	});
 
 	function handleClear() {
-		deckStore.importText = '';
+		deckStore.importText = "";
 	}
 
 	function handleSelectAll() {
@@ -246,50 +291,52 @@
 		const seen = new Set();
 		const duplicateNames = new Set();
 		let duplicateCount = 0;
-		
-		const activeLineText = lines[activeLineIndex] || '';
+
+		const activeLineText = lines[activeLineIndex] || "";
 		const activeCardInfo = getCardInfo(activeLineText);
-		const activeCardKey = activeCardInfo 
-			? `${activeCardInfo.board || 'mainboard'}:${activeCardInfo.name.toLowerCase()}` 
+		const activeCardKey = activeCardInfo
+			? `${activeCardInfo.board || "mainboard"}:${activeCardInfo.name.toLowerCase()}`
 			: null;
-		
+
 		for (const card of parsedCards) {
-			const key = `${card.board || 'mainboard'}:${card.name.toLowerCase()}`;
+			const key = `${card.board || "mainboard"}:${card.name.toLowerCase()}`;
 			if (key === activeCardKey) {
 				continue;
 			}
-			
+
 			if (seen.has(key)) {
 				duplicateNames.add(card.name.toLowerCase());
 				duplicateCount++;
 			}
 			seen.add(key);
 		}
-		
+
 		return {
 			duplicateNames,
-			count: duplicateCount
+			count: duplicateCount,
 		};
 	});
 
 	// Check if any card has a set tag (e.g. (SET) or [SET])
-	const hasPrintings = $derived(/\s*[([][A-Za-z0-9]{2,6}[)\]]/.test(deckStore.importText));
+	const hasPrintings = $derived(
+		/\s*[([][A-Za-z0-9]{2,6}[)\]]/.test(deckStore.importText),
+	);
 
 	function handleMergeDuplicates() {
 		if (!deckStore.importText.trim()) return;
 		const parsed = parseDecklist(deckStore.importText);
-		
+
 		/** @type {Record<string, Record<string, number>>} */
 		const boards = {
 			commander: {},
 			companion: {},
 			mainboard: {},
 			sideboard: {},
-			maybeboard: {}
+			maybeboard: {},
 		};
 
 		for (const card of parsed) {
-			const board = card.board || 'mainboard';
+			const board = card.board || "mainboard";
 			if (!boards[board]) {
 				boards[board] = {};
 			}
@@ -297,13 +344,13 @@
 			boards[board][name] = (boards[board][name] || 0) + card.quantity;
 		}
 
-		let newText = '';
+		let newText = "";
 		const boardLabels = [
-			{ name: 'commander', label: 'Commander' },
-			{ name: 'companion', label: 'Companion' },
-			{ name: 'mainboard', label: 'Deck' },
-			{ name: 'sideboard', label: 'Sideboard' },
-			{ name: 'maybeboard', label: 'Maybeboard' }
+			{ name: "commander", label: "Commander" },
+			{ name: "companion", label: "Companion" },
+			{ name: "mainboard", label: "Deck" },
+			{ name: "sideboard", label: "Sideboard" },
+			{ name: "maybeboard", label: "Maybeboard" },
 		];
 
 		for (const board of boardLabels) {
@@ -313,7 +360,7 @@
 			for (const [name, qty] of Object.entries(cards)) {
 				newText += `${qty} ${name}\n`;
 			}
-			newText += '\n';
+			newText += "\n";
 		}
 
 		deckStore.importText = newText.trim();
@@ -324,15 +371,15 @@
 		const parsed = parseDecklist(deckStore.importText);
 		const seen = new Set();
 		const filtered = [];
-		
+
 		for (const card of parsed) {
-			const key = `${card.board || 'mainboard'}:${card.name.toLowerCase()}`;
+			const key = `${card.board || "mainboard"}:${card.name.toLowerCase()}`;
 			if (!seen.has(key)) {
 				seen.add(key);
 				filtered.push(card);
 			}
 		}
-		
+
 		rebuildTextFromParsed(filtered);
 	}
 
@@ -341,16 +388,16 @@
 		const parsed = parseDecklist(deckStore.importText);
 		const seen = new Set();
 		const filteredReversed = [];
-		
+
 		for (let i = parsed.length - 1; i >= 0; i--) {
 			const card = parsed[i];
-			const key = `${card.board || 'mainboard'}:${card.name.toLowerCase()}`;
+			const key = `${card.board || "mainboard"}:${card.name.toLowerCase()}`;
 			if (!seen.has(key)) {
 				seen.add(key);
 				filteredReversed.push(card);
 			}
 		}
-		
+
 		rebuildTextFromParsed(filteredReversed.reverse());
 	}
 
@@ -362,23 +409,23 @@
 			companion: [],
 			mainboard: [],
 			sideboard: [],
-			maybeboard: []
+			maybeboard: [],
 		};
-		
+
 		for (const card of cardList) {
-			const board = card.board || 'mainboard';
+			const board = card.board || "mainboard";
 			if (groups[board]) {
 				groups[board].push(card);
 			}
 		}
-		
-		let newText = '';
+
+		let newText = "";
 		const boardLabels = [
-			{ name: 'commander', label: 'Commander' },
-			{ name: 'companion', label: 'Companion' },
-			{ name: 'mainboard', label: 'Deck' },
-			{ name: 'sideboard', label: 'Sideboard' },
-			{ name: 'maybeboard', label: 'Maybeboard' }
+			{ name: "commander", label: "Commander" },
+			{ name: "companion", label: "Companion" },
+			{ name: "mainboard", label: "Deck" },
+			{ name: "sideboard", label: "Sideboard" },
+			{ name: "maybeboard", label: "Maybeboard" },
 		];
 
 		for (const board of boardLabels) {
@@ -388,32 +435,40 @@
 			for (const c of cards) {
 				newText += `${c.quantity} ${c.name}\n`;
 			}
-			newText += '\n';
+			newText += "\n";
 		}
 
 		deckStore.importText = newText.trim();
 	}
 
 	function handleClearPrintings() {
-		const linesArr = deckStore.importText.split('\n');
-		const cleanedLines = linesArr.map(line => {
+		const linesArr = deckStore.importText.split("\n");
+		const cleanedLines = linesArr.map((line) => {
 			const trimmed = line.trim();
-			if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) return line;
-			
+			if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("#"))
+				return line;
+
 			let cleaned = line;
-			cleaned = cleaned.replace(/\s*[([][A-Za-z0-9]{2,6}[)\]](\s+[A-Za-z0-9★\-]+)?/g, '');
-			cleaned = cleaned.replace(/\s*\|\s*[A-Za-z0-9]{2,6}(\s+[A-Za-z0-9★\-]+)?/g, '');
+			cleaned = cleaned.replace(
+				/\s*[([][A-Za-z0-9]{2,6}[)\]](\s+[A-Za-z0-9★\-]+)?/g,
+				"",
+			);
+			cleaned = cleaned.replace(
+				/\s*\|\s*[A-Za-z0-9]{2,6}(\s+[A-Za-z0-9★\-]+)?/g,
+				"",
+			);
 			return cleaned;
 		});
-		deckStore.importText = cleanedLines.join('\n');
+		deckStore.importText = cleanedLines.join("\n");
 	}
 
 	// Helper to check if a line represents a recognized card
 	/** @type {(line: string) => any} */
 	function getCardInfo(line) {
 		const trimmed = line.trim();
-		if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) return null;
-		
+		if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("#"))
+			return null;
+
 		const parsed = parseDecklist(trimmed);
 		if (parsed.length === 1) {
 			return parsed[0];
@@ -429,113 +484,126 @@
 	function highlightLineParts(line, isCursorOnLine) {
 		const trimmed = line.trim();
 		if (!trimmed) {
-			return [{ text: line || ' ', className: '' }];
+			return [{ text: line || " ", className: "" }];
 		}
-		
-		const isHeader = trimmed.startsWith('//') || trimmed.startsWith('#');
+
+		const isHeader = trimmed.startsWith("//") || trimmed.startsWith("#");
 		if (isHeader) {
-			return [{ text: line, className: 'header-part' }];
+			return [{ text: line, className: "header-part" }];
 		}
 
 		const leadingSpacesMatch = line.match(/^(\s*)/);
-		const leadingSpaces = leadingSpacesMatch ? leadingSpacesMatch[1] : '';
-		
+		const leadingSpaces = leadingSpacesMatch ? leadingSpacesMatch[1] : "";
+
 		const textToParse = line.slice(leadingSpaces.length);
-		
+
 		const qtyMatch = textToParse.match(/^(?:(x\s*\d+|\d+\s*x?)\s+)(.+)$/i);
-		let quantityText = '';
+		let quantityText = "";
 		let remainingText = textToParse;
-		
+
 		if (qtyMatch) {
-			quantityText = qtyMatch[1] + ' ';
+			quantityText = qtyMatch[1] + " ";
 			remainingText = qtyMatch[2];
 		}
-		
-		const suffixIndexMatch = remainingText.match(/\s+([([][A-Za-z0-9]{2,6}[)\]]|\*[a-zA-Z]+\*|#|\||[\$€£])/);
+
+		const suffixIndexMatch = remainingText.match(
+			/\s+([([][A-Za-z0-9]{2,6}[)\]]|\*[a-zA-Z]+\*|#|\||[\$€£])/,
+		);
 		let cardName = remainingText;
-		let suffixText = '';
-		
+		let suffixText = "";
+
 		if (suffixIndexMatch && suffixIndexMatch.index !== undefined) {
 			cardName = remainingText.substring(0, suffixIndexMatch.index);
 			suffixText = remainingText.substring(suffixIndexMatch.index);
 		}
 
-		const cleanedName = cardName.trim().replace(/\s*$/, '');
-		let nameClass = 'unresolved-name';
-		
+		const cleanedName = cardName.trim().replace(/\s*$/, "");
+		let nameClass = "unresolved-name";
+
 		if (cleanedName) {
 			const lowName = cleanedName.toLowerCase();
 			const metadata = resolvedMetadataMap[lowName];
-			
+
 			if (isCursorOnLine) {
-				nameClass = 'unresolved-name';
+				nameClass = "unresolved-name";
 			} else if (duplicateCardsInfo.duplicateNames.has(lowName)) {
-				nameClass = 'duplicate-warning-name';
+				nameClass = "duplicate-warning-name";
 			} else if (metadata !== undefined && metadata !== null) {
-				nameClass = 'resolved-name';
+				nameClass = "resolved-name";
 			} else if (metadata === null) {
-				nameClass = 'unrecognized-name';
+				nameClass = "unrecognized-name";
 			}
 		}
 
 		return [
-			{ text: leadingSpaces, className: '' },
-			{ text: quantityText, className: 'qty-part' },
+			{ text: leadingSpaces, className: "" },
+			{ text: quantityText, className: "qty-part" },
 			{ text: cardName, className: nameClass },
-			{ text: suffixText, className: 'suffix-part' }
+			{ text: suffixText, className: "suffix-part" },
 		];
 	}
 
 	/** @param {string} lineText */
 	function getActiveLineParts(lineText) {
 		const trimmed = lineText.trim();
-		if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) return null;
-		
+		if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("#"))
+			return null;
+
 		const qtyMatch = trimmed.match(/^(?:x\s*(\d+)|(\d+)\s*x?)\s+(.+)$/);
 		if (qtyMatch) {
 			return {
-				qtyPrefix: trimmed.substring(0, trimmed.length - qtyMatch[3].length),
-				namePart: qtyMatch[3]
+				qtyPrefix: trimmed.substring(
+					0,
+					trimmed.length - qtyMatch[3].length,
+				),
+				namePart: qtyMatch[3],
 			};
 		}
 		return {
-			qtyPrefix: '',
-			namePart: trimmed
+			qtyPrefix: "",
+			namePart: trimmed,
 		};
 	}
 
 	$effect(() => {
-		const lineText = lines[activeLineIndex] || '';
+		const lineText = lines[activeLineIndex] || "";
 		const parts = getActiveLineParts(lineText);
-		
+
 		if (!parts || !parts.namePart || parts.namePart.length < 2) {
-			activeSuggestion = '';
+			activeSuggestion = "";
 			return;
 		}
 
 		const queryName = parts.namePart;
-		
+
 		const fetchSuggestion = async () => {
 			try {
 				const matches = await db.cards
-					.where('name')
+					.where("name")
 					.startsWithIgnoreCase(queryName)
 					.limit(2)
 					.toArray();
-				
-				const uniqueMatches = [...new Set(matches.map(m => m.name))];
+
+				const uniqueMatches = [...new Set(matches.map((m) => m.name))];
 				if (uniqueMatches.length === 1) {
 					const cardName = uniqueMatches[0];
 					const normalized = getNormalizedCardName(matches[0]);
-					if (normalized.toLowerCase().startsWith(queryName.toLowerCase()) && normalized.length > queryName.length) {
-						activeSuggestion = normalized.substring(queryName.length);
+					if (
+						normalized
+							.toLowerCase()
+							.startsWith(queryName.toLowerCase()) &&
+						normalized.length > queryName.length
+					) {
+						activeSuggestion = normalized.substring(
+							queryName.length,
+						);
 						return;
 					}
 				}
 			} catch (e) {
 				// Ignored
 			}
-			activeSuggestion = '';
+			activeSuggestion = "";
 		};
 
 		fetchSuggestion();
@@ -543,32 +611,40 @@
 
 	function updateActiveLine() {
 		if (!textareaEl) return;
-		const textBeforeCursor = textareaEl.value.substring(0, textareaEl.selectionStart);
-		activeLineIndex = textBeforeCursor.split('\n').length - 1;
+		const textBeforeCursor = textareaEl.value.substring(
+			0,
+			textareaEl.selectionStart,
+		);
+		activeLineIndex = textBeforeCursor.split("\n").length - 1;
 	}
 
 	/** @param {KeyboardEvent} e */
 	function handleKeyDown(e) {
-		if ((e.key === 'Tab' || e.key === 'Enter') && activeSuggestion) {
+		if ((e.key === "Tab" || e.key === "Enter") && activeSuggestion) {
 			e.preventDefault();
-			
+
 			const currentText = deckStore.importText;
-			const linesArr = currentText.split('\n');
+			const linesArr = currentText.split("\n");
 			const activeLine = linesArr[activeLineIndex];
-			
+
 			const parts = getActiveLineParts(activeLine);
 			if (parts) {
 				const completedName = parts.namePart + activeSuggestion;
-				linesArr[activeLineIndex] = (parts.qtyPrefix || '1 ') + completedName;
-				deckStore.importText = linesArr.join('\n');
-				
-				activeSuggestion = '';
-				
+				linesArr[activeLineIndex] =
+					(parts.qtyPrefix || "1 ") + completedName;
+				deckStore.importText = linesArr.join("\n");
+
+				activeSuggestion = "";
+
 				setTimeout(() => {
 					if (!textareaEl) return;
-					const linesUpToActive = linesArr.slice(0, activeLineIndex + 1);
-					const cursorOffset = linesUpToActive.join('\n').length;
-					textareaEl.selectionStart = textareaEl.selectionEnd = cursorOffset;
+					const linesUpToActive = linesArr.slice(
+						0,
+						activeLineIndex + 1,
+					);
+					const cursorOffset = linesUpToActive.join("\n").length;
+					textareaEl.selectionStart = textareaEl.selectionEnd =
+						cursorOffset;
 					updateActiveLine();
 				}, 0);
 			}
@@ -608,10 +684,17 @@
 				<div class="curve-bars">
 					{#each manaCurve.counts as count, i}
 						{@const heightPct = (count / manaCurve.maxCount) * 100}
-						{@const label = i === 0 ? '0-1' : i === 5 ? '6+' : String(i + 1)}
-						<div class="curve-bar-col" title="{count} cards at CMC {label}">
+						{@const label =
+							i === 0 ? "0-1" : i === 5 ? "6+" : String(i + 1)}
+						<div
+							class="curve-bar-col"
+							title="{count} cards at CMC {label}"
+						>
 							<div class="curve-bar-track">
-								<div class="curve-bar" style="height: {heightPct}%"></div>
+								<div
+									class="curve-bar"
+									style="height: {heightPct}%"
+								></div>
 							</div>
 						</div>
 					{/each}
@@ -622,8 +705,16 @@
 		<!-- CARD COUNTS SECTION -->
 		<div class="stats-overview">
 			<div class="stat-row">
-				<span class="stat-label" style="font-weight: 600; color: hsl(var(--foreground));">Total Cards</span>
-				<span class="stat-value" style="font-weight: 600; color: hsl(var(--foreground));">{totalCount}</span>
+				<span
+					class="stat-label"
+					style="font-weight: 600; color: hsl(var(--foreground));"
+					>Total Cards</span
+				>
+				<span
+					class="stat-value"
+					style="font-weight: 600; color: hsl(var(--foreground));"
+					>{totalCount}</span
+				>
 			</div>
 		</div>
 
@@ -640,7 +731,7 @@
 					<span class="item-stats">{boardStats.companion.qty}</span>
 				</div>
 			{/if}
-			
+
 			{#if boardStats.mainboard.qty > 0}
 				<div class="breakdown-item mainboard-header">
 					<span class="item-name">Mainboard</span>
@@ -650,25 +741,33 @@
 					{#if mainboardStats.creatures.qty > 0}
 						<div class="sub-item">
 							<span class="sub-name">Creature</span>
-							<span class="sub-stats">{mainboardStats.creatures.qty}</span>
+							<span class="sub-stats"
+								>{mainboardStats.creatures.qty}</span
+							>
 						</div>
 					{/if}
 					{#if mainboardStats.spells.qty > 0}
 						<div class="sub-item">
 							<span class="sub-name">Non-Creature</span>
-							<span class="sub-stats">{mainboardStats.spells.qty}</span>
+							<span class="sub-stats"
+								>{mainboardStats.spells.qty}</span
+							>
 						</div>
 					{/if}
 					{#if mainboardStats.nonBasicLands.qty > 0}
 						<div class="sub-item">
 							<span class="sub-name">Non-Basic Land</span>
-							<span class="sub-stats">{mainboardStats.nonBasicLands.qty}</span>
+							<span class="sub-stats"
+								>{mainboardStats.nonBasicLands.qty}</span
+							>
 						</div>
 					{/if}
 					{#if mainboardStats.basicLands.qty > 0}
 						<div class="sub-item">
 							<span class="sub-name">Basic Land</span>
-							<span class="sub-stats">{mainboardStats.basicLands.qty}</span>
+							<span class="sub-stats"
+								>{mainboardStats.basicLands.qty}</span
+							>
 						</div>
 					{/if}
 				</div>
@@ -694,7 +793,9 @@
 		<div class="stats-overview">
 			<div class="stat-row main-price">
 				<span class="stat-label">Est. Price</span>
-				<span class="stat-value price-text">${totalPrice.toFixed(2)}</span>
+				<span class="stat-value price-text"
+					>${totalPrice.toFixed(2)}</span
+				>
 			</div>
 		</div>
 
@@ -702,33 +803,47 @@
 			{#if boardStats.commander.price > 0}
 				<div class="breakdown-item">
 					<span class="item-name">Commander</span>
-					<span class="item-stats">${boardStats.commander.price.toFixed(2)}</span>
+					<span class="item-stats"
+						>${boardStats.commander.price.toFixed(2)}</span
+					>
 				</div>
 			{/if}
 			{#if boardStats.companion.price > 0}
 				<div class="breakdown-item">
 					<span class="item-name">Companion</span>
-					<span class="item-stats">${boardStats.companion.price.toFixed(2)}</span>
+					<span class="item-stats"
+						>${boardStats.companion.price.toFixed(2)}</span
+					>
 				</div>
 			{/if}
-			
+
 			{#if boardStats.mainboard.price > 0}
-				{@const restPrice = boardStats.mainboard.price - mainboardStats.basicLands.price}
+				{@const restPrice =
+					boardStats.mainboard.price -
+					mainboardStats.basicLands.price}
 				<div class="breakdown-item mainboard-header">
 					<span class="item-name">Mainboard</span>
-					<span class="item-stats">${boardStats.mainboard.price.toFixed(2)}</span>
+					<span class="item-stats"
+						>${boardStats.mainboard.price.toFixed(2)}</span
+					>
 				</div>
 				<div class="mainboard-subcategories">
 					{#if mainboardStats.basicLands.price > 0}
 						<div class="sub-item">
 							<span class="sub-name">Basic Land</span>
-							<span class="sub-stats">${mainboardStats.basicLands.price.toFixed(2)}</span>
+							<span class="sub-stats"
+								>${mainboardStats.basicLands.price.toFixed(
+									2,
+								)}</span
+							>
 						</div>
 					{/if}
 					{#if restPrice > 0}
 						<div class="sub-item">
 							<span class="sub-name">Rest of Deck</span>
-							<span class="sub-stats">${restPrice.toFixed(2)}</span>
+							<span class="sub-stats"
+								>${restPrice.toFixed(2)}</span
+							>
 						</div>
 					{/if}
 				</div>
@@ -737,13 +852,17 @@
 			{#if boardStats.sideboard.price > 0}
 				<div class="breakdown-item">
 					<span class="item-name">Sideboard</span>
-					<span class="item-stats">${boardStats.sideboard.price.toFixed(2)}</span>
+					<span class="item-stats"
+						>${boardStats.sideboard.price.toFixed(2)}</span
+					>
 				</div>
 			{/if}
 			{#if boardStats.maybeboard.price > 0}
 				<div class="breakdown-item">
 					<span class="item-name">Maybeboard</span>
-					<span class="item-stats">${boardStats.maybeboard.price.toFixed(2)}</span>
+					<span class="item-stats"
+						>${boardStats.maybeboard.price.toFixed(2)}</span
+					>
 				</div>
 			{/if}
 		</div>
@@ -754,7 +873,7 @@
 		<div class="pane-header">
 			<h3>Decklist Editor</h3>
 		</div>
-		
+
 		<div class="editor-wrapper">
 			<!-- Background Layer: Highlighted plain text lines -->
 			<div class="highlights-layer" bind:this={highlightsEl}>
@@ -766,7 +885,9 @@
 							<span class={part.className}>{part.text}</span>
 						{/each}
 						{#if isCursorOnLine && activeSuggestion}
-							<span class="suggestion-ghost">{activeSuggestion}</span>
+							<span class="suggestion-ghost"
+								>{activeSuggestion}</span
+							>
 							<kbd class="shortcut-badge">Tab</kbd>
 						{/if}
 					</div>
@@ -784,7 +905,10 @@
 				onkeyup={updateActiveLine}
 				onclick={updateActiveLine}
 				onfocus={updateActiveLine}
-				onblur={() => { activeLineIndex = -1; activeSuggestion = ''; }}
+				onblur={() => {
+					activeLineIndex = -1;
+					activeSuggestion = "";
+				}}
 				onkeydown={handleKeyDown}
 				aria-label="Decklist Text Input"
 			></textarea>
@@ -796,23 +920,39 @@
 		<div class="actions-header">
 			<h3>Editor Actions</h3>
 		</div>
-		
+
 		<div class="actions-list">
-			<Button variant="outline" class="action-btn" onclick={handleSelectAll}>
+			<Button
+				variant="outline"
+				class="action-btn"
+				onclick={handleSelectAll}
+			>
 				Select All
 			</Button>
 
 			{#if hasPrintings}
-				<Button variant="outline" class="action-btn" onclick={handleClearPrintings}>
+				<Button
+					variant="outline"
+					class="action-btn"
+					onclick={handleClearPrintings}
+				>
 					Clear Printings
 				</Button>
 			{/if}
 
-			<Button variant="outline" class="action-btn" onclick={() => showGuide = true}>
+			<Button
+				variant="outline"
+				class="action-btn"
+				onclick={() => (showGuide = true)}
+			>
 				Formatting Help
 			</Button>
 
-			<Button variant="outline" class="action-btn delete-btn" onclick={handleClear}>
+			<Button
+				variant="outline"
+				class="action-btn delete-btn"
+				onclick={handleClear}
+			>
 				Clear Deck
 			</Button>
 		</div>
@@ -821,33 +961,55 @@
 			<div class="duplicate-warning-box">
 				<div class="warning-header-row">
 					<AlertTriangle size={16} class="warning-icon" />
-					<span>Found {duplicateCardsInfo.count} duplicate {duplicateCardsInfo.count === 1 ? 'entry' : 'entries'}</span>
+					<span
+						>Found {duplicateCardsInfo.count} duplicate {duplicateCardsInfo.count ===
+						1
+							? "entry"
+							: "entries"}</span
+					>
 				</div>
-				<p class="warning-description">Resolve duplicates by combining quantities or choosing a specific instance.</p>
+				<p class="warning-description">
+					Resolve duplicates by combining quantities or choosing a
+					specific instance.
+				</p>
 				<div class="warning-actions-grid">
-					<button class="warn-btn" onclick={handleMergeDuplicates}>Combine Quantities</button>
-					<button class="warn-btn" onclick={handleKeepFirstInstance}>Keep First</button>
-					<button class="warn-btn" onclick={handleKeepLastInstance}>Keep Last</button>
+					<button class="warn-btn" onclick={handleMergeDuplicates}
+						>Combine Quantities</button
+					>
+					<button class="warn-btn" onclick={handleKeepFirstInstance}
+						>Keep First</button
+					>
+					<button class="warn-btn" onclick={handleKeepLastInstance}
+						>Keep Last</button
+					>
 				</div>
 			</div>
 		{/if}
 
 		<div class="info-note">
 			<Info size={16} />
-			<p>Saving changes will replace the entire current deck with the contents of this editor.</p>
+			<p>
+				Saving changes will replace the entire current deck with the
+				contents of this editor.
+			</p>
 		</div>
 	</div>
 </div>
 
 {#if showGuide}
-	<div class="guide-modal-backdrop" onclick={() => showGuide = false} role="presentation" transition:fade={{ duration: 150 }}>
-		<div 
-			class="guide-modal-content" 
-			onclick={(e) => e.stopPropagation()} 
+	<div
+		class="guide-modal-backdrop"
+		onclick={() => (showGuide = false)}
+		role="presentation"
+		transition:fade={{ duration: 150 }}
+	>
+		<div
+			class="guide-modal-content"
+			onclick={(e) => e.stopPropagation()}
 			onkeydown={(e) => e.stopPropagation()}
 			tabindex="-1"
-			role="dialog" 
-			aria-modal="true" 
+			role="dialog"
+			aria-modal="true"
 			aria-label="Format Guide"
 		>
 			<div class="modal-header">
@@ -855,24 +1017,38 @@
 					<HelpCircle size={18} class="guide-icon-class" />
 					<h3>Decklist Format Guide</h3>
 				</div>
-				<button class="close-btn" onclick={() => showGuide = false} aria-label="Close guide">
+				<button
+					class="close-btn"
+					onclick={() => (showGuide = false)}
+					aria-label="Close guide"
+				>
 					<X size={18} />
 				</button>
 			</div>
-			
+
 			<div class="guide-scroll">
 				<div class="guide-section">
 					<h4>General Syntax</h4>
-					<p>List cards one per line with their quantity at the beginning. If no quantity is specified, 1 is assumed.</p>
-					<pre><code>4 Brainstorm
+					<p>
+						List cards one per line with their quantity at the
+						beginning. If no quantity is specified, 1 is assumed.
+					</p>
+					<pre><code
+							>4 Brainstorm
 1 Force of Will
-Sol Ring</code></pre>
+Sol Ring</code
+						></pre>
 				</div>
 
 				<div class="guide-section">
 					<h4>Board Categories</h4>
-					<p>Use section headers starting with <code>//</code> to assign cards to specific boards (Mainboard/Deck, Commander, Companion, Sideboard, Maybeboard).</p>
-					<pre><code>// Commander
+					<p>
+						Use section headers starting with <code>//</code> to assign
+						cards to specific boards (Mainboard/Deck, Commander, Companion,
+						Sideboard, Maybeboard).
+					</p>
+					<pre><code
+							>// Commander
 1 Atraxa, Praetors' Voice
 
 // Companion
@@ -886,15 +1062,23 @@ Sol Ring</code></pre>
 1 Relic of Progenitus
 
 // Maybeboard
-1 Cyclonic Rift</code></pre>
+1 Cyclonic Rift</code
+						></pre>
 				</div>
 
 				<div class="guide-section">
 					<h4>Extras & Set Tags</h4>
-					<p>You can paste lists directly from MTG Arena, MTGO, or Archidekt. Extra metadata tags (set codes, collector numbers, and prices) are automatically parsed and cleaned up.</p>
-					<pre><code>1 Arcane Signet (CLB) 298
+					<p>
+						You can paste lists directly from MTG Arena, MTGO, or
+						Archidekt. Extra metadata tags (set codes, collector
+						numbers, and prices) are automatically parsed and
+						cleaned up.
+					</p>
+					<pre><code
+							>1 Arcane Signet (CLB) 298
 4 Lightning Bolt *F*
-1 Swords to Plowshares #Removal</code></pre>
+1 Swords to Plowshares #Removal</code
+						></pre>
 				</div>
 			</div>
 		</div>
@@ -904,7 +1088,7 @@ Sol Ring</code></pre>
 <style>
 	.import-view-container {
 		display: grid;
-		grid-template-columns: 260px 1fr 280px;
+		grid-template-columns: 200px 1fr 200px;
 		gap: 1.5rem;
 		padding: 1.25rem;
 		height: calc(100vh - 88px);
@@ -974,14 +1158,18 @@ Sol Ring</code></pre>
 	}
 
 	.curve-bar {
-		background-image: linear-gradient(to top, hsl(var(--primary)) 0%, #2A38CF 100%);
+		background-image: linear-gradient(
+			to top,
+			hsl(var(--primary)) 0%,
+			#2a38cf 100%
+		);
 		background-size: 100% 79px;
 		background-position: bottom;
 		background-repeat: no-repeat;
 		border-radius: var(--radius-sm);
-		box-shadow: 
-			0 2px 8px rgba(0, 0, 0, 1.0),
-			inset 0 0 2px 0 rgba(255, 255, 255, 1.0);
+		box-shadow:
+			0 2px 8px rgba(0, 0, 0, 1),
+			inset 0 0 2px 0 rgba(255, 255, 255, 1);
 		width: 100%;
 		min-height: 2px;
 		position: relative;
@@ -1056,7 +1244,15 @@ Sol Ring</code></pre>
 	.item-stats,
 	.sub-stats {
 		font-weight: 500;
-		font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+		font-family: var(
+			--font-mono,
+			ui-monospace,
+			SFMono-Regular,
+			Menlo,
+			Monaco,
+			Consolas,
+			monospace
+		);
 	}
 
 	.muted {
@@ -1104,7 +1300,10 @@ Sol Ring</code></pre>
 		height: 100%;
 		margin: 0;
 		box-sizing: border-box;
-		font-family: system-ui, -apple-system, sans-serif;
+		font-family:
+			system-ui,
+			-apple-system,
+			sans-serif;
 		font-size: var(--font-sm);
 		line-height: 1.6;
 		letter-spacing: 0.01em;
@@ -1427,7 +1626,17 @@ Sol Ring</code></pre>
 	}
 
 	code {
-		font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+		font-family: var(
+			--font-mono,
+			ui-monospace,
+			SFMono-Regular,
+			Menlo,
+			Monaco,
+			Consolas,
+			"Liberation Mono",
+			"Courier New",
+			monospace
+		);
 		font-size: var(--font-xs);
 		color: hsl(var(--foreground));
 	}
