@@ -649,7 +649,6 @@
 		}
 	}
 
-	// Synchronize scroll of textarea to highlights
 	function handleScroll() {
 		if (textareaEl) {
 			const scrollTop = textareaEl.scrollTop;
@@ -659,6 +658,46 @@
 				highlightsEl.scrollLeft = scrollLeft;
 			}
 		}
+	}
+
+	let hoveredLineIndex = $state(-1);
+	let hoveredCardName = $state("");
+	const hoveredCardImage = $derived.by(() => {
+		if (!hoveredCardName) return null;
+		const meta = resolvedMetadataMap[hoveredCardName.toLowerCase()];
+		return meta?.image_uris?.normal || null;
+	});
+
+	/** @param {MouseEvent} e */
+	function handleMouseMove(e) {
+		if (!textareaEl) return;
+		const rect = textareaEl.getBoundingClientRect();
+		const relativeY = e.clientY - rect.top + textareaEl.scrollTop;
+
+		// Line height is 1.6em. Get font size in px
+		const fontSize = parseFloat(window.getComputedStyle(textareaEl).fontSize);
+		const lineHeight = fontSize * 1.6;
+
+		const lineIndex = Math.floor(relativeY / lineHeight);
+		if (lineIndex >= 0 && lineIndex < lines.length) {
+			hoveredLineIndex = lineIndex;
+			const lineText = lines[lineIndex] || "";
+			const cardInfo = getCardInfo(lineText);
+			if (cardInfo) {
+				const lowName = cardInfo.name.toLowerCase();
+				if (resolvedMetadataMap[lowName]) {
+					hoveredCardName = cardInfo.name;
+					return;
+				}
+			}
+		}
+		hoveredCardName = "";
+		hoveredLineIndex = -1;
+	}
+
+	function handleMouseLeave() {
+		hoveredCardName = "";
+		hoveredLineIndex = -1;
 	}
 
 	const placeholderText = `// Commander
@@ -867,8 +906,16 @@
 					activeSuggestion = "";
 				}}
 				onkeydown={handleKeyDown}
+				onmousemove={handleMouseMove}
+				onmouseleave={handleMouseLeave}
 				aria-label="Decklist Text Input"
 			></textarea>
+
+			{#if hoveredCardImage}
+				<div class="hover-card-preview" transition:fade={{ duration: 150 }}>
+					<img src={hoveredCardImage} alt={hoveredCardName} />
+				</div>
+			{/if}
 		</div>
 	</div>
 
@@ -1168,6 +1215,7 @@
 
 	.resolved-name {
 		color: hsl(var(--foreground));
+		font-weight: 500;
 	}
 
 	.unresolved-name {
@@ -1295,6 +1343,28 @@
 	:global(.action-btn:hover) {
 		background: hsl(var(--muted) / 0.25) !important;
 		border-color: hsl(var(--border) / 0.8) !important;
+	}
+
+	.hover-card-preview {
+		position: absolute;
+		top: 1rem;
+		right: 2rem;
+		width: 180px;
+		aspect-ratio: 2.5 / 3.5;
+		z-index: 100;
+		border-radius: var(--radius-md);
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+		pointer-events: none;
+		overflow: hidden;
+		border: 1px solid hsl(var(--border) / 0.5);
+		background: hsl(var(--background));
+	}
+
+	.hover-card-preview img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
 	}
 
 
