@@ -1097,10 +1097,6 @@ Sol Ring</code
 		display: flex;
 		flex-direction: column;
 		justify-content: flex-end;
-		background: hsl(var(--muted) / 0.05);
-		border: 1px solid hsl(var(--border) / 0.2);
-		border-radius: var(--radius-sm);
-		padding: 0.5rem;
 		box-sizing: border-box;
 		margin-bottom: 0.5rem;
 	}
