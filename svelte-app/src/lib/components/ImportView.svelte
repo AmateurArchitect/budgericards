@@ -312,6 +312,7 @@
 		/\s*[([][A-Za-z0-9]{2,6}[)\]]/.test(deckStore.importText),
 	);
 	const showActionsPane = $derived(hasPrintings || duplicateCardsInfo.count > 0);
+	const hasOtherBoards = $derived(boardStats.sideboard.qty > 0 || boardStats.maybeboard.qty > 0);
 
 	function handleMergeDuplicates() {
 		if (!deckStore.importText.trim()) return;
