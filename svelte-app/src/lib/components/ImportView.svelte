@@ -1066,7 +1066,7 @@ Sol Ring</code
 <style>
 	.import-view-container {
 		display: grid;
-		grid-template-columns: 200px 1fr 200px;
+		grid-template-columns: 300px 1fr 200px;
 		gap: 1.5rem;
 		padding: 1.25rem;
 		height: calc(100vh - 88px);
@@ -1083,7 +1083,7 @@ Sol Ring</code
 		background: hsl(var(--muted) / 0.15);
 		border: 1px solid hsl(var(--border) / 0.5);
 		border-radius: var(--radius-md);
-		padding: 1.25rem;
+		padding: 3rem;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 	}
 
