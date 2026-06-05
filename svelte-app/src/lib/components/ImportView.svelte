@@ -279,13 +279,6 @@
 		deckStore.importText = "";
 	}
 
-	function handleSelectAll() {
-		if (textareaEl) {
-			textareaEl.focus();
-			textareaEl.select();
-		}
-	}
-
 	// Detect duplicates: a card name appearing more than once within the same board, excluding the active cursor line
 	const duplicateCardsInfo = $derived.by(() => {
 		const seen = new Set();
@@ -675,9 +668,6 @@
 <div class="import-view-container" in:fade={{ duration: 200 }}>
 	<!-- Left Stat Preview Panel -->
 	<div class="stats-pane">
-		<div class="stats-section-header">
-			<h3>Live Stats</h3>
-		</div>
 
 		{#if manaCurve.totalSpells > 10}
 			<div class="curve-graphic">
@@ -870,9 +860,6 @@
 
 	<!-- Text Area Editor (Middle Column) -->
 	<div class="editor-pane">
-		<div class="pane-header">
-			<h3>Decklist Editor</h3>
-		</div>
 
 		<div class="editor-wrapper">
 			<!-- Background Layer: Highlighted plain text lines -->
@@ -917,18 +904,7 @@
 
 	<!-- Action Sidebar Panel (Right Column) -->
 	<div class="actions-pane">
-		<div class="actions-header">
-			<h3>Editor Actions</h3>
-		</div>
-
 		<div class="actions-list">
-			<Button
-				variant="outline"
-				class="action-btn"
-				onclick={handleSelectAll}
-			>
-				Select All
-			</Button>
 
 			{#if hasPrintings}
 				<Button
