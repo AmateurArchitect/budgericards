@@ -215,6 +215,7 @@ export function createStacksEngine() {
 				const primaryCount = data.top.length + data.bottom.length;
 				let secondaryCount = 0;
 				for (const card of cards) {
+					if (card._forceColumn === "Special") continue;
 					const cardPrimaryKey = getCardPrimaryKey(card);
 					if (cardPrimaryKey !== key && cardMatchesKey(card, key)) {
 						secondaryCount++;
