@@ -202,7 +202,7 @@
 				stats[board].qty += card.quantity;
 				stats[board].price += card.quantity * card.price;
 			}
-			if (board === "commander") {
+			if (board === "commander" || board === "companion") {
 				stats.mainboard.qty += card.quantity;
 				stats.mainboard.price += card.quantity * card.price;
 			}
@@ -220,7 +220,7 @@
 
 		const mainCards = resolvedCards.filter((c) => {
 			const board = c.board || "mainboard";
-			return board === "mainboard" || board === "commander";
+			return board === "mainboard" || board === "commander" || board === "companion";
 		});
 
 		for (const card of mainCards) {
@@ -254,7 +254,7 @@
 		const counts = Array(6).fill(0); // 0-1, 2, 3, 4, 5, 6+
 		const mainSpells = resolvedCards.filter((c) => {
 			const board = c.board || "mainboard";
-			return (board === "mainboard" || board === "commander") &&
+			return (board === "mainboard" || board === "commander" || board === "companion") &&
 				!c.type.includes("Land");
 		});
 
