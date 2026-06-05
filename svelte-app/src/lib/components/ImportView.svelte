@@ -202,6 +202,10 @@
 				stats[board].qty += card.quantity;
 				stats[board].price += card.quantity * card.price;
 			}
+			if (board === "commander") {
+				stats.mainboard.qty += card.quantity;
+				stats.mainboard.price += card.quantity * card.price;
+			}
 		}
 		return stats;
 	});
@@ -214,9 +218,10 @@
 			nonBasicLands: { qty: 0, price: 0 },
 		};
 
-		const mainCards = resolvedCards.filter(
-			(c) => (c.board || "mainboard") === "mainboard",
-		);
+		const mainCards = resolvedCards.filter((c) => {
+			const board = c.board || "mainboard";
+			return board === "mainboard" || board === "commander";
+		});
 
 		for (const card of mainCards) {
 			const isLand = card.type.includes("Land");
@@ -247,11 +252,11 @@
 	// Mana curve calculations for mainboard spells (excluding lands) - 6 columns
 	const manaCurve = $derived.by(() => {
 		const counts = Array(6).fill(0); // 0-1, 2, 3, 4, 5, 6+
-		const mainSpells = resolvedCards.filter(
-			(c) =>
-				(c.board || "mainboard") === "mainboard" &&
-				!c.type.includes("Land"),
-		);
+		const mainSpells = resolvedCards.filter((c) => {
+			const board = c.board || "mainboard";
+			return (board === "mainboard" || board === "commander") &&
+				!c.type.includes("Land");
+		});
 
 		for (const card of mainSpells) {
 			const cmc = Math.floor(card.cmc);
