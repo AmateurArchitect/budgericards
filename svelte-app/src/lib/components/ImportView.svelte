@@ -29,6 +29,7 @@
 	let activeLineIndex = $state(-1);
 	let previousLineIndex = $state(-1);
 	let activeSuggestion = $state("");
+	let activeSuggestionFull = $state("");
 
 	/** @param {any} card */
 	function getNormalizedCardName(card) {
@@ -569,6 +570,7 @@
 
 		if (!parts || !parts.namePart || parts.namePart.length < 2) {
 			activeSuggestion = "";
+			activeSuggestionFull = "";
 			return;
 		}
 
@@ -595,6 +597,7 @@
 						activeSuggestion = normalized.substring(
 							queryName.length,
 						);
+						activeSuggestionFull = normalized;
 						return;
 					}
 				}
@@ -602,6 +605,7 @@
 				// Ignored
 			}
 			activeSuggestion = "";
+			activeSuggestionFull = "";
 		};
 
 		fetchSuggestion();
@@ -618,7 +622,7 @@
 
 	/** @param {KeyboardEvent} e */
 	function handleKeyDown(e) {
-		if ((e.key === "Tab" || e.key === "Enter") && activeSuggestion) {
+		if ((e.key === "Enter" || e.key === "Tab") && activeSuggestion) {
 			e.preventDefault();
 
 			const currentText = deckStore.importText;
@@ -633,6 +637,7 @@
 				deckStore.importText = linesArr.join("\n");
 
 				activeSuggestion = "";
+				activeSuggestionFull = "";
 
 				setTimeout(() => {
 					if (!textareaEl) return;
@@ -660,7 +665,6 @@
 		}
 	}
 
-	let hoveredLineIndex = $state(-1);
 	let hoveredCardName = $state("");
 	const hoveredCardImage = $derived.by(() => {
 		if (!hoveredCardName) return null;
@@ -671,33 +675,25 @@
 	/** @param {MouseEvent} e */
 	function handleMouseMove(e) {
 		if (!textareaEl) return;
-		const rect = textareaEl.getBoundingClientRect();
-		const relativeY = e.clientY - rect.top + textareaEl.scrollTop;
 
-		// Line height is 1.6em. Get font size in px
-		const fontSize = parseFloat(window.getComputedStyle(textareaEl).fontSize);
-		const lineHeight = fontSize * 1.6;
+		// Temporarily bypass textarea to see what span is directly under the cursor
+		textareaEl.style.pointerEvents = "none";
+		const element = document.elementFromPoint(e.clientX, e.clientY);
+		textareaEl.style.pointerEvents = "";
 
-		const lineIndex = Math.floor(relativeY / lineHeight);
-		if (lineIndex >= 0 && lineIndex < lines.length) {
-			hoveredLineIndex = lineIndex;
-			const lineText = lines[lineIndex] || "";
-			const cardInfo = getCardInfo(lineText);
-			if (cardInfo) {
-				const lowName = cardInfo.name.toLowerCase();
-				if (resolvedMetadataMap[lowName]) {
-					hoveredCardName = cardInfo.name;
-					return;
-				}
+		if (element && (element.classList.contains("resolved-name") || element.classList.contains("duplicate-warning-name"))) {
+			const name = element.textContent?.trim();
+			if (name && resolvedMetadataMap[name.toLowerCase()]) {
+				hoveredCardName = name;
+				return;
 			}
 		}
+
 		hoveredCardName = "";
-		hoveredLineIndex = -1;
 	}
 
 	function handleMouseLeave() {
 		hoveredCardName = "";
-		hoveredLineIndex = -1;
 	}
 
 	const placeholderText = `// Commander
@@ -880,11 +876,12 @@
 						{#each parts as part}
 							<span class={part.className}>{part.text}</span>
 						{/each}
-						{#if isCursorOnLine && activeSuggestion}
-							<span class="suggestion-ghost"
-								>{activeSuggestion}</span
+						{#if isCursorOnLine && activeSuggestionFull}
+							<span class="suggestion-separator">            </span>
+							<span class="suggestion-full-green"
+								>{activeSuggestionFull}</span
 							>
-							<kbd class="shortcut-badge">Tab</kbd>
+							<kbd class="shortcut-badge">Enter</kbd>
 						{/if}
 					</div>
 				{/each}
@@ -904,6 +901,7 @@
 				onblur={() => {
 					activeLineIndex = -1;
 					activeSuggestion = "";
+					activeSuggestionFull = "";
 				}}
 				onkeydown={handleKeyDown}
 				onmousemove={handleMouseMove}
@@ -1290,11 +1288,16 @@
 		border-color: #f59e0b;
 	}
 
-	.suggestion-ghost {
+	.suggestion-separator {
+		white-space: pre;
+		pointer-events: none;
+	}
+
+	.suggestion-full-green {
 		color: #22c55e;
+		font-weight: 500;
 		font-style: italic;
 		pointer-events: none;
-		margin-left: 0px;
 	}
 
 	.shortcut-badge {
@@ -1352,7 +1355,7 @@
 		width: 180px;
 		aspect-ratio: 2.5 / 3.5;
 		z-index: 100;
-		border-radius: var(--radius-md);
+		border-radius: 4.75% / 3.5%;
 		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
 		pointer-events: none;
 		overflow: hidden;
@@ -1365,6 +1368,7 @@
 		height: 100%;
 		object-fit: cover;
 		display: block;
+		border-radius: inherit;
 	}
 
 
