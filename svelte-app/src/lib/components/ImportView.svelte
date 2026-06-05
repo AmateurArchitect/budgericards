@@ -676,10 +676,12 @@
 	function handleMouseMove(e) {
 		if (!textareaEl) return;
 
-		// Temporarily bypass textarea to see what span is directly under the cursor
+		// Temporarily bypass textarea and highlights-layer pointer-events to test spans directly
 		textareaEl.style.pointerEvents = "none";
+		if (highlightsEl) highlightsEl.style.pointerEvents = "auto";
 		const element = document.elementFromPoint(e.clientX, e.clientY);
 		textareaEl.style.pointerEvents = "";
+		if (highlightsEl) highlightsEl.style.pointerEvents = "none";
 
 		if (element && (element.classList.contains("resolved-name") || element.classList.contains("duplicate-warning-name"))) {
 			const name = element.textContent?.trim();
