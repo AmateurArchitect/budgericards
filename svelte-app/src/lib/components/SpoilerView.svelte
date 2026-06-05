@@ -160,6 +160,7 @@
 				else if (typeLineStr.includes("sorcery")) groupKey = "Sorceries";
 				else if (typeLineStr.includes("artifact")) groupKey = "Artifacts";
 				else if (typeLineStr.includes("enchantment")) groupKey = "Enchantments";
+				else if (typeLineStr.includes("battle")) groupKey = "Battles";
 				else groupKey = "Other";
 			}
 
@@ -178,7 +179,7 @@
 		} else if (effectiveGrouping === "color") {
 			orderedKeys = ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Unknown", "Lands"];
 		} else {
-			orderedKeys = ["Creatures", "Planeswalkers", "Instants", "Sorceries", "Artifacts", "Enchantments", "Other", "Unknown", "Lands"];
+			orderedKeys = ["Creatures", "Planeswalkers", "Artifacts", "Enchantments", "Battles", "Sorceries", "Instants", "Other", "Unknown", "Lands"];
 		}
 
 		for (const key of Object.keys(groups)) {
@@ -193,6 +194,23 @@
 				categories.push(processCategory(key, cardsInGroup, deckStore.activeBoard));
 			}
 		}
+
+		if (effectiveGrouping === "type") {
+			for (const category of categories) {
+				const key = category.name;
+				let secondaryCount = 0;
+				for (const card of boardCards) {
+					const cardPrimaryKey = getCardPrimaryKey(card);
+					if (cardPrimaryKey !== key && cardMatchesKey(card, key)) {
+						secondaryCount++;
+					}
+				}
+				if (secondaryCount > 0) {
+					category.totalQtyText = `${category.totalQty} + ${secondaryCount}`;
+				}
+			}
+		}
+
 		return categories;
 	});
 
@@ -412,6 +430,51 @@
 			}
 		}
 	}
+
+	function getCardPrimaryKey(card) {
+		const metadata = deckStore.metadata[card.name.toLowerCase()];
+		const details = card.type_line ? card : metadata;
+		if (!details) return "Unknown";
+		if (details.notFound || card.notFound) return "Unknown";
+		
+		const basicLandNames = ["plains", "island", "swamp", "mountain", "forest", "wastes"];
+		const isBasicLandName = basicLandNames.some(name => card.name.toLowerCase().includes(name));
+		const typeLineStr = (details.type_line || "").toLowerCase();
+		const isLand = (typeLineStr.includes("land") || isBasicLandName) && !typeLineStr.includes("//");
+		
+		if (isLand) return "Lands";
+		
+		const tl = typeLineStr;
+		if (tl.includes("creature")) return "Creatures";
+		else if (tl.includes("planeswalker")) return "Planeswalkers";
+		else if (tl.includes("instant")) return "Instants";
+		else if (tl.includes("sorcery")) return "Sorceries";
+		else if (tl.includes("artifact")) return "Artifacts";
+		else if (tl.includes("enchantment")) return "Enchantments";
+		else if (tl.includes("battle")) return "Battles";
+		return "Other";
+	}
+
+	function cardMatchesKey(card, key) {
+		const metadata = deckStore.metadata[card.name.toLowerCase()];
+		const details = card.type_line ? card : metadata;
+		if (!details) return false;
+		const typeLineStr = (details.type_line || "").toLowerCase();
+		
+		if (key === "Creatures") return typeLineStr.includes("creature");
+		if (key === "Planeswalkers") return typeLineStr.includes("planeswalker");
+		if (key === "Instants") return typeLineStr.includes("instant");
+		if (key === "Sorceries") return typeLineStr.includes("sorcery");
+		if (key === "Artifacts") return typeLineStr.includes("artifact");
+		if (key === "Enchantments") return typeLineStr.includes("enchantment");
+		if (key === "Battles") return typeLineStr.includes("battle");
+		if (key === "Lands") {
+			const basicLandNames = ["plains", "island", "swamp", "mountain", "forest", "wastes"];
+			const isBasicLandName = basicLandNames.some(name => card.name.toLowerCase().includes(name));
+			return typeLineStr.includes("land") || isBasicLandName;
+		}
+		return false;
+	}
 </script>
 
 <svelte:window onclickcapture={handleWindowClick} />
@@ -538,7 +601,7 @@
 									class="category-chevron {collapsedCategories.has(category.name) ? 'collapsed' : ''}"
 								/>
 								<span class="category-title">{category.name}</span>
-								<span class="category-count">{category.totalQty}</span>
+								<span class="category-count">{category.totalQtyText || category.totalQty}</span>
 								<div class="category-line"></div>
 							</button>
 

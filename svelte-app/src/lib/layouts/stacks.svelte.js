@@ -116,6 +116,7 @@ export function createStacksEngine() {
 						else if (tl.includes("sorcery")) key = "Sorceries";
 						else if (tl.includes("artifact")) key = "Artifacts";
 						else if (tl.includes("enchantment")) key = "Enchantments";
+						else if (tl.includes("battle")) key = "Battles";
 						else key = "Other";
 					}
 				}
@@ -209,9 +210,23 @@ export function createStacksEngine() {
 				}
 			}
 
+			let displayCount = undefined;
+			if (effectiveGrouping === "type") {
+				const primaryCount = data.top.length + data.bottom.length;
+				let secondaryCount = 0;
+				for (const card of cards) {
+					const cardPrimaryKey = getCardPrimaryKey(card);
+					if (cardPrimaryKey !== key && cardMatchesKey(card, key)) {
+						secondaryCount++;
+					}
+				}
+				displayCount = secondaryCount > 0 ? `${primaryCount} + ${secondaryCount}` : primaryCount;
+			}
+
 			topRow.columns.push({
 				key,
 				label: getCmcLabel(key, columnMap[key]),
+				displayCount,
 				stacks
 			});
 		}
@@ -231,8 +246,8 @@ export function createStacksEngine() {
 		if (splitView && effectiveGrouping === "type") {
 			const groupSpecs = [
 				{ label: "Creatures", keys: ["Creatures"] },
-				{ label: "Non-Creature Permanents", keys: ["Planeswalkers", "Artifacts", "Enchantments", "Other"] },
-				{ label: "Nonpermanents", keys: ["Instants", "Sorceries", "Unknown"] },
+				{ label: "Non-Creature Permanents", keys: ["Planeswalkers", "Artifacts", "Enchantments", "Battles", "Other"] },
+				{ label: "Nonpermanents", keys: ["Sorceries", "Instants", "Unknown"] },
 				{ label: "Lands", keys: ["Lands"] }
 			];
 
@@ -317,7 +332,7 @@ export function createStacksEngine() {
 		} else if (effectiveGrouping === "color") {
 			return [...special, "White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Unknown", "Lands"];
 		} else {
-			return [...special, "Creatures", "Planeswalkers", "Instants", "Sorceries", "Artifacts", "Enchantments", "Other", "Unknown", "Lands"];
+			return [...special, "Creatures", "Planeswalkers", "Artifacts", "Enchantments", "Battles", "Sorceries", "Instants", "Other", "Unknown", "Lands"];
 		}
 	}
 
@@ -472,3 +487,50 @@ function getBasicLandWeight(name) {
 	if (n.includes("wastes")) return 6;
 	return 99;
 }
+
+function getCardPrimaryKey(card) {
+	if (card._forceColumn) return card._forceColumn;
+	const metadata = deckStore.metadata[card.name.toLowerCase()];
+	const details = card.type_line ? card : metadata;
+	if (!details) return "Unknown";
+	if (details.notFound || card.notFound) return "Unknown";
+	
+	const basicLandNames = ["plains", "island", "swamp", "mountain", "forest", "wastes"];
+	const isBasicLandName = basicLandNames.some(name => card.name.toLowerCase().includes(name));
+	const typeLineStr = (details.type_line || "").toLowerCase();
+	const isLand = (typeLineStr.includes("land") || isBasicLandName) && !typeLineStr.includes("//");
+	
+	if (isLand) return "Lands";
+	
+	const tl = typeLineStr;
+	if (tl.includes("creature")) return "Creatures";
+	else if (tl.includes("planeswalker")) return "Planeswalkers";
+	else if (tl.includes("instant")) return "Instants";
+	else if (tl.includes("sorcery")) return "Sorceries";
+	else if (tl.includes("artifact")) return "Artifacts";
+	else if (tl.includes("enchantment")) return "Enchantments";
+	else if (tl.includes("battle")) return "Battles";
+	return "Other";
+}
+
+function cardMatchesKey(card, key) {
+	const metadata = deckStore.metadata[card.name.toLowerCase()];
+	const details = card.type_line ? card : metadata;
+	if (!details) return false;
+	const typeLineStr = (details.type_line || "").toLowerCase();
+	
+	if (key === "Creatures") return typeLineStr.includes("creature");
+	if (key === "Planeswalkers") return typeLineStr.includes("planeswalker");
+	if (key === "Instants") return typeLineStr.includes("instant");
+	if (key === "Sorceries") return typeLineStr.includes("sorcery");
+	if (key === "Artifacts") return typeLineStr.includes("artifact");
+	if (key === "Enchantments") return typeLineStr.includes("enchantment");
+	if (key === "Battles") return typeLineStr.includes("battle");
+	if (key === "Lands") {
+		const basicLandNames = ["plains", "island", "swamp", "mountain", "forest", "wastes"];
+		const isBasicLandName = basicLandNames.some(name => card.name.toLowerCase().includes(name));
+		return typeLineStr.includes("land") || isBasicLandName;
+	}
+	return false;
+}
+

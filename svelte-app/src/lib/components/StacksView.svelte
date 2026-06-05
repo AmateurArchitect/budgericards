@@ -498,7 +498,7 @@
 					>
 						<StackHeader
 							label={column.label}
-							count={column.stacks.reduce(
+							count={column.displayCount !== undefined ? column.displayCount : column.stacks.reduce(
 								(
 									/** @type {number} */ sum,
 									/** @type {any} */ s,

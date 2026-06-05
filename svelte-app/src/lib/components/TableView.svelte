@@ -517,7 +517,7 @@
 										>
 											<div class="category-pill-box">
 												<span class="category-count"
-													>{category.totalQty}</span
+													>{category.totalQtyText || category.totalQty}</span
 												>
 												<span class="category-title"
 													>{category.name}</span
@@ -553,7 +553,7 @@
 										>
 											<div class="category-pill-box">
 												<span class="category-count"
-													>{category.totalQty}</span
+													>{category.totalQtyText || category.totalQty}</span
 												>
 												<span class="category-title"
 													>{category.name}</span

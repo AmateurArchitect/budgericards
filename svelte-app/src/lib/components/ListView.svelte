@@ -144,7 +144,7 @@
 				{#if category.cards.length > 0}
 					<div class="list-group">
 						<div class="group-header">
-							{category.name.toUpperCase()} ({category.totalQty})
+							{category.name.toUpperCase()} ({category.totalQtyText || category.totalQty})
 						</div>
 						<div class="group-cards">
 							{#each category.cards as cardRow (cardRow.name)}
