@@ -506,7 +506,7 @@
 		}
 
 		const suffixIndexMatch = remainingText.match(
-			/\s+([([][A-Za-z0-9]{2,6}[)\]]|\*[a-zA-Z]+\*|#|\||[\$€£])/,
+			/\s+([([][A-Za-z0-9\-\/]{2,7}[)\]]|\*[a-zA-Z0-9:]+\*|[#\^\|]|[\$€£])/,
 		);
 		let cardName = remainingText;
 		let suffixText = "";
