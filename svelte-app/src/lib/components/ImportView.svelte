@@ -1114,13 +1114,12 @@ Sol Ring</code
 	}
 
 	.curve-bar-track {
-		flex-grow: 1;
 		width: 100%;
 		display: flex;
 		flex-direction: column;
 		justify-content: flex-end;
 		position: relative;
-		height: 79px;
+		height: 80px;
 	}
 
 	.curve-bar {
@@ -1129,14 +1128,13 @@ Sol Ring</code
 			hsl(var(--primary)) 0%,
 			#2a38cf 100%
 		);
-		background-size: 100% 79px;
+		background-size: 100% 80px;
 		background-position: bottom;
 		background-repeat: no-repeat;
-		border-top-left-radius: var(--radius-sm);
-		border-top-right-radius: var(--radius-sm);
-		border-bottom-left-radius: 0;
-		border-bottom-right-radius: 0;
-		box-shadow: none;
+		border-radius: var(--radius-sm);
+		box-shadow:
+			0 2px 8px rgba(0, 0, 0, 1),
+			inset 0 0 2px 0 rgba(255, 255, 255, 1);
 		width: 100%;
 		min-height: 2px;
 		position: relative;
