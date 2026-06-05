@@ -681,10 +681,12 @@
 							title="{count} cards at CMC {label}"
 						>
 							<div class="curve-bar-track">
-								<div
-									class="curve-bar"
-									style="height: {heightPct}%"
-								></div>
+								{#if count > 0}
+									<div
+										class="curve-bar"
+										style="height: {heightPct}%"
+									></div>
+								{/if}
 							</div>
 						</div>
 					{/each}
@@ -1082,15 +1084,7 @@ Sol Ring</code
 		padding-right: 1.5rem;
 	}
 
-	.stats-section-header h3,
-	.actions-header h3 {
-		margin: 0;
-		font-size: var(--font-sm);
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: hsl(var(--muted-foreground));
-	}
+
 
 	.curve-graphic {
 		height: 95px;
@@ -1138,10 +1132,11 @@ Sol Ring</code
 		background-size: 100% 79px;
 		background-position: bottom;
 		background-repeat: no-repeat;
-		border-radius: var(--radius-sm);
-		box-shadow:
-			0 2px 8px rgba(0, 0, 0, 1),
-			inset 0 0 2px 0 rgba(255, 255, 255, 1);
+		border-top-left-radius: var(--radius-sm);
+		border-top-right-radius: var(--radius-sm);
+		border-bottom-left-radius: 0;
+		border-bottom-right-radius: 0;
+		box-shadow: none;
 		width: 100%;
 		min-height: 2px;
 		position: relative;
@@ -1238,21 +1233,6 @@ Sol Ring</code
 		overflow: hidden;
 	}
 
-	.pane-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		flex-shrink: 0;
-	}
-
-	.pane-header h3 {
-		margin: 0;
-		font-size: 0.875rem;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: hsl(var(--muted-foreground));
-	}
 
 	/* Layered Code/Text Editor Styling */
 	.editor-wrapper {
