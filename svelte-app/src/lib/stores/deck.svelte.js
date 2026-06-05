@@ -873,6 +873,7 @@ function createDeck() {
 		saveImport() {
 			const parsedCards = parseDecklist(importText);
 			importCardsInternal(parsedCards, { replace: true });
+			importText = cleanDecklistText;
 		}
 	};
 }
