@@ -613,7 +613,6 @@
 							<div class="curve-bar-track">
 								<div class="curve-bar" style="height: {heightPct}%"></div>
 							</div>
-							<span class="bar-label">{label}</span>
 						</div>
 					{/each}
 				</div>
@@ -926,7 +925,7 @@ Sol Ring</code></pre>
 	.stats-section-header h3,
 	.actions-header h3 {
 		margin: 0;
-		font-size: 0.875rem;
+		font-size: var(--font-sm);
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
@@ -934,7 +933,7 @@ Sol Ring</code></pre>
 	}
 
 	.curve-graphic {
-		height: 75px;
+		height: 95px;
 		display: flex;
 		flex-direction: column;
 		justify-content: flex-end;
@@ -949,7 +948,7 @@ Sol Ring</code></pre>
 	.curve-bars {
 		display: grid;
 		grid-template-columns: repeat(6, 1fr);
-		gap: 3px;
+		gap: 6px;
 		align-items: flex-end;
 		height: 100%;
 		width: 100%;
@@ -971,12 +970,12 @@ Sol Ring</code></pre>
 		flex-direction: column;
 		justify-content: flex-end;
 		position: relative;
-		height: 47px;
+		height: 79px;
 	}
 
 	.curve-bar {
-		background-image: linear-gradient(to top, hsl(var(--primary-light)) 0%, hsl(var(--primary-dark)) 100%);
-		background-size: 100% 47px;
+		background-image: linear-gradient(to top, hsl(var(--primary)) 0%, #2A38CF 100%);
+		background-size: 100% 79px;
 		background-position: bottom;
 		background-repeat: no-repeat;
 		border-radius: var(--radius-sm);
@@ -992,21 +991,6 @@ Sol Ring</code></pre>
 		transition: height 0.3s ease;
 	}
 
-	.bar-count {
-		font-size: 8px;
-		font-weight: 700;
-		color: #ffffff;
-		transform: translateY(-9px);
-		position: absolute;
-	}
-
-	.bar-label {
-		font-size: 8px;
-		font-weight: 600;
-		color: hsl(var(--muted-foreground));
-		margin-top: 4px;
-	}
-
 	.stats-overview {
 		display: flex;
 		flex-direction: column;
@@ -1016,12 +1000,12 @@ Sol Ring</code></pre>
 	.stat-row {
 		display: flex;
 		justify-content: space-between;
-		font-size: 0.8125rem;
+		font-size: var(--font-sm);
 		color: hsl(var(--muted-foreground));
 	}
 
 	.main-price {
-		font-size: 0.875rem;
+		font-size: var(--font-sm);
 		font-weight: 600;
 		color: hsl(var(--foreground));
 	}
@@ -1044,7 +1028,7 @@ Sol Ring</code></pre>
 	.breakdown-item {
 		display: flex;
 		justify-content: space-between;
-		font-size: 0.8125rem;
+		font-size: var(--font-sm);
 		font-weight: 600;
 		color: hsl(var(--foreground));
 	}
@@ -1065,7 +1049,7 @@ Sol Ring</code></pre>
 	.sub-item {
 		display: flex;
 		justify-content: space-between;
-		font-size: 0.75rem;
+		font-size: var(--font-xs);
 		color: hsl(var(--muted-foreground));
 	}
 
@@ -1206,7 +1190,7 @@ Sol Ring</code></pre>
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		font-size: 0.8125rem;
+		font-size: var(--font-sm);
 		font-weight: 600;
 		color: #eab308;
 	}
@@ -1216,7 +1200,7 @@ Sol Ring</code></pre>
 	}
 
 	.warning-description {
-		font-size: 0.75rem;
+		font-size: var(--font-xs);
 		color: hsl(var(--muted-foreground));
 		line-height: 1.35;
 		margin: 0;
@@ -1233,7 +1217,7 @@ Sol Ring</code></pre>
 		background: hsl(45 100% 50% / 0.1);
 		border: 1px solid hsl(45 100% 50% / 0.25);
 		color: #f59e0b;
-		font-size: 0.75rem;
+		font-size: var(--font-xs);
 		font-weight: 500;
 		padding: 0.375rem 0.5rem;
 		border-radius: var(--radius-sm);
@@ -1290,7 +1274,7 @@ Sol Ring</code></pre>
 		justify-content: flex-start;
 		gap: 0.75rem;
 		height: 38px;
-		font-size: 0.8125rem;
+		font-size: var(--font-sm);
 		font-weight: 500;
 		background: hsl(var(--muted) / 0.1) !important;
 		border-color: hsl(var(--border) / 0.4) !important;
@@ -1419,7 +1403,7 @@ Sol Ring</code></pre>
 
 	.guide-section h4 {
 		margin: 0;
-		font-size: 0.8125rem;
+		font-size: var(--font-sm);
 		font-weight: 600;
 		color: hsl(var(--muted-foreground));
 		text-transform: uppercase;
@@ -1428,7 +1412,7 @@ Sol Ring</code></pre>
 
 	.guide-section p {
 		margin: 0;
-		font-size: 0.8125rem;
+		font-size: var(--font-sm);
 		line-height: 1.4;
 		color: hsl(var(--muted-foreground));
 	}
@@ -1444,7 +1428,7 @@ Sol Ring</code></pre>
 
 	code {
 		font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
-		font-size: 0.75rem;
+		font-size: var(--font-xs);
 		color: hsl(var(--foreground));
 	}
 
