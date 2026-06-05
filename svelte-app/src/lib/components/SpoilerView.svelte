@@ -227,6 +227,7 @@
 	 * @param {string} groupName
 	 * @param {any[]} rawCards
 	 * @param {string} zone
+	 * @returns {{ name: string, cards: any[], totalQty: number, totalPrice: number, totalQtyText?: string }}
 	 */
 	function processCategory(groupName, rawCards, zone) {
 		const grouped = new Map();
@@ -431,6 +432,7 @@
 		}
 	}
 
+	/** @param {any} card */
 	function getCardPrimaryKey(card) {
 		const metadata = deckStore.metadata[card.name.toLowerCase()];
 		const details = card.type_line ? card : metadata;
@@ -455,6 +457,10 @@
 		return "Other";
 	}
 
+	/**
+	 * @param {any} card
+	 * @param {string} key
+	 */
 	function cardMatchesKey(card, key) {
 		const metadata = deckStore.metadata[card.name.toLowerCase()];
 		const details = card.type_line ? card : metadata;
@@ -525,9 +531,9 @@
 								min="0"
 								max="999"
 								use:selectOnMount
-								onclick={(e) => e.stopPropagation()}
-								onmousedown={(e) => e.stopPropagation()}
-								onkeydown={(e) => {
+								onclick={(/** @type {MouseEvent} */ e) => e.stopPropagation()}
+								onmousedown={(/** @type {MouseEvent} */ e) => e.stopPropagation()}
+								onkeydown={(/** @type {KeyboardEvent} */ e) => {
 									if (e.key === "Enter") {
 										const val = parseInt(e.currentTarget.value, 10);
 										if (!isNaN(val) && val >= 0) {
@@ -538,7 +544,7 @@
 										interactionStore.stopEditing();
 									}
 								}}
-								onblur={(e) => {
+								onblur={(/** @type {FocusEvent} */ e) => {
 									const val = parseInt(e.currentTarget.value, 10);
 									if (!isNaN(val) && val >= 0) {
 										deckStore.setQuantity(item.name, item.zone, val, item.price, item.card);
@@ -552,7 +558,7 @@
 							<button 
 								type="button"
 								class="spoiler-badge"
-								onclick={(e) => {
+								onclick={(/** @type {MouseEvent} */ e) => {
 									e.stopPropagation();
 									e.preventDefault();
 									interactionStore.startEditing(item.instances[0].id, item.zone, item.price);
