@@ -177,7 +177,10 @@
 		parsedCards.reduce((sum, c) => sum + c.quantity, 0),
 	);
 	const totalPrice = $derived(
-		resolvedCards.reduce((sum, c) => sum + c.quantity * c.price, 0),
+		resolvedCards.reduce((sum, c) => {
+			const isBasicLand = c.type.includes("Basic Land");
+			return sum + (isBasicLand ? 0 : c.quantity * c.price);
+		}, 0),
 	);
 
 	const boardStats = $derived.by(() => {
@@ -192,13 +195,16 @@
 
 		for (const card of resolvedCards) {
 			const board = card.board || "mainboard";
+			const isBasicLand = card.type.includes("Basic Land");
+			const priceAdd = isBasicLand ? 0 : card.quantity * card.price;
+
 			if (stats[board]) {
 				stats[board].qty += card.quantity;
-				stats[board].price += card.quantity * card.price;
+				stats[board].price += priceAdd;
 			}
 			if (board === "commander" || board === "companion") {
 				stats.mainboard.qty += card.quantity;
-				stats.mainboard.price += card.quantity * card.price;
+				stats.mainboard.price += priceAdd;
 			}
 		}
 		return stats;
@@ -225,7 +231,7 @@
 			if (isLand) {
 				if (isBasic) {
 					stats.basicLands.qty += card.quantity;
-					stats.basicLands.price += card.quantity * card.price;
+					stats.basicLands.price += 0;
 				} else {
 					stats.nonBasicLands.qty += card.quantity;
 					stats.nonBasicLands.price += card.quantity * card.price;
@@ -784,81 +790,42 @@
 		<!-- ESTIMATED PRICE SECTION -->
 		<div class="stats-overview">
 			<div class="stat-row main-price">
-				<span class="stat-label">Est. Price</span>
+				<span class="stat-label">Deck Price</span>
 				<span class="stat-value price-text"
 					>${totalPrice.toFixed(2)}</span
 				>
 			</div>
 		</div>
 
-		<div class="breakdown-list">
-			{#if boardStats.mainboard.price > 0}
-				{@const restPrice =
-					boardStats.mainboard.price -
-					mainboardStats.basicLands.price -
-					boardStats.commander.price -
-					boardStats.companion.price}
-				<div class="breakdown-item mainboard-header">
-					<span class="item-name">Mainboard</span>
-					<span class="item-stats"
-						>${boardStats.mainboard.price.toFixed(2)}</span
-					>
-				</div>
-				<div class="mainboard-subcategories">
-					{#if boardStats.commander.price > 0}
-						<div class="sub-item">
-							<span class="sub-name">Commander</span>
-							<span class="sub-stats"
-								>${boardStats.commander.price.toFixed(2)}</span
-							>
-						</div>
-					{/if}
-					{#if boardStats.companion.price > 0}
-						<div class="sub-item">
-							<span class="sub-name">Companion</span>
-							<span class="sub-stats"
-								>${boardStats.companion.price.toFixed(2)}</span
-							>
-						</div>
-					{/if}
-					{#if mainboardStats.basicLands.price > 0}
-						<div class="sub-item">
-							<span class="sub-name">Basic Land</span>
-							<span class="sub-stats"
-								>${mainboardStats.basicLands.price.toFixed(
-									2,
-								)}</span
-							>
-						</div>
-					{/if}
-					{#if restPrice > 0}
-						<div class="sub-item">
-							<span class="sub-name">Rest of Deck</span>
-							<span class="sub-stats"
-								>${restPrice.toFixed(2)}</span
-							>
-						</div>
-					{/if}
-				</div>
-			{/if}
+		{#if hasOtherBoards}
+			<div class="breakdown-list">
+				{#if boardStats.mainboard.price > 0}
+					<div class="breakdown-item">
+						<span class="item-name">Mainboard</span>
+						<span class="item-stats"
+							>${boardStats.mainboard.price.toFixed(2)}</span
+						>
+					</div>
+				{/if}
 
-			{#if boardStats.sideboard.price > 0}
-				<div class="breakdown-item">
-					<span class="item-name">Sideboard</span>
-					<span class="item-stats"
-						>${boardStats.sideboard.price.toFixed(2)}</span
-					>
-				</div>
-			{/if}
-			{#if boardStats.maybeboard.price > 0}
-				<div class="breakdown-item">
-					<span class="item-name">Maybeboard</span>
-					<span class="item-stats"
-						>${boardStats.maybeboard.price.toFixed(2)}</span
-					>
-				</div>
-			{/if}
-		</div>
+				{#if boardStats.sideboard.price > 0}
+					<div class="breakdown-item">
+						<span class="item-name">Sideboard</span>
+						<span class="item-stats"
+							>${boardStats.sideboard.price.toFixed(2)}</span
+						>
+					</div>
+				{/if}
+				{#if boardStats.maybeboard.price > 0}
+					<div class="breakdown-item">
+						<span class="item-name">Maybeboard</span>
+						<span class="item-stats"
+							>${boardStats.maybeboard.price.toFixed(2)}</span
+						>
+					</div>
+				{/if}
+			</div>
+		{/if}
 	</div>
 
 	<!-- Text Area Editor (Middle Column) -->
