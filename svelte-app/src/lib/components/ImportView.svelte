@@ -1080,8 +1080,11 @@ Sol Ring</code
 		flex-direction: column;
 		gap: 1rem;
 		overflow-y: auto;
-		border-right: 1px solid hsl(var(--border) / 0.4);
-		padding-right: 1.5rem;
+		background: hsl(var(--muted) / 0.15);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: var(--radius-md);
+		padding: 1.25rem;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 	}
 
 
