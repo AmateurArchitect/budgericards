@@ -82,7 +82,9 @@ function createDeck() {
 			for (const card of cards) {
 				counts[card.name] = (counts[card.name] || 0) + 1;
 			}
-			for (const [name, qty] of Object.entries(counts)) {
+			const sortedNames = Object.keys(counts).sort((a, b) => a.localeCompare(b));
+			for (const name of sortedNames) {
+				const qty = counts[name];
 				text += `${qty} ${name}\n`;
 			}
 			text += '\n';
