@@ -25,18 +25,23 @@ store.method(state.maybeNull || 'fallback-value');
 let el = $state(/** @type {HTMLElement | null} */ (null));
 ```
 
-### Error Signature: "Property 'X' does not exist on type 'EventTarget'."
-**Fix Pattern**: Narrow the type of `e.currentTarget` (or `e.target`) using an `instanceof HTMLElement` check.
-**Logic**: Svelte event handlers default the type of event targets to `EventTarget`, which does not contain HTML-specific properties or methods (like `blur()` or `focus()`). Checking if the target is an instance of `HTMLElement` allows the compiler to safely narrow its type.
+### Error Signature: "Property 'X' does not exist on type 'EventTarget'." or "'e.currentTarget' is possibly 'null'."
+**Fix Pattern**: Narrow the type of `e.currentTarget` (or `e.target`) using an `instanceof HTMLElement` (or `instanceof HTMLInputElement` for input elements) check.
+**Logic**: Svelte event handlers default the type of event targets to `EventTarget`, which does not contain HTML-specific properties or methods (like `blur()`, `focus()`, or `value`). Checking if the target is an instance of the specific HTML element class allows the compiler to safely narrow its type and guarantees it is not null.
 
 ```javascript
 // Before
 if (e.currentTarget) {
 	e.currentTarget.blur();
 }
+const val = e.currentTarget.value;
+
 // After
 if (e.currentTarget instanceof HTMLElement) {
 	e.currentTarget.blur();
+}
+if (e.currentTarget instanceof HTMLInputElement) {
+	const val = e.currentTarget.value;
 }
 ```
 

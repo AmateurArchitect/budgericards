@@ -535,9 +535,11 @@
 								onmousedown={(/** @type {MouseEvent} */ e) => e.stopPropagation()}
 								onkeydown={(/** @type {KeyboardEvent} */ e) => {
 									if (e.key === "Enter") {
-										const val = parseInt(e.currentTarget.value, 10);
-										if (!isNaN(val) && val >= 0) {
-											deckStore.setQuantity(item.name, item.zone, val, item.price, item.card);
+										if (e.currentTarget instanceof HTMLInputElement) {
+											const val = parseInt(e.currentTarget.value, 10);
+											if (!isNaN(val) && val >= 0) {
+												deckStore.setQuantity(item.name, item.zone, val, item.price, item.card);
+											}
 										}
 										interactionStore.stopEditing();
 									} else if (e.key === "Escape") {
@@ -545,9 +547,11 @@
 									}
 								}}
 								onblur={(/** @type {FocusEvent} */ e) => {
-									const val = parseInt(e.currentTarget.value, 10);
-									if (!isNaN(val) && val >= 0) {
-										deckStore.setQuantity(item.name, item.zone, val, item.price, item.card);
+									if (e.currentTarget instanceof HTMLInputElement) {
+										const val = parseInt(e.currentTarget.value, 10);
+										if (!isNaN(val) && val >= 0) {
+											deckStore.setQuantity(item.name, item.zone, val, item.price, item.card);
+										}
 									}
 									interactionStore.stopEditing();
 								}}
