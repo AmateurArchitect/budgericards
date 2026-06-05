@@ -208,16 +208,16 @@ function createSearch() {
 	// -------------------------------------------------------------------------
 
 	async function performLocalSearch() {
-		if (!syncManager.isReady) {
-			// DB still bootstrapping — show a loading state and return
-			state.isSearching = true;
-			return;
-		}
-
 		const q = state.query.trim();
 		if (!q) {
 			state.results = [];
 			state.isSearching = false;
+			return;
+		}
+
+		if (!syncManager.isReady) {
+			// DB still bootstrapping — show a loading state and return
+			state.isSearching = true;
 			return;
 		}
 
@@ -648,6 +648,13 @@ function createSearch() {
 		state.currentPage = 1;
 		state.scrollBatchLimit = 100;
 		state.showLargeSearchOverride = false;
+
+		// If query is empty and we are not browsing a local board, clear results and stop
+		if (!q && !['sideboard', 'maybeboard', 'deleted'].includes(collection)) {
+			state.results = [];
+			state.isSearching = false;
+			return;
+		}
 
 		// Local board browsing always uses the Scryfall path (reads from deckStore)
 		if (['sideboard', 'maybeboard', 'deleted'].includes(collection)) {
