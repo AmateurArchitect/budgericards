@@ -457,6 +457,51 @@ function createDeck() {
 		}
 	}
 
+	/**
+	 * @param {any[]} parsedCards
+	 * @param {{ replace: boolean }} options
+	 */
+	function importCardsInternal(parsedCards, { replace }) {
+		if (replace) {
+			saveHistory();
+			deck.commander = [];
+			deck.companion = [];
+			deck.mainboard = [];
+			deck.sideboard = [];
+			deck.maybeboard = [];
+			
+			// Clear old card metadata that are not in the new import, preserving newly resolved metadata
+			const newCardNames = new Set(parsedCards.map(c => c.name.toLowerCase()));
+			for (const key in metadata) {
+				if (key !== 'createdBy' && key !== 'createdAt' && key !== 'updatedAt') {
+					if (!newCardNames.has(key)) {
+						delete metadata[key];
+					}
+				}
+			}
+		}
+
+		saveHistory();
+		
+		for (const pc of parsedCards) {
+			const boardName = pc.board || deck.activeBoard;
+			const targetBoard = deck[boardName];
+			if (!targetBoard) continue;
+
+			for (let i = 0; i < pc.quantity; i++) {
+				targetBoard.push({
+					id: generateId(),
+					name: pc.name,
+					price: 0,
+					addedAt: Date.now()
+				});
+			}
+		}
+
+		metadata.updatedAt = Date.now();
+		persist();
+	}
+
 	return {
 		get id() { return deck.id; },
 		get syncState() { return syncState; },
@@ -808,45 +853,7 @@ function createDeck() {
 		 * @param {{ replace: boolean }} options
 		 */
 		importCards(parsedCards, { replace }) {
-			if (replace) {
-				saveHistory();
-				deck.commander = [];
-				deck.companion = [];
-				deck.mainboard = [];
-				deck.sideboard = [];
-				deck.maybeboard = [];
-				
-				// Clear old card metadata that are not in the new import, preserving newly resolved metadata
-				const newCardNames = new Set(parsedCards.map(c => c.name.toLowerCase()));
-				for (const key in metadata) {
-					if (key !== 'createdBy' && key !== 'createdAt' && key !== 'updatedAt') {
-						if (!newCardNames.has(key)) {
-							delete metadata[key];
-						}
-					}
-				}
-			}
-
-			saveHistory();
-			
-			for (const pc of parsedCards) {
-				const boardName = pc.board || deck.activeBoard;
-				const targetBoard = deck[boardName];
-				if (!targetBoard) continue;
-
-				for (let i = 0; i < pc.quantity; i++) {
-					targetBoard.push({
-						id: generateId(),
-						name: pc.name,
-						price: 0,
-						addedAt: Date.now()
-					});
-				}
-			}
-
-			metadata.updatedAt = Date.now();
-			persist();
-			// syncMetadata() will be triggered by the $effect automatically
+			importCardsInternal(parsedCards, { replace });
 		},
 
 		get importText() { return importText; },
@@ -863,9 +870,9 @@ function createDeck() {
 			importText = cleanDecklistText;
 		},
 
-		async saveImport() {
+		saveImport() {
 			const parsedCards = parseDecklist(importText);
-			await this.importCards(parsedCards, { replace: true });
+			importCardsInternal(parsedCards, { replace: true });
 		}
 	};
 }
