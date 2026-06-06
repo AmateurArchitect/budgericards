@@ -149,17 +149,17 @@
 				<div class="empty-icon-container">
 					<svg viewBox="0 0 160 160" width="140" height="140" fill="none" xmlns="http://www.w3.org/2000/svg">
 						<!-- Vertical Stack of Cards -->
-						{#each Array(16) as _, i}
-							{@const yOffset = (15 - i) * 2.8}
+						{#each Array(13) as _, i}
+							{@const yOffset = (12 - i) * 2.8}
 							<g transform="translate(0, {yOffset}) matrix(-0.86, 0.5, 0.871, 0.5, 79, 70)">
 								<rect 
 									x="-25" y="-35" width="50" height="70" rx="3"
-									fill={i === 15 ? "hsl(var(--muted) / 0.55)" : "hsl(var(--background))"} 
+									fill={i === 12 ? "hsl(var(--muted) / 0.55)" : "hsl(var(--background))"} 
 									stroke="currentColor" 
 									stroke-width="1" 
-									stroke-opacity={i === 15 ? "0.9" : "0.5"} 
+									stroke-opacity={i === 12 ? "0.9" : "0.5"} 
 								/>
-								{#if i === 15}
+								{#if i === 12}
 									<!-- Design Details on the Top Card (MTG Card Back) -->
 									<!-- Inner border -->
 									<rect x="-21" y="-31" width="42" height="62" rx="1.5" stroke="currentColor" stroke-width="1" stroke-opacity="0.8" />
