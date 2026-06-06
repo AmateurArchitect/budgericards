@@ -745,8 +745,6 @@
 	.user-auth-bug {
 		display: flex;
 		align-items: center;
-		padding-left: 1.25rem;
-		border-left: 1px solid hsl(var(--border) / 0.5);
 	}
 
 	.profile-menu-container {
