@@ -1235,12 +1235,12 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Objects",
-        "url": "https://www.mtgpics.com/pics/art/tem/126.jpg",
+        "url": "https://www.mtgpics.com/pics/art/kli/039.jpg",
         "name": "Grindstone",
-        "artist": "Greg Simanson",
-        "set": "Tempest Remastered",
-        "setCode": "TPR",
-        "collectorNumber": "223"
+        "artist": "Johann Bodin",
+        "set": "Kaladesh Inventions",
+        "setCode": "KLI",
+        "collectorNumber": "39"
     },
     {
         "category": "Objects",

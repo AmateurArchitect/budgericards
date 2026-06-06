@@ -235,10 +235,10 @@ export const BACKGROUNDS = [
         "artist": "Ryan Alexander Lee"
     },
     {
-        "url": "https://www.mtgpics.com/pics/art/tem/126.jpg",
+        "url": "https://www.mtgpics.com/pics/art/kli/039.jpg",
         "title": "Grindstone",
-        "set": "Tempest Remastered",
-        "artist": "Greg Simanson"
+        "set": "Kaladesh Inventions",
+        "artist": "Johann Bodin"
     },
     {
         "url": "https://www.mtgpics.com/pics/art/soa/033.jpg",
