@@ -203,18 +203,20 @@
 	}
 
 	.modal-content h2 {
-		font-size: 1.25rem;
-		font-weight: 700;
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+		font-size: 1.5rem;
+		font-style: italic;
+		font-weight: 500;
 		margin: 0 0 1.5rem 0;
 		color: #ffffff;
-		letter-spacing: -0.019em;
+		letter-spacing: -0.01em;
 	}
 
 	.prompt-form {
 		width: 100%;
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 1.5rem;
 	}
 
 	.form-group {
@@ -224,19 +226,29 @@
 	}
 
 	:global(.form-group .ui-input) {
-		height: 2.75rem !important;
-		font-size: 0.9375rem !important;
-		background: rgba(255, 255, 255, 0.03) !important;
-		border: 1px solid hsl(var(--border) / 0.6) !important;
-		border-radius: var(--radius-md) !important;
-		padding: 0 1rem !important;
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif !important;
+		font-style: italic !important;
+		font-size: 1.125rem !important;
+		height: 3.25rem !important;
+		background: transparent !important;
+		border-top: none !important;
+		border-left: none !important;
+		border-right: none !important;
+		border-bottom: 2px solid hsl(var(--border) / 0.8) !important;
+		border-radius: 0 !important;
+		padding: 0.5rem 0 !important;
 		text-align: left !important;
+		color: #ffffff !important;
+		box-shadow: none !important;
+		transition: border-bottom-color 0.2s ease !important;
 	}
 
 	:global(.form-group .ui-input:focus-visible) {
-		border-color: hsl(var(--primary)) !important;
-		box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15) !important;
-		background: rgba(0, 0, 0, 0.3) !important;
+		border-color: transparent !important;
+		border-bottom-color: hsl(var(--primary)) !important;
+		background: transparent !important;
+		box-shadow: none !important;
+		outline: none !important;
 	}
 
 	.error-alert {
