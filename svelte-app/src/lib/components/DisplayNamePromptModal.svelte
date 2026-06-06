@@ -169,7 +169,7 @@
 
 	.key-art-container {
 		width: 100%;
-		height: 180px;
+		height: 220px;
 		overflow: hidden;
 		position: relative;
 		border-bottom: 1px solid hsl(var(--border) / 0.6);
@@ -179,6 +179,7 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+		object-position: center 25%;
 	}
 
 	.modal-body {
