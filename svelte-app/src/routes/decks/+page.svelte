@@ -1,6 +1,6 @@
 <script>
 	import { fade } from "svelte/transition";
-	import { FolderOpen, Trash2, FileText, Loader } from "lucide-svelte";
+	import { FolderOpen, Trash2, Loader } from "lucide-svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { authStore } from "$lib/stores/auth.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
@@ -146,10 +146,37 @@
 			</div>
 		{:else if decks.length === 0}
 			<div class="empty-state">
-				<FileText class="empty-icon" size={64} />
-				<h3>No decks found</h3>
-				<p>You haven't synced any decks to the cloud yet. Go back to the deckbuilder and start building!</p>
-				<a href="/" class="action-btn">Back to Deckbuilder</a>
+				<div class="empty-icon-container">
+					<svg viewBox="0 0 120 120" width="120" height="120" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<!-- Card 1 (Bottom) -->
+						<g transform="translate(20, 28) rotate(-12)">
+							<rect width="52" height="74" rx="4" fill="hsl(var(--muted) / 0.15)" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.3" />
+						</g>
+						<!-- Card 2 (Middle) -->
+						<g transform="translate(42, 20) rotate(6)">
+							<rect width="52" height="74" rx="4" fill="hsl(var(--muted) / 0.25)" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.5" />
+						</g>
+						<!-- Card 3 (Top/Front) -->
+						<g transform="translate(34, 22)">
+							<!-- Main Card Body -->
+							<rect width="52" height="74" rx="4" fill="hsl(var(--card))" stroke="currentColor" stroke-width="2" />
+							<!-- Inner Border -->
+							<rect x="3" y="3" width="46" height="68" rx="2" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" />
+							<!-- Art Frame -->
+							<rect x="6" y="8" width="40" height="28" rx="1.5" stroke="currentColor" stroke-width="1" fill="hsl(var(--muted) / 0.2)" />
+							<!-- Text Lines -->
+							<line x1="6" y1="44" x2="30" y2="44" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+							<line x1="6" y1="51" x2="46" y2="51" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.6" />
+							<line x1="6" y1="57" x2="40" y2="57" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.6" />
+							<line x1="6" y1="63" x2="34" y2="63" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.6" />
+							<!-- Icon/Mana Cost placeholder -->
+							<circle cx="42" cy="44" r="3" stroke="currentColor" stroke-width="1" />
+						</g>
+					</svg>
+				</div>
+				<h3>Create your first deck</h3>
+				<p>Your saved decks will appear here. Let's start building your next masterpiece!</p>
+				<a href="/" class="action-btn">Start Building</a>
 			</div>
 		{:else}
 			<div class="decks-grid" in:fade={{ duration: 200 }}>
@@ -258,7 +285,6 @@
 
 	/* States */
 	.loading-state,
-	.empty-state,
 	.error-state {
 		display: flex;
 		flex-direction: column;
@@ -273,38 +299,80 @@
 		border-radius: var(--radius-lg);
 	}
 
-	.empty-icon {
-		color: hsl(var(--muted-foreground) / 0.25);
-		margin-bottom: 0.5rem;
+	.empty-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		padding: 5rem 2rem;
+		gap: 1.5rem;
+		color: hsl(var(--muted-foreground));
+		background: linear-gradient(180deg, hsl(var(--muted) / 0.03) 0%, hsl(var(--muted) / 0.08) 100%);
+		border: 1px solid hsl(var(--border) / 0.4);
+		border-radius: var(--radius-lg);
+		box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
+	}
+
+	.empty-icon-container {
+		color: hsl(var(--primary) / 0.4);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-bottom: 0.25rem;
+		position: relative;
+	}
+
+	.empty-icon-container::before {
+		content: "";
+		position: absolute;
+		width: 140px;
+		height: 140px;
+		background: radial-gradient(circle, hsl(var(--primary) / 0.1) 0%, transparent 70%);
+		z-index: 0;
+		pointer-events: none;
+	}
+
+	.empty-icon-container svg {
+		position: relative;
+		z-index: 1;
 	}
 
 	.empty-state h3 {
-		font-size: 1.25rem;
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+		font-style: italic;
+		font-size: 1.5rem;
 		font-weight: 600;
 		color: hsl(var(--foreground));
 		margin: 0;
+		text-wrap: balance;
 	}
 
 	.empty-state p {
-		font-size: 0.875rem;
-		max-width: 420px;
-		margin: 0 0 0.5rem 0;
-		line-height: 1.5;
+		font-size: 0.95rem;
+		max-width: 440px;
+		margin: 0;
+		line-height: 1.6;
+		color: hsl(var(--muted-foreground));
+		text-wrap: balance;
 	}
 
 	.action-btn {
-		padding: 0.625rem 1.5rem;
+		padding: 0.75rem 2rem;
 		background: hsl(var(--primary));
 		color: white;
 		border-radius: var(--radius-md);
 		font-size: 0.875rem;
 		font-weight: 600;
 		text-decoration: none;
-		transition: opacity 0.2s;
+		transition: all 0.2s ease;
+		box-shadow: 0 4px 12px hsl(var(--primary) / 0.2);
 	}
 
 	.action-btn:hover {
-		opacity: 0.9;
+		opacity: 0.95;
+		transform: translateY(-1px);
+		box-shadow: 0 6px 16px hsl(var(--primary) / 0.3);
 	}
 
 	:global(.loading-state .spinner) {
