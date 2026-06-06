@@ -23,35 +23,6 @@
 	];
 	let selectedArt = $state(artUrls[0]);
 
-	const themes = {
-		"https://www.mtgpics.com/pics/art/13c/207.jpg": {
-			// Cool Colors - Rubinia Soulsinger (Green/Blue/Teal)
-			text: "linear-gradient(135deg, #34d399, #60a5fa)",
-			buttonBg: "linear-gradient(135deg, #059669, #2563eb)",
-			buttonHover: "linear-gradient(135deg, #047857, #1d4ed8)",
-			glow: "rgba(59, 130, 246, 0.4)",
-			borderFocus: "#3b82f6"
-		},
-		"https://www.mtgpics.com/pics/art/16c/003.jpg": {
-			// Warm Colors - Orzhov Advokist (Amber/Gold)
-			text: "linear-gradient(135deg, #fbbf24, #f59e0b)",
-			buttonBg: "linear-gradient(135deg, #d97706, #b45309)",
-			buttonHover: "linear-gradient(135deg, #b45309, #92400e)",
-			glow: "rgba(217, 119, 6, 0.4)",
-			borderFocus: "#f59e0b"
-		},
-		"https://www.mtgpics.com/pics/art/stx/082.jpg": {
-			// Warm Colors - Poet's Quill (Rose/Crimson)
-			text: "linear-gradient(135deg, #f472b6, #fb7185)",
-			buttonBg: "linear-gradient(135deg, #db2777, #e11d48)",
-			buttonHover: "linear-gradient(135deg, #be185d, #be123c)",
-			glow: "rgba(244, 63, 94, 0.4)",
-			borderFocus: "#f43f5e"
-		}
-	};
-
-	const currentTheme = $derived(themes[selectedArt] || themes[artUrls[0]]);
-
 	onMount(() => {
 		selectedArt = artUrls[Math.floor(Math.random() * artUrls.length)];
 	});
@@ -114,13 +85,6 @@
 			tabindex="-1"
 			in:scale={{ duration: 250, start: 0.95 }}
 			out:scale={{ duration: 200, start: 0.95 }}
-			style="
-				--theme-text: {currentTheme.text};
-				--theme-button-bg: {currentTheme.buttonBg};
-				--theme-button-hover: {currentTheme.buttonHover};
-				--theme-glow: {currentTheme.glow};
-				--theme-border-focus: {currentTheme.borderFocus};
-			"
 		>
 			<div class="key-art-container">
 				<img src={selectedArt} alt="Magic: The Gathering Key Art" class="key-art" />
@@ -244,9 +208,7 @@
 		font-style: italic;
 		font-weight: 500;
 		margin: 0 0 1.5rem 0;
-		background: var(--theme-text);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
+		color: #ffffff;
 		letter-spacing: -0.01em;
 	}
 
@@ -283,7 +245,7 @@
 
 	:global(.form-group .ui-input:focus-visible) {
 		border-color: transparent !important;
-		border-bottom-color: var(--theme-border-focus) !important;
+		border-bottom-color: hsl(var(--primary)) !important;
 		background: transparent !important;
 		box-shadow: none !important;
 		outline: none !important;
@@ -303,10 +265,9 @@
 		width: 100%;
 		height: 2.75rem !important;
 		font-weight: 600 !important;
-		background: var(--theme-button-bg) !important;
+		background-color: hsl(var(--primary)) !important;
 		color: white !important;
 		border-radius: var(--radius-md) !important;
-		border: none !important;
 		transition: all 0.2s !important;
 		display: flex;
 		align-items: center;
@@ -315,8 +276,8 @@
 	}
 
 	:global(.prompt-form .submit-btn:hover:not(:disabled)) {
-		background: var(--theme-button-hover) !important;
-		box-shadow: 0 0 16px var(--theme-glow) !important;
+		background-color: hsl(var(--primary-dark)) !important;
+		box-shadow: 0 0 16px hsl(var(--primary) / 0.2);
 	}
 
 	:global(.spinner) {
