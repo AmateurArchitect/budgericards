@@ -151,9 +151,9 @@
 						<!-- Vertical Stack of Cards -->
 						{#each Array(25) as _, i}
 							{@const yOffset = (24 - i) * 1.6}
-							<g transform="translate(0, {yOffset})">
-								<polygon 
-									points="70,40 27,65 88,100 131,75" 
+							<g transform="translate(0, {yOffset}) matrix(-0.86, 0.5, 0.871, 0.5, 79, 70)">
+								<rect 
+									x="-25" y="-35" width="50" height="70" rx="3"
 									fill="hsl(var(--background))" 
 									stroke="currentColor" 
 									stroke-width="1" 
@@ -161,32 +161,24 @@
 								/>
 								{#if i === 24}
 									<!-- Design Details on the Top Card (MTG Card Back) -->
-									<g transform="matrix(-0.86, 0.5, 0.871, 0.5, 79, 70)">
-										<!-- Inner border -->
-										<rect x="-21" y="-31" width="42" height="62" rx="1.5" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" />
-										
-										<!-- Ellipse in the center (MTG Card Back Oval) -->
-										<ellipse cx="0" cy="0" rx="14" ry="24" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" />
-										
-										<!-- 5 mana circles in WUBRG pentagon layout -->
-										<g stroke="currentColor" stroke-width="1" stroke-opacity="0.5">
-											<!-- Top (White) -->
-											<circle cx="0" cy="-6" r="1.2" />
-											<!-- Right (Blue) -->
-											<circle cx="5" cy="-2" r="1.2" />
-											<!-- Bottom Right (Black) -->
-											<circle cx="3" cy="4" r="1.2" />
-											<!-- Bottom Left (Red) -->
-											<circle cx="-3" cy="4" r="1.2" />
-											<!-- Left (Green) -->
-											<circle cx="-5" cy="-2" r="1.2" />
-										</g>
-
-										<!-- Title banner at the top -->
-										<rect x="-13" y="-23" width="26" height="4" rx="0.5" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" />
-										
-										<!-- Footer banner at the bottom ("DECKMASTER") -->
-										<rect x="-15" y="17" width="30" height="4" rx="0.5" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" />
+									<!-- Inner border -->
+									<rect x="-21" y="-31" width="42" height="62" rx="1.5" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" />
+									
+									<!-- Ellipse in the center (MTG Card Back Oval) -->
+									<ellipse cx="0" cy="0" rx="14" ry="24" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" />
+									
+									<!-- 5 mana circles in WUBRG pentagon layout -->
+									<g stroke="currentColor" stroke-width="1" stroke-opacity="0.5">
+										<!-- Top (White) -->
+										<circle cx="0" cy="-6" r="1.2" />
+										<!-- Right (Blue) -->
+										<circle cx="5" cy="-2" r="1.2" />
+										<!-- Bottom Right (Black) -->
+										<circle cx="3" cy="4" r="1.2" />
+										<!-- Bottom Left (Red) -->
+										<circle cx="-3" cy="4" r="1.2" />
+										<!-- Left (Green) -->
+										<circle cx="-5" cy="-2" r="1.2" />
 									</g>
 								{/if}
 							</g>
