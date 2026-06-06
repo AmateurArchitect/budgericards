@@ -30,15 +30,27 @@
 	$effect(() => {
 		if (needsPrompt && authStore.user && !name) {
 			const meta = authStore.user.user_metadata || {};
-			name = meta.full_name || meta.user_name || meta.name || authStore.user.email?.split('@')[0] || "";
+			const rawName = meta.full_name || meta.user_name || meta.name || authStore.user.email?.split('@')[0] || "";
+			name = rawName.replace(/\s+/g, "");
 		}
 	});
+
+	function handleKeydown(/** @type {KeyboardEvent} */ e) {
+		if (e.key === " ") {
+			e.preventDefault();
+		}
+	}
 
 	async function handleSubmit(/** @type {SubmitEvent} */ e) {
 		e.preventDefault();
 		const trimmedName = name.trim();
 		if (!trimmedName) {
 			error = "Display name cannot be empty.";
+			return;
+		}
+
+		if (/\s/.test(trimmedName)) {
+			error = "Display name cannot contain spaces.";
 			return;
 		}
 
@@ -109,6 +121,7 @@
 							maxlength="40"
 							autocomplete="off"
 							autofocus
+							onkeydown={handleKeydown}
 						/>
 					</div>
 
@@ -216,7 +229,7 @@
 		width: 100%;
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: 1rem;
 	}
 
 	.form-group {
@@ -229,7 +242,7 @@
 		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif !important;
 		font-style: italic !important;
 		font-size: 1.125rem !important;
-		height: 3.25rem !important;
+		height: 2.75rem !important;
 		background: transparent !important;
 		border-top: none !important;
 		border-left: none !important;
