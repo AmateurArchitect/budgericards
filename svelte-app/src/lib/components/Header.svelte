@@ -15,6 +15,8 @@
 		X,
 		LogOut,
 		Palette,
+		FolderOpen,
+		Settings as SettingsIcon,
 	} from "lucide-svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { searchStore } from "$lib/stores/search.svelte.js";
@@ -26,6 +28,12 @@
 
 	import ManaFilter from "./ManaFilter.svelte";
 	import SearchOptionsModal from "./SearchOptionsModal.svelte";
+	import BrowseDecksModal from "./BrowseDecksModal.svelte";
+	import ViewOptionsModal from "./ViewOptionsModal.svelte";
+	import DisplayNamePromptModal from "./DisplayNamePromptModal.svelte";
+	import UserSettingsModal from "./UserSettingsModal.svelte";
+	import { settingsStore } from "$lib/stores/settings.svelte.js";
+	import { goto } from "$app/navigation";
 
 	let {} = $props();
 	let showCollectionDropdown = $state(false);
@@ -33,6 +41,42 @@
 	/** @type {HTMLElement | null} */
 	let searchSettingsBtn = $state(null);
 	let showProfileDropdown = $state(false);
+	let showBudgieDropdown = $state(false);
+	let showDecksModal = $state(false);
+	let showViewOptionsModal = $state(false);
+	let showUserSettingsModal = $state(false);
+	let showAboutModal = $state(false);
+
+	$effect(() => {
+		if (authStore.isAuthenticated && authStore.user && !authStore.isLoading) {
+			const defaultView = authStore.user.user_metadata?.default_view;
+			if (defaultView && settingsStore.deckViewMode !== defaultView) {
+				settingsStore.deckViewMode = defaultView;
+			}
+		}
+	});
+
+	function handleNewDeck() {
+		showBudgieDropdown = false;
+		showProfileDropdown = false;
+		deckStore.setDeck({
+			name: "Untitled Deck",
+			commander: [],
+			companion: [],
+			mainboard: [],
+			sideboard: [],
+			maybeboard: [],
+			garbage: [],
+			coverArt: null
+		});
+		goto("/");
+	}
+
+	function handleBrowseDecks() {
+		showBudgieDropdown = false;
+		showProfileDropdown = false;
+		showDecksModal = true;
+	}
 
 	async function handleSignOut() {
 		showProfileDropdown = false;
@@ -93,6 +137,9 @@
 		if (!target.closest(".profile-menu-container")) {
 			showProfileDropdown = false;
 		}
+		if (!target.closest(".budgie-menu-container")) {
+			showBudgieDropdown = false;
+		}
 	}
 
 	let isHoveringFilters = $state(false);
@@ -131,10 +178,47 @@
 
 <header class="app-header">
 	<div class="header-left">
-		<div class="logo">
-			<span class="logo-text">Budgie</span>
-			<span class="logo-sep">/</span>
-			<span class="logo-sub">MTG Deckbuilder</span>
+		<div class="budgie-menu-container">
+			<button
+				class="budgie-trigger"
+				onclick={() => (showBudgieDropdown = !showBudgieDropdown)}
+				aria-expanded={showBudgieDropdown}
+				aria-haspopup="menu"
+			>
+				<span class="logo-text">Budgie</span>
+				<ChevronDown size={14} class="chevron {showBudgieDropdown ? 'open' : ''}" />
+			</button>
+
+			{#if showBudgieDropdown}
+				<div class="budgie-dropdown" transition:fade={{ duration: 150 }}>
+					<button class="menu-item" onclick={handleNewDeck}>
+						<PlusCircle size={14} />
+						<span>New Deck</span>
+					</button>
+					<button class="menu-item" onclick={handleBrowseDecks}>
+						<FolderOpen size={14} />
+						<span>Browse Decks</span>
+					</button>
+					<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+						<Palette size={14} />
+						<span>Art Gallery</span>
+					</a>
+					<button class="menu-item" onclick={() => { showAboutModal = true; showBudgieDropdown = false; }}>
+						<HelpCircle size={14} />
+						<span>About Budgie</span>
+					</button>
+					<a 
+						href="https://scryfall.com/docs/syntax" 
+						target="_blank" 
+						rel="noopener noreferrer" 
+						class="menu-item nav-link"
+						onclick={() => (showBudgieDropdown = false)}
+					>
+						<HelpCircle size={14} />
+						<span>Help</span>
+					</a>
+				</div>
+			{/if}
 		</div>
 
 		<div class="search-bar">
@@ -268,41 +352,6 @@
 	</div>
 
 	<div class="header-right">
-		{#if isFocusedMode}
-			<div
-				class="collapsed-nav"
-				in:horizontalSlide={{ duration: 400, delay: 200 }}
-				out:horizontalSlide={{ duration: 200 }}
-			>
-				<button class="hamburger-btn" aria-label="Open Menu">
-					<Menu size={20} />
-				</button>
-			</div>
-		{:else}
-			<nav
-				class="main-nav"
-				in:horizontalSlide={{ duration: 400, delay: 200 }}
-				out:horizontalSlide={{ duration: 200 }}
-			>
-				<a href="/explore" class="nav-item">
-					<Compass size={18} />
-					<span>Explore Decks</span>
-				</a>
-				<a href="/gallery" class="nav-item">
-					<Palette size={18} />
-					<span>Art Gallery</span>
-				</a>
-				<a href="/new" class="nav-item">
-					<PlusCircle size={18} />
-					<span>Create New</span>
-				</a>
-				<a href="/help" class="nav-item">
-					<HelpCircle size={18} />
-					<span>Help</span>
-				</a>
-			</nav>
-		{/if}
-
 		<div class="user-auth-bug">
 			{#if authStore.isLoading}
 				<div class="auth-loading-spinner spinner"></div>
@@ -322,7 +371,7 @@
 								<span>{authStore.user.email?.charAt(0).toUpperCase()}</span>
 							{/if}
 						</div>
-						<span class="user-name">{authStore.user.email?.split('@')[0]}</span>
+						<span class="user-name">{authStore.user.user_metadata?.display_name || authStore.user.email?.split('@')[0]}</span>
 						<ChevronDown size={14} class="chevron {showProfileDropdown ? 'open' : ''}" />
 					</button>
 
@@ -335,9 +384,22 @@
 								{/if}
 							</div>
 							<div class="menu-divider"></div>
+							<button class="menu-item" onclick={handleNewDeck}>
+								<PlusCircle size={14} />
+								<span>New Deck</span>
+							</button>
+							<button class="menu-item" onclick={handleBrowseDecks}>
+								<FolderOpen size={14} />
+								<span>My Decks</span>
+							</button>
+							<button class="menu-item" onclick={() => { showUserSettingsModal = true; showProfileDropdown = false; }}>
+								<SettingsIcon size={14} />
+								<span>Settings</span>
+							</button>
+							<div class="menu-divider"></div>
 							<button class="menu-item destructive" onclick={handleSignOut}>
 								<LogOut size={14} />
-								<span>Sign Out</span>
+								<span>Log Out</span>
 							</button>
 						</div>
 					{/if}
@@ -350,6 +412,39 @@
 		</div>
 	</div>
 </header>
+
+<BrowseDecksModal bind:isOpen={showDecksModal} />
+<ViewOptionsModal bind:isOpen={showViewOptionsModal} />
+<UserSettingsModal bind:isOpen={showUserSettingsModal} />
+<DisplayNamePromptModal />
+
+{#if showAboutModal}
+	<div 
+		class="about-backdrop" 
+		onclick={(e) => { if (e.target === e.currentTarget) showAboutModal = false; }} 
+		role="presentation" 
+		transition:fade={{ duration: 150 }}
+	>
+		<div 
+			class="about-card" 
+			transition:fly={{ y: 10, duration: 200 }}
+		>
+			<div class="about-header">
+				<h3>About Budgie</h3>
+				<button class="close-btn" onclick={() => (showAboutModal = false)}>
+					<X size={16} />
+				</button>
+			</div>
+			<div class="about-body">
+				<p><strong>Budgie</strong> is a premium, high-fidelity Magic: The Gathering deckbuilder designed for rapid construction, visual pricing analysis, and gorgeous organization.</p>
+				<p>Built using Svelte 5 and Supabase, Budgie syncs your decks seamlessly across all your devices.</p>
+				<div class="about-footer">
+					<span>Version 1.0.0</span>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	.app-header {
@@ -371,30 +466,8 @@
 		flex: 1;
 	}
 
-	.logo {
-		display: flex;
-		align-items: center;
-		gap: 0.375rem;
-		font-weight: 700;
-		font-size: 0.9375rem;
-		white-space: nowrap;
-		letter-spacing: -0.02em;
-		margin-right: 1.25rem;
-		flex-shrink: 0;
-	}
-
 	.logo-text {
 		color: hsl(var(--foreground));
-	}
-	.logo-sep {
-		color: hsl(var(--muted-foreground) / 0.3);
-		font-weight: 400;
-	}
-	.logo-sub {
-		color: hsl(var(--muted-foreground));
-		font-weight: 500;
-		font-size: 0.75rem;
-		letter-spacing: 0;
 	}
 
 	.search-bar {
@@ -620,52 +693,60 @@
 		padding-left: 1.25rem;
 	}
 
-	.main-nav {
+	.budgie-menu-container {
+		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 1rem;
 	}
 
-	.nav-item {
+	.budgie-trigger {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		color: hsl(var(--muted-foreground));
-		text-decoration: none;
-		font-size: 0.8125rem;
-		font-weight: 600;
-		transition: color 0.2s;
-		padding: 0.5rem 0;
-		white-space: nowrap;
-	}
-
-	.nav-item:hover {
-		color: hsl(var(--foreground));
-	}
-
-	.collapsed-nav {
-		display: flex;
-		align-items: center;
-	}
-
-	.hamburger-btn {
-		width: 38px;
-		height: 38px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
 		background: none;
-		border: 1px solid hsl(var(--border) / 0.4);
-		border-radius: var(--radius);
-		color: hsl(var(--muted-foreground));
+		border: none;
 		cursor: pointer;
-		transition: all 0.2s;
+		padding: 0.375rem 0.75rem;
+		border-radius: var(--radius-md);
+		transition: background-color 0.2s;
 	}
 
-	.hamburger-btn:hover {
+	.budgie-trigger:hover {
 		background-color: hsl(var(--accent) / 0.4);
+	}
+
+	.budgie-trigger :global(.chevron) {
+		opacity: 0.5;
+		transition: transform 0.2s;
 		color: hsl(var(--foreground));
-		border-color: hsl(var(--border));
+	}
+
+	.budgie-trigger :global(.chevron.open) {
+		transform: rotate(180deg);
+	}
+
+	.logo-text {
+		color: hsl(var(--foreground));
+		font-weight: 700;
+		font-size: 0.9375rem;
+		white-space: nowrap;
+		letter-spacing: -0.02em;
+	}
+
+	.budgie-dropdown {
+		position: absolute;
+		top: calc(100% + 6px);
+		left: 0;
+		width: 200px;
+		background: hsl(var(--popover));
+		border: 1px solid hsla(var(--border) / 0.6);
+		border-radius: var(--radius-lg);
+		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+		padding: 6px;
+		z-index: 1000;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
 	}
 
 	.user-auth-bug {
@@ -771,10 +852,34 @@
 		color: var(--text-muted);
 	}
 
-	.menu-item.destructive {
+	.menu-item {
+		width: 100%;
+		text-align: left;
+		padding: 8px 12px;
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
+		background: none;
+		border: none;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		transition: all 0.15s;
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+	}
+
+	.menu-item:hover {
+		background: hsl(var(--primary));
+		color: white !important;
+	}
+
+	.nav-link {
+		text-decoration: none;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.menu-item.destructive {
 		color: #f87171;
 	}
 
@@ -794,5 +899,81 @@
 		font-size: 0.8125rem;
 		font-weight: 600;
 		color: hsl(var(--foreground));
+	}
+
+	/* About Modal styling */
+	.about-backdrop {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100vw;
+		height: 100vh;
+		background: rgba(0, 0, 0, 0.5);
+		backdrop-filter: blur(4px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 10000;
+	}
+
+	.about-card {
+		background: hsl(var(--popover) / 0.95);
+		backdrop-filter: blur(16px);
+		border: 1px solid hsl(var(--border) / 0.6);
+		border-radius: var(--radius-lg);
+		width: 380px;
+		padding: 1.5rem;
+		box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.about-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		border-bottom: 1px solid hsl(var(--border) / 0.4);
+		padding-bottom: 0.5rem;
+	}
+
+	.about-header h3 {
+		margin: 0;
+		font-size: 1.125rem;
+		font-weight: 700;
+	}
+
+	.about-header .close-btn {
+		background: none;
+		border: none;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		padding: 2px;
+		border-radius: var(--radius-sm);
+	}
+
+	.about-header .close-btn:hover {
+		background: hsl(var(--muted) / 0.4);
+		color: hsl(var(--foreground));
+	}
+
+	.about-body {
+		font-size: 0.875rem;
+		line-height: 1.6;
+		color: hsl(var(--foreground));
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.about-body p {
+		margin: 0;
+	}
+
+	.about-footer {
+		margin-top: 0.5rem;
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+		text-align: right;
 	}
 </style>

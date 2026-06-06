@@ -757,6 +757,7 @@ function createDeck() {
 			saveHistory();
 			deck.name = newDeck.name || 'Untitled Deck';
 			deck.commander = newDeck.commander || [];
+			deck.companion = newDeck.companion || [];
 			deck.mainboard = newDeck.mainboard || [];
 			deck.sideboard = newDeck.sideboard || [];
 			deck.maybeboard = newDeck.maybeboard || [];

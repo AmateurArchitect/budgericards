@@ -42,6 +42,48 @@ function createAuth() {
 			const { error } = await supabase.auth.signOut();
 			isLoading = false;
 			return { error };
+		},
+
+		/**
+		 * @param {string} displayName
+		 */
+		async updateDisplayName(displayName) {
+			isLoading = true;
+			const currentMetadata = user?.user_metadata || {};
+			const { data, error } = await supabase.auth.updateUser({
+				data: { ...currentMetadata, display_name: displayName }
+			});
+			if (!error && data?.user) {
+				user = data.user;
+			}
+			isLoading = false;
+			return { data, error };
+		},
+
+		/**
+		 * @param {Object} settings
+		 * @param {string} [settings.displayName]
+		 * @param {string[]} [settings.favoriteFormats]
+		 * @param {string} [settings.defaultLand]
+		 * @param {string} [settings.defaultView]
+		 */
+		async updateUserSettings(settings) {
+			isLoading = true;
+			const currentMetadata = user?.user_metadata || {};
+			const { data, error } = await supabase.auth.updateUser({
+				data: {
+					...currentMetadata,
+					display_name: settings.displayName,
+					favorite_formats: settings.favoriteFormats,
+					default_land: settings.defaultLand,
+					default_view: settings.defaultView
+				}
+			});
+			if (!error && data?.user) {
+				user = data.user;
+			}
+			isLoading = false;
+			return { data, error };
 		}
 	};
 }
