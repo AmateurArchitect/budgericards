@@ -364,13 +364,6 @@
 						aria-haspopup="menu"
 						aria-label="User menu"
 					>
-						<div class="avatar-circle">
-							{#if authStore.user.user_metadata?.avatar_url}
-								<img src={authStore.user.user_metadata.avatar_url} alt="Avatar" class="avatar-img" />
-							{:else}
-								<span>{authStore.user.email?.charAt(0).toUpperCase()}</span>
-							{/if}
-						</div>
 						<span class="user-name">{authStore.user.user_metadata?.display_name || authStore.user.email?.split('@')[0]}</span>
 						<ChevronDown size={14} class="chevron {showProfileDropdown ? 'open' : ''}" />
 					</button>
