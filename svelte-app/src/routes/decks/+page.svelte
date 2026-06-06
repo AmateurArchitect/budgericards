@@ -149,23 +149,23 @@
 				<div class="empty-icon-container">
 					<svg viewBox="0 0 160 160" width="140" height="140" fill="none" xmlns="http://www.w3.org/2000/svg">
 						<!-- Vertical Stack of Cards -->
-						{#each Array(25) as _, i}
-							{@const yOffset = (24 - i) * 1.6}
+						{#each Array(22) as _, i}
+							{@const yOffset = (21 - i) * 1.5}
 							<g transform="translate(0, {yOffset}) matrix(-0.86, 0.5, 0.871, 0.5, 79, 70)">
 								<rect 
 									x="-25" y="-35" width="50" height="70" rx="3"
-									fill="hsl(var(--background))" 
+									fill={i === 21 ? "hsl(var(--muted) / 0.35)" : "hsl(var(--background))"} 
 									stroke="currentColor" 
 									stroke-width="1" 
-									stroke-opacity={i === 24 ? "1" : "0.3"} 
+									stroke-opacity={i === 21 ? "1" : "0.3"} 
 								/>
-								{#if i === 24}
+								{#if i === 21}
 									<!-- Design Details on the Top Card (MTG Card Back) -->
 									<!-- Inner border -->
 									<rect x="-21" y="-31" width="42" height="62" rx="1.5" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" />
 									
 									<!-- Ellipse in the center (MTG Card Back Oval) -->
-									<ellipse cx="0" cy="0" rx="14" ry="24" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" />
+									<ellipse cx="0" cy="0" rx="14" ry="24" fill="hsl(var(--muted) / 0.1)" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" />
 									
 									<!-- 5 mana circles in WUBRG pentagon layout -->
 									<g stroke="currentColor" stroke-width="1" stroke-opacity="0.5">
