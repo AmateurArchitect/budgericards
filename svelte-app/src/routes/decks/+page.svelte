@@ -147,73 +147,43 @@
 		{:else if decks.length === 0}
 			<div class="empty-state">
 				<div class="empty-icon-container">
-					<svg viewBox="0 0 120 120" width="120" height="120" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<!-- Soft Shadow underneath the deck -->
-						<ellipse cx="60" cy="108" rx="38" ry="10" fill="hsl(var(--primary) / 0.08)" filter="blur(4px)" />
+					<svg viewBox="0 0 160 160" width="140" height="140" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<!-- Soft Shadow -->
+						<ellipse cx="79" cy="132" rx="55" ry="12" fill="hsl(var(--primary) / 0.08)" filter="blur(5px)" />
 						
-						<!-- Left Side Face (base fill) -->
-						<path d="M25 45 L60 65 L60 105 L25 85 Z" fill="hsl(var(--card))" stroke="currentColor" stroke-width="1" stroke-opacity="0.3" />
-						
-						<!-- Right Side Face (base fill) -->
-						<path d="M60 65 L95 45 L95 85 L60 105 Z" fill="hsl(var(--muted) / 0.3)" stroke="currentColor" stroke-width="1" stroke-opacity="0.3" />
-
-						<!-- Overlapping card edges (Left side lines) -->
-						<g stroke="currentColor" stroke-width="0.8" stroke-opacity="0.25">
-							<path d="
-								M25 47 L60 67
-								M25 49 L60 69
-								M25 51 L60 71
-								M25 53 L60 73
-								M25 55 L60 75
-								M25 57 L60 77
-								M25 59 L60 79
-								M25 61 L60 81
-								M25 63 L60 83
-								M25 65 L60 85
-								M25 67 L60 87
-								M25 69 L60 89
-								M25 71 L60 91
-								M25 73 L60 93
-								M25 75 L60 95
-								M25 77 L60 97
-								M25 79 L60 99
-								M25 81 L60 101
-								M25 83 L60 103
-							" />
-						</g>
-						
-						<!-- Overlapping card edges (Right side lines) -->
-						<g stroke="currentColor" stroke-width="0.8" stroke-opacity="0.35">
-							<path d="
-								M60 67 L95 47
-								M60 69 L95 49
-								M60 71 L95 51
-								M60 73 L95 53
-								M60 75 L95 55
-								M60 77 L95 57
-								M60 79 L95 59
-								M60 81 L95 61
-								M60 83 L95 63
-								M60 85 L95 65
-								M60 87 L95 67
-								M60 89 L95 69
-								M60 91 L95 71
-								M60 93 L95 73
-								M60 95 L95 75
-								M60 97 L95 77
-								M60 99 L95 79
-								M60 101 L95 81
-								M60 103 L95 83
-							" />
-						</g>
-
-						<!-- Top Card Face -->
-						<path d="M60 25 L95 45 L60 65 L25 45 Z" fill="hsl(var(--card))" stroke="currentColor" stroke-width="1.8" />
-						
-						<!-- Top Card Design Details (showing Magic-like styling on top card) -->
-						<path d="M60 29 L90 46 L60 61 L30 46 Z" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.4" />
-						<path d="M60 33 L83 46 L60 56 L37 46 Z" fill="hsl(var(--muted) / 0.2)" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.4" />
-						<circle cx="60" cy="46" r="3" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6" />
+						<!-- Vertical Stack of Cards -->
+						{#each Array(35) as _, i}
+							{@const yOffset = (34 - i) * 1.2}
+							<g transform="translate(0, {yOffset})">
+								<polygon 
+									points="70,40 27,65 88,100 131,75" 
+									fill={i === 34 ? "hsl(var(--card))" : "hsl(var(--muted) / 0.15)"} 
+									stroke="currentColor" 
+									stroke-width={i === 34 ? "1.8" : "0.8"} 
+									stroke-opacity={i === 34 ? "1" : "0.25"} 
+								/>
+								{#if i === 34}
+									<!-- Design Details on the Top Card -->
+									<!-- Inner border -->
+									<polygon 
+										points="70,44 31,65 88,96 127,75" 
+										stroke="currentColor" 
+										stroke-width="0.8" 
+										stroke-opacity="0.4" 
+									/>
+									<!-- Card art frame -->
+									<polygon 
+										points="70,48 40,65 88,91 118,75" 
+										fill="hsl(var(--muted) / 0.2)" 
+										stroke="currentColor" 
+										stroke-width="0.8" 
+										stroke-opacity="0.4" 
+									/>
+									<!-- Crest detail -->
+									<circle cx="79" cy="70" r="3.5" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6" />
+								{/if}
+							</g>
+						{/each}
 					</svg>
 				</div>
 				<h3>Create your first deck</h3>
