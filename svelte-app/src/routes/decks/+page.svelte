@@ -128,7 +128,7 @@
 	<header class="page-header">
 		<a href="/" class="back-link">← Back to deckbuilder</a>
 		<div class="title-area">
-			<FolderOpen class="header-icon" size={24} />
+			<FolderOpen class="header-icon" size={20} />
 			<h1>My Decks</h1>
 		</div>
 	</header>
@@ -254,10 +254,10 @@
 	.page-header {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 0.75rem;
 		margin-bottom: 2.5rem;
-		border-bottom: 1px solid hsl(var(--border) / 0.5);
-		padding-bottom: 1.5rem;
+		border-bottom: 1px solid hsl(var(--border) / 0.3);
+		padding-bottom: 1.25rem;
 	}
 
 	.back-link {
@@ -283,11 +283,13 @@
 	}
 
 	.page-header h1 {
-		font-size: 2rem;
-		font-weight: 800;
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+		font-size: 1.75rem;
+		font-style: italic;
+		font-weight: 500;
 		margin: 0;
 		color: hsl(var(--foreground));
-		letter-spacing: -0.02e;
+		letter-spacing: -0.01em;
 	}
 
 	.page-body {
@@ -316,12 +318,11 @@
 		align-items: center;
 		justify-content: center;
 		text-align: center;
-		padding: 5rem 2rem;
+		padding: 4rem 1.5rem;
 		gap: 0.5rem;
 		color: hsl(var(--muted-foreground));
-		background: hsl(var(--muted) / 0.02);
-		border: 1px solid hsl(var(--border) / 0.3);
-		border-radius: var(--radius-lg);
+		background: transparent;
+		border: none;
 	}
 
 	.empty-icon-container {
