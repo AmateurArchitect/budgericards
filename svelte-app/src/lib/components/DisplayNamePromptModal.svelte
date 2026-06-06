@@ -110,29 +110,30 @@
 						<div class="error-alert">{error}</div>
 					{/if}
 
-					<div class="form-group">
-						<Input
-							type="text"
-							id="display-name-input"
-							placeholder="E.g. JaceBeleren"
-							bind:value={name}
-							required
-							disabled={isSubmitting}
-							maxlength="40"
-							autocomplete="off"
-							autofocus
-							onkeydown={handleKeydown}
-						/>
-					</div>
+					<div class="input-row">
+						<div class="form-group">
+							<Input
+								type="text"
+								id="display-name-input"
+								placeholder="E.g. JaceBeleren"
+								bind:value={name}
+								required
+								disabled={isSubmitting}
+								maxlength="40"
+								autocomplete="off"
+								autofocus
+								onkeydown={handleKeydown}
+							/>
+						</div>
 
-					<Button type="submit" variant="default" class="submit-btn" disabled={isSubmitting}>
-						{#if isSubmitting}
-							<Loader class="spinner animate-spin" size={16} />
-							<span>Saving...</span>
-						{:else}
-							<span>Save and Continue</span>
-						{/if}
-					</Button>
+						<Button type="submit" variant="default" class="submit-btn" disabled={isSubmitting}>
+							{#if isSubmitting}
+								<Loader class="spinner animate-spin" size={16} />
+							{:else}
+								<span>Save</span>
+							{/if}
+						</Button>
+					</div>
 				</form>
 			</div>
 		</div>
@@ -232,8 +233,15 @@
 		gap: 1rem;
 	}
 
-	.form-group {
+	.input-row {
+		display: flex;
 		width: 100%;
+		align-items: flex-end;
+		gap: 1rem;
+	}
+
+	.form-group {
+		flex: 1;
 		display: flex;
 		flex-direction: column;
 	}
@@ -275,7 +283,8 @@
 	}
 
 	:global(.prompt-form .submit-btn) {
-		width: 100%;
+		width: auto !important;
+		padding: 0 1.5rem !important;
 		height: 2.75rem !important;
 		font-weight: 600 !important;
 		background-color: hsl(var(--primary)) !important;
