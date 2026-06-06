@@ -75,6 +75,8 @@
 			out:fade={{ duration: 200 }}
 		></div>
 
+		<div class="spacer-top"></div>
+
 		<div
 			class="modal-content"
 			role="dialog"
@@ -121,6 +123,8 @@
 				</form>
 			</div>
 		</div>
+
+		<div class="spacer-bottom"></div>
 	</div>
 {/if}
 
@@ -132,8 +136,8 @@
 		width: 100vw;
 		height: 100vh;
 		display: flex;
+		flex-direction: column;
 		align-items: center;
-		justify-content: center;
 		z-index: 11000;
 	}
 
@@ -145,6 +149,14 @@
 		height: 100%;
 		background: rgba(0, 0, 0, 0.75);
 		backdrop-filter: blur(12px);
+	}
+
+	.spacer-top {
+		flex: 1;
+	}
+
+	.spacer-bottom {
+		flex: 2;
 	}
 
 	.modal-content {
@@ -169,7 +181,7 @@
 
 	.key-art-container {
 		width: 100%;
-		height: 220px;
+		aspect-ratio: 4 / 3;
 		overflow: hidden;
 		position: relative;
 		border-bottom: 1px solid hsl(var(--border) / 0.6);
@@ -179,7 +191,7 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
-		object-position: center 25%;
+		object-position: center;
 	}
 
 	.modal-body {
