@@ -7,22 +7,39 @@
 	import Button from "$lib/components/ui/Button.svelte";
 
 	/**
-	 * Custom springy scale transition
+	 * Custom transition matching card-bloom CSS animation in curve view
 	 * @param {HTMLElement} node
 	 * @param {{ duration?: number }} params
 	 */
-	function springyPopIn(node, { duration = 350 }) {
+	function cardBloom(node, { duration = 200 }) {
 		return {
 			duration,
-			css: (t) => {
-				const freq = 3.5 * Math.PI;
-				const damping = 4.5;
-				const val = 1 - Math.cos(t * freq) * Math.exp(-t * damping);
-				const scaleVal = 0.85 + 0.15 * val;
-				const opacityVal = Math.min(t * 1.5, 1);
+			easing: (/** @type {number} */ t) => {
+				if (t === 0 || t === 1) return t;
+				const x1 = 0.34, y1 = 1.56, x2 = 0.64, y2 = 1.0;
+				let cx = 3 * x1;
+				let bx = 3 * (x2 - x1) - cx;
+				let ax = 1 - cx - bx;
+				
+				let cy = 3 * y1;
+				let by = 3 * (y2 - y1) - cy;
+				let ay = 1 - cy - by;
+
+				let guess = t;
+				for (let i = 0; i < 8; i++) {
+					let x = ((ax * guess + bx) * guess + cx) * guess;
+					let dx = (3 * ax * guess + 2 * bx) * guess + cx;
+					if (Math.abs(dx) < 1e-6) break;
+					guess -= (x - t) / dx;
+				}
+				return ((ay * guess + by) * guess + cy) * guess;
+			},
+			css: (/** @type {number} */ t) => {
+				const scaleVal = 0.97 + 0.03 * t;
+				const translateY = 8 * (1 - t);
 				return `
-					transform: scale(${scaleVal});
-					opacity: ${opacityVal};
+					transform: scale(${scaleVal}) translateY(${translateY}px);
+					opacity: ${t};
 				`;
 			}
 		};
@@ -49,7 +66,6 @@
 	let resolvedMetadataMap = $state({});
 
 	let activeLineIndex = $state(-1);
-	let previousLineIndex = $state(-1);
 	let activeSuggestion = $state("");
 	let activeSuggestionFull = $state("");
 
@@ -77,37 +93,38 @@
 		}
 	}
 
+	// Automatic title-case/normalization check for all lines (except the active editing line)
 	$effect(() => {
+		const currentText = deckStore.importText;
 		const currentActive = activeLineIndex;
-		if (currentActive !== previousLineIndex) {
-			const indexToCorrect = previousLineIndex;
-			previousLineIndex = currentActive;
+		const metadataMap = resolvedMetadataMap;
 
-			if (indexToCorrect >= 0) {
-				const currentText = deckStore.importText;
-				const linesArr = currentText.split("\n");
-				const lineText = linesArr[indexToCorrect];
-				if (lineText) {
-					const cardInfo = getCardInfo(lineText);
-					if (cardInfo) {
-						const metadata =
-							resolvedMetadataMap[cardInfo.name.toLowerCase()];
-						if (metadata) {
-							const normalized = getNormalizedCardName(metadata);
-							const parts = getActiveLineParts(lineText);
-							if (
-								parts &&
-								normalized &&
-								parts.namePart !== normalized
-							) {
-								linesArr[indexToCorrect] =
-									(parts.qtyPrefix || "1 ") + normalized;
-								deckStore.importText = linesArr.join("\n");
-							}
-						}
+		const linesArr = currentText.split("\n");
+		let changed = false;
+
+		for (let i = 0; i < linesArr.length; i++) {
+			if (i === currentActive) continue;
+
+			const lineText = linesArr[i];
+			if (!lineText) continue;
+
+			const cardInfo = getCardInfo(lineText);
+			if (cardInfo) {
+				const lowName = cardInfo.name.toLowerCase();
+				const metadata = metadataMap[lowName];
+				if (metadata) {
+					const normalized = getNormalizedCardName(metadata);
+					const parts = getActiveLineParts(lineText);
+					if (parts && normalized && parts.namePart !== normalized) {
+						linesArr[i] = parts.qtyPrefix + normalized + parts.suffix;
+						changed = true;
 					}
 				}
 			}
+		}
+
+		if (changed) {
+			deckStore.importText = linesArr.join("\n");
 		}
 	});
 
@@ -570,19 +587,40 @@
 		if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("#"))
 			return null;
 
-		const qtyMatch = trimmed.match(/^(?:x\s*(\d+)|(\d+)\s*x?)\s+(.+)$/);
+		const leadingSpacesMatch = lineText.match(/^(\s*)/);
+		const leadingSpaces = leadingSpacesMatch ? leadingSpacesMatch[1] : "";
+		const textToParse = lineText.slice(leadingSpaces.length);
+
+		const qtyMatch = textToParse.match(/^(?:(x\s*\d+|\d+\s*x?)\s+)(.+)$/i);
+		let quantityText = "";
+		let remainingText = textToParse;
+
 		if (qtyMatch) {
-			return {
-				qtyPrefix: trimmed.substring(
-					0,
-					trimmed.length - qtyMatch[3].length,
-				),
-				namePart: qtyMatch[3],
-			};
+			quantityText = qtyMatch[1] + " ";
+			remainingText = qtyMatch[2];
 		}
+
+		// Match set codes and collector numbers which stay in the decklist (e.g. " (ZNR) 104" or " | ZNR")
+		const setMatch = remainingText.match(/\s+([([][A-Za-z0-9\-\/]{2,7}[)\]](\s+[A-Za-z0-9★\-]+)?|\|\s*[A-Za-z0-9\-\/]{2,7}(\s+[A-Za-z0-9★\-]+)?)/);
+		
+		let cardName = remainingText;
+		let suffixText = "";
+
+		if (setMatch && setMatch.index !== undefined) {
+			cardName = remainingText.substring(0, setMatch.index);
+			suffixText = setMatch[0];
+		} else {
+			// Check if there are other unsupported tags (like *CM:Removal* or ^Don't Have^) to strip
+			const tagMatch = remainingText.match(/\s+(\*([^*]+)\*|[#\^\|]|[\$€£])/);
+			if (tagMatch && tagMatch.index !== undefined) {
+				cardName = remainingText.substring(0, tagMatch.index);
+			}
+		}
+
 		return {
-			qtyPrefix: "",
-			namePart: trimmed,
+			qtyPrefix: leadingSpaces + quantityText,
+			namePart: cardName.trim(),
+			suffix: suffixText
 		};
 	}
 
@@ -620,6 +658,39 @@
 							queryName.length,
 						);
 						activeSuggestionFull = normalized;
+
+						// Pre-populate resolvedMetadataMap to show preview image during autocomplete
+						const lowName = normalized.toLowerCase();
+						if (!resolvedMetadataMap[lowName] && !deckStore.metadata[lowName]) {
+							const localCard = matches[0];
+							if (localCard) {
+								const priceRecord = await db.prices.get(localCard.id);
+								const cardMetadata = {
+									name: localCard.name,
+									type_line: localCard.type || "",
+									mana_cost: localCard.mana || "",
+									cmc: localCard.cmc ?? 0,
+									colors: localCard.colors || [],
+									color_identity: localCard.identity || [],
+									oracle_text: localCard.text || "",
+									card_faces: [],
+									image_uris: {
+										normal: localCard.image,
+										art_crop: localCard.image
+											? localCard.image.replace("/normal/", "/art_crop/")
+											: null,
+									},
+									prices: {
+										usd: priceRecord ? String(priceRecord.price) : null,
+									},
+								};
+								deckStore.metadata[lowName] = cardMetadata;
+								resolvedMetadataMap = {
+									...resolvedMetadataMap,
+									[lowName]: cardMetadata
+								};
+							}
+						}
 						return;
 					}
 				}
@@ -655,7 +726,7 @@
 			if (parts) {
 				const completedName = parts.namePart + activeSuggestion;
 				linesArr[activeLineIndex] =
-					(parts.qtyPrefix || "1 ") + completedName;
+					(parts.qtyPrefix || "1 ") + completedName + parts.suffix;
 				deckStore.importText = linesArr.join("\n");
 
 				activeSuggestion = "";
@@ -689,8 +760,9 @@
 
 	let hoveredCardName = $state("");
 	const hoveredCardImage = $derived.by(() => {
-		if (!hoveredCardName) return null;
-		const meta = resolvedMetadataMap[hoveredCardName.toLowerCase()];
+		const targetName = hoveredCardName || activeSuggestionFull;
+		if (!targetName) return null;
+		const meta = resolvedMetadataMap[targetName.toLowerCase()];
 		return meta?.image_uris?.normal || null;
 	});
 
@@ -933,8 +1005,8 @@
 			></textarea>
 
 			{#if hoveredCardImage}
-				<div class="hover-card-preview" transition:springyPopIn={{ duration: 350 }}>
-					<img src={hoveredCardImage} alt={hoveredCardName} />
+				<div class="hover-card-preview" transition:cardBloom={{ duration: 200 }}>
+					<img src={hoveredCardImage} alt={hoveredCardName || activeSuggestionFull || ""} />
 				</div>
 			{/if}
 		</div>
