@@ -160,24 +160,34 @@
 									stroke-opacity={i === 24 ? "1" : "0.3"} 
 								/>
 								{#if i === 24}
-									<!-- Design Details on the Top Card -->
-									<!-- Inner border -->
-									<polygon 
-										points="70,44 31,65 88,96 127,75" 
-										stroke="currentColor" 
-										stroke-width="1" 
-										stroke-opacity="0.4" 
-									/>
-									<!-- Card art frame -->
-									<polygon 
-										points="70,48 40,65 88,91 118,75" 
-										fill="transparent" 
-										stroke="currentColor" 
-										stroke-width="1" 
-										stroke-opacity="0.4" 
-									/>
-									<!-- Crest detail -->
-									<circle cx="79" cy="70" r="3.5" stroke="currentColor" stroke-width="1" stroke-opacity="0.5" />
+									<!-- Design Details on the Top Card (MTG Card Back) -->
+									<g transform="matrix(-0.86, 0.5, 0.871, 0.5, 79, 70)">
+										<!-- Inner border -->
+										<rect x="-21" y="-31" width="42" height="62" rx="1.5" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" />
+										
+										<!-- Ellipse in the center (MTG Card Back Oval) -->
+										<ellipse cx="0" cy="0" rx="14" ry="24" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" />
+										
+										<!-- 5 mana circles in WUBRG pentagon layout -->
+										<g stroke="currentColor" stroke-width="1" stroke-opacity="0.5">
+											<!-- Top (White) -->
+											<circle cx="0" cy="-6" r="1.2" />
+											<!-- Right (Blue) -->
+											<circle cx="5" cy="-2" r="1.2" />
+											<!-- Bottom Right (Black) -->
+											<circle cx="3" cy="4" r="1.2" />
+											<!-- Bottom Left (Red) -->
+											<circle cx="-3" cy="4" r="1.2" />
+											<!-- Left (Green) -->
+											<circle cx="-5" cy="-2" r="1.2" />
+										</g>
+
+										<!-- Title banner at the top -->
+										<rect x="-13" y="-23" width="26" height="4" rx="0.5" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" />
+										
+										<!-- Footer banner at the bottom ("DECKMASTER") -->
+										<rect x="-15" y="17" width="30" height="4" rx="0.5" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" />
+									</g>
 								{/if}
 							</g>
 						{/each}
