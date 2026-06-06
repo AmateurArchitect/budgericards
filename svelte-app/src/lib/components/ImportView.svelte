@@ -833,158 +833,159 @@
 <div class="import-view-container" class:has-actions={showActionsPane} in:fade={{ duration: 200 }}>
 	<!-- Left Stat Preview Panel -->
 	<div class="stats-pane">
-
-		{#if manaCurve.totalSpells > 10}
-			<div class="curve-graphic">
-				<div class="curve-bars">
-					{#each manaCurve.counts as count, i}
-						{@const heightPct = (count / manaCurve.maxCount) * 100}
-						{@const label =
-							i === 0 ? "0-1" : i === 5 ? "6+" : String(i + 1)}
-						<div
-							class="curve-bar-col"
-							title="{count} cards at CMC {label}"
-						>
-							<div class="curve-bar-track">
-								{#if count > 0}
-									<div
-										class="curve-bar"
-										style="height: {heightPct}%"
-									></div>
-								{/if}
+		{#if totalCount > 0}
+			{#if manaCurve.totalSpells > 10}
+				<div class="curve-graphic">
+					<div class="curve-bars">
+						{#each manaCurve.counts as count, i}
+							{@const heightPct = (count / manaCurve.maxCount) * 100}
+							{@const label =
+								i === 0 ? "0-1" : i === 5 ? "6+" : String(i + 1)}
+							<div
+								class="curve-bar-col"
+								title="{count} cards at CMC {label}"
+							>
+								<div class="curve-bar-track">
+									{#if count > 0}
+										<div
+											class="curve-bar"
+											style="height: {heightPct}%"
+										></div>
+									{/if}
+								</div>
 							</div>
-						</div>
-					{/each}
-				</div>
-			</div>
-		{/if}
-
-		<!-- CARD COUNTS SECTION -->
-		{#if hasOtherBoards}
-			<div class="stats-overview">
-				<div class="stat-row">
-					<span
-						class="stat-label"
-						style="font-weight: 600; color: hsl(var(--foreground));"
-						>Total Cards</span
-					>
-					<span
-						class="stat-value"
-						style="font-weight: 600; color: hsl(var(--foreground));"
-						>{totalCount}</span
-					>
-				</div>
-			</div>
-		{/if}
-
-		<div class="breakdown-list">
-			{#if boardStats.mainboard.qty > 0}
-				<div class="breakdown-item mainboard-header">
-					<span class="item-name">Mainboard</span>
-					<span class="item-stats">{boardStats.mainboard.qty}</span>
-				</div>
-				<div class="mainboard-subcategories">
-					{#if boardStats.commander.qty > 0}
-						<div class="sub-item">
-							<span class="sub-name">Commander</span>
-							<span class="sub-stats">{boardStats.commander.qty}</span>
-						</div>
-					{/if}
-					{#if boardStats.companion.qty > 0}
-						<div class="sub-item">
-							<span class="sub-name">Companion</span>
-							<span class="sub-stats">{boardStats.companion.qty}</span>
-						</div>
-					{/if}
-					{#if mainboardStats.creatures.qty > 0}
-						<div class="sub-item">
-							<span class="sub-name">Creature</span>
-							<span class="sub-stats"
-								>{mainboardStats.creatures.qty}</span
-							>
-						</div>
-					{/if}
-					{#if mainboardStats.spells.qty > 0}
-						<div class="sub-item">
-							<span class="sub-name">Non-Creature</span>
-							<span class="sub-stats"
-								>{mainboardStats.spells.qty}</span
-							>
-						</div>
-					{/if}
-					{#if mainboardStats.nonBasicLands.qty > 0}
-						<div class="sub-item">
-							<span class="sub-name">Non-Basic Land</span>
-							<span class="sub-stats"
-								>{mainboardStats.nonBasicLands.qty}</span
-							>
-						</div>
-					{/if}
-					{#if mainboardStats.basicLands.qty > 0}
-						<div class="sub-item">
-							<span class="sub-name">Basic Land</span>
-							<span class="sub-stats"
-								>{mainboardStats.basicLands.qty}</span
-							>
-						</div>
-					{/if}
+						{/each}
+					</div>
 				</div>
 			{/if}
 
-			{#if boardStats.sideboard.qty > 0}
-				<div class="breakdown-item">
-					<span class="item-name">Sideboard</span>
-					<span class="item-stats">{boardStats.sideboard.qty}</span>
-				</div>
-			{/if}
-			{#if boardStats.maybeboard.qty > 0}
-				<div class="breakdown-item">
-					<span class="item-name">Maybeboard</span>
-					<span class="item-stats">{boardStats.maybeboard.qty}</span>
-				</div>
-			{/if}
-		</div>
-
-		<div class="stats-divider"></div>
-
-		<!-- ESTIMATED PRICE SECTION -->
-		<div class="stats-overview">
-			<div class="stat-row main-price">
-				<span class="stat-label">Deck Price</span>
-				<span class="stat-value price-text"
-					>${totalPrice.toFixed(2)}</span
-				>
-			</div>
-		</div>
-
-		{#if hasOtherBoards}
-			<div class="breakdown-list">
-				{#if boardStats.mainboard.price > 0}
-					<div class="breakdown-item">
-						<span class="item-name">Mainboard</span>
-						<span class="item-stats"
-							>${boardStats.mainboard.price.toFixed(2)}</span
+			<!-- CARD COUNTS SECTION -->
+			{#if hasOtherBoards}
+				<div class="stats-overview">
+					<div class="stat-row">
+						<span
+							class="stat-label"
+							style="font-weight: 600; color: hsl(var(--foreground));"
+							>Total Cards</span
 						>
+						<span
+							class="stat-value"
+							style="font-weight: 600; color: hsl(var(--foreground));"
+							>{totalCount}</span
+						>
+					</div>
+				</div>
+			{/if}
+
+			<div class="breakdown-list">
+				{#if boardStats.mainboard.qty > 0}
+					<div class="breakdown-item mainboard-header">
+						<span class="item-name">Mainboard</span>
+						<span class="item-stats">{boardStats.mainboard.qty}</span>
+					</div>
+					<div class="mainboard-subcategories">
+						{#if boardStats.commander.qty > 0}
+							<div class="sub-item">
+								<span class="sub-name">Commander</span>
+								<span class="sub-stats">{boardStats.commander.qty}</span>
+							</div>
+						{/if}
+						{#if boardStats.companion.qty > 0}
+							<div class="sub-item">
+								<span class="sub-name">Companion</span>
+								<span class="sub-stats">{boardStats.companion.qty}</span>
+							</div>
+						{/if}
+						{#if mainboardStats.creatures.qty > 0}
+							<div class="sub-item">
+								<span class="sub-name">Creature</span>
+								<span class="sub-stats"
+									>{mainboardStats.creatures.qty}</span
+								>
+							</div>
+						{/if}
+						{#if mainboardStats.spells.qty > 0}
+							<div class="sub-item">
+								<span class="sub-name">Non-Creature</span>
+								<span class="sub-stats"
+									>{mainboardStats.spells.qty}</span
+								>
+							</div>
+						{/if}
+						{#if mainboardStats.nonBasicLands.qty > 0}
+							<div class="sub-item">
+								<span class="sub-name">Non-Basic Land</span>
+								<span class="sub-stats"
+									>{mainboardStats.nonBasicLands.qty}</span
+								>
+							</div>
+						{/if}
+						{#if mainboardStats.basicLands.qty > 0}
+							<div class="sub-item">
+								<span class="sub-name">Basic Land</span>
+								<span class="sub-stats"
+									>{mainboardStats.basicLands.qty}</span
+								>
+							</div>
+						{/if}
 					</div>
 				{/if}
 
-				{#if boardStats.sideboard.price > 0}
+				{#if boardStats.sideboard.qty > 0}
 					<div class="breakdown-item">
 						<span class="item-name">Sideboard</span>
-						<span class="item-stats"
-							>${boardStats.sideboard.price.toFixed(2)}</span
-						>
+						<span class="item-stats">{boardStats.sideboard.qty}</span>
 					</div>
 				{/if}
-				{#if boardStats.maybeboard.price > 0}
+				{#if boardStats.maybeboard.qty > 0}
 					<div class="breakdown-item">
 						<span class="item-name">Maybeboard</span>
-						<span class="item-stats"
-							>${boardStats.maybeboard.price.toFixed(2)}</span
-						>
+						<span class="item-stats">{boardStats.maybeboard.qty}</span>
 					</div>
 				{/if}
 			</div>
+
+			<div class="stats-divider"></div>
+
+			<!-- ESTIMATED PRICE SECTION -->
+			<div class="stats-overview">
+				<div class="stat-row main-price">
+					<span class="stat-label">Deck Price</span>
+					<span class="stat-value price-text"
+						>${totalPrice.toFixed(2)}</span
+					>
+				</div>
+			</div>
+
+			{#if hasOtherBoards}
+				<div class="breakdown-list">
+					{#if boardStats.mainboard.price > 0}
+						<div class="breakdown-item">
+							<span class="item-name">Mainboard</span>
+							<span class="item-stats"
+								>${boardStats.mainboard.price.toFixed(2)}</span
+							>
+						</div>
+					{/if}
+
+					{#if boardStats.sideboard.price > 0}
+						<div class="breakdown-item">
+							<span class="item-name">Sideboard</span>
+							<span class="item-stats"
+								>${boardStats.sideboard.price.toFixed(2)}</span
+							>
+						</div>
+					{/if}
+					{#if boardStats.maybeboard.price > 0}
+						<div class="breakdown-item">
+							<span class="item-name">Maybeboard</span>
+							<span class="item-stats"
+								>${boardStats.maybeboard.price.toFixed(2)}</span
+							>
+						</div>
+					{/if}
+				</div>
+			{/if}
 		{/if}
 	</div>
 

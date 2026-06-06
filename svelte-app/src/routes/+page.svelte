@@ -108,11 +108,6 @@
 		}
 	}
 
-	$effect(() => {
-		if (settingsStore.deckViewMode === 'list' && !deckStore.isImportDirty) {
-			deckStore.importText = deckStore.cleanDecklistText;
-		}
-	});
 </script>
 
 <div 

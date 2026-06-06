@@ -322,6 +322,16 @@ function createDeck() {
 	}
 
 	$effect.root(() => {
+		// Sync importText with cleanDecklistText when not dirty
+		let lastCleanText = cleanDecklistText;
+		$effect(() => {
+			const currentClean = cleanDecklistText;
+			if (importText.trim() === lastCleanText || importText === '') {
+				importText = currentClean;
+			}
+			lastCleanText = currentClean;
+		});
+
 		// Auto-sync metadata for missing cards
 		$effect(() => {
 			if (browser) {
