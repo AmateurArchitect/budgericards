@@ -148,39 +148,36 @@
 			<div class="empty-state">
 				<div class="empty-icon-container">
 					<svg viewBox="0 0 160 160" width="140" height="140" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<!-- Soft Shadow -->
-						<ellipse cx="79" cy="132" rx="55" ry="12" fill="hsl(var(--primary) / 0.08)" filter="blur(5px)" />
-						
 						<!-- Vertical Stack of Cards -->
-						{#each Array(35) as _, i}
-							{@const yOffset = (34 - i) * 1.2}
+						{#each Array(25) as _, i}
+							{@const yOffset = (24 - i) * 1.6}
 							<g transform="translate(0, {yOffset})">
 								<polygon 
 									points="70,40 27,65 88,100 131,75" 
-									fill={i === 34 ? "hsl(var(--card))" : "hsl(var(--muted) / 0.15)"} 
+									fill="hsl(var(--background))" 
 									stroke="currentColor" 
-									stroke-width={i === 34 ? "1.8" : "0.8"} 
-									stroke-opacity={i === 34 ? "1" : "0.25"} 
+									stroke-width="1" 
+									stroke-opacity={i === 24 ? "1" : "0.3"} 
 								/>
-								{#if i === 34}
+								{#if i === 24}
 									<!-- Design Details on the Top Card -->
 									<!-- Inner border -->
 									<polygon 
 										points="70,44 31,65 88,96 127,75" 
 										stroke="currentColor" 
-										stroke-width="0.8" 
+										stroke-width="1" 
 										stroke-opacity="0.4" 
 									/>
 									<!-- Card art frame -->
 									<polygon 
 										points="70,48 40,65 88,91 118,75" 
-										fill="hsl(var(--muted) / 0.2)" 
+										fill="transparent" 
 										stroke="currentColor" 
-										stroke-width="0.8" 
+										stroke-width="1" 
 										stroke-opacity="0.4" 
 									/>
 									<!-- Crest detail -->
-									<circle cx="79" cy="70" r="3.5" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6" />
+									<circle cx="79" cy="70" r="3.5" stroke="currentColor" stroke-width="1" stroke-opacity="0.5" />
 								{/if}
 							</g>
 						{/each}
@@ -320,29 +317,18 @@
 		padding: 5rem 2rem;
 		gap: 1.5rem;
 		color: hsl(var(--muted-foreground));
-		background: linear-gradient(180deg, hsl(var(--muted) / 0.03) 0%, hsl(var(--muted) / 0.08) 100%);
-		border: 1px solid hsl(var(--border) / 0.4);
+		background: hsl(var(--muted) / 0.02);
+		border: 1px solid hsl(var(--border) / 0.3);
 		border-radius: var(--radius-lg);
-		box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
 	}
 
 	.empty-icon-container {
-		color: hsl(var(--primary) / 0.4);
+		color: hsl(var(--muted-foreground) / 0.7);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		margin-bottom: 0.25rem;
 		position: relative;
-	}
-
-	.empty-icon-container::before {
-		content: "";
-		position: absolute;
-		width: 140px;
-		height: 140px;
-		background: radial-gradient(circle, hsl(var(--primary) / 0.1) 0%, transparent 70%);
-		z-index: 0;
-		pointer-events: none;
 	}
 
 	.empty-icon-container svg {
