@@ -148,30 +148,72 @@
 			<div class="empty-state">
 				<div class="empty-icon-container">
 					<svg viewBox="0 0 120 120" width="120" height="120" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<!-- Card 1 (Bottom) -->
-						<g transform="translate(20, 28) rotate(-12)">
-							<rect width="52" height="74" rx="4" fill="hsl(var(--muted) / 0.15)" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.3" />
+						<!-- Soft Shadow underneath the deck -->
+						<ellipse cx="60" cy="108" rx="38" ry="10" fill="hsl(var(--primary) / 0.08)" filter="blur(4px)" />
+						
+						<!-- Left Side Face (base fill) -->
+						<path d="M25 45 L60 65 L60 105 L25 85 Z" fill="hsl(var(--card))" stroke="currentColor" stroke-width="1" stroke-opacity="0.3" />
+						
+						<!-- Right Side Face (base fill) -->
+						<path d="M60 65 L95 45 L95 85 L60 105 Z" fill="hsl(var(--muted) / 0.3)" stroke="currentColor" stroke-width="1" stroke-opacity="0.3" />
+
+						<!-- Overlapping card edges (Left side lines) -->
+						<g stroke="currentColor" stroke-width="0.8" stroke-opacity="0.25">
+							<path d="
+								M25 47 L60 67
+								M25 49 L60 69
+								M25 51 L60 71
+								M25 53 L60 73
+								M25 55 L60 75
+								M25 57 L60 77
+								M25 59 L60 79
+								M25 61 L60 81
+								M25 63 L60 83
+								M25 65 L60 85
+								M25 67 L60 87
+								M25 69 L60 89
+								M25 71 L60 91
+								M25 73 L60 93
+								M25 75 L60 95
+								M25 77 L60 97
+								M25 79 L60 99
+								M25 81 L60 101
+								M25 83 L60 103
+							" />
 						</g>
-						<!-- Card 2 (Middle) -->
-						<g transform="translate(42, 20) rotate(6)">
-							<rect width="52" height="74" rx="4" fill="hsl(var(--muted) / 0.25)" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.5" />
+						
+						<!-- Overlapping card edges (Right side lines) -->
+						<g stroke="currentColor" stroke-width="0.8" stroke-opacity="0.35">
+							<path d="
+								M60 67 L95 47
+								M60 69 L95 49
+								M60 71 L95 51
+								M60 73 L95 53
+								M60 75 L95 55
+								M60 77 L95 57
+								M60 79 L95 59
+								M60 81 L95 61
+								M60 83 L95 63
+								M60 85 L95 65
+								M60 87 L95 67
+								M60 89 L95 69
+								M60 91 L95 71
+								M60 93 L95 73
+								M60 95 L95 75
+								M60 97 L95 77
+								M60 99 L95 79
+								M60 101 L95 81
+								M60 103 L95 83
+							" />
 						</g>
-						<!-- Card 3 (Top/Front) -->
-						<g transform="translate(34, 22)">
-							<!-- Main Card Body -->
-							<rect width="52" height="74" rx="4" fill="hsl(var(--card))" stroke="currentColor" stroke-width="2" />
-							<!-- Inner Border -->
-							<rect x="3" y="3" width="46" height="68" rx="2" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" />
-							<!-- Art Frame -->
-							<rect x="6" y="8" width="40" height="28" rx="1.5" stroke="currentColor" stroke-width="1" fill="hsl(var(--muted) / 0.2)" />
-							<!-- Text Lines -->
-							<line x1="6" y1="44" x2="30" y2="44" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
-							<line x1="6" y1="51" x2="46" y2="51" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.6" />
-							<line x1="6" y1="57" x2="40" y2="57" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.6" />
-							<line x1="6" y1="63" x2="34" y2="63" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.6" />
-							<!-- Icon/Mana Cost placeholder -->
-							<circle cx="42" cy="44" r="3" stroke="currentColor" stroke-width="1" />
-						</g>
+
+						<!-- Top Card Face -->
+						<path d="M60 25 L95 45 L60 65 L25 45 Z" fill="hsl(var(--card))" stroke="currentColor" stroke-width="1.8" />
+						
+						<!-- Top Card Design Details (showing Magic-like styling on top card) -->
+						<path d="M60 29 L90 46 L60 61 L30 46 Z" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.4" />
+						<path d="M60 33 L83 46 L60 56 L37 46 Z" fill="hsl(var(--muted) / 0.2)" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.4" />
+						<circle cx="60" cy="46" r="3" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6" />
 					</svg>
 				</div>
 				<h3>Create your first deck</h3>
@@ -267,7 +309,7 @@
 		gap: 0.75rem;
 	}
 
-	.header-icon {
+	:global(.header-icon) {
 		color: hsl(var(--primary));
 	}
 

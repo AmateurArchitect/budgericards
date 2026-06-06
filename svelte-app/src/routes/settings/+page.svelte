@@ -251,7 +251,7 @@
 		gap: 0.75rem;
 	}
 
-	.header-icon {
+	:global(.header-icon) {
 		color: hsl(var(--primary));
 	}
 
