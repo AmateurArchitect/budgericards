@@ -187,7 +187,7 @@
 				</div>
 				<h3>Create your first deck</h3>
 				<p>Your saved decks will appear here. Let's start building your next masterpiece!</p>
-				<a href="/" class="action-btn">Start Building</a>
+				<a href="/" class="start-building-btn">Start Building</a>
 			</div>
 		{:else}
 			<div class="decks-grid" in:fade={{ duration: 200 }}>
@@ -317,7 +317,7 @@
 		justify-content: center;
 		text-align: center;
 		padding: 5rem 2rem;
-		gap: 1.5rem;
+		gap: 0.5rem;
 		color: hsl(var(--muted-foreground));
 		background: hsl(var(--muted) / 0.02);
 		border: 1px solid hsl(var(--border) / 0.3);
@@ -357,7 +357,8 @@
 		text-wrap: balance;
 	}
 
-	.action-btn {
+	.start-building-btn {
+		margin-top: 1.25rem;
 		padding: 0.75rem 2rem;
 		background: hsl(var(--primary));
 		color: white;
@@ -369,10 +370,11 @@
 		box-shadow: 0 4px 12px hsl(var(--primary) / 0.2);
 	}
 
-	.action-btn:hover {
+	.start-building-btn:hover {
 		opacity: 0.95;
 		transform: translateY(-1px);
 		box-shadow: 0 6px 16px hsl(var(--primary) / 0.3);
+		color: white !important;
 	}
 
 	:global(.loading-state .spinner) {
