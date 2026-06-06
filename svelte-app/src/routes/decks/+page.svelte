@@ -154,21 +154,21 @@
 							<g transform="translate(0, {yOffset}) matrix(-0.86, 0.5, 0.871, 0.5, 79, 70)">
 								<rect 
 									x="-25" y="-35" width="50" height="70" rx="3"
-									fill={i === 15 ? "hsl(var(--muted) / 0.35)" : "hsl(var(--background))"} 
+									fill={i === 15 ? "hsl(var(--muted) / 0.55)" : "hsl(var(--background))"} 
 									stroke="currentColor" 
 									stroke-width="1" 
-									stroke-opacity={i === 15 ? "0.75" : "0.5"} 
+									stroke-opacity={i === 15 ? "0.9" : "0.5"} 
 								/>
 								{#if i === 15}
 									<!-- Design Details on the Top Card (MTG Card Back) -->
 									<!-- Inner border -->
-									<rect x="-21" y="-31" width="42" height="62" rx="1.5" stroke="currentColor" stroke-width="1" stroke-opacity="0.3" />
+									<rect x="-21" y="-31" width="42" height="62" rx="1.5" stroke="currentColor" stroke-width="1" stroke-opacity="0.8" />
 									
 									<!-- Ellipse in the center (MTG Card Back Oval) -->
-									<ellipse cx="0" cy="0" rx="14" ry="24" fill="hsl(var(--muted) / 0.1)" stroke="currentColor" stroke-width="1" stroke-opacity="0.3" />
+									<ellipse cx="0" cy="0" rx="14" ry="24" fill="hsl(var(--muted) / 0.1)" stroke="currentColor" stroke-width="1" stroke-opacity="0.8" />
 									
 									<!-- 5 mana circles in WUBRG pentagon layout -->
-									<g stroke="currentColor" stroke-width="1" stroke-opacity="0.4">
+									<g stroke="currentColor" stroke-width="1" stroke-opacity="0.8">
 										<!-- Top (White) -->
 										<circle cx="0" cy="-6" r="1.2" />
 										<!-- Right (Blue) -->
