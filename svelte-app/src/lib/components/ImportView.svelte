@@ -727,6 +727,12 @@
 				const completedName = parts.namePart + activeSuggestion;
 				linesArr[activeLineIndex] =
 					(parts.qtyPrefix || "1 ") + completedName + parts.suffix;
+
+				const isEnter = e.key === "Enter";
+				if (isEnter) {
+					linesArr.splice(activeLineIndex + 1, 0, "");
+				}
+
 				deckStore.importText = linesArr.join("\n");
 
 				activeSuggestion = "";
@@ -738,7 +744,7 @@
 						0,
 						activeLineIndex + 1,
 					);
-					const cursorOffset = linesUpToActive.join("\n").length;
+					const cursorOffset = linesUpToActive.join("\n").length + (isEnter ? 1 : 0);
 					textareaEl.selectionStart = textareaEl.selectionEnd =
 						cursorOffset;
 					updateActiveLine();
