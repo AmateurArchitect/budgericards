@@ -4,6 +4,7 @@
 		AlertTriangle,
 	} from "lucide-svelte";
 	import { fade, scale } from "svelte/transition";
+	import { tick } from "svelte";
 	import Button from "$lib/components/ui/Button.svelte";
 
 	/**
@@ -658,6 +659,7 @@
 							queryName.length,
 						);
 						activeSuggestionFull = normalized;
+						lastPreviewSource = "autocomplete";
 
 						// Pre-populate resolvedMetadataMap to show preview image during autocomplete
 						const lowName = normalized.toLowerCase();
@@ -714,7 +716,7 @@
 	}
 
 	/** @param {KeyboardEvent} e */
-	function handleKeyDown(e) {
+	async function handleKeyDown(e) {
 		if ((e.key === "Enter" || e.key === "Tab") && activeSuggestion) {
 			e.preventDefault();
 
@@ -738,36 +740,32 @@
 				activeSuggestion = "";
 				activeSuggestionFull = "";
 
-				setTimeout(() => {
-					if (!textareaEl) return;
-					const linesUpToActive = linesArr.slice(
-						0,
-						activeLineIndex + 1,
-					);
-					const cursorOffset = linesUpToActive.join("\n").length + (isEnter ? 1 : 0);
-					textareaEl.selectionStart = textareaEl.selectionEnd =
-						cursorOffset;
-					updateActiveLine();
+				await tick(); // Wait for Svelte to finish rendering DOM updates
 
-					if (isEnter && highlightsEl) {
-						// Wait for next tick to ensure Svelte has rendered the new line-row in the DOM
-						setTimeout(() => {
-							if (!highlightsEl || !textareaEl) return;
-							const lineRows = highlightsEl.querySelectorAll(".line-row");
-							const nextLineRow = /** @type {HTMLElement} */ (lineRows[activeLineIndex + 1]);
-							if (nextLineRow) {
-								const rowTop = nextLineRow.offsetTop;
-								const rowHeight = nextLineRow.offsetHeight || 24;
-								const viewHeight = textareaEl.clientHeight;
-								const currentScroll = textareaEl.scrollTop;
+				if (!textareaEl) return;
+				const linesUpToActive = linesArr.slice(
+					0,
+					activeLineIndex + 1,
+				);
+				const cursorOffset = linesUpToActive.join("\n").length + (isEnter ? 1 : 0);
+				textareaEl.selectionStart = textareaEl.selectionEnd =
+					cursorOffset;
+				updateActiveLine();
 
-								if (rowTop + rowHeight > currentScroll + viewHeight) {
-									textareaEl.scrollTop = rowTop + rowHeight - viewHeight + 24;
-								}
-							}
-						}, 0);
+				if (isEnter && highlightsEl) {
+					const lineRows = highlightsEl.querySelectorAll(".line-row");
+					const nextLineRow = /** @type {HTMLElement} */ (lineRows[activeLineIndex + 1]);
+					if (nextLineRow) {
+						const rowTop = nextLineRow.offsetTop;
+						const rowHeight = nextLineRow.offsetHeight || 24;
+						const viewHeight = textareaEl.clientHeight;
+						const currentScroll = textareaEl.scrollTop;
+
+						if (rowTop + rowHeight > currentScroll + viewHeight) {
+							textareaEl.scrollTop = rowTop + rowHeight - viewHeight + 24;
+						}
 					}
-				}, 0);
+				}
 			}
 		}
 	}
@@ -783,9 +781,13 @@
 		}
 	}
 
+	let lastPreviewSource = $state("hover");
 	let hoveredCardName = $state("");
 	const hoveredCardImage = $derived.by(() => {
-		const targetName = hoveredCardName || activeSuggestionFull;
+		const targetName = lastPreviewSource === "hover"
+			? (hoveredCardName || activeSuggestionFull)
+			: (activeSuggestionFull || hoveredCardName);
+
 		if (!targetName) return null;
 		const lowName = targetName.toLowerCase();
 		const meta = resolvedMetadataMap[lowName] || deckStore.metadata[lowName];
@@ -807,6 +809,7 @@
 			const name = element.textContent?.trim();
 			if (name && resolvedMetadataMap[name.toLowerCase()]) {
 				hoveredCardName = name;
+				lastPreviewSource = "hover";
 				return;
 			}
 		}
