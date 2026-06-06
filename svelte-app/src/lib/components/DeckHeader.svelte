@@ -443,7 +443,7 @@
 						{/if}
 					</div>
 
-					{#if authStore.isAuthenticated}
+					{#if authStore.isAuthenticated && (deckStore.syncState.isSyncing || deckStore.syncState.error)}
 						<div class="sync-indicator-container">
 							{#if deckStore.syncState.isSyncing}
 								<span class="sync-status is-syncing" title="Syncing with cloud...">
@@ -454,11 +454,6 @@
 								<span class="sync-status has-error" title={deckStore.syncState.error}>
 									<CloudOff size={11} class="icon" />
 									<span>Error</span>
-								</span>
-							{:else}
-								<span class="sync-status is-synced" title={deckStore.syncState.lastSynced ? `Last synced at ${new Date(deckStore.syncState.lastSynced).toLocaleTimeString()}` : 'Saved to cloud'}>
-									<Cloud size={11} class="icon" />
-									<span>Synced</span>
 								</span>
 							{/if}
 						</div>
@@ -1247,9 +1242,7 @@
 		color: #f87171;
 	}
 
-	.sync-status.is-synced {
-		color: #34d399;
-	}
+
 
 	.sync-status :global(.icon) {
 		opacity: 0.8;

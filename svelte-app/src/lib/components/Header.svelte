@@ -28,10 +28,8 @@
 
 	import ManaFilter from "./ManaFilter.svelte";
 	import SearchOptionsModal from "./SearchOptionsModal.svelte";
-	import BrowseDecksModal from "./BrowseDecksModal.svelte";
 	import ViewOptionsModal from "./ViewOptionsModal.svelte";
 	import DisplayNamePromptModal from "./DisplayNamePromptModal.svelte";
-	import UserSettingsModal from "./UserSettingsModal.svelte";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { goto } from "$app/navigation";
 
@@ -42,9 +40,7 @@
 	let searchSettingsBtn = $state(null);
 	let showProfileDropdown = $state(false);
 	let showBudgieDropdown = $state(false);
-	let showDecksModal = $state(false);
 	let showViewOptionsModal = $state(false);
-	let showUserSettingsModal = $state(false);
 	let showAboutModal = $state(false);
 
 	$effect(() => {
@@ -75,7 +71,7 @@
 	function handleBrowseDecks() {
 		showBudgieDropdown = false;
 		showProfileDropdown = false;
-		showDecksModal = true;
+		goto("/decks");
 	}
 
 	async function handleSignOut() {
@@ -385,7 +381,7 @@
 								<FolderOpen size={14} />
 								<span>My Decks</span>
 							</button>
-							<button class="menu-item" onclick={() => { showUserSettingsModal = true; showProfileDropdown = false; }}>
+							<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
 								<SettingsIcon size={14} />
 								<span>Settings</span>
 							</button>
@@ -406,9 +402,7 @@
 	</div>
 </header>
 
-<BrowseDecksModal bind:isOpen={showDecksModal} />
 <ViewOptionsModal bind:isOpen={showViewOptionsModal} triggerElement={null} />
-<UserSettingsModal bind:isOpen={showUserSettingsModal} />
 <DisplayNamePromptModal />
 
 {#if showAboutModal}
@@ -769,26 +763,7 @@
 		background-color: hsl(var(--accent) / 0.4);
 	}
 
-	.avatar-circle {
-		width: 24px;
-		height: 24px;
-		border-radius: 50%;
-		background: hsl(var(--primary));
-		color: #ffffff;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 0.75rem;
-		font-weight: 700;
-		overflow: hidden;
-		border: 1px solid rgba(255, 255, 255, 0.15);
-	}
 
-	.avatar-img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
 
 	.profile-trigger :global(.chevron) {
 		opacity: 0.5;
@@ -818,8 +793,10 @@
 	.dropdown-header {
 		padding: 8px 12px;
 		display: flex;
-		flex-direction: column;
-		gap: 4px;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
 	}
 
 	.dropdown-email {
@@ -829,6 +806,7 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		flex: 1;
 	}
 
 	.provider-badge {
@@ -841,6 +819,7 @@
 		padding: 1px 4px;
 		width: max-content;
 		color: var(--text-muted);
+		flex-shrink: 0;
 	}
 
 	.menu-item {
