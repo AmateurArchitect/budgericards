@@ -546,57 +546,59 @@
 
 			<div class="action-buttons">
 				<!-- Grouping Dropdown (Renamed from Columns) -->
-				<div class="header-select-group">
-					<span class="group-label">GROUPING</span>
-					<div class="header-select-container">
-						<button
-							class="header-select-trigger"
-							onclick={() =>
-								(showColumnsDropdown = !showColumnsDropdown)}
-							aria-expanded={showColumnsDropdown}
-							aria-haspopup="listbox"
-						>
-							<span class="trigger-value"
-								>{columns.find((c) => c.id === deckStore.grouping)
-									?.label}</span
+				{#if settingsStore.deckViewMode !== "list"}
+					<div class="header-select-group">
+						<span class="group-label">GROUPING</span>
+						<div class="header-select-container">
+							<button
+								class="header-select-trigger"
+								onclick={() =>
+									(showColumnsDropdown = !showColumnsDropdown)}
+								aria-expanded={showColumnsDropdown}
+								aria-haspopup="listbox"
 							>
-							<ChevronDown
-								size={14}
-								class="trigger-chevron {showColumnsDropdown
-									? 'open'
-									: ''}"
-							/>
-						</button>
+								<span class="trigger-value"
+									>{columns.find((c) => c.id === deckStore.grouping)
+										?.label}</span
+								>
+								<ChevronDown
+									size={14}
+									class="trigger-chevron {showColumnsDropdown
+										? 'open'
+										: ''}"
+								/>
+							</button>
 
-						{#if showColumnsDropdown}
-							<div
-								class="dropdown-backdrop"
-								role="presentation"
-								onclick={(e) => {
-									e.stopPropagation();
-									showColumnsDropdown = false;
-								}}
-								in:fade={{ duration: 200 }}
-								out:fade={{ duration: 150 }}
-							></div>
-							<div
-								class="header-select-menu"
-								in:fly={{ y: 5, duration: 250 }}
-								out:fly={{ y: 5, duration: 200 }}
-							>
-								{#each visibleGroupings as col}
-									<button
-										class="select-item"
-										class:active={deckStore.grouping === col.id}
-										onclick={() => selectGrouping(col.id)}
-									>
-										{col.label}
-									</button>
-								{/each}
-							</div>
-						{/if}
+							{#if showColumnsDropdown}
+								<div
+									class="dropdown-backdrop"
+									role="presentation"
+									onclick={(e) => {
+										e.stopPropagation();
+										showColumnsDropdown = false;
+									}}
+									in:fade={{ duration: 200 }}
+									out:fade={{ duration: 150 }}
+								></div>
+								<div
+									class="header-select-menu"
+									in:fly={{ y: 5, duration: 250 }}
+									out:fly={{ y: 5, duration: 200 }}
+								>
+									{#each visibleGroupings as col}
+										<button
+											class="select-item"
+											class:active={deckStore.grouping === col.id}
+											onclick={() => selectGrouping(col.id)}
+										>
+											{col.label}
+										</button>
+									{/each}
+								</div>
+							{/if}
+						</div>
 					</div>
-				</div>
+				{/if}
 
 				<!-- Columns multi-select dropdown (visible only in table view) -->
 				{#if settingsStore.deckViewMode === "table"}
@@ -707,62 +709,64 @@
 				{/if}
 
 				<!-- Sort Dropdown -->
-				<div class="header-select-group">
-					<span class="group-label">SORT</span>
-					<div class="sort-group-container">
-						<div class="header-select-container">
-							<button
-								class="header-select-trigger"
-								onclick={() =>
-									(showSortDropdown = !showSortDropdown)}
-								aria-expanded={showSortDropdown}
-								aria-haspopup="listbox"
-							>
-								<ArrowDownWideNarrow size={14} class="sort-icon" />
-								<span class="trigger-value"
-									>{visibleSorts.find(
-										(s) => s.id === deckStore.sorting,
-									)?.label || "Color"}</span
+				{#if settingsStore.deckViewMode !== "list"}
+					<div class="header-select-group">
+						<span class="group-label">SORT</span>
+						<div class="sort-group-container">
+							<div class="header-select-container">
+								<button
+									class="header-select-trigger"
+									onclick={() =>
+										(showSortDropdown = !showSortDropdown)}
+									aria-expanded={showSortDropdown}
+									aria-haspopup="listbox"
 								>
-								<ChevronDown
-									size={14}
-									class="trigger-chevron {showSortDropdown
-										? 'open'
-										: ''}"
-								/>
-							</button>
+									<ArrowDownWideNarrow size={14} class="sort-icon" />
+									<span class="trigger-value"
+										>{visibleSorts.find(
+											(s) => s.id === deckStore.sorting,
+										)?.label || "Color"}</span
+									>
+									<ChevronDown
+										size={14}
+										class="trigger-chevron {showSortDropdown
+											? 'open'
+											: ''}"
+									/>
+								</button>
 
-							{#if showSortDropdown}
-								<div
-									class="dropdown-backdrop"
-									role="presentation"
-									onclick={(e) => {
-										e.stopPropagation();
-										showSortDropdown = false;
-									}}
-									in:fade={{ duration: 200 }}
-									out:fade={{ duration: 150 }}
-								></div>
-								<div
-									class="header-select-menu"
-									in:fly={{ y: 5, duration: 250 }}
-									out:fly={{ y: 5, duration: 200 }}
-								>
-									{#each visibleSorts.filter((s) => s.id !== deckStore.grouping) as sort}
-										<button
-											class="select-item"
-											class:active={deckStore.sorting ===
-												sort.id}
-											onclick={() => selectSorting(sort.id)}
-										>
-											{sort.label}
-										</button>
-									{/each}
-								</div>
-							{/if}
+								{#if showSortDropdown}
+									<div
+										class="dropdown-backdrop"
+										role="presentation"
+										onclick={(e) => {
+											e.stopPropagation();
+											showSortDropdown = false;
+										}}
+										in:fade={{ duration: 200 }}
+										out:fade={{ duration: 150 }}
+									></div>
+									<div
+										class="header-select-menu"
+										in:fly={{ y: 5, duration: 250 }}
+										out:fly={{ y: 5, duration: 200 }}
+									>
+										{#each visibleSorts.filter((s) => s.id !== deckStore.grouping) as sort}
+											<button
+												class="select-item"
+												class:active={deckStore.sorting ===
+													sort.id}
+												onclick={() => selectSorting(sort.id)}
+											>
+												{sort.label}
+											</button>
+										{/each}
+									</div>
+								{/if}
+							</div>
 						</div>
 					</div>
-				</div>
+				{/if}
 
 				<div class="header-select-group" style="position: relative;">
 					<span class="group-label" style="visibility: hidden;">OPT</span>

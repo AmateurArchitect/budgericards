@@ -3,8 +3,30 @@
 	import {
 		AlertTriangle,
 	} from "lucide-svelte";
-	import { fade } from "svelte/transition";
+	import { fade, scale } from "svelte/transition";
 	import Button from "$lib/components/ui/Button.svelte";
+
+	/**
+	 * Custom springy scale transition
+	 * @param {HTMLElement} node
+	 * @param {{ duration?: number }} params
+	 */
+	function springyPopIn(node, { duration = 350 }) {
+		return {
+			duration,
+			css: (t) => {
+				const freq = 3.5 * Math.PI;
+				const damping = 4.5;
+				const val = 1 - Math.cos(t * freq) * Math.exp(-t * damping);
+				const scaleVal = 0.85 + 0.15 * val;
+				const opacityVal = Math.min(t * 1.5, 1);
+				return `
+					transform: scale(${scaleVal});
+					opacity: ${opacityVal};
+				`;
+			}
+		};
+	}
 	import { parseDecklist } from "$lib/utils/decklistParser.js";
 	import { getCardByName } from "$lib/localSearch";
 	import { db } from "$lib/db";
@@ -879,11 +901,10 @@
 							<span class={part.className}>{part.text}</span>
 						{/each}
 						{#if isCursorOnLine && activeSuggestionFull}
-							<span class="suggestion-separator">            </span>
 							<span class="suggestion-full-green"
 								>{activeSuggestionFull}</span
 							>
-							<kbd class="shortcut-badge">Enter</kbd>
+							<kbd class="suggestion-shortcut-badge">Enter</kbd>
 						{/if}
 					</div>
 				{/each}
@@ -912,7 +933,7 @@
 			></textarea>
 
 			{#if hoveredCardImage}
-				<div class="hover-card-preview" transition:fade={{ duration: 150 }}>
+				<div class="hover-card-preview" transition:springyPopIn={{ duration: 350 }}>
 					<img src={hoveredCardImage} alt={hoveredCardName} />
 				</div>
 			{/if}
@@ -1290,16 +1311,29 @@
 		border-color: #f59e0b;
 	}
 
-	.suggestion-separator {
-		white-space: pre;
-		pointer-events: none;
-	}
-
 	.suggestion-full-green {
 		color: #22c55e;
 		font-weight: 500;
 		font-style: italic;
 		pointer-events: none;
+		margin-left: 1.5rem;
+	}
+
+	.suggestion-shortcut-badge {
+		display: inline-flex;
+		align-items: center;
+		background: rgba(34, 197, 94, 0.08);
+		border: 1px solid rgba(34, 197, 94, 0.25);
+		border-radius: var(--radius-sm, 3px);
+		padding: 0.1rem 0.35rem;
+		font-size: 0.65rem;
+		font-family: inherit;
+		color: #22c55e;
+		margin-left: 0.5rem;
+		line-height: 1;
+		text-transform: uppercase;
+		font-weight: 600;
+		letter-spacing: 0.05em;
 	}
 
 	.shortcut-badge {
