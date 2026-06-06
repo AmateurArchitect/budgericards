@@ -1,5 +1,5 @@
 <script>
-	import { slide, fade } from "svelte/transition";
+	import { slide, fade, fly } from "svelte/transition";
 	import { backOut } from "svelte/easing";
 	import { horizontalSlide } from "$lib/utils/transitions.js";
 	import {
@@ -414,7 +414,7 @@
 </header>
 
 <BrowseDecksModal bind:isOpen={showDecksModal} />
-<ViewOptionsModal bind:isOpen={showViewOptionsModal} />
+<ViewOptionsModal bind:isOpen={showViewOptionsModal} triggerElement={null} />
 <UserSettingsModal bind:isOpen={showUserSettingsModal} />
 <DisplayNamePromptModal />
 

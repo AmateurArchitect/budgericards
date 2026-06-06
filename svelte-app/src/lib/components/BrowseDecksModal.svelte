@@ -63,7 +63,6 @@
 		});
 		
 		// If deck.id is set, trigger cloud sync to stay updated
-		deckStore.pullDecksFromCloud?.();
 		close();
 	}
 
@@ -314,7 +313,7 @@
 		gap: 0.75rem;
 	}
 
-	.header-icon {
+	:global(.header-icon) {
 		color: hsl(var(--primary));
 	}
 
@@ -366,7 +365,7 @@
 		color: hsl(var(--muted-foreground));
 	}
 
-	.empty-icon {
+	:global(.empty-icon) {
 		color: hsl(var(--muted-foreground) / 0.35);
 		margin-bottom: 0.25rem;
 	}
@@ -403,7 +402,7 @@
 		opacity: 0.9;
 	}
 
-	.loading-state .spinner {
+	:global(.loading-state .spinner) {
 		animation: spin 1s linear infinite;
 		color: hsl(var(--primary));
 	}

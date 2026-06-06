@@ -3,7 +3,7 @@
 	import { authStore } from "$lib/stores/auth.svelte.js";
 	import Button from "./ui/Button.svelte";
 	import Input from "./ui/Input.svelte";
-	import { User, Loader } from "lucide-svelte";
+	import { Loader } from "lucide-svelte";
 	import { onMount } from "svelte";
 
 	const needsPrompt = $derived(
@@ -15,6 +15,17 @@
 	let name = $state("");
 	let isSubmitting = $state(false);
 	let error = $state("");
+
+	const artUrls = [
+		"https://www.mtgpics.com/pics/art/13c/207.jpg",
+		"https://www.mtgpics.com/pics/art/16c/003.jpg",
+		"https://www.mtgpics.com/pics/art/stx/082.jpg"
+	];
+	let selectedArt = $state(artUrls[0]);
+
+	onMount(() => {
+		selectedArt = artUrls[Math.floor(Math.random() * artUrls.length)];
+	});
 
 	$effect(() => {
 		if (needsPrompt && authStore.user && !name) {
@@ -73,76 +84,42 @@
 			in:scale={{ duration: 250, start: 0.95 }}
 			out:scale={{ duration: 200, start: 0.95 }}
 		>
-			<div class="nametag-illustration-container">
-				<svg width="220" height="130" viewBox="0 0 220 130" fill="none" xmlns="http://www.w3.org/2000/svg" class="nametag-svg">
-					<defs>
-						<filter id="magic-glow" x="-20%" y="-20%" width="140%" height="140%">
-							<feGaussianBlur stdDeviation="6" result="blur" />
-							<feComposite in="SourceGraphic" in2="blur" operator="over" />
-						</filter>
-						<linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-							<stop offset="0%" stop-color="#FFE259" />
-							<stop offset="100%" stop-color="#FFA751" />
-						</linearGradient>
-						<linearGradient id="magic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-							<stop offset="0%" stop-color="#a78bfa" />
-							<stop offset="100%" stop-color="#3b82f6" />
-						</linearGradient>
-					</defs>
-
-					<!-- Nametag Background -->
-					<rect x="10" y="10" width="200" height="110" rx="8" fill="#18181b" stroke="url(#gold-gradient)" stroke-width="2" filter="url(#magic-glow)" />
-					
-					<!-- Red Nametag Header (Classic but Magic styled - Purple/Violet) -->
-					<path d="M12 12h196v28H12z" fill="url(#magic-gradient)" />
-					
-					<!-- HELLO text -->
-					<text x="110" y="24" fill="#ffffff" font-family="'Inter', sans-serif" font-weight="900" font-size="10" letter-spacing="2" text-anchor="middle">HELLO</text>
-					<text x="110" y="34" fill="rgba(255,255,255,0.7)" font-family="'Inter', sans-serif" font-weight="700" font-size="6" letter-spacing="1" text-anchor="middle">MY NAME IS</text>
-
-					<!-- Magical sparkles/particles -->
-					<path d="M25 25l2 2-2 2-2-2z" fill="#FFF" opacity="0.8"/>
-					<path d="M195 20l1.5 1.5-1.5 1.5-1.5-1.5z" fill="#FFF" opacity="0.9"/>
-					<path d="M30 85l3 3-3 3-3-3z" fill="url(#gold-gradient)" opacity="0.7"/>
-					<path d="M190 90l2 2-2 2-2-2z" fill="url(#gold-gradient)" opacity="0.8"/>
-
-					<!-- Magic Seal / Symbol in background of input area -->
-					<circle cx="110" cy="80" r="22" stroke="rgba(167, 139, 250, 0.15)" stroke-width="1.5" stroke-dasharray="3 3" />
-					<circle cx="110" cy="80" r="16" stroke="rgba(167, 139, 250, 0.1)" stroke-width="1" />
-					<path d="M110 68l6 14-14-9h16l-14 9z" stroke="rgba(167, 139, 250, 0.15)" stroke-width="1" fill="none" />
-				</svg>
+			<div class="key-art-container">
+				<img src={selectedArt} alt="Magic: The Gathering Key Art" class="key-art" />
 			</div>
 
-			<h2 id="prompt-title">Choose your Display Name</h2>
+			<div class="modal-body">
+				<h2 id="prompt-title">Choose your Display Name</h2>
 
-			<form onsubmit={handleSubmit} class="prompt-form">
-				{#if error}
-					<div class="error-alert">{error}</div>
-				{/if}
-
-				<div class="form-group">
-					<Input
-						type="text"
-						id="display-name-input"
-						placeholder="E.g. JaceBeleren"
-						bind:value={name}
-						required
-						disabled={isSubmitting}
-						maxlength="40"
-						autocomplete="off"
-						autofocus
-					/>
-				</div>
-
-				<Button type="submit" variant="default" class="submit-btn" disabled={isSubmitting}>
-					{#if isSubmitting}
-						<Loader class="spinner animate-spin" size={16} />
-						<span>Saving...</span>
-					{:else}
-						<span>Save and Continue</span>
+				<form onsubmit={handleSubmit} class="prompt-form">
+					{#if error}
+						<div class="error-alert">{error}</div>
 					{/if}
-				</Button>
-			</form>
+
+					<div class="form-group">
+						<Input
+							type="text"
+							id="display-name-input"
+							placeholder="E.g. JaceBeleren"
+							bind:value={name}
+							required
+							disabled={isSubmitting}
+							maxlength="40"
+							autocomplete="off"
+							autofocus
+						/>
+					</div>
+
+					<Button type="submit" variant="default" class="submit-btn" disabled={isSubmitting}>
+						{#if isSubmitting}
+							<Loader class="spinner animate-spin" size={16} />
+							<span>Saving...</span>
+						{:else}
+							<span>Save and Continue</span>
+						{/if}
+					</Button>
+				</form>
+			</div>
 		</div>
 	</div>
 {/if}
@@ -178,7 +155,7 @@
 		border-radius: var(--radius-lg);
 		width: 90%;
 		max-width: 420px;
-		padding: 2.25rem 2rem;
+		padding: 0;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -190,17 +167,26 @@
 		overflow: hidden;
 	}
 
-	.nametag-illustration-container {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		margin-bottom: 1rem;
+	.key-art-container {
+		width: 100%;
+		height: 180px;
+		overflow: hidden;
+		position: relative;
+		border-bottom: 1px solid hsl(var(--border) / 0.6);
 	}
 
-	.nametag-svg {
-		display: block;
-		max-width: 100%;
-		height: auto;
+	.key-art {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.modal-body {
+		width: 100%;
+		padding: 1.75rem 2rem 2.25rem 2rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
 	}
 
 	.modal-content h2 {
@@ -269,7 +255,7 @@
 		box-shadow: 0 0 16px hsl(var(--primary) / 0.2);
 	}
 
-	.spinner {
+	:global(.spinner) {
 		animation: spin 1s linear infinite;
 	}
 
