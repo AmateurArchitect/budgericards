@@ -56,7 +56,7 @@
 		showBudgieDropdown = false;
 		showProfileDropdown = false;
 		deckStore.setDeck({
-			name: "Untitled Deck",
+			name: "",
 			commander: [],
 			companion: [],
 			mainboard: [],
@@ -379,7 +379,7 @@
 							</button>
 							<button class="menu-item" onclick={handleBrowseDecks}>
 								<FolderOpen size={14} />
-								<span>My Decks</span>
+								<span>Your Decks</span>
 							</button>
 							<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
 								<SettingsIcon size={14} />

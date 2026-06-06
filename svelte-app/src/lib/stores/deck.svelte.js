@@ -32,7 +32,7 @@ function createDeck() {
 	/** @type {Record<string, any> & { id: string, name: string, commander: DeckCard[], mainboard: DeckCard[], sideboard: DeckCard[], maybeboard: DeckCard[], garbage: DeckCard[], activeBoard: string, grouping: string, sorting: string, splitView: boolean, coverArt: string | null }} */
 	let deck = $state({
 		id: generateId(),
-		name: 'Untitled Deck',
+		name: '',
 		commander: [],
 		companion: [],
 		mainboard: [],
@@ -141,7 +141,7 @@ function createDeck() {
 				};
 
 				deck.id = parsed.id || generateId();
-				deck.name = parsed.name || 'Untitled Deck';
+				deck.name = parsed.name || '';
 				deck.commander = expandBoard(parsed.commander);
 				deck.companion = expandBoard(parsed.companion);
 				deck.mainboard = expandBoard(parsed.mainboard);
@@ -182,6 +182,12 @@ function createDeck() {
 
 	async function triggerCloudSyncNow() {
 		if (!browser || !authStore.isAuthenticated) return;
+
+		const isUnnamed = !deck.name || deck.name.trim() === '' || deck.name === 'Untitled Deck';
+		if (isUnnamed) {
+			console.log("Deck is unnamed or default. Skipping cloud sync.");
+			return;
+		}
 
 		syncState.isSyncing = true;
 		try {
@@ -267,17 +273,23 @@ function createDeck() {
 					}
 				} else {
 					const isEmpty = deck.commander.length === 0 && deck.companion.length === 0 && deck.mainboard.length === 0 && deck.sideboard.length === 0 && deck.maybeboard.length === 0;
-					if (isEmpty && deck.name === 'Untitled Deck') {
+					if (isEmpty && (!deck.name || deck.name === 'Untitled Deck')) {
 						console.log("Loading latest cloud deck onto empty default local:", data[0].name);
 						loadDeckData(data[0]);
 					} else {
-						console.log("Saving local deck as a new cloud deck:", deck.name);
-						await triggerCloudSyncNow();
+						const isUnnamed = !deck.name || deck.name.trim() === '' || deck.name === 'Untitled Deck';
+						if (!isUnnamed) {
+							console.log("Saving local deck as a new cloud deck:", deck.name);
+							await triggerCloudSyncNow();
+						}
 					}
 				}
 			} else {
-				console.log("No cloud decks found. Backing up current local deck to cloud.");
-				await triggerCloudSyncNow();
+				const isUnnamed = !deck.name || deck.name.trim() === '' || deck.name === 'Untitled Deck';
+				if (!isUnnamed) {
+					console.log("No cloud decks found. Backing up current local deck to cloud.");
+					await triggerCloudSyncNow();
+				}
 			}
 		} catch (err) {
 			console.error("Failed to sync decks with cloud:", err);
@@ -755,7 +767,7 @@ function createDeck() {
 		/** @param {any} newDeck */
 		setDeck(newDeck) {
 			saveHistory();
-			deck.name = newDeck.name || 'Untitled Deck';
+			deck.name = newDeck.name || '';
 			deck.commander = newDeck.commander || [];
 			deck.companion = newDeck.companion || [];
 			deck.mainboard = newDeck.mainboard || [];

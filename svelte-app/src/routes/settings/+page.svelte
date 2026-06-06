@@ -298,7 +298,7 @@
 		color: hsl(var(--muted-foreground));
 	}
 
-	:global(.form-group .ui-input) {
+	.settings-form :global(.form-group .ui-input) {
 		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif !important;
 		font-style: italic !important;
 		font-size: 1.125rem !important;
@@ -316,7 +316,7 @@
 		transition: border-bottom-color 0.2s ease !important;
 	}
 
-	:global(.form-group .ui-input:focus-visible) {
+	.settings-form :global(.form-group .ui-input:focus-visible) {
 		border-color: transparent !important;
 		border-bottom-color: hsl(var(--primary)) !important;
 		background: transparent !important;

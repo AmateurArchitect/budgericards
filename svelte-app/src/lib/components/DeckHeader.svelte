@@ -365,9 +365,16 @@
 			</div>
 
 			<div class="name-container">
-				<h2>{deckStore.name}</h2>
+				{#if !deckStore.name || deckStore.name === 'Untitled Deck'}
+					<h2 class="unnamed-prompt">Name & Save This Deck</h2>
+				{:else}
+					<h2>{deckStore.name}</h2>
+				{/if}
 
 				<div class="deck-meta">
+					{#if !deckStore.name || deckStore.name === 'Untitled Deck'}
+						<span class="draft-badge">Local Draft</span>
+					{/if}
 					{#if colorIdentity().length > 0}
 						<div class="deck-colors">
 							{#each colorIdentity() as col}
@@ -894,6 +901,33 @@
 		font-size: 1rem;
 		font-weight: 600;
 		letter-spacing: -0.02em;
+		line-height: 1;
+	}
+
+	.name-container h2.unnamed-prompt {
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+		font-style: italic;
+		font-weight: 500;
+		color: hsl(var(--primary) / 0.85);
+		transition: color 0.15s ease;
+	}
+
+	.deck-info:hover .unnamed-prompt {
+		color: hsl(var(--primary));
+	}
+
+	.draft-badge {
+		font-size: 0.625rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		background: hsl(35 92% 50% / 0.12);
+		color: hsl(35 92% 65%);
+		border: 1px solid hsl(35 92% 50% / 0.25);
+		padding: 0.1rem 0.35rem;
+		border-radius: 4px;
+		font-weight: 600;
+		display: inline-flex;
+		align-items: center;
 		line-height: 1;
 	}
 

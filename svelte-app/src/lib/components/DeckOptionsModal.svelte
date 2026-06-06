@@ -255,7 +255,7 @@
 					<Input 
 						id="deck-name" 
 						bind:value={deckStore.name} 
-						placeholder="Untitled Deck"
+						placeholder="Name & Save Your Deck"
 						onkeydown={handleInputKeydown}
 					/>
 				</div>

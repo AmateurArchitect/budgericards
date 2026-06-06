@@ -129,7 +129,7 @@
 		<a href="/" class="back-link">← Back to deckbuilder</a>
 		<div class="title-area">
 			<FolderOpen class="header-icon" size={20} />
-			<h1>My Decks</h1>
+			<h1>Your Decks</h1>
 		</div>
 	</header>
 
@@ -187,7 +187,7 @@
 				</div>
 				<h3>Create your first deck</h3>
 				<p>Your saved decks will appear here. Let's start building your next masterpiece!</p>
-				<a href="/" class="start-building-btn">Start Building</a>
+				<a href="/" class="start-building-btn">Start Building <span class="arrow-icon">→</span></a>
 			</div>
 		{:else}
 			<div class="decks-grid" in:fade={{ duration: 200 }}>
@@ -369,6 +369,9 @@
 		text-decoration: none;
 		transition: all 0.2s ease;
 		box-shadow: 0 4px 12px hsl(var(--primary) / 0.2);
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
 	}
 
 	.start-building-btn:hover {
@@ -376,6 +379,14 @@
 		transform: translateY(-1px);
 		box-shadow: 0 6px 16px hsl(var(--primary) / 0.3);
 		color: white !important;
+	}
+
+	.arrow-icon {
+		transition: transform 0.2s ease;
+	}
+
+	.start-building-btn:hover .arrow-icon {
+		transform: translateX(3px);
 	}
 
 	:global(.loading-state .spinner) {

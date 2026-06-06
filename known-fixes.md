@@ -109,6 +109,10 @@ const val = myMap[someStringKey];
 }
 ```
 
+### Error Signature: Global CSS/Styling leaks bleeding into other components (e.g. `:global(.unscoped-class)`)
+**Fix Pattern**: Scope the selector by placing a component-specific class prefix before the `:global(...)` modifier (e.g. `.my-component :global(.ui-input)`).
+**Logic**: Using plain `:global(.form-group .ui-input)` makes the selector match globally in the application, overriding target styles everywhere. Scoping it under a local component wrapper class restricts the override to only that component's instances.
+
 ## TypeScript & SvelteKit Environment Types
 
 ### Error Signature: "Cannot find module '$env/static/public' or its corresponding type declarations." (or other `$env` modules)
