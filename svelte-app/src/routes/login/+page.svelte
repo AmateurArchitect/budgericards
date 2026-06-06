@@ -566,10 +566,12 @@
 	}
 
 	.form-title {
-		font-size: 1.375rem;
-		font-weight: 600;
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+		font-size: 1.625rem;
+		font-style: italic;
+		font-weight: 500;
 		color: #ffffff;
-		letter-spacing: -0.02em;
+		letter-spacing: -0.01em;
 		margin: 0;
 	}
 
@@ -669,8 +671,10 @@
 		background: none;
 		border: none;
 		color: var(--text-secondary);
-		font-size: 0.8125rem;
-		font-weight: 600;
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+		font-style: italic;
+		font-size: 0.875rem;
+		font-weight: 500;
 		padding: 0.625rem 0;
 		cursor: pointer;
 		z-index: 2;
@@ -726,11 +730,13 @@
 	}
 
 	:global(.input-wrapper .ui-input) {
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif !important;
+		font-style: italic !important;
 		height: 2.75rem !important;
 		background-color: rgba(255, 255, 255, 0.02) !important;
 		border: 1px solid rgba(255, 255, 255, 0.08) !important;
 		border-radius: var(--radius-md) !important;
-		font-size: 0.875rem !important;
+		font-size: 0.9375rem !important;
 		padding: 0 1rem !important;
 		transition: all 0.2s !important;
 		color: #ffffff !important;
