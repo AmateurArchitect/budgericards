@@ -748,6 +748,25 @@
 					textareaEl.selectionStart = textareaEl.selectionEnd =
 						cursorOffset;
 					updateActiveLine();
+
+					if (isEnter && highlightsEl) {
+						// Wait for next tick to ensure Svelte has rendered the new line-row in the DOM
+						setTimeout(() => {
+							if (!highlightsEl || !textareaEl) return;
+							const lineRows = highlightsEl.querySelectorAll(".line-row");
+							const nextLineRow = /** @type {HTMLElement} */ (lineRows[activeLineIndex + 1]);
+							if (nextLineRow) {
+								const rowTop = nextLineRow.offsetTop;
+								const rowHeight = nextLineRow.offsetHeight || 24;
+								const viewHeight = textareaEl.clientHeight;
+								const currentScroll = textareaEl.scrollTop;
+
+								if (rowTop + rowHeight > currentScroll + viewHeight) {
+									textareaEl.scrollTop = rowTop + rowHeight - viewHeight + 24;
+								}
+							}
+						}, 0);
+					}
 				}, 0);
 			}
 		}
@@ -768,7 +787,8 @@
 	const hoveredCardImage = $derived.by(() => {
 		const targetName = hoveredCardName || activeSuggestionFull;
 		if (!targetName) return null;
-		const meta = resolvedMetadataMap[targetName.toLowerCase()];
+		const lowName = targetName.toLowerCase();
+		const meta = resolvedMetadataMap[lowName] || deckStore.metadata[lowName];
 		return meta?.image_uris?.normal || null;
 	});
 
