@@ -127,14 +127,6 @@ function createDeck() {
 			sessionStorage.setItem('budgericards_active_deck_id', activeId);
 			const freshDraft = createDeckState({ id: activeId });
 			loadedDecks[activeId] = freshDraft;
-			
-			// Save new draft to local drafts list
-			const drafts = JSON.parse(localStorage.getItem('budgericards_local_drafts') || '[]');
-			drafts.unshift($state.snapshot(freshDraft.deck));
-			while (drafts.length > 3) {
-				drafts.pop();
-			}
-			localStorage.setItem('budgericards_local_drafts', JSON.stringify(drafts));
 		}
 		activeDeckId = activeId;
 	}
@@ -343,14 +335,26 @@ function createDeck() {
 
 			const isUnnamed = !dataToSave.name || dataToSave.name.trim() === '' || dataToSave.name === 'Untitled Deck';
 			if (isUnnamed) {
+				const totalCards = (dataToSave.commander?.length || 0) +
+								   (dataToSave.companion?.length || 0) +
+								   (dataToSave.mainboard?.length || 0) +
+								   (dataToSave.sideboard?.length || 0) +
+								   (dataToSave.maybeboard?.length || 0);
+				const isEmpty = totalCards === 0;
+
 				let drafts = JSON.parse(localStorage.getItem('budgericards_local_drafts') || '[]');
-				const idx = drafts.findIndex(/** @param {any} d */ d => d.id === dataToSave.id);
-				if (idx !== -1) {
-					drafts[idx] = dataToSave;
+				if (isEmpty) {
+					// Remove from drafts if it is empty
+					drafts = drafts.filter(/** @param {any} d */ d => d.id !== dataToSave.id);
 				} else {
-					drafts.unshift(dataToSave);
-					while (drafts.length > 3) {
-						drafts.pop();
+					const idx = drafts.findIndex(/** @param {any} d */ d => d.id === dataToSave.id);
+					if (idx !== -1) {
+						drafts[idx] = dataToSave;
+					} else {
+						drafts.unshift(dataToSave);
+						while (drafts.length > 3) {
+							drafts.pop();
+						}
 					}
 				}
 				localStorage.setItem('budgericards_local_drafts', JSON.stringify(drafts));
