@@ -475,7 +475,6 @@
 							{#each group.items as deck (deck.id)}
 								<div
 									class="deck-card"
-									class:active={deckStore.id === deck.id}
 									role="button"
 									tabindex="0"
 									onclick={() => handleSelectDeck(deck)}
@@ -732,11 +731,6 @@
 		box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
 	}
 
-	.deck-card.active {
-		border-color: hsl(var(--primary));
-		background: hsl(var(--primary) / 0.03);
-		box-shadow: 0 0 0 1px hsl(var(--primary));
-	}
 
 	.deck-art-preview {
 		width: 100%;
@@ -854,37 +848,10 @@
 	}
 
 	/* Sectioning */
-	.drafts-section,
 	.library-section {
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
-	}
-
-	.library-section.has-drafts {
-		margin-top: 3rem;
-	}
-
-	.section-title-area {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		border-bottom: 1px solid hsl(var(--border) / 0.2);
-		padding-bottom: 0.5rem;
-		margin-bottom: 0.5rem;
-	}
-
-	.section-title-area h2 {
-		font-size: 1.25rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
-		margin: 0;
-	}
-
-	.drafts-limit-note {
-		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground));
-		font-style: italic;
 	}
 
 	.draft-badge {
