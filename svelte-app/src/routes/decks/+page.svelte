@@ -155,6 +155,29 @@
 			(boardSource.maybeboard?.length || 0)
 		);
 	}
+
+	/** @param {any} deck */
+	function getDeckCoverArt(deck) {
+		const cards = deck.cards || deck;
+		if (cards.coverArt) return cards.coverArt;
+		if (cards.coverArt === "") return null;
+
+		const leadCard =
+			cards.commander?.[0] ||
+			cards.companion?.[0] ||
+			cards.mainboard?.[0];
+		if (!leadCard) return null;
+
+		const metadata = cards.metadata || {};
+		const meta = metadata[leadCard.name.toLowerCase()];
+		if (!meta) return null;
+
+		return (
+			meta.image_uris?.art_crop ||
+			meta.card_faces?.[0]?.image_uris?.art_crop ||
+			null
+		);
+	}
 </script>
 
 <div class="decks-page-container">
@@ -286,9 +309,9 @@
 								}}
 							>
 								<div class="deck-art-preview">
-									{#if draft.coverArt}
+									{#if getDeckCoverArt(draft)}
 										<img
-											src={draft.coverArt}
+											src={getDeckCoverArt(draft)}
 											alt=""
 											class="deck-art-img"
 										/>
@@ -351,9 +374,9 @@
 								}}
 							>
 								<div class="deck-art-preview">
-									{#if deck.cards.coverArt}
+									{#if getDeckCoverArt(deck)}
 										<img
-											src={deck.cards.coverArt}
+											src={getDeckCoverArt(deck)}
 											alt=""
 											class="deck-art-img"
 										/>
