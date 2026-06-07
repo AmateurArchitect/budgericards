@@ -111,6 +111,7 @@ function createDeck() {
 		const urlParams = new URLSearchParams(window.location.search);
 		if (urlParams.get('new_deck') === 'true') {
 			sessionStorage.removeItem('budgericards_active_deck_id');
+			sessionStorage.setItem('budgericards_is_new_draft', 'true');
 			try {
 				const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
 				window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
@@ -284,15 +285,20 @@ function createDeck() {
 						await triggerCloudSyncNow(targetState);
 					}
 				} else {
-					const isEmpty = targetState.deck.commander.length === 0 && targetState.deck.companion.length === 0 && targetState.deck.mainboard.length === 0 && targetState.deck.sideboard.length === 0 && targetState.deck.maybeboard.length === 0;
-					if (isEmpty && (!targetState.deck.name || targetState.deck.name === 'Untitled Deck')) {
-						console.log("Loading latest cloud deck onto empty default local:", data[0].name);
-						loadDeckData(data[0]);
+					const isNewDraft = sessionStorage.getItem('budgericards_is_new_draft') === 'true';
+					if (isNewDraft) {
+						console.log("Preserving new blank draft. Skipping cloud auto-load.");
 					} else {
-						const isUnnamed = !targetState.deck.name || targetState.deck.name.trim() === '' || targetState.deck.name === 'Untitled Deck';
-						if (!isUnnamed) {
-							console.log("Saving local deck as a new cloud deck:", targetState.deck.name);
-							await triggerCloudSyncNow(targetState);
+						const isEmpty = targetState.deck.commander.length === 0 && targetState.deck.companion.length === 0 && targetState.deck.mainboard.length === 0 && targetState.deck.sideboard.length === 0 && targetState.deck.maybeboard.length === 0;
+						if (isEmpty && (!targetState.deck.name || targetState.deck.name === 'Untitled Deck')) {
+							console.log("Loading latest cloud deck onto empty default local:", data[0].name);
+							loadDeckData(data[0]);
+						} else {
+							const isUnnamed = !targetState.deck.name || targetState.deck.name.trim() === '' || targetState.deck.name === 'Untitled Deck';
+							if (!isUnnamed) {
+								console.log("Saving local deck as a new cloud deck:", targetState.deck.name);
+								await triggerCloudSyncNow(targetState);
+							}
 						}
 					}
 				}
@@ -827,6 +833,7 @@ function createDeck() {
 		setDeck(newDeck) {
 			const id = newDeck.id || generateId();
 			sessionStorage.setItem('budgericards_active_deck_id', id);
+			sessionStorage.removeItem('budgericards_is_new_draft');
 			activeDeckId = id;
 
 			const deckState = createDeckState(newDeck);
