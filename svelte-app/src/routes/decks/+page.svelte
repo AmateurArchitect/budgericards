@@ -749,8 +749,8 @@
 	}
 
 	.deck-art-preview.draft-preview {
-		background-color: #fafafa;
-		background-image: url("data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg' fill='none'%3E%3Crect width='48' height='48' fill='%23fafafa' opacity='1'/%3E%3Cg opacity='0.15'%3E%3Cg clip-path='url(%23clip0_29_36959)'%3E%3Cpath d='M36.5 -1.5L-13.5 48.5' stroke='%231C1F21'/%3E%3Cpath d='M60.5 22.5L10.5 72.5' stroke='%231C1F21'/%3E%3Cpath d='M60.5 -1.5L10.5 48.5' stroke='%231C1F21'/%3E%3Cpath d='M37 -26L-13 24' stroke='%231C1F21'/%3E%3Cpath d='M48.5 -1.5L-1.5 48.5' stroke='%231C1F21'/%3E%3Cpath d='M72.5 22.5L22.5 72.5' stroke='%231C1F21'/%3E%3Cpath d='M72.5 -1.5L22.5 48.5' stroke='%231C1F21'/%3E%3Cpath d='M49 -26L-19.5 42.5' stroke='%231C1F21'/%3E%3C/g%3E%3Cdefs%3E%3CclipPath id='clip0_29_36959'%3E%3Crect width='48' height='48' fill='white'/%3E%3C/clipPath%3E%3C/defs%3E%3C/g%3E%3C/svg%3E");
+		background-color: #18181b;
+		background-image: url("data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg' fill='none'%3E%3Crect width='48' height='48' fill='%2318181b' opacity='1'/%3E%3Cg opacity='0.15'%3E%3Cg clip-path='url(%23clip0_29_36959)'%3E%3Cpath d='M36.5 -1.5L-13.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M60.5 22.5L10.5 72.5' stroke='%23fafafa'/%3E%3Cpath d='M60.5 -1.5L10.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M37 -26L-13 24' stroke='%23fafafa'/%3E%3Cpath d='M48.5 -1.5L-1.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M72.5 22.5L22.5 72.5' stroke='%23fafafa'/%3E%3Cpath d='M72.5 -1.5L22.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M49 -26L-19.5 42.5' stroke='%23fafafa'/%3E%3C/g%3E%3Cdefs%3E%3CclipPath id='clip0_29_36959'%3E%3Crect width='48' height='48' fill='white'/%3E%3C/clipPath%3E%3C/defs%3E%3C/g%3E%3C/svg%3E");
 		background-size: 48px 48px;
 		background-repeat: repeat;
 	}
