@@ -8,6 +8,7 @@
 	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
 	import Button from "$lib/components/ui/Button.svelte";
+	import ManaSymbol from "$lib/components/ui/ManaSymbol.svelte";
 
 	/** @type {any[]} */
 	let decks = $state([]);
@@ -261,6 +262,33 @@
 		})).sort((a, b) => b.items.length - a.items.length || a.label.localeCompare(b.label));
 	});
 
+	/** @param {any} deck */
+	function getDeckManaSymbols(deck) {
+		const cards = deck.cards || deck;
+		const metadata = cards.metadata || {};
+		const colorsSet = new Set();
+		
+		const allCardsList = [
+			...(cards.commander || []),
+			...(cards.companion || []),
+			...(cards.mainboard || []),
+			...(cards.sideboard || []),
+			...(cards.maybeboard || [])
+		];
+
+		for (const card of allCardsList) {
+			const meta = metadata[card.name.toLowerCase()];
+			if (meta && meta.color_identity) {
+				for (const c of meta.color_identity) {
+					colorsSet.add(c);
+				}
+			}
+		}
+
+		const wubrg = ["W", "U", "B", "R", "G"];
+		return wubrg.filter(c => colorsSet.has(c));
+	}
+
 	function handleNewDeckLink() {
 		if (typeof window !== "undefined") {
 			window.open("/?new_deck=true", "_blank");
@@ -462,6 +490,14 @@
 										<span class="card-count"
 											>{getCardCount(draft)} Cards</span
 										>
+										{#if getDeckManaSymbols(draft).length > 0}
+											<span class="meta-dot">•</span>
+											<div class="deck-mana-symbols">
+												{#each getDeckManaSymbols(draft) as sym}
+													<ManaSymbol symbol={sym} size="0.75rem" className="ms-cost" />
+												{/each}
+											</div>
+										{/if}
 										{#if draft.metadata?.updatedAt}
 											<span class="meta-dot">•</span>
 											<span class="updated-time"
@@ -558,6 +594,14 @@
 												<span class="card-count"
 													>{getCardCount(deck.cards)} Cards</span
 												>
+												{#if getDeckManaSymbols(deck).length > 0}
+													<span class="meta-dot">•</span>
+													<div class="deck-mana-symbols">
+														{#each getDeckManaSymbols(deck) as sym}
+															<ManaSymbol symbol={sym} size="0.75rem" className="ms-cost" />
+														{/each}
+													</div>
+												{/if}
 												<span class="meta-dot">•</span>
 												<span class="updated-time"
 													>Updated {formatUpdatedDate(
@@ -788,7 +832,8 @@
 
 	.deck-art-preview {
 		width: 100%;
-		height: 140px;
+		aspect-ratio: 4 / 3;
+		height: auto;
 		overflow: hidden;
 		position: relative;
 		border-bottom: 1px solid hsl(var(--border) / 0.4);
@@ -999,11 +1044,6 @@
 		border: 2px dashed hsl(var(--border) / 0.8);
 		background: transparent;
 		box-shadow: none;
-		justify-content: center;
-		align-items: center;
-		padding: 2rem 1.5rem;
-		text-align: center;
-		min-height: 240px;
 	}
 
 	.deck-card.create-card:hover {
@@ -1014,13 +1054,10 @@
 	}
 
 	.create-art-preview {
-		height: auto;
 		border: none;
-		background: transparent;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		margin-bottom: 0.75rem;
 		color: hsl(var(--muted-foreground));
 		transition: color 0.2s ease;
 	}
@@ -1030,11 +1067,12 @@
 	}
 
 	.create-details {
-		padding: 0;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		text-align: center;
 		gap: 0.25rem;
+		justify-content: center;
 	}
 
 	.create-details .deck-name {
@@ -1049,6 +1087,12 @@
 		line-height: 1.4;
 		margin: 0;
 		max-width: 180px;
+	}
+
+	.deck-mana-symbols {
+		display: inline-flex;
+		align-items: center;
+		gap: 2px;
 	}
 
 	/* Grouping Container & Headers */
