@@ -108,6 +108,17 @@ function createDeck() {
 
 	// Initialize active deck on load
 	if (browser) {
+		const urlParams = new URLSearchParams(window.location.search);
+		if (urlParams.get('new_deck') === 'true') {
+			sessionStorage.removeItem('budgericards_active_deck_id');
+			try {
+				const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+				window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+			} catch (e) {
+				// Fallback
+			}
+		}
+
 		let activeId = sessionStorage.getItem('budgericards_active_deck_id') || '';
 		if (!activeId) {
 			// Start a fresh unnamed draft

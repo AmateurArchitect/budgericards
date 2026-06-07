@@ -1,6 +1,6 @@
 <script>
 	import { fade } from "svelte/transition";
-	import { FolderOpen, Trash2, Loader } from "lucide-svelte";
+	import { FolderOpen, Trash2, Loader, PlusCircle } from "lucide-svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { authStore } from "$lib/stores/auth.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
@@ -178,11 +178,98 @@
 			null
 		);
 	}
+
+	let sortBy = $state("updated"); // 'updated' | 'name' | 'cards'
+	let groupBy = $state("none"); // 'none' | 'format' | 'colors'
+
+	/** @param {any} deck */
+	function getDeckColors(deck) {
+		const cards = deck.cards || deck;
+		const metadata = cards.metadata || {};
+		const colorsSet = new Set();
+		
+		const allCardsList = [
+			...(cards.commander || []),
+			...(cards.companion || []),
+			...(cards.mainboard || []),
+			...(cards.sideboard || []),
+			...(cards.maybeboard || [])
+		];
+
+		for (const card of allCardsList) {
+			const meta = metadata[card.name.toLowerCase()];
+			if (meta && meta.color_identity) {
+				for (const c of meta.color_identity) {
+					colorsSet.add(c);
+				}
+			}
+		}
+
+		if (colorsSet.size === 0) return "Colorless";
+		
+		// Sort WUBRG order
+		const wubrg = ["W", "U", "B", "R", "G"];
+		const sorted = wubrg.filter(c => colorsSet.has(c));
+		if (sorted.length === 0) return "Colorless";
+		if (sorted.length === 1) {
+			const names = { "W": "White", "U": "Blue", "B": "Black", "R": "Red", "G": "Green" };
+			return names[sorted[0]] || sorted[0];
+		}
+		if (sorted.length === 5) return "Five-Color";
+		return "Guild/Shard (" + sorted.join("") + ")";
+	}
+
+	const sortedDecks = $derived.by(() => {
+		let list = [...decks];
+		if (sortBy === "updated") {
+			list.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+		} else if (sortBy === "name") {
+			list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+		} else if (sortBy === "cards") {
+			list.sort((a, b) => getCardCount(b.cards) - getCardCount(a.cards));
+		}
+		return list;
+	});
+
+	const groupedDecks = $derived.by(() => {
+		const list = sortedDecks;
+		if (decks.length < 12 || groupBy === "none") {
+			return [{ key: "all", label: "", items: list }];
+		}
+
+		/** @type {Record<string, any[]>} */
+		const groups = {};
+
+		if (groupBy === "format") {
+			for (const deck of list) {
+				const format = deck.cards?.format || "Commander";
+				if (!groups[format]) groups[format] = [];
+				groups[format].push(deck);
+			}
+		} else if (groupBy === "colors") {
+			for (const deck of list) {
+				const colors = getDeckColors(deck);
+				if (!groups[colors]) groups[colors] = [];
+				groups[colors].push(deck);
+			}
+		}
+
+		return Object.entries(groups).map(([label, items]) => ({
+			key: label,
+			label,
+			items
+		})).sort((a, b) => b.items.length - a.items.length || a.label.localeCompare(b.label));
+	});
+
+	function handleNewDeckLink() {
+		if (typeof window !== "undefined") {
+			window.open("/?new_deck=true", "_blank");
+		}
+	}
 </script>
 
 <div class="decks-page-container">
 	<header class="page-header">
-		<a href="/" class="back-link">← Back to deckbuilder</a>
 		<div class="title-area">
 			<FolderOpen class="header-icon" size={20} />
 			<h1>Your Decks</h1>
@@ -287,6 +374,30 @@
 				>
 			</div>
 		{:else}
+			{#if decks.length >= 6}
+				<div class="library-controls">
+					<div class="control-group">
+						<span class="control-label">Sort by:</span>
+						<div class="control-buttons">
+							<button class="control-btn" class:active={sortBy === 'updated'} onclick={() => sortBy = 'updated'}>Recent</button>
+							<button class="control-btn" class:active={sortBy === 'name'} onclick={() => sortBy = 'name'}>Name</button>
+							<button class="control-btn" class:active={sortBy === 'cards'} onclick={() => sortBy = 'cards'}>Cards</button>
+						</div>
+					</div>
+
+					{#if decks.length >= 12}
+						<div class="control-group">
+							<span class="control-label">Group by:</span>
+							<div class="control-buttons">
+								<button class="control-btn" class:active={groupBy === 'none'} onclick={() => groupBy = 'none'}>None</button>
+								<button class="control-btn" class:active={groupBy === 'format'} onclick={() => groupBy = 'format'}>Format</button>
+								<button class="control-btn" class:active={groupBy === 'colors'} onclick={() => groupBy = 'colors'}>Colors</button>
+							</div>
+						</div>
+					{/if}
+				</div>
+			{/if}
+
 			{#if localDrafts.length > 0}
 				<section class="drafts-section">
 					<div class="section-title-area">
@@ -294,6 +405,28 @@
 						<span class="drafts-limit-note">Up to 3 drafts kept locally</span>
 					</div>
 					<div class="decks-grid">
+						<!-- Create New Deck card slot (first if drafts exist) -->
+						<div
+							class="deck-card create-card"
+							role="button"
+							tabindex="0"
+							onclick={handleNewDeckLink}
+							onkeydown={(e) => {
+								if (e.key === "Enter" || e.key === " ") {
+									e.preventDefault();
+									handleNewDeckLink();
+								}
+							}}
+						>
+							<div class="deck-art-preview create-art-preview">
+								<PlusCircle class="create-icon" size={32} />
+							</div>
+							<div class="deck-details create-details">
+								<h3 class="deck-name">Create New Deck</h3>
+								<p class="deck-desc">Start building a fresh draft</p>
+							</div>
+						</div>
+
 						{#each localDrafts as draft (draft.id)}
 							<div
 								class="deck-card draft-card"
@@ -358,63 +491,96 @@
 					<div class="section-title-area">
 						<h2>Saved Deck Library</h2>
 					</div>
-					<div class="decks-grid" in:fade={{ duration: 200 }}>
-						{#each decks as deck (deck.id)}
-							<div
-								class="deck-card"
-								class:active={deckStore.id === deck.id}
-								role="button"
-								tabindex="0"
-								onclick={() => handleSelectDeck(deck)}
-								onkeydown={(e) => {
-									if (e.key === "Enter" || e.key === " ") {
-										e.preventDefault();
-										handleSelectDeck(deck);
-									}
-								}}
-							>
-								<div class="deck-art-preview">
-									{#if getDeckCoverArt(deck)}
-										<img
-											src={getDeckCoverArt(deck)}
-											alt=""
-											class="deck-art-img"
-										/>
-									{:else}
-										<div class="deck-art-fallback"></div>
-									{/if}
-									<div class="deck-badge">
-										{deck.cards.format || "Commander"}
-									</div>
-								</div>
-
-								<div class="deck-details">
-									<h3 class="deck-name">{deck.name}</h3>
-									<div class="deck-meta">
-										<span class="card-count"
-											>{getCardCount(deck.cards)} Cards</span
-										>
-										<span class="meta-dot">•</span>
-										<span class="updated-time"
-											>Updated {formatUpdatedDate(
-												deck.updated_at,
-											)}</span
-										>
-									</div>
-								</div>
-
-								<div class="deck-actions">
-									<button
-										class="action-icon-btn delete-btn"
-										title="Delete Deck"
-										onclick={(e) => handleDeleteDeck(deck.id, e)}
+					
+					{#each groupedDecks as group, groupIdx (group.key)}
+						<div class="group-container" class:has-title={!!group.label}>
+							{#if group.label}
+								<h3 class="group-title">{group.label} ({group.items.length})</h3>
+							{/if}
+							
+							<div class="decks-grid">
+								<!-- Create New Deck card slot (if no drafts, render in first slot of first group) -->
+								{#if localDrafts.length === 0 && groupIdx === 0}
+									<div
+										class="deck-card create-card"
+										role="button"
+										tabindex="0"
+										onclick={handleNewDeckLink}
+										onkeydown={(e) => {
+											if (e.key === "Enter" || e.key === " ") {
+												e.preventDefault();
+												handleNewDeckLink();
+											}
+										}}
 									>
-										<Trash2 size={16} />
-									</button>
-								</div>
+										<div class="deck-art-preview create-art-preview">
+											<PlusCircle class="create-icon" size={32} />
+										</div>
+										<div class="deck-details create-details">
+											<h3 class="deck-name">Create New Deck</h3>
+											<p class="deck-desc">Start building a fresh draft</p>
+										</div>
+									</div>
+								{/if}
+
+								{#each group.items as deck (deck.id)}
+									<div
+										class="deck-card"
+										class:active={deckStore.id === deck.id}
+										role="button"
+										tabindex="0"
+										onclick={() => handleSelectDeck(deck)}
+										onkeydown={(e) => {
+											if (e.key === "Enter" || e.key === " ") {
+												e.preventDefault();
+												handleSelectDeck(deck);
+											}
+										}}
+									>
+										<div class="deck-art-preview">
+											{#if getDeckCoverArt(deck)}
+												<img
+													src={getDeckCoverArt(deck)}
+													alt=""
+													class="deck-art-img"
+												/>
+											{:else}
+												<div class="deck-art-fallback"></div>
+											{/if}
+											<div class="deck-badge">
+												{deck.cards?.format || "Commander"}
+											</div>
+										</div>
+
+										<div class="deck-details">
+											<h3 class="deck-name">{deck.name}</h3>
+											<div class="deck-meta">
+												<span class="card-count"
+													>{getCardCount(deck.cards)} Cards</span
+												>
+												<span class="meta-dot">•</span>
+												<span class="updated-time"
+													>Updated {formatUpdatedDate(
+														deck.updated_at,
+													)}</span
+												>
+											</div>
+										</div>
+
+										<div class="deck-actions">
+											<button
+												class="action-icon-btn delete-btn"
+												title="Delete Deck"
+												onclick={(e) => handleDeleteDeck(deck.id, e)}
+											>
+												<Trash2 size={16} />
+											</button>
+										</div>
+									</div>
+								{/each}
 							</div>
-						{/each}
-					</div>
+						</div>
+					{/each}
 				</section>
 			{/if}
 		{/if}
@@ -768,5 +934,142 @@
 			hsl(var(--muted) / 0.5) 0%,
 			hsl(var(--warning) / 0.25) 100%
 		) !important;
+	}
+
+	/* Library Controls (Segmented Control styling) */
+	.library-controls {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1.5rem;
+		padding: 0.75rem 1rem;
+		background: hsl(var(--muted) / 0.08);
+		border: 1px solid hsl(var(--border) / 0.3);
+		border-radius: var(--radius-md);
+		margin-bottom: 2.5rem;
+		align-items: center;
+	}
+
+	.control-group {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.control-label {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: hsl(var(--muted-foreground));
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.control-buttons {
+		display: flex;
+		background: hsl(var(--muted) / 0.2);
+		padding: 2px;
+		border-radius: var(--radius-sm);
+		border: 1px solid hsl(var(--border) / 0.2);
+	}
+
+	.control-btn {
+		background: transparent;
+		border: none;
+		color: hsl(var(--muted-foreground));
+		font-size: 0.75rem;
+		font-weight: 500;
+		padding: 4px 12px;
+		border-radius: calc(var(--radius-sm) - 1px);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.control-btn:hover {
+		color: hsl(var(--foreground));
+	}
+
+	.control-btn.active {
+		background: hsl(var(--background));
+		color: hsl(var(--primary));
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+		font-weight: 600;
+	}
+
+	/* Create New Deck Card */
+	.deck-card.create-card {
+		border: 2px dashed hsl(var(--border) / 0.8);
+		background: transparent;
+		box-shadow: none;
+		justify-content: center;
+		align-items: center;
+		padding: 2rem 1.5rem;
+		text-align: center;
+		min-height: 240px;
+	}
+
+	.deck-card.create-card:hover {
+		border-color: hsl(var(--primary));
+		background: hsl(var(--primary) / 0.02);
+		transform: translateY(-2px);
+		box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+	}
+
+	.create-art-preview {
+		height: auto;
+		border: none;
+		background: transparent;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-bottom: 0.75rem;
+		color: hsl(var(--muted-foreground));
+		transition: color 0.2s ease;
+	}
+
+	:global(.create-card:hover .create-icon) {
+		color: hsl(var(--primary));
+	}
+
+	.create-details {
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.create-details .deck-name {
+		font-size: 1rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+	}
+
+	.deck-desc {
+		font-size: 0.775rem;
+		color: hsl(var(--muted-foreground));
+		line-height: 1.4;
+		margin: 0;
+		max-width: 180px;
+	}
+
+	/* Grouping Container & Headers */
+	.group-container {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.group-container.has-title {
+		margin-top: 1.5rem;
+	}
+
+	.group-title {
+		font-size: 0.95rem;
+		font-weight: 600;
+		color: hsl(var(--muted-foreground));
+		margin: 0;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		border-bottom: 1px dashed hsl(var(--border) / 0.2);
+		padding-bottom: 0.25rem;
 	}
 </style>

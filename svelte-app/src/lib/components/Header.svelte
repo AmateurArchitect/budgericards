@@ -56,7 +56,7 @@
 		showBudgieDropdown = false;
 		showProfileDropdown = false;
 		if (typeof window !== "undefined") {
-			window.open("/", "_blank");
+			window.open("/?new_deck=true", "_blank");
 		}
 	}
 
