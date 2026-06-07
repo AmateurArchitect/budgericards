@@ -297,8 +297,9 @@
 	}
 </script>
 
-<div class="decks-page-container">
-	<header class="page-header">
+<div class="decks-page-wrapper">
+	<div class="decks-page-container">
+		<header class="page-header">
 		<div class="title-area">
 			<FolderOpen class="header-icon" size={20} />
 			<h1>Your Decks</h1>
@@ -488,17 +489,17 @@
 								<div class="deck-details">
 									<h3 class="deck-name">{draft.name || "Name & Save This Deck"}</h3>
 									<div class="deck-meta">
-										<span class="card-count"
-											>{getCardCount(draft)} Cards</span
-										>
 										{#if getDeckManaSymbols(draft).length > 0}
-											<span class="meta-dot">•</span>
 											<div class="deck-mana-symbols">
 												{#each getDeckManaSymbols(draft) as sym}
 													<ManaSymbol symbol={sym} size="0.75rem" className="ms-cost" />
 												{/each}
 											</div>
+											<span class="meta-dot">•</span>
 										{/if}
+										<span class="card-count"
+											>{getCardCount(draft)} Cards</span
+										>
 										{#if draft.metadata?.updatedAt}
 											<span class="meta-dot">•</span>
 											<span class="updated-time"
@@ -592,17 +593,17 @@
 										<div class="deck-details">
 											<h3 class="deck-name">{deck.name}</h3>
 											<div class="deck-meta">
-												<span class="card-count"
-													>{getCardCount(deck.cards)} Cards</span
-												>
 												{#if getDeckManaSymbols(deck).length > 0}
-													<span class="meta-dot">•</span>
 													<div class="deck-mana-symbols">
 														{#each getDeckManaSymbols(deck) as sym}
 															<ManaSymbol symbol={sym} size="0.75rem" className="ms-cost" />
 														{/each}
 													</div>
+													<span class="meta-dot">•</span>
 												{/if}
+												<span class="card-count"
+													>{getCardCount(deck.cards)} Cards</span
+												>
 												<span class="meta-dot">•</span>
 												<span class="updated-time"
 													>Updated {formatUpdatedDate(
@@ -631,15 +632,21 @@
 		{/if}
 	</main>
 </div>
+</div>
 
 <style>
+	.decks-page-wrapper {
+		width: 100%;
+		height: 100vh;
+		overflow-y: auto;
+		background: hsl(var(--background));
+	}
+
 	.decks-page-container {
 		width: 100%;
 		max-width: 960px;
 		margin: 0 auto;
 		padding: 3rem 1.5rem;
-		height: 100vh;
-		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
 		box-sizing: border-box;
