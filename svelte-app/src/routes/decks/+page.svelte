@@ -88,7 +88,7 @@
 		try {
 			if (isDraft) {
 				let drafts = JSON.parse(localStorage.getItem("budgericards_local_drafts") || "[]");
-				drafts = drafts.filter((/** @param {any} d */ d) => d.id !== deckId);
+				drafts = drafts.filter(/** @param {any} d */ (d) => d.id !== deckId);
 				localStorage.setItem("budgericards_local_drafts", JSON.stringify(drafts));
 				localDrafts = drafts;
 			} else {
@@ -213,6 +213,7 @@
 		const sorted = wubrg.filter(c => colorsSet.has(c));
 		if (sorted.length === 0) return "Colorless";
 		if (sorted.length === 1) {
+			/** @type {Record<string, string>} */
 			const names = { "W": "White", "U": "Blue", "B": "Black", "R": "Red", "G": "Green" };
 			return names[sorted[0]] || sorted[0];
 		}
@@ -637,7 +638,8 @@
 		max-width: 960px;
 		margin: 0 auto;
 		padding: 3rem 1.5rem;
-		min-height: 100vh;
+		height: 100vh;
+		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
 		box-sizing: border-box;
@@ -650,18 +652,6 @@
 		margin-bottom: 2.5rem;
 		border-bottom: 1px solid hsl(var(--border) / 0.3);
 		padding-bottom: 1.25rem;
-	}
-
-	.back-link {
-		color: hsl(var(--muted-foreground));
-		text-decoration: none;
-		font-size: 0.875rem;
-		font-weight: 500;
-		transition: color 0.15s ease;
-	}
-
-	.back-link:hover {
-		color: hsl(var(--foreground));
 	}
 
 	.title-area {
