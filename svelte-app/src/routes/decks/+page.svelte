@@ -11,6 +11,8 @@
 
 	/** @type {any[]} */
 	let decks = $state([]);
+	/** @type {any[]} */
+	let localDrafts = $state([]);
 	let isLoading = $state(false);
 	let error = $state("");
 
@@ -36,6 +38,9 @@
 
 	onMount(() => {
 		loadDecks();
+		if (typeof window !== "undefined") {
+			localDrafts = JSON.parse(localStorage.getItem("budgericards_local_drafts") || "[]");
+		}
 	});
 
 	$effect(() => {
@@ -46,19 +51,20 @@
 
 	/** @param {any} deck */
 	function handleSelectDeck(deck) {
+		const cards = deck.cards || deck;
 		deckStore.setDeck({
 			id: deck.id,
-			name: deck.name,
-			commander: deck.cards.commander || [],
-			companion: deck.cards.companion || [],
-			mainboard: deck.cards.mainboard || [],
-			sideboard: deck.cards.sideboard || [],
-			maybeboard: deck.cards.maybeboard || [],
-			garbage: deck.cards.garbage || [],
-			activeBoard: deck.cards.activeBoard || "mainboard",
-			coverArt: deck.cards.coverArt || null,
-			format: deck.cards.format || "Commander",
-			metadata: deck.cards.metadata || {},
+			name: deck.name || "",
+			commander: cards.commander || [],
+			companion: cards.companion || [],
+			mainboard: cards.mainboard || [],
+			sideboard: cards.sideboard || [],
+			maybeboard: cards.maybeboard || [],
+			garbage: cards.garbage || [],
+			activeBoard: cards.activeBoard || "mainboard",
+			coverArt: cards.coverArt || null,
+			format: cards.format || "Commander",
+			metadata: cards.metadata || {},
 		});
 		goto("/");
 	}
@@ -66,8 +72,9 @@
 	/**
 	 * @param {string} deckId
 	 * @param {MouseEvent} e
+	 * @param {boolean} [isDraft]
 	 */
-	async function handleDeleteDeck(deckId, e) {
+	async function handleDeleteDeck(deckId, e, isDraft = false) {
 		e.stopPropagation();
 		if (
 			!confirm(
@@ -78,9 +85,16 @@
 		}
 
 		try {
-			const { error: deleteError } = await syncService.deleteDeck(deckId);
-			if (deleteError) throw deleteError;
-			decks = decks.filter((d) => d.id !== deckId);
+			if (isDraft) {
+				let drafts = JSON.parse(localStorage.getItem("budgericards_local_drafts") || "[]");
+				drafts = drafts.filter((/** @param {any} d */ d) => d.id !== deckId);
+				localStorage.setItem("budgericards_local_drafts", JSON.stringify(drafts));
+				localDrafts = drafts;
+			} else {
+				const { error: deleteError } = await syncService.deleteDeck(deckId);
+				if (deleteError) throw deleteError;
+				decks = decks.filter((d) => d.id !== deckId);
+			}
 
 			if (deckStore.id === deckId) {
 				deckStore.setDeck({
@@ -132,12 +146,13 @@
 	/** @param {any} cards */
 	function getCardCount(cards) {
 		if (!cards) return 0;
+		const boardSource = cards.cards || cards;
 		return (
-			(cards.commander?.length || 0) +
-			(cards.companion?.length || 0) +
-			(cards.mainboard?.length || 0) +
-			(cards.sideboard?.length || 0) +
-			(cards.maybeboard?.length || 0)
+			(boardSource.commander?.length || 0) +
+			(boardSource.companion?.length || 0) +
+			(boardSource.mainboard?.length || 0) +
+			(boardSource.sideboard?.length || 0) +
+			(boardSource.maybeboard?.length || 0)
 		);
 	}
 </script>
@@ -162,7 +177,7 @@
 				<p>{error}</p>
 				<Button onclick={loadDecks} variant="outline">Try Again</Button>
 			</div>
-		{:else if decks.length === 0}
+		{:else if decks.length === 0 && localDrafts.length === 0}
 			<div class="empty-state">
 				<div class="empty-icon-container">
 					<svg
@@ -249,63 +264,136 @@
 				>
 			</div>
 		{:else}
-			<div class="decks-grid" in:fade={{ duration: 200 }}>
-				{#each decks as deck (deck.id)}
-					<div
-						class="deck-card"
-						class:active={deckStore.id === deck.id}
-						role="button"
-						tabindex="0"
-						onclick={() => handleSelectDeck(deck)}
-						onkeydown={(e) => {
-							if (e.key === "Enter" || e.key === " ") {
-								e.preventDefault();
-								handleSelectDeck(deck);
-							}
-						}}
-					>
-						<div class="deck-art-preview">
-							{#if deck.cards.coverArt}
-								<img
-									src={deck.cards.coverArt}
-									alt=""
-									class="deck-art-img"
-								/>
-							{:else}
-								<div class="deck-art-fallback"></div>
-							{/if}
-							<div class="deck-badge">
-								{deck.cards.format || "Commander"}
-							</div>
-						</div>
-
-						<div class="deck-details">
-							<h3 class="deck-name">{deck.name}</h3>
-							<div class="deck-meta">
-								<span class="card-count"
-									>{getCardCount(deck.cards)} Cards</span
-								>
-								<span class="meta-dot">•</span>
-								<span class="updated-time"
-									>Updated {formatUpdatedDate(
-										deck.updated_at,
-									)}</span
-								>
-							</div>
-						</div>
-
-						<div class="deck-actions">
-							<button
-								class="action-icon-btn delete-btn"
-								title="Delete Deck"
-								onclick={(e) => handleDeleteDeck(deck.id, e)}
-							>
-								<Trash2 size={16} />
-							</button>
-						</div>
+			{#if localDrafts.length > 0}
+				<section class="drafts-section">
+					<div class="section-title-area">
+						<h2>Recent Unsaved Drafts</h2>
+						<span class="drafts-limit-note">Up to 3 drafts kept locally</span>
 					</div>
-				{/each}
-			</div>
+					<div class="decks-grid">
+						{#each localDrafts as draft (draft.id)}
+							<div
+								class="deck-card draft-card"
+								class:active={deckStore.id === draft.id}
+								role="button"
+								tabindex="0"
+								onclick={() => handleSelectDeck(draft)}
+								onkeydown={(e) => {
+									if (e.key === "Enter" || e.key === " ") {
+										e.preventDefault();
+										handleSelectDeck(draft);
+									}
+								}}
+							>
+								<div class="deck-art-preview">
+									{#if draft.coverArt}
+										<img
+											src={draft.coverArt}
+											alt=""
+											class="deck-art-img"
+										/>
+									{:else}
+										<div class="deck-art-fallback draft-art-fallback"></div>
+									{/if}
+									<div class="deck-badge draft-badge">
+										Local Draft
+									</div>
+								</div>
+
+								<div class="deck-details">
+									<h3 class="deck-name">{draft.name || "Name & Save This Deck"}</h3>
+									<div class="deck-meta">
+										<span class="card-count"
+											>{getCardCount(draft)} Cards</span
+										>
+										{#if draft.metadata?.updatedAt}
+											<span class="meta-dot">•</span>
+											<span class="updated-time"
+												>Updated {timeAgo(draft.metadata.updatedAt)}</span
+											>
+										{/if}
+									</div>
+								</div>
+
+								<div class="deck-actions">
+									<button
+										class="action-icon-btn delete-btn"
+										title="Delete Draft"
+										onclick={(e) => handleDeleteDeck(draft.id, e, true)}
+									>
+										<Trash2 size={16} />
+									</button>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</section>
+			{/if}
+
+			{#if decks.length > 0}
+				<section class="library-section" class:has-drafts={localDrafts.length > 0}>
+					<div class="section-title-area">
+						<h2>Saved Deck Library</h2>
+					</div>
+					<div class="decks-grid" in:fade={{ duration: 200 }}>
+						{#each decks as deck (deck.id)}
+							<div
+								class="deck-card"
+								class:active={deckStore.id === deck.id}
+								role="button"
+								tabindex="0"
+								onclick={() => handleSelectDeck(deck)}
+								onkeydown={(e) => {
+									if (e.key === "Enter" || e.key === " ") {
+										e.preventDefault();
+										handleSelectDeck(deck);
+									}
+								}}
+							>
+								<div class="deck-art-preview">
+									{#if deck.cards.coverArt}
+										<img
+											src={deck.cards.coverArt}
+											alt=""
+											class="deck-art-img"
+										/>
+									{:else}
+										<div class="deck-art-fallback"></div>
+									{/if}
+									<div class="deck-badge">
+										{deck.cards.format || "Commander"}
+									</div>
+								</div>
+
+								<div class="deck-details">
+									<h3 class="deck-name">{deck.name}</h3>
+									<div class="deck-meta">
+										<span class="card-count"
+											>{getCardCount(deck.cards)} Cards</span
+										>
+										<span class="meta-dot">•</span>
+										<span class="updated-time"
+											>Updated {formatUpdatedDate(
+												deck.updated_at,
+											)}</span
+										>
+									</div>
+								</div>
+
+								<div class="deck-actions">
+									<button
+										class="action-icon-btn delete-btn"
+										title="Delete Deck"
+										onclick={(e) => handleDeleteDeck(deck.id, e)}
+									>
+										<Trash2 size={16} />
+									</button>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</section>
+			{/if}
 		{/if}
 	</main>
 </div>
@@ -610,5 +698,52 @@
 	.action-icon-btn:hover {
 		background: rgba(239, 68, 68, 0.8);
 		border-color: rgba(239, 68, 68, 0.2);
+	}
+
+	/* Sectioning */
+	.drafts-section,
+	.library-section {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.library-section.has-drafts {
+		margin-top: 3rem;
+	}
+
+	.section-title-area {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		border-bottom: 1px solid hsl(var(--border) / 0.2);
+		padding-bottom: 0.5rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.section-title-area h2 {
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+		margin: 0;
+	}
+
+	.drafts-limit-note {
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+		font-style: italic;
+	}
+
+	.draft-badge {
+		background: hsl(var(--warning) / 0.95) !important;
+		color: hsl(var(--warning-foreground)) !important;
+	}
+
+	.draft-art-fallback {
+		background: linear-gradient(
+			135deg,
+			hsl(var(--muted) / 0.5) 0%,
+			hsl(var(--warning) / 0.25) 100%
+		) !important;
 	}
 </style>
