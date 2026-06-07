@@ -58,25 +58,29 @@
 			activeBoard: deck.cards.activeBoard || "mainboard",
 			coverArt: deck.cards.coverArt || null,
 			format: deck.cards.format || "Commander",
-			metadata: deck.cards.metadata || {}
+			metadata: deck.cards.metadata || {},
 		});
 		goto("/");
 	}
 
-	/** 
-	 * @param {string} deckId 
+	/**
+	 * @param {string} deckId
 	 * @param {MouseEvent} e
 	 */
 	async function handleDeleteDeck(deckId, e) {
 		e.stopPropagation();
-		if (!confirm("Are you sure you want to delete this deck? This cannot be undone.")) {
+		if (
+			!confirm(
+				"Are you sure you want to delete this deck? This cannot be undone.",
+			)
+		) {
 			return;
 		}
 
 		try {
 			const { error: deleteError } = await syncService.deleteDeck(deckId);
 			if (deleteError) throw deleteError;
-			decks = decks.filter(d => d.id !== deckId);
+			decks = decks.filter((d) => d.id !== deckId);
 		} catch (err) {
 			console.error("Failed to delete deck:", err);
 			alert("Failed to delete deck. Please try again.");
@@ -147,28 +151,64 @@
 		{:else if decks.length === 0}
 			<div class="empty-state">
 				<div class="empty-icon-container">
-					<svg viewBox="0 0 160 160" width="140" height="140" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<svg
+						viewBox="0 0 160 160"
+						width="140"
+						height="140"
+						fill="none"
+						xmlns="http://www.w3.org/2000/svg"
+					>
 						<!-- Vertical Stack of Cards -->
 						{#each Array(13) as _, i}
 							{@const yOffset = (12 - i) * 2.8}
-							<g transform="translate(0, {yOffset}) matrix(-0.86, 0.5, 0.871, 0.5, 79, 70)">
-								<rect 
-									x="-25" y="-35" width="50" height="70" rx="3"
-									fill={i === 12 ? "hsl(var(--muted) / 0.55)" : "hsl(var(--background))"} 
-									stroke="currentColor" 
-									stroke-width="1" 
-									stroke-opacity={i === 12 ? "0.9" : "0.5"} 
+							<g
+								transform="translate(0, {yOffset}) matrix(-0.86, 0.5, 0.871, 0.5, 79, 70)"
+							>
+								<rect
+									x="-25"
+									y="-35"
+									width="50"
+									height="70"
+									rx="3"
+									fill={i === 12
+										? "hsl(var(--muted) / 0.55)"
+										: "hsl(var(--background))"}
+									stroke="currentColor"
+									stroke-width="1"
+									stroke-opacity={i === 12 ? "0.9" : "0.5"}
 								/>
 								{#if i === 12}
 									<!-- Design Details on the Top Card (MTG Card Back) -->
 									<!-- Inner border -->
-									<rect x="-21" y="-31" width="42" height="62" rx="1.5" stroke="currentColor" stroke-width="1" stroke-opacity="0.8" />
-									
+									<rect
+										x="-21"
+										y="-31"
+										width="42"
+										height="62"
+										rx="1.5"
+										stroke="currentColor"
+										stroke-width="1"
+										stroke-opacity="0.8"
+									/>
+
 									<!-- Ellipse in the center (MTG Card Back Oval) -->
-									<ellipse cx="0" cy="0" rx="14" ry="24" fill="hsl(var(--muted) / 0.1)" stroke="currentColor" stroke-width="1" stroke-opacity="0.8" />
-									
+									<ellipse
+										cx="0"
+										cy="0"
+										rx="14"
+										ry="24"
+										fill="hsl(var(--muted) / 0.1)"
+										stroke="currentColor"
+										stroke-width="1"
+										stroke-opacity="0.8"
+									/>
+
 									<!-- 5 mana circles in WUBRG pentagon layout -->
-									<g stroke="currentColor" stroke-width="1" stroke-opacity="0.8">
+									<g
+										stroke="currentColor"
+										stroke-width="1"
+										stroke-opacity="0.8"
+									>
 										<!-- Top (White) -->
 										<circle cx="0" cy="-6" r="1.2" />
 										<!-- Right (Blue) -->
@@ -186,14 +226,19 @@
 					</svg>
 				</div>
 				<h3>Create your first deck</h3>
-				<p>Your saved decks will appear here. Let's start building your next masterpiece!</p>
-				<a href="/" class="start-building-btn">Start Building <span class="arrow-icon">→</span></a>
+				<p>
+					Your saved decks will appear here. Continue to the
+					deckbuilder to start brewing.
+				</p>
+				<a href="/" class="start-building-btn"
+					>Start Building <span class="arrow-icon">→</span></a
+				>
 			</div>
 		{:else}
 			<div class="decks-grid" in:fade={{ duration: 200 }}>
 				{#each decks as deck (deck.id)}
-					<div 
-						class="deck-card" 
+					<div
+						class="deck-card"
 						class:active={deckStore.id === deck.id}
 						role="button"
 						tabindex="0"
@@ -207,25 +252,37 @@
 					>
 						<div class="deck-art-preview">
 							{#if deck.cards.coverArt}
-								<img src={deck.cards.coverArt} alt="" class="deck-art-img" />
+								<img
+									src={deck.cards.coverArt}
+									alt=""
+									class="deck-art-img"
+								/>
 							{:else}
 								<div class="deck-art-fallback"></div>
 							{/if}
-							<div class="deck-badge">{deck.cards.format || "Commander"}</div>
+							<div class="deck-badge">
+								{deck.cards.format || "Commander"}
+							</div>
 						</div>
-						
+
 						<div class="deck-details">
 							<h3 class="deck-name">{deck.name}</h3>
 							<div class="deck-meta">
-								<span class="card-count">{getCardCount(deck.cards)} Cards</span>
+								<span class="card-count"
+									>{getCardCount(deck.cards)} Cards</span
+								>
 								<span class="meta-dot">•</span>
-								<span class="updated-time">Updated {formatUpdatedDate(deck.updated_at)}</span>
+								<span class="updated-time"
+									>Updated {formatUpdatedDate(
+										deck.updated_at,
+									)}</span
+								>
 							</div>
 						</div>
 
 						<div class="deck-actions">
-							<button 
-								class="action-icon-btn delete-btn" 
+							<button
+								class="action-icon-btn delete-btn"
 								title="Delete Deck"
 								onclick={(e) => handleDeleteDeck(deck.id, e)}
 							>
@@ -283,7 +340,8 @@
 	}
 
 	.page-header h1 {
-		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
+			Georgia, serif;
 		font-size: 1.75rem;
 		font-style: italic;
 		font-weight: 500;
@@ -340,7 +398,8 @@
 	}
 
 	.empty-state h3 {
-		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
+			Georgia, serif;
 		font-style: italic;
 		font-size: 1.5rem;
 		font-weight: 600;
@@ -395,8 +454,12 @@
 	}
 
 	@keyframes spin {
-		from { transform: rotate(0deg); }
-		to { transform: rotate(360deg); }
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	/* Decks list/grid */
@@ -450,7 +513,11 @@
 	.deck-art-fallback {
 		width: 100%;
 		height: 100%;
-		background: linear-gradient(135deg, hsl(var(--muted)) 0%, hsl(var(--accent) / 0.6) 100%);
+		background: linear-gradient(
+			135deg,
+			hsl(var(--muted)) 0%,
+			hsl(var(--accent) / 0.6) 100%
+		);
 	}
 
 	.deck-badge {
