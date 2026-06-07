@@ -764,9 +764,9 @@ function createDeck() {
 		get canUndo() { return history.length > 0; },
 		get canRedo() { return redoStack.length > 0; },
 
-		/** @param {any} newDeck */
 		setDeck(newDeck) {
 			saveHistory();
+			deck.id = newDeck.id || generateId();
 			deck.name = newDeck.name || '';
 			deck.commander = newDeck.commander || [];
 			deck.companion = newDeck.companion || [];

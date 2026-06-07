@@ -81,6 +81,20 @@
 			const { error: deleteError } = await syncService.deleteDeck(deckId);
 			if (deleteError) throw deleteError;
 			decks = decks.filter((d) => d.id !== deckId);
+
+			if (deckStore.id === deckId) {
+				deckStore.setDeck({
+					id: "",
+					name: "",
+					commander: [],
+					companion: [],
+					mainboard: [],
+					sideboard: [],
+					maybeboard: [],
+					garbage: [],
+					coverArt: null
+				});
+			}
 		} catch (err) {
 			console.error("Failed to delete deck:", err);
 			alert("Failed to delete deck. Please try again.");

@@ -68,6 +68,7 @@
 	/** @param {DragEvent} e */
 	function handleArtDragOver(e) {
 		e.preventDefault();
+		e.stopPropagation();
 		isDragOverArt = true;
 	}
 
@@ -78,6 +79,7 @@
 	/** @param {DragEvent} e */
 	async function handleArtDrop(e) {
 		e.preventDefault();
+		e.stopPropagation();
 		isDragOverArt = false;
 		if (!e.dataTransfer) return;
 
