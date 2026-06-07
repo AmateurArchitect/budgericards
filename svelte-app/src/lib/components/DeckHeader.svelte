@@ -90,7 +90,7 @@
 			try {
 				const data = JSON.parse(internalData);
 				const meta =
-					data.card || deckStore.metadata[data.name.toLowerCase()];
+					deckStore.metadata[data.name.toLowerCase()] || data.card;
 				if (meta) {
 					const art =
 						meta.image_uris?.art_crop ||
