@@ -6,7 +6,6 @@ import { getCardByName } from '$lib/localSearch';
 import { db } from '$lib/db';
 import { parseDecklist } from '$lib/utils/decklistParser.js';
 
-
 const browser = typeof window !== 'undefined';
 
 /** 
@@ -15,6 +14,7 @@ const browser = typeof window !== 'undefined';
  * @property {string} name
  * @property {number | null} price
  * @property {number} addedAt
+ * @property {string} [customColumn]
  */
 
 export const generateId = () => {
@@ -28,42 +28,379 @@ export const generateId = () => {
 	return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 };
 
-function createDeck() {
-	/** @type {Record<string, any> & { id: string, name: string, commander: DeckCard[], mainboard: DeckCard[], sideboard: DeckCard[], maybeboard: DeckCard[], garbage: DeckCard[], activeBoard: string, grouping: string, sorting: string, splitView: boolean, coverArt: string | null }} */
+function createDeckState(initialData = null) {
 	let deck = $state({
-		id: generateId(),
-		name: '',
-		commander: [],
-		companion: [],
-		mainboard: [],
-		sideboard: [],
-		maybeboard: [],
-		garbage: [],
-		activeBoard: 'mainboard',
-		grouping: 'cmc', 
-		sorting: 'color', 
-		sortAscending: true,
-		splitView: false,
-		coverArt: null,
-		format: 'List',
-		lastNaturalGrouping: 'cmc'
+		id: initialData?.id || generateId(),
+		name: initialData?.name || '',
+		commander: initialData?.commander || [],
+		companion: initialData?.companion || [],
+		mainboard: initialData?.mainboard || [],
+		sideboard: initialData?.sideboard || [],
+		maybeboard: initialData?.maybeboard || [],
+		garbage: initialData?.garbage || [],
+		activeBoard: initialData?.activeBoard || 'mainboard',
+		grouping: initialData?.grouping || 'cmc', 
+		sorting: initialData?.sorting || 'color', 
+		sortAscending: initialData?.sortAscending !== false,
+		splitView: !!initialData?.splitView,
+		coverArt: initialData?.coverArt || null,
+		format: initialData?.format || 'List',
+		lastNaturalGrouping: initialData?.lastNaturalGrouping || 'cmc'
 	});
 
-	/** @type {Record<string, any>} */
 	let metadata = $state({
-		createdBy: 'Anonymous',
-		createdAt: Date.now(),
-		updatedAt: Date.now()
+		createdBy: initialData?.metadata?.createdBy || 'Anonymous',
+		createdAt: initialData?.metadata?.createdAt || Date.now(),
+		updatedAt: initialData?.metadata?.updatedAt || Date.now(),
+		...(initialData?.metadata || {})
 	});
 
-	/** @type {string[]} */
 	let history = $state([]);
-	/** @type {string[]} */
 	let redoStack = $state([]);
+	let importText = $state(initialData?.importText || '');
 
-	let importText = $state('');
+	return {
+		get deck() { return deck; },
+		set deck(val) { deck = val; },
+		get metadata() { return metadata; },
+		set metadata(val) { metadata = val; },
+		get history() { return history; },
+		set history(val) { history = val; },
+		get redoStack() { return redoStack; },
+		set redoStack(val) { redoStack = val; },
+		get importText() { return importText; },
+		set importText(val) { importText = val; }
+	};
+}
 
-	const cleanDecklistText = $derived.by(() => {
+function createDeck() {
+	// A reactive map of loaded decks in this tab session
+	/** @type {Record<string, ReturnType<typeof createDeckState>>} */
+	let loadedDecks = $state({});
+	let activeDeckId = $state('');
+
+	// Derived helper to get the active deck state
+	const activeDeck = $derived.by(() => {
+		if (!activeDeckId) {
+			return createDeckState();
+		}
+		if (!loadedDecks[activeDeckId]) {
+			// Try to load from localStorage drafts or cache
+			const loaded = loadFromStorage(activeDeckId);
+			loadedDecks[activeDeckId] = loaded || createDeckState({ id: activeDeckId });
+		}
+		return loadedDecks[activeDeckId];
+	});
+
+	function loadFromStorage(id) {
+		if (!browser) return null;
+		// 1. Check local drafts
+		const drafts = JSON.parse(localStorage.getItem('budgericards_local_drafts') || '[]');
+		const draft = drafts.find(/** @param {any} d */ d => d.id === id);
+		if (draft) return createDeckState(draft);
+
+		// 2. Check cached decks
+		const cached = JSON.parse(localStorage.getItem('budgericards_cached_decks') || '{}');
+		if (cached[id]) return createDeckState(cached[id]);
+
+		return null;
+	}
+
+	// Initialize active deck on load
+	if (browser) {
+		let activeId = sessionStorage.getItem('budgericards_active_deck_id') || '';
+		if (!activeId) {
+			// Start a fresh unnamed draft
+			activeId = generateId();
+			sessionStorage.setItem('budgericards_active_deck_id', activeId);
+			const freshDraft = createDeckState({ id: activeId });
+			loadedDecks[activeId] = freshDraft;
+			
+			// Save new draft to local drafts list
+			const drafts = JSON.parse(localStorage.getItem('budgericards_local_drafts') || '[]');
+			drafts.unshift($state.snapshot(freshDraft.deck));
+			while (drafts.length > 3) {
+				drafts.pop();
+			}
+			localStorage.setItem('budgericards_local_drafts', JSON.stringify(drafts));
+		}
+		activeDeckId = activeId;
+	}
+
+	/** @param {ReturnType<typeof createDeckState>} deckState */
+	function saveHistory(deckState) {
+		const snapshot = JSON.stringify($state.snapshot({
+			commander: deckState.deck.commander,
+			companion: deckState.deck.companion,
+			mainboard: deckState.deck.mainboard,
+			sideboard: deckState.deck.sideboard,
+			maybeboard: deckState.deck.maybeboard,
+			garbage: deckState.deck.garbage,
+			name: deckState.deck.name,
+			coverArt: deckState.deck.coverArt,
+			format: deckState.deck.format,
+			lastNaturalGrouping: deckState.deck.lastNaturalGrouping
+		}));
+		if (deckState.history.length === 0 || deckState.history[deckState.history.length - 1] !== snapshot) {
+			deckState.history.push(snapshot);
+			if (deckState.history.length > 50) deckState.history.shift();
+			deckState.redoStack = [];
+			deckState.metadata.updatedAt = Date.now();
+		}
+	}
+
+	let syncState = $state({
+		isSyncing: false,
+		lastSynced: null,
+		error: null
+	});
+
+	let syncTimeout = null;
+	/** @param {ReturnType<typeof createDeckState>} deckState */
+	function triggerCloudSync(deckState) {
+		if (!browser || !authStore.isAuthenticated) return;
+
+		if (syncTimeout) clearTimeout(syncTimeout);
+		syncTimeout = setTimeout(async () => {
+			await triggerCloudSyncNow(deckState);
+		}, 1000);
+	}
+
+	/** @param {ReturnType<typeof createDeckState>} deckState */
+	async function triggerCloudSyncNow(deckState) {
+		if (!browser || !authStore.isAuthenticated) return;
+
+		const isUnnamed = !deckState.deck.name || deckState.deck.name.trim() === '' || deckState.deck.name === 'Untitled Deck';
+		if (isUnnamed) {
+			console.log("Deck is unnamed or default. Skipping cloud sync.");
+			return;
+		}
+
+		syncState.isSyncing = true;
+		try {
+			const deckData = $state.snapshot({
+				name: deckState.deck.name,
+				commander: deckState.deck.commander,
+				companion: deckState.deck.companion,
+				mainboard: deckState.deck.mainboard,
+				sideboard: deckState.deck.sideboard,
+				maybeboard: deckState.deck.maybeboard,
+				garbage: deckState.deck.garbage,
+				activeBoard: deckState.deck.activeBoard,
+				grouping: deckState.deck.grouping,
+				sorting: deckState.deck.sorting,
+				sortAscending: deckState.deck.sortAscending,
+				splitView: deckState.deck.splitView,
+				coverArt: deckState.deck.coverArt,
+				format: deckState.deck.format,
+				lastNaturalGrouping: deckState.deck.lastNaturalGrouping,
+				metadata: deckState.metadata
+			});
+
+			const { data, error, updatedId } = await syncService.saveDeck(deckState.deck.id, deckData);
+			if (error) throw error;
+
+			if (updatedId) {
+				const oldId = deckState.deck.id;
+				deckState.deck.id = updatedId;
+				
+				if (sessionStorage.getItem('budgericards_active_deck_id') === oldId) {
+					sessionStorage.setItem('budgericards_active_deck_id', updatedId);
+				}
+				if (activeDeckId === oldId) {
+					activeDeckId = updatedId;
+				}
+				loadedDecks[updatedId] = deckState;
+				delete loadedDecks[oldId];
+
+				let cached = JSON.parse(localStorage.getItem('budgericards_cached_decks') || '{}');
+				cached[updatedId] = deckData;
+				delete cached[oldId];
+				localStorage.setItem('budgericards_cached_decks', JSON.stringify(cached));
+			}
+
+			syncState.lastSynced = Date.now();
+			syncState.error = null;
+		} catch (err) {
+			console.error("Cloud sync failed:", err);
+			syncState.error = err.message || String(err);
+		} finally {
+			syncState.isSyncing = false;
+		}
+	}
+
+	function loadDeckData(cloudDeck) {
+		const targetState = activeDeck;
+		targetState.deck.id = cloudDeck.id;
+		targetState.deck.name = cloudDeck.name;
+		targetState.deck.commander = cloudDeck.cards.commander || [];
+		targetState.deck.companion = cloudDeck.cards.companion || [];
+		targetState.deck.mainboard = cloudDeck.cards.mainboard || [];
+		targetState.deck.sideboard = cloudDeck.cards.sideboard || [];
+		targetState.deck.maybeboard = cloudDeck.cards.maybeboard || [];
+		targetState.deck.garbage = cloudDeck.cards.garbage || [];
+		targetState.deck.activeBoard = cloudDeck.cards.activeBoard || 'mainboard';
+		targetState.deck.grouping = cloudDeck.cards.grouping || 'cmc';
+		targetState.deck.sorting = cloudDeck.cards.sorting || 'color';
+		targetState.deck.sortAscending = cloudDeck.cards.sortAscending !== false;
+		targetState.deck.splitView = !!cloudDeck.cards.splitView;
+		targetState.deck.coverArt = cloudDeck.cards.coverArt || null;
+		targetState.deck.format = cloudDeck.cards.format || 'Commander';
+		targetState.deck.lastNaturalGrouping = cloudDeck.cards.lastNaturalGrouping || 'cmc';
+		
+		Object.assign(targetState.metadata, cloudDeck.cards.metadata || {});
+		targetState.metadata.updatedAt = new Date(cloudDeck.updated_at).getTime();
+		
+		persist(targetState);
+	}
+
+	async function pullDecksFromCloud() {
+		syncState.isSyncing = true;
+		try {
+			const { data, error } = await syncService.fetchDecks();
+			if (error) throw error;
+			const targetState = activeDeck;
+			if (data && data.length > 0) {
+				const cloudDeck = data.find(d => d.id === targetState.deck.id);
+				if (cloudDeck) {
+					const cloudTime = new Date(cloudDeck.updated_at).getTime();
+					const localTime = targetState.metadata.updatedAt || 0;
+					if (cloudTime > localTime) {
+						console.log("Loading newer cloud version of deck:", cloudDeck.name);
+						loadDeckData(cloudDeck);
+					} else if (localTime > cloudTime) {
+						console.log("Pushing newer local version of deck to cloud:", targetState.deck.name);
+						await triggerCloudSyncNow(targetState);
+					}
+				} else {
+					const isEmpty = targetState.deck.commander.length === 0 && targetState.deck.companion.length === 0 && targetState.deck.mainboard.length === 0 && targetState.deck.sideboard.length === 0 && targetState.deck.maybeboard.length === 0;
+					if (isEmpty && (!targetState.deck.name || targetState.deck.name === 'Untitled Deck')) {
+						console.log("Loading latest cloud deck onto empty default local:", data[0].name);
+						loadDeckData(data[0]);
+					} else {
+						const isUnnamed = !targetState.deck.name || targetState.deck.name.trim() === '' || targetState.deck.name === 'Untitled Deck';
+						if (!isUnnamed) {
+							console.log("Saving local deck as a new cloud deck:", targetState.deck.name);
+							await triggerCloudSyncNow(targetState);
+						}
+					}
+				}
+			} else {
+				const isUnnamed = !targetState.deck.name || targetState.deck.name.trim() === '' || targetState.deck.name === 'Untitled Deck';
+				if (!isUnnamed) {
+					console.log("No cloud decks found. Backing up current local deck to cloud.");
+					await triggerCloudSyncNow(targetState);
+				}
+			}
+		} catch (err) {
+			console.error("Failed to sync decks with cloud:", err);
+			syncState.error = err.message || String(err);
+		} finally {
+			syncState.isSyncing = false;
+		}
+	}
+
+	/** @param {ReturnType<typeof createDeckState>} deckState */
+	function persist(deckState) {
+		if (!browser) return;
+		try {
+			const dataToSave = $state.snapshot({
+				id: deckState.deck.id,
+				name: deckState.deck.name,
+				commander: deckState.deck.commander,
+				companion: deckState.deck.companion,
+				mainboard: deckState.deck.mainboard,
+				sideboard: deckState.deck.sideboard,
+				maybeboard: deckState.deck.maybeboard,
+				garbage: deckState.deck.garbage,
+				activeBoard: deckState.deck.activeBoard,
+				grouping: deckState.deck.grouping,
+				sorting: deckState.deck.sorting,
+				sortAscending: deckState.deck.sortAscending,
+				splitView: deckState.deck.splitView,
+				coverArt: deckState.deck.coverArt,
+				format: deckState.deck.format,
+				lastNaturalGrouping: deckState.deck.lastNaturalGrouping,
+				metadata: deckState.metadata
+			});
+
+			const isUnnamed = !dataToSave.name || dataToSave.name.trim() === '' || dataToSave.name === 'Untitled Deck';
+			if (isUnnamed) {
+				let drafts = JSON.parse(localStorage.getItem('budgericards_local_drafts') || '[]');
+				const idx = drafts.findIndex(/** @param {any} d */ d => d.id === dataToSave.id);
+				if (idx !== -1) {
+					drafts[idx] = dataToSave;
+				} else {
+					drafts.unshift(dataToSave);
+					while (drafts.length > 3) {
+						drafts.pop();
+					}
+				}
+				localStorage.setItem('budgericards_local_drafts', JSON.stringify(drafts));
+
+				let cached = JSON.parse(localStorage.getItem('budgericards_cached_decks') || '{}');
+				if (cached[dataToSave.id]) {
+					delete cached[dataToSave.id];
+					localStorage.setItem('budgericards_cached_decks', JSON.stringify(cached));
+				}
+			} else {
+				let cached = JSON.parse(localStorage.getItem('budgericards_cached_decks') || '{}');
+				cached[dataToSave.id] = dataToSave;
+				localStorage.setItem('budgericards_cached_decks', JSON.stringify(cached));
+
+				let drafts = JSON.parse(localStorage.getItem('budgericards_local_drafts') || '[]');
+				const newDrafts = drafts.filter(/** @param {any} d */ d => d.id !== dataToSave.id);
+				if (newDrafts.length !== drafts.length) {
+					localStorage.setItem('budgericards_local_drafts', JSON.stringify(newDrafts));
+				}
+
+				triggerCloudSync(deckState);
+			}
+		} catch (err) {
+			const e = /** @type {any} */ (err);
+			if (e.name === 'QuotaExceededError') {
+				console.error('LocalStorage quota exceeded. Changes may not be saved.');
+			} else {
+				console.error('Failed to save deck to localStorage:', e);
+			}
+		}
+	}
+
+	$effect.root(() => {
+		let lastCleanText = '';
+		$effect(() => {
+			const currentClean = activeDeck.deck.id ? cleanDecklistTextFor(activeDeck) : '';
+			if (activeDeck.importText.trim() === lastCleanText || activeDeck.importText === '') {
+				activeDeck.importText = currentClean;
+			}
+			lastCleanText = currentClean;
+		});
+
+		$effect(() => {
+			if (browser && activeDeck.deck.id) {
+				const allCards = [
+					...activeDeck.deck.commander,
+					...activeDeck.deck.companion,
+					...activeDeck.deck.mainboard,
+					...activeDeck.deck.sideboard,
+					...activeDeck.deck.maybeboard
+				];
+				const missingMetadata = allCards.some(c => !activeDeck.metadata[c.name.toLowerCase()]);
+				if (missingMetadata) {
+					syncMetadata(activeDeck);
+				}
+			}
+		});
+
+		$effect(() => {
+			if (browser && authStore.isAuthenticated && !authStore.isLoading && activeDeck.deck.id) {
+				pullDecksFromCloud();
+			}
+		});
+	});
+
+	/** @param {ReturnType<typeof createDeckState>} deckState */
+	function cleanDecklistTextFor(deckState) {
 		let text = '';
 		const boardsList = [
 			{ name: 'commander', label: 'Commander' },
@@ -73,7 +410,7 @@ function createDeck() {
 			{ name: 'maybeboard', label: 'Maybeboard' }
 		];
 		for (const board of boardsList) {
-			const cards = deck[board.name] || [];
+			const cards = deckState.deck[board.name] || [];
 			if (cards.length === 0) continue;
 			
 			text += `// ${board.label}\n`;
@@ -90,298 +427,32 @@ function createDeck() {
 			text += '\n';
 		}
 		return text.trim();
-	});
-
-	const isImportDirty = $derived(importText.trim() !== cleanDecklistText);
-
-	function saveHistory() {
-		const snapshot = JSON.stringify($state.snapshot({
-			commander: deck.commander,
-			companion: deck.companion,
-			mainboard: deck.mainboard,
-			sideboard: deck.sideboard,
-			maybeboard: deck.maybeboard,
-			garbage: deck.garbage,
-			name: deck.name,
-			coverArt: deck.coverArt,
-			format: deck.format,
-			lastNaturalGrouping: deck.lastNaturalGrouping
-		}));
-		// Only save if different from last history entry
-		if (history.length === 0 || history[history.length - 1] !== snapshot) {
-			history.push(snapshot);
-			if (history.length > 50) history.shift();
-			redoStack = [];
-			metadata.updatedAt = Date.now();
-		}
 	}
-
-	if (browser) {
-		const saved = localStorage.getItem('budgericards_deck');
-		if (saved) {
-			try {
-				const parsed = JSON.parse(saved);
-				// Migration: if cards have 'qty' but no 'id', expand them
-				/** @param {any[]} board */
-				const expandBoard = (board) => {
-					/** @type {DeckCard[]} */
-					const expanded = [];
-					(board || []).forEach(/** @param {any} c */ c => {
-						const qty = c.qty || 1;
-						for (let i = 0; i < qty; i++) {
-							expanded.push({
-								id: c.id && qty === 1 ? c.id : generateId(),
-								name: c.name,
-								price: c.price || 0,
-								addedAt: c.addedAt || Date.now()
-							});
-						}
-					});
-					return expanded;
-				};
-
-				deck.id = parsed.id || generateId();
-				deck.name = parsed.name || '';
-				deck.commander = expandBoard(parsed.commander);
-				deck.companion = expandBoard(parsed.companion);
-				deck.mainboard = expandBoard(parsed.mainboard);
-				deck.sideboard = expandBoard(parsed.sideboard);
-				deck.maybeboard = expandBoard(parsed.maybeboard);
-				deck.garbage = expandBoard(parsed.garbage);
-				deck.activeBoard = parsed.activeBoard || 'mainboard';
-				deck.grouping = parsed.grouping || 'cmc';
-				deck.sorting = parsed.sorting || 'color';
-				deck.sortAscending = parsed.sortAscending !== false;
-				deck.splitView = !!parsed.splitView;
-				deck.coverArt = parsed.coverArt || null;
-				deck.format = parsed.format || 'Commander';
-				if (parsed.metadata) {
-					Object.assign(metadata, parsed.metadata);
-				}
-			} catch (e) {
-				console.error('Failed to parse saved deck:', e);
-			}
-		}
-	}
-
-	let syncState = $state({
-		isSyncing: false,
-		lastSynced: null,
-		error: null
-	});
-
-	let syncTimeout = null;
-	function triggerCloudSync() {
-		if (!browser || !authStore.isAuthenticated) return;
-
-		if (syncTimeout) clearTimeout(syncTimeout);
-		syncTimeout = setTimeout(async () => {
-			await triggerCloudSyncNow();
-		}, 1000);
-	}
-
-	async function triggerCloudSyncNow() {
-		if (!browser || !authStore.isAuthenticated) return;
-
-		const isUnnamed = !deck.name || deck.name.trim() === '' || deck.name === 'Untitled Deck';
-		if (isUnnamed) {
-			console.log("Deck is unnamed or default. Skipping cloud sync.");
-			return;
-		}
-
-		syncState.isSyncing = true;
-		try {
-			const deckData = $state.snapshot({
-				name: deck.name,
-				commander: deck.commander,
-				companion: deck.companion,
-				mainboard: deck.mainboard,
-				sideboard: deck.sideboard,
-				maybeboard: deck.maybeboard,
-				garbage: deck.garbage,
-				activeBoard: deck.activeBoard,
-				grouping: deck.grouping,
-				sorting: deck.sorting,
-				sortAscending: deck.sortAscending,
-				splitView: deck.splitView,
-				coverArt: deck.coverArt,
-				format: deck.format,
-				lastNaturalGrouping: deck.lastNaturalGrouping,
-				metadata: metadata
-			});
-
-			const { data, error, updatedId } = await syncService.saveDeck(deck.id, deckData);
-			if (error) throw error;
-
-			if (updatedId) {
-				deck.id = updatedId;
-				const localData = JSON.parse(localStorage.getItem('budgericards_deck') || '{}');
-				localData.id = updatedId;
-				localStorage.setItem('budgericards_deck', JSON.stringify(localData));
-			}
-
-			syncState.lastSynced = Date.now();
-			syncState.error = null;
-		} catch (err) {
-			console.error("Cloud sync failed:", err);
-			syncState.error = err.message || String(err);
-		} finally {
-			syncState.isSyncing = false;
-		}
-	}
-
-	function loadDeckData(cloudDeck) {
-		deck.id = cloudDeck.id;
-		deck.name = cloudDeck.name;
-		deck.commander = cloudDeck.cards.commander || [];
-		deck.companion = cloudDeck.cards.companion || [];
-		deck.mainboard = cloudDeck.cards.mainboard || [];
-		deck.sideboard = cloudDeck.cards.sideboard || [];
-		deck.maybeboard = cloudDeck.cards.maybeboard || [];
-		deck.garbage = cloudDeck.cards.garbage || [];
-		deck.activeBoard = cloudDeck.cards.activeBoard || 'mainboard';
-		deck.grouping = cloudDeck.cards.grouping || 'cmc';
-		deck.sorting = cloudDeck.cards.sorting || 'color';
-		deck.sortAscending = cloudDeck.cards.sortAscending !== false;
-		deck.splitView = !!cloudDeck.cards.splitView;
-		deck.coverArt = cloudDeck.cards.coverArt || null;
-		deck.format = cloudDeck.cards.format || 'Commander';
-		deck.lastNaturalGrouping = cloudDeck.cards.lastNaturalGrouping || 'cmc';
-		
-		Object.assign(metadata, cloudDeck.cards.metadata || {});
-		metadata.updatedAt = new Date(cloudDeck.updated_at).getTime();
-		
-		persist();
-	}
-
-	async function pullDecksFromCloud() {
-		syncState.isSyncing = true;
-		try {
-			const { data, error } = await syncService.fetchDecks();
-			if (error) throw error;
-			if (data && data.length > 0) {
-				const cloudDeck = data.find(d => d.id === deck.id);
-				if (cloudDeck) {
-					const cloudTime = new Date(cloudDeck.updated_at).getTime();
-					const localTime = metadata.updatedAt || 0;
-					if (cloudTime > localTime) {
-						console.log("Loading newer cloud version of deck:", cloudDeck.name);
-						loadDeckData(cloudDeck);
-					} else if (localTime > cloudTime) {
-						console.log("Pushing newer local version of deck to cloud:", deck.name);
-						await triggerCloudSyncNow();
-					}
-				} else {
-					const isEmpty = deck.commander.length === 0 && deck.companion.length === 0 && deck.mainboard.length === 0 && deck.sideboard.length === 0 && deck.maybeboard.length === 0;
-					if (isEmpty && (!deck.name || deck.name === 'Untitled Deck')) {
-						console.log("Loading latest cloud deck onto empty default local:", data[0].name);
-						loadDeckData(data[0]);
-					} else {
-						const isUnnamed = !deck.name || deck.name.trim() === '' || deck.name === 'Untitled Deck';
-						if (!isUnnamed) {
-							console.log("Saving local deck as a new cloud deck:", deck.name);
-							await triggerCloudSyncNow();
-						}
-					}
-				}
-			} else {
-				const isUnnamed = !deck.name || deck.name.trim() === '' || deck.name === 'Untitled Deck';
-				if (!isUnnamed) {
-					console.log("No cloud decks found. Backing up current local deck to cloud.");
-					await triggerCloudSyncNow();
-				}
-			}
-		} catch (err) {
-			console.error("Failed to sync decks with cloud:", err);
-			syncState.error = err.message || String(err);
-		} finally {
-			syncState.isSyncing = false;
-		}
-	}
-
-	function persist() {
-		if (!browser) return;
-		try {
-			const dataToSave = $state.snapshot({
-				id: deck.id,
-				name: deck.name,
-				commander: deck.commander,
-				companion: deck.companion,
-				mainboard: deck.mainboard,
-				sideboard: deck.sideboard,
-				maybeboard: deck.maybeboard,
-				garbage: deck.garbage,
-				activeBoard: deck.activeBoard,
-				grouping: deck.grouping,
-				sorting: deck.sorting,
-				sortAscending: deck.sortAscending,
-				splitView: deck.splitView,
-				coverArt: deck.coverArt,
-				format: deck.format,
-				lastNaturalGrouping: deck.lastNaturalGrouping,
-				metadata: metadata
-			});
-			localStorage.setItem('budgericards_deck', JSON.stringify(dataToSave));
-			triggerCloudSync();
-		} catch (err) {
-			const e = /** @type {any} */ (err);
-			if (e.name === 'QuotaExceededError') {
-				console.error('LocalStorage quota exceeded for budgericards_deck. Changes may not be saved.');
-			} else {
-				console.error('Failed to save deck to localStorage:', e);
-			}
-		}
-	}
-
-	$effect.root(() => {
-		// Sync importText with cleanDecklistText when not dirty
-		let lastCleanText = cleanDecklistText;
-		$effect(() => {
-			const currentClean = cleanDecklistText;
-			if (importText.trim() === lastCleanText || importText === '') {
-				importText = currentClean;
-			}
-			lastCleanText = currentClean;
-		});
-
-		// Auto-sync metadata for missing cards
-		$effect(() => {
-			if (browser) {
-				const allCards = [...deck.commander, ...deck.companion, ...deck.mainboard, ...deck.sideboard, ...deck.maybeboard];
-				const missingMetadata = allCards.some(c => !metadata[c.name.toLowerCase()]);
-				if (missingMetadata) {
-					syncMetadata();
-				}
-			}
-		});
-
-		// Watch for user authentication to trigger pulling/syncing cloud decks
-		$effect(() => {
-			if (browser && authStore.isAuthenticated && !authStore.isLoading) {
-				pullDecksFromCloud();
-			}
-		});
-	});
 
 	let isSyncing = false;
-	async function syncMetadata() {
+	/** @param {ReturnType<typeof createDeckState>} deckState */
+	async function syncMetadata(deckState) {
 		if (isSyncing || !browser) return;
 		
-		const allCards = [...deck.commander, ...deck.companion, ...deck.mainboard, ...deck.sideboard, ...deck.maybeboard];
+		const allCards = [
+			...deckState.deck.commander,
+			...deckState.deck.companion,
+			...deckState.deck.mainboard,
+			...deckState.deck.sideboard,
+			...deckState.deck.maybeboard
+		];
 		const missingNames = [...new Set(allCards.map(c => c.name))]
-			.filter(name => name && !metadata[name.toLowerCase()]);
+			.filter(name => name && !deckState.metadata[name.toLowerCase()]);
 
 		if (missingNames.length === 0) return;
 
 		isSyncing = true;
 		try {
-			// First, try to resolve as many cards as possible locally
 			/** @type {string[]} */
 			const scryfallNames = [];
 			
 			for (const requestedName of missingNames) {
 				const lowName = requestedName.toLowerCase();
-				// Support both "A / B" and "A // B" for split cards
 				const normalizedName = lowName.replace(/\s+\/\s+/g, ' // ');
 				
 				let localCard = await getCardByName(lowName);
@@ -390,10 +461,8 @@ function createDeck() {
 				}
 				
 				if (localCard) {
-					// Fetch price from local database
 					const priceRecord = await db.prices.get(localCard.id);
-					
-					metadata[lowName] = {
+					deckState.metadata[lowName] = {
 						image_uris: {
 							normal: localCard.image,
 							art_crop: localCard.image ? localCard.image.replace('/normal/', '/art_crop/') : null
@@ -418,13 +487,11 @@ function createDeck() {
 				console.info(`🔄 Local lookup missed ${scryfallNames.length} cards. Syncing via Scryfall:`, scryfallNames);
 				const results = await fetchCollection(scryfallNames.map(name => ({ name })));
 				
-				// Map results for quick lookup
 				/** @type {Map<string, any>} */
 				const resultMap = new Map();
 				results.data.forEach(card => {
 					if (card.name) {
 						resultMap.set(card.name.toLowerCase(), card);
-						// Also index by card faces for split cards
 						if (card.card_faces) {
 							card.card_faces.forEach((/** @type {any} */ face) => {
 								if (face.name) resultMap.set(face.name.toLowerCase(), card);
@@ -436,12 +503,10 @@ function createDeck() {
 				scryfallNames.forEach(requestedName => {
 					const lowName = requestedName.toLowerCase();
 					const normalizedName = lowName.replace(/\s+\/\s+/g, ' // ');
-					
-					// Try to find the card in the results
 					const card = resultMap.get(lowName) || resultMap.get(normalizedName);
 					
 					if (card) {
-						metadata[lowName] = {
+						deckState.metadata[lowName] = {
 							image_uris: card.image_uris || null,
 							card_faces: card.card_faces || [],
 							type_line: card.type_line,
@@ -453,61 +518,49 @@ function createDeck() {
 							prices: card.prices
 						};
 					} else {
-						// Check if it was explicitly not found
-						const wasNotFound = results.not_found?.some((/** @type {any} */ nf) => 
-							nf.name?.toLowerCase() === lowName || nf.name?.toLowerCase() === normalizedName
-						);
-						
-						if (wasNotFound || true) {
-							metadata[lowName] = { 
-								notFound: true,
-								name: requestedName,
-								type_line: 'Unknown',
-								cmc: 0
-							};
-						}
+						deckState.metadata[lowName] = { 
+							notFound: true,
+							name: requestedName,
+							type_line: 'Unknown',
+							cmc: 0
+						};
 					}
 				});
 			}
 
-			metadata.updatedAt = Date.now();
+			deckState.metadata.updatedAt = Date.now();
 		} catch (e) {
 			console.error('Metadata sync failed:', e);
 		} finally {
-			// Small delay to prevent rapid-fire re-triggers
 			setTimeout(() => { isSyncing = false; }, 100);
 		}
 	}
 
-	/**
-	 * @param {any[]} parsedCards
-	 * @param {{ replace: boolean }} options
-	 */
-	function importCardsInternal(parsedCards, { replace }) {
+	/** @param {ReturnType<typeof createDeckState>} deckState */
+	function importCardsInternal(deckState, parsedCards, { replace }) {
 		if (replace) {
-			saveHistory();
-			deck.commander = [];
-			deck.companion = [];
-			deck.mainboard = [];
-			deck.sideboard = [];
-			deck.maybeboard = [];
+			saveHistory(deckState);
+			deckState.deck.commander = [];
+			deckState.deck.companion = [];
+			deckState.deck.mainboard = [];
+			deckState.deck.sideboard = [];
+			deckState.deck.maybeboard = [];
 			
-			// Clear old card metadata that are not in the new import, preserving newly resolved metadata
 			const newCardNames = new Set(parsedCards.map(c => c.name.toLowerCase()));
-			for (const key in metadata) {
+			for (const key in deckState.metadata) {
 				if (key !== 'createdBy' && key !== 'createdAt' && key !== 'updatedAt') {
 					if (!newCardNames.has(key)) {
-						delete metadata[key];
+						delete deckState.metadata[key];
 					}
 				}
 			}
 		}
 
-		saveHistory();
+		saveHistory(deckState);
 		
 		for (const pc of parsedCards) {
-			const boardName = pc.board || deck.activeBoard;
-			const targetBoard = deck[boardName];
+			const boardName = pc.board || deckState.deck.activeBoard;
+			const targetBoard = deckState.deck[boardName];
 			if (!targetBoard) continue;
 
 			for (let i = 0; i < pc.quantity; i++) {
@@ -520,48 +573,47 @@ function createDeck() {
 			}
 		}
 
-		metadata.updatedAt = Date.now();
-		persist();
+		deckState.metadata.updatedAt = Date.now();
+		persist(deckState);
 	}
 
 	return {
-		get id() { return deck.id; },
+		get id() { return activeDeck.deck.id; },
 		get syncState() { return syncState; },
-		async syncNow() { await triggerCloudSyncNow(); },
-		get name() { return deck.name; },
-		set name(val) { saveHistory(); deck.name = val; persist(); },
-		get activeBoard() { return deck.activeBoard; },
-		set activeBoard(val) { deck.activeBoard = val; },
-		get grouping() { return deck.grouping; },
-		set grouping(val) { deck.grouping = val; },
-		get sorting() { return deck.sorting; },
-		set sorting(val) { deck.sorting = val; },
-		get sortAscending() { return deck.sortAscending ?? true; },
-		set sortAscending(val) { saveHistory(); deck.sortAscending = val; persist(); },
-		get splitView() { return deck.splitView; },
-		set splitView(val) { deck.splitView = val; },
-		get coverArt() { return deck.coverArt; },
-		set coverArt(val) { saveHistory(); deck.coverArt = val; persist(); },
-		get format() { return deck.format; },
-		set format(val) { saveHistory(); deck.format = val; persist(); },
-		get lastNaturalGrouping() { return deck.lastNaturalGrouping || 'cmc'; },
-		set lastNaturalGrouping(val) { deck.lastNaturalGrouping = val; persist(); },
+		async syncNow() { await triggerCloudSyncNow(activeDeck); },
+		get name() { return activeDeck.deck.name; },
+		set name(val) { saveHistory(activeDeck); activeDeck.deck.name = val; persist(activeDeck); },
+		get activeBoard() { return activeDeck.deck.activeBoard; },
+		set activeBoard(val) { activeDeck.deck.activeBoard = val; },
+		get grouping() { return activeDeck.deck.grouping; },
+		set grouping(val) { activeDeck.deck.grouping = val; },
+		get sorting() { return activeDeck.deck.sorting; },
+		set sorting(val) { activeDeck.deck.sorting = val; },
+		get sortAscending() { return activeDeck.deck.sortAscending ?? true; },
+		set sortAscending(val) { saveHistory(activeDeck); activeDeck.deck.sortAscending = val; persist(activeDeck); },
+		get splitView() { return activeDeck.deck.splitView; },
+		set splitView(val) { activeDeck.deck.splitView = val; },
+		get coverArt() { return activeDeck.deck.coverArt; },
+		set coverArt(val) { saveHistory(activeDeck); activeDeck.deck.coverArt = val; persist(activeDeck); },
+		get format() { return activeDeck.deck.format; },
+		set format(val) { saveHistory(activeDeck); activeDeck.deck.format = val; persist(activeDeck); },
+		get lastNaturalGrouping() { return activeDeck.deck.lastNaturalGrouping || 'cmc'; },
+		set lastNaturalGrouping(val) { activeDeck.deck.lastNaturalGrouping = val; persist(activeDeck); },
 		
-		get commander() { return deck.commander; },
-		get companion() { return deck.companion; },
-		get mainboard() { return deck.mainboard; },
-		get sideboard() { return deck.sideboard; },
-		get maybeboard() { return deck.maybeboard; },
-		get garbage() { return deck.garbage; },
+		get commander() { return activeDeck.deck.commander; },
+		get companion() { return activeDeck.deck.companion; },
+		get mainboard() { return activeDeck.deck.mainboard; },
+		get sideboard() { return activeDeck.deck.sideboard; },
+		get maybeboard() { return activeDeck.deck.maybeboard; },
+		get garbage() { return activeDeck.deck.garbage; },
 		
-		get metadata() { return metadata; },
-		/** @param {Record<string, any>} newMetadata */
-		updateMetadata(newMetadata) {
-			Object.assign(metadata, newMetadata);
+		get metadata() { return activeDeck.metadata; },
+		updateMetadata(/** @type {Record<string, any>} */ newMetadata) {
+			Object.assign(activeDeck.metadata, newMetadata);
 		},
 
 		get currentBoardCards() {
-			return deck[deck.activeBoard] || [];
+			return activeDeck.deck[activeDeck.deck.activeBoard] || [];
 		},
 
 		/**
@@ -571,15 +623,15 @@ function createDeck() {
 		 * @param {any} cardMetadata
 		 */
 		addCard(cardName, zone, price, cardMetadata = null) {
-			const targetZoneName = zone || deck.activeBoard;
-			const targetZone = deck[targetZoneName];
+			const targetZoneName = zone || activeDeck.deck.activeBoard;
+			const targetZone = activeDeck.deck[targetZoneName];
 			if (!targetZone) return;
 
 			if (cardMetadata) {
-				metadata[cardName.toLowerCase()] = cardMetadata;
+				activeDeck.metadata[cardName.toLowerCase()] = cardMetadata;
 			}
 
-			saveHistory();
+			saveHistory(activeDeck);
 			const newId = generateId();
 			targetZone.push({ 
 				id: newId,
@@ -588,14 +640,13 @@ function createDeck() {
 				addedAt: Date.now()
 			});
 
-			// Auto-toggle restrictions
 			if (targetZoneName === 'commander') {
 				settingsStore.useCommanderColors = true;
 			} else if (targetZoneName === 'companion') {
 				settingsStore.matchCompanion = true;
 			}
 
-			persist();
+			persist(activeDeck);
 			return newId;
 		},
 
@@ -609,8 +660,8 @@ function createDeck() {
 		moveCard(cardName, fromZone, toZone, instanceId, price) {
 			if (fromZone === toZone) return;
 			
-			const source = deck[fromZone];
-			const target = deck[toZone];
+			const source = activeDeck.deck[fromZone];
+			const target = activeDeck.deck[toZone];
 			if (!source || !target) return;
 
 			let index = -1;
@@ -622,15 +673,15 @@ function createDeck() {
 			}
 
 			if (index !== -1) {
-				saveHistory();
+				saveHistory(activeDeck);
 				const [card] = source.splice(index, 1);
 				target.push({
 					...card,
-					id: generateId(), // New ID for new zone
+					id: generateId(),
 					price: price !== null ? price : card.price,
 					addedAt: Date.now()
 				});
-				persist();
+				persist(activeDeck);
 				return instanceId;
 			}
 		},
@@ -642,11 +693,11 @@ function createDeck() {
 		setCustomColumn(cardId, column) {
 			const boards = ['commander', 'mainboard', 'sideboard', 'maybeboard'];
 			for (const board of boards) {
-				const card = deck[board].find(/** @param {any} c */ c => c.id === cardId);
+				const card = activeDeck.deck[board].find(/** @param {any} c */ c => c.id === cardId);
 				if (card) {
-					saveHistory();
+					saveHistory(activeDeck);
 					card.customColumn = column;
-					persist();
+					persist(activeDeck);
 					return;
 				}
 			}
@@ -658,8 +709,8 @@ function createDeck() {
 		 * @param {string | null} instanceId
 		 */
 		removeCard(cardName, zone, instanceId = null) {
-			const targetZoneName = zone || deck.activeBoard;
-			const targetZone = deck[targetZoneName];
+			const targetZoneName = zone || activeDeck.deck.activeBoard;
+			const targetZone = activeDeck.deck[targetZoneName];
 			if (!targetZone) return;
 
 			let index = -1;
@@ -667,9 +718,7 @@ function createDeck() {
 				index = targetZone.findIndex(/** @param {any} c */ c => c.id === instanceId);
 			} 
 			
-			// If not found by ID or no ID provided, fall back to name
 			if (index === -1) {
-				// Remove the most recently added copy of that card
 				const sameCards = targetZone
 					.map(/** @param {any} c, @param {number} i */ (c, i) => ({ ...c, originalIndex: i }))
 					.filter(/** @param {any} c */ c => c.name === cardName);
@@ -681,120 +730,116 @@ function createDeck() {
 			}
 
 			if (index !== -1) {
-				saveHistory();
+				saveHistory(activeDeck);
 				const removed = targetZone.splice(index, 1)[0];
 				
-				// Move to garbage if it's not already from garbage
 				if (targetZoneName !== 'garbage') {
-					deck.garbage.unshift({
+					activeDeck.deck.garbage.unshift({
 						...removed,
-						id: generateId(), // New ID for garbage instance
+						id: generateId(),
 						addedAt: Date.now()
 					});
-					if (deck.garbage.length > 20) {
-						deck.garbage.pop();
+					if (activeDeck.deck.garbage.length > 20) {
+						activeDeck.deck.garbage.pop();
 					}
 				}
-				persist();
+				persist(activeDeck);
 			}
 		},
 
 		clearGarbage() {
-			saveHistory();
-			deck.garbage = [];
-			persist();
+			saveHistory(activeDeck);
+			activeDeck.deck.garbage = [];
+			persist(activeDeck);
 		},
 
 		undo() {
-			if (history.length === 0) return;
+			if (activeDeck.history.length === 0) return;
 			
 			const currentState = JSON.stringify({
-				commander: deck.commander,
-				mainboard: deck.mainboard,
-				sideboard: deck.sideboard,
-				maybeboard: deck.maybeboard,
-				garbage: deck.garbage,
-				name: deck.name,
-				coverArt: deck.coverArt,
-				lastNaturalGrouping: deck.lastNaturalGrouping
+				commander: activeDeck.deck.commander,
+				mainboard: activeDeck.deck.mainboard,
+				sideboard: activeDeck.deck.sideboard,
+				maybeboard: activeDeck.deck.maybeboard,
+				garbage: activeDeck.deck.garbage,
+				name: activeDeck.deck.name,
+				coverArt: activeDeck.deck.coverArt,
+				lastNaturalGrouping: activeDeck.deck.lastNaturalGrouping
 			});
-			redoStack.push(currentState);
-			const lastHistory = history.pop();
+			activeDeck.redoStack.push(currentState);
+			const lastHistory = activeDeck.history.pop();
 			if (!lastHistory) return;
 
 			const previous = JSON.parse(lastHistory);
-			deck.commander = previous.commander;
-			deck.mainboard = previous.mainboard;
-			deck.sideboard = previous.sideboard;
-			deck.maybeboard = previous.maybeboard;
-			deck.garbage = previous.garbage || [];
-			deck.name = previous.name;
-			deck.coverArt = previous.coverArt || null;
-			deck.lastNaturalGrouping = previous.lastNaturalGrouping || 'cmc';
+			activeDeck.deck.commander = previous.commander;
+			activeDeck.deck.mainboard = previous.mainboard;
+			activeDeck.deck.sideboard = previous.sideboard;
+			activeDeck.deck.maybeboard = previous.maybeboard;
+			activeDeck.deck.garbage = previous.garbage || [];
+			activeDeck.deck.name = previous.name;
+			activeDeck.deck.coverArt = previous.coverArt || null;
+			activeDeck.deck.lastNaturalGrouping = previous.lastNaturalGrouping || 'cmc';
 		},
 
 		redo() {
-			if (redoStack.length === 0) return;
+			if (activeDeck.redoStack.length === 0) return;
 
 			const currentState = JSON.stringify({
-				commander: deck.commander,
-				mainboard: deck.mainboard,
-				sideboard: deck.sideboard,
-				maybeboard: deck.maybeboard,
-				garbage: deck.garbage,
-				name: deck.name,
-				coverArt: deck.coverArt,
-				lastNaturalGrouping: deck.lastNaturalGrouping
+				commander: activeDeck.deck.commander,
+				mainboard: activeDeck.deck.mainboard,
+				sideboard: activeDeck.deck.sideboard,
+				maybeboard: activeDeck.deck.maybeboard,
+				garbage: activeDeck.deck.garbage,
+				name: activeDeck.deck.name,
+				coverArt: activeDeck.deck.coverArt,
+				lastNaturalGrouping: activeDeck.deck.lastNaturalGrouping
 			});
-			history.push(currentState);
-			const lastRedo = redoStack.pop();
+			activeDeck.history.push(currentState);
+			const lastRedo = activeDeck.redoStack.pop();
 			if (!lastRedo) return;
 
 			const next = JSON.parse(lastRedo);
-			deck.commander = next.commander;
-			deck.mainboard = next.mainboard;
-			deck.sideboard = next.sideboard;
-			deck.maybeboard = next.maybeboard;
-			deck.garbage = next.garbage || [];
-			deck.name = next.name;
-			deck.coverArt = next.coverArt || null;
-			deck.lastNaturalGrouping = next.lastNaturalGrouping || 'cmc';
+			activeDeck.deck.commander = next.commander;
+			activeDeck.deck.mainboard = next.mainboard;
+			activeDeck.deck.sideboard = next.sideboard;
+			activeDeck.deck.maybeboard = next.maybeboard;
+			activeDeck.deck.garbage = next.garbage || [];
+			activeDeck.deck.name = next.name;
+			activeDeck.deck.coverArt = next.coverArt || null;
+			activeDeck.deck.lastNaturalGrouping = next.lastNaturalGrouping || 'cmc';
 		},
 
-		get canUndo() { return history.length > 0; },
-		get canRedo() { return redoStack.length > 0; },
+		get canUndo() { return activeDeck.history.length > 0; },
+		get canRedo() { return activeDeck.redoStack.length > 0; },
 
+		/** @param {any} newDeck */
 		setDeck(newDeck) {
-			saveHistory();
-			deck.id = newDeck.id || generateId();
-			deck.name = newDeck.name || '';
-			deck.commander = newDeck.commander || [];
-			deck.companion = newDeck.companion || [];
-			deck.mainboard = newDeck.mainboard || [];
-			deck.sideboard = newDeck.sideboard || [];
-			deck.maybeboard = newDeck.maybeboard || [];
-			deck.garbage = newDeck.garbage || [];
-			deck.coverArt = newDeck.coverArt || null;
-			persist();
+			const id = newDeck.id || generateId();
+			sessionStorage.setItem('budgericards_active_deck_id', id);
+			activeDeckId = id;
+
+			const deckState = createDeckState(newDeck);
+			loadedDecks[id] = deckState;
+			persist(deckState);
 		},
 
 		get totalCost() {
-			const cCost = deck.commander.reduce(/** @param {number} sum, @param {DeckCard} c */ (sum, c) => sum + (c.price || 0), 0);
-			const cpCost = deck.companion.reduce(/** @param {number} sum, @param {DeckCard} c */ (sum, c) => sum + (c.price || 0), 0);
-			const mCost = deck.mainboard.reduce(/** @param {number} sum, @param {DeckCard} c */ (sum, c) => sum + (c.price || 0), 0);
-			const sCost = deck.sideboard.reduce(/** @param {number} sum, @param {DeckCard} c */ (sum, c) => sum + (c.price || 0), 0);
-			const yCost = deck.maybeboard.reduce(/** @param {number} sum, @param {DeckCard} c */ (sum, c) => sum + (c.price || 0), 0);
+			const cCost = activeDeck.deck.commander.reduce(/** @param {number} sum, @param {DeckCard} c */ (sum, c) => sum + (c.price || 0), 0);
+			const cpCost = activeDeck.deck.companion.reduce(/** @param {number} sum, @param {DeckCard} c */ (sum, c) => sum + (c.price || 0), 0);
+			const mCost = activeDeck.deck.mainboard.reduce(/** @param {number} sum, @param {DeckCard} c */ (sum, c) => sum + (c.price || 0), 0);
+			const sCost = activeDeck.deck.sideboard.reduce(/** @param {number} sum, @param {DeckCard} c */ (sum, c) => sum + (c.price || 0), 0);
+			const yCost = activeDeck.deck.maybeboard.reduce(/** @param {number} sum, @param {DeckCard} c */ (sum, c) => sum + (c.price || 0), 0);
 			return cCost + cpCost + mCost + sCost + yCost;
 		},
 
 		get totalCount() {
-			return deck.commander.length + deck.companion.length + deck.mainboard.length + deck.sideboard.length + deck.maybeboard.length;
+			return activeDeck.deck.commander.length + activeDeck.deck.companion.length + activeDeck.deck.mainboard.length + activeDeck.deck.sideboard.length + activeDeck.deck.maybeboard.length;
 		},
 
 		get currentBoardCount() {
-			const baseCount = (deck[deck.activeBoard] || []).length;
-			if (deck.activeBoard === 'mainboard') {
-				return baseCount + deck.commander.length + deck.companion.length;
+			const baseCount = (activeDeck.deck[activeDeck.deck.activeBoard] || []).length;
+			if (activeDeck.deck.activeBoard === 'mainboard') {
+				return baseCount + activeDeck.deck.commander.length + activeDeck.deck.companion.length;
 			}
 			return baseCount;
 		},
@@ -804,32 +849,29 @@ function createDeck() {
 		 * @param {string} zone
 		 */
 		removeAllCopies(cardName, zone) {
-			const targetZoneName = zone || deck.activeBoard;
-			const targetZone = deck[targetZoneName];
+			const targetZoneName = zone || activeDeck.deck.activeBoard;
+			const targetZone = activeDeck.deck[targetZoneName];
 			if (!targetZone) return;
 
-			saveHistory();
+			saveHistory(activeDeck);
 			const initialLength = targetZone.length;
 			
-			// Filter out all copies
 			const remaining = targetZone.filter(/** @param {any} c */ c => c.name !== cardName);
 			const removedCount = initialLength - remaining.length;
 
 			if (removedCount > 0) {
-				// Update the board
-				deck[targetZoneName] = remaining;
+				activeDeck.deck[targetZoneName] = remaining;
 
-				// Move one copy to garbage as a representative
 				if (targetZoneName !== 'garbage') {
 					const example = targetZone.find(/** @param {any} c */ c => c.name === cardName);
-					deck.garbage.unshift({
+					activeDeck.deck.garbage.unshift({
 						...example,
 						id: generateId(),
 						addedAt: Date.now()
 					});
-					if (deck.garbage.length > 20) deck.garbage.pop();
+					if (activeDeck.deck.garbage.length > 20) activeDeck.deck.garbage.pop();
 				}
-				persist();
+				persist(activeDeck);
 			}
 		},
 
@@ -841,22 +883,20 @@ function createDeck() {
 		 * @param {any} cardMetadata
 		 */
 		setQuantity(cardName, zone, quantity, price = null, cardMetadata = null) {
-			const targetZoneName = zone || deck.activeBoard;
-			const targetZone = deck[targetZoneName];
+			const targetZoneName = zone || activeDeck.deck.activeBoard;
+			const targetZone = activeDeck.deck[targetZoneName];
 			if (!targetZone) return;
 
 			if (cardMetadata) {
-				metadata[cardName.toLowerCase()] = cardMetadata;
+				activeDeck.metadata[cardName.toLowerCase()] = cardMetadata;
 			}
 
-			saveHistory();
+			saveHistory(activeDeck);
 			
-			// Remove all existing copies
 			const otherCards = targetZone.filter(/** @param {any} c */ c => c.name !== cardName);
 			const existingCard = targetZone.find(/** @param {any} c */ c => c.name === cardName);
 			const finalPrice = price !== null ? price : (existingCard?.price || 0);
 
-			// Add back N copies
 			const newCopies = [];
 			for (let i = 0; i < quantity; i++) {
 				newCopies.push({
@@ -867,8 +907,8 @@ function createDeck() {
 				});
 			}
 
-			deck[targetZoneName] = [...otherCards, ...newCopies];
-			persist();
+			activeDeck.deck[targetZoneName] = [...otherCards, ...newCopies];
+			persist(activeDeck);
 		},
 
 		/**
@@ -876,27 +916,27 @@ function createDeck() {
 		 * @param {{ replace: boolean }} options
 		 */
 		importCards(parsedCards, { replace }) {
-			importCardsInternal(parsedCards, { replace });
+			importCardsInternal(activeDeck, parsedCards, { replace });
 		},
 
-		get importText() { return importText; },
-		set importText(val) { importText = val; },
-		get cleanDecklistText() { return cleanDecklistText; },
-		get isImportDirty() { return isImportDirty; },
+		get importText() { return activeDeck.importText; },
+		set importText(val) { activeDeck.importText = val; },
+		get cleanDecklistText() { return cleanDecklistTextFor(activeDeck); },
+		get isImportDirty() { return activeDeck.importText.trim() !== cleanDecklistTextFor(activeDeck); },
 
 		enterImportMode() {
-			importText = cleanDecklistText;
+			activeDeck.importText = cleanDecklistTextFor(activeDeck);
 			settingsStore.deckViewMode = 'list';
 		},
 
 		cancelImport() {
-			importText = cleanDecklistText;
+			activeDeck.importText = cleanDecklistTextFor(activeDeck);
 		},
 
 		saveImport() {
-			const parsedCards = parseDecklist(importText);
-			importCardsInternal(parsedCards, { replace: true });
-			importText = cleanDecklistText;
+			const parsedCards = parseDecklist(activeDeck.importText);
+			importCardsInternal(activeDeck, parsedCards, { replace: true });
+			activeDeck.importText = cleanDecklistTextFor(activeDeck);
 		}
 	};
 }

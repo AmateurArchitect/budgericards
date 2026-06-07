@@ -55,17 +55,9 @@
 	function handleNewDeck() {
 		showBudgieDropdown = false;
 		showProfileDropdown = false;
-		deckStore.setDeck({
-			name: "",
-			commander: [],
-			companion: [],
-			mainboard: [],
-			sideboard: [],
-			maybeboard: [],
-			garbage: [],
-			coverArt: null
-		});
-		goto("/");
+		if (typeof window !== "undefined") {
+			window.open("/", "_blank");
+		}
 	}
 
 	function handleBrowseDecks() {
