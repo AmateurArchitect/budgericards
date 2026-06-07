@@ -122,16 +122,16 @@
 		const seconds = Math.floor((Date.now() - timestamp) / 1000);
 		if (seconds < 60) return "just now";
 		let interval = seconds / 31536000;
-		if (interval > 1) return Math.floor(interval) + " years ago";
+		if (interval > 1) return Math.floor(interval) + "y ago";
 		interval = seconds / 2592000;
-		if (interval > 1) return Math.floor(interval) + " months ago";
+		if (interval > 1) return Math.floor(interval) + "mo ago";
 		interval = seconds / 86400;
-		if (interval > 1) return Math.floor(interval) + " days ago";
+		if (interval > 1) return Math.floor(interval) + "d ago";
 		interval = seconds / 3600;
-		if (interval > 1) return Math.floor(interval) + " hours ago";
+		if (interval > 1) return Math.floor(interval) + "h ago";
 		interval = seconds / 60;
-		if (interval > 1) return Math.floor(interval) + " minutes ago";
-		return Math.floor(seconds) + " seconds ago";
+		if (interval > 1) return Math.floor(interval) + "m ago";
+		return Math.floor(seconds) + "s ago";
 	}
 
 	/** @param {string} dateString */
