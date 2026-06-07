@@ -221,21 +221,34 @@
 		return "Guild/Shard (" + sorted.join("") + ")";
 	}
 
+	const allDecks = $derived.by(() => {
+		const mappedDrafts = localDrafts.map(d => ({
+			...d,
+			isDraft: true,
+			updated_at: d.metadata?.updatedAt ? new Date(d.metadata.updatedAt).toISOString() : new Date().toISOString()
+		}));
+		const mappedDecks = decks.map(d => ({
+			...d,
+			isDraft: false
+		}));
+		return [...mappedDrafts, ...mappedDecks];
+	});
+
 	const sortedDecks = $derived.by(() => {
-		let list = [...decks];
+		let list = [...allDecks];
 		if (sortBy === "updated") {
 			list.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 		} else if (sortBy === "name") {
 			list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 		} else if (sortBy === "cards") {
-			list.sort((a, b) => getCardCount(b.cards) - getCardCount(a.cards));
+			list.sort((a, b) => getCardCount(b) - getCardCount(a));
 		}
 		return list;
 	});
 
 	const groupedDecks = $derived.by(() => {
 		const list = sortedDecks;
-		if (decks.length < 12 || groupBy === "none") {
+		if (allDecks.length < 12 || groupBy === "none") {
 			return [{ key: "all", label: "", items: list }];
 		}
 
@@ -244,7 +257,7 @@
 
 		if (groupBy === "format") {
 			for (const deck of list) {
-				const format = deck.cards?.format || "Commander";
+				const format = deck.isDraft ? "Local Draft" : (deck.cards?.format || "Commander");
 				if (!groups[format]) groups[format] = [];
 				groups[format].push(deck);
 			}
@@ -307,7 +320,7 @@
 	</header>
 
 	<main class="page-body">
-		{#if authStore.isLoading || (isLoading && decks.length === 0)}
+		{#if authStore.isLoading || (isLoading && allDecks.length === 0)}
 			<div class="loading-state">
 				<Loader class="spinner" size={36} />
 				<p>Loading your decks...</p>
@@ -317,7 +330,7 @@
 				<p>{error}</p>
 				<Button onclick={loadDecks} variant="outline">Try Again</Button>
 			</div>
-		{:else if decks.length === 0 && localDrafts.length === 0}
+		{:else if allDecks.length === 0}
 			<div class="empty-state">
 				<div class="empty-icon-container">
 					<svg
@@ -404,7 +417,7 @@
 				>
 			</div>
 		{:else}
-			{#if decks.length >= 6}
+			{#if allDecks.length >= 6}
 				<div class="library-controls">
 					<div class="control-group">
 						<span class="control-label">Sort by:</span>
@@ -415,7 +428,7 @@
 						</div>
 					</div>
 
-					{#if decks.length >= 12}
+					{#if allDecks.length >= 12}
 						<div class="control-group">
 							<span class="control-label">Group by:</span>
 							<div class="control-buttons">
@@ -428,207 +441,104 @@
 				</div>
 			{/if}
 
-			{#if localDrafts.length > 0}
-				<section class="drafts-section">
-					<div class="section-title-area">
-						<h2>Recent Unsaved Drafts</h2>
-						<span class="drafts-limit-note">Up to 3 drafts kept locally</span>
-					</div>
-					<div class="decks-grid">
-						<!-- Create New Deck card slot (first if drafts exist) -->
-						<div
-							class="deck-card create-card"
-							role="button"
-							tabindex="0"
-							onclick={handleNewDeckLink}
-							onkeydown={(e) => {
-								if (e.key === "Enter" || e.key === " ") {
-									e.preventDefault();
-									handleNewDeckLink();
-								}
-							}}
-						>
-							<div class="deck-art-preview create-art-preview">
-								<PlusCircle class="create-icon" size={32} />
-							</div>
-							<div class="deck-details create-details">
-								<h3 class="deck-name">Create New Deck</h3>
-								<p class="deck-desc">Start building a fresh draft</p>
-							</div>
-						</div>
-
-						{#each localDrafts as draft (draft.id)}
-							<div
-								class="deck-card draft-card"
-								class:active={deckStore.id === draft.id}
-								role="button"
-								tabindex="0"
-								onclick={() => handleSelectDeck(draft)}
-								onkeydown={(e) => {
-									if (e.key === "Enter" || e.key === " ") {
-										e.preventDefault();
-										handleSelectDeck(draft);
-									}
-								}}
-							>
-								<div class="deck-art-preview">
-									{#if getDeckCoverArt(draft)}
-										<img
-											src={getDeckCoverArt(draft)}
-											alt=""
-											class="deck-art-img"
-										/>
-									{:else}
-										<div class="deck-art-fallback draft-art-fallback"></div>
-									{/if}
-									<div class="deck-badge draft-badge">
-										Local Draft
+			<section class="library-section">
+				{#each groupedDecks as group, groupIdx (group.key)}
+					<div class="group-container" class:has-title={!!group.label}>
+						{#if group.label}
+							<h3 class="group-title">{group.label} ({group.items.length})</h3>
+						{/if}
+						
+						<div class="decks-grid">
+							{#if groupIdx === 0}
+								<div
+									class="deck-card create-card"
+									role="button"
+									tabindex="0"
+									onclick={handleNewDeckLink}
+									onkeydown={(e) => {
+										if (e.key === "Enter" || e.key === " ") {
+											e.preventDefault();
+											handleNewDeckLink();
+										}
+									}}
+								>
+									<div class="deck-art-preview create-art-preview">
+										<PlusCircle class="create-icon" size={32} />
+									</div>
+									<div class="deck-details create-details">
+										<h3 class="deck-name">Create New Deck</h3>
+										<p class="deck-desc">Start building a fresh draft</p>
 									</div>
 								</div>
+							{/if}
 
-								<div class="deck-details">
-									<h3 class="deck-name">{draft.name || "Name & Save This Deck"}</h3>
-									<div class="deck-meta">
-										{#if getDeckManaSymbols(draft).length > 0}
-											<div class="deck-mana-symbols">
-												{#each getDeckManaSymbols(draft) as sym}
-													<ManaSymbol symbol={sym} size="0.75rem" className="ms-cost" />
-												{/each}
-											</div>
-											<span class="meta-dot">•</span>
+							{#each group.items as deck (deck.id)}
+								<div
+									class="deck-card"
+									class:active={deckStore.id === deck.id}
+									role="button"
+									tabindex="0"
+									onclick={() => handleSelectDeck(deck)}
+									onkeydown={(e) => {
+										if (e.key === "Enter" || e.key === " ") {
+											e.preventDefault();
+											handleSelectDeck(deck);
+										}
+									}}
+								>
+									<div class="deck-art-preview">
+										{#if getDeckCoverArt(deck)}
+											<img
+												src={getDeckCoverArt(deck)}
+												alt=""
+												class="deck-art-img"
+											/>
+										{:else}
+											<div class="deck-art-fallback" class:draft-art-fallback={deck.isDraft}></div>
 										{/if}
-										<span class="card-count"
-											>{getCardCount(draft)} Cards</span
-										>
-										{#if draft.metadata?.updatedAt}
+										<div class="deck-badge" class:draft-badge={deck.isDraft}>
+											{deck.isDraft ? "Local Draft" : (deck.cards?.format || "Commander")}
+										</div>
+									</div>
+
+									<div class="deck-details">
+										<h3 class="deck-name">{deck.isDraft ? (deck.name || "Name & Save This Deck") : deck.name}</h3>
+										<div class="deck-meta">
+											{#if getDeckManaSymbols(deck).length > 0}
+												<div class="deck-mana-symbols">
+													{#each getDeckManaSymbols(deck) as sym}
+														<ManaSymbol symbol={sym} size="0.75rem" className="ms-cost" />
+													{/each}
+												</div>
+												<span class="meta-dot">•</span>
+											{/if}
+											<span class="card-count"
+												>{getCardCount(deck)} Cards</span
+											>
 											<span class="meta-dot">•</span>
 											<span class="updated-time"
-												>Updated {timeAgo(draft.metadata.updatedAt)}</span
+												>Updated {formatUpdatedDate(
+													deck.isDraft ? deck.metadata?.updatedAt : deck.updated_at,
+												)}</span
 											>
-										{/if}
+										</div>
+									</div>
+
+									<div class="deck-actions">
+										<button
+											class="action-icon-btn delete-btn"
+											title={deck.isDraft ? "Delete Draft" : "Delete Deck"}
+											onclick={(e) => handleDeleteDeck(deck.id, e, deck.isDraft)}
+										>
+											<Trash2 size={16} />
+										</button>
 									</div>
 								</div>
-
-								<div class="deck-actions">
-									<button
-										class="action-icon-btn delete-btn"
-										title="Delete Draft"
-										onclick={(e) => handleDeleteDeck(draft.id, e, true)}
-									>
-										<Trash2 size={16} />
-									</button>
-								</div>
-							</div>
-						{/each}
-					</div>
-				</section>
-			{/if}
-
-			{#if decks.length > 0}
-				<section class="library-section" class:has-drafts={localDrafts.length > 0}>
-					<div class="section-title-area">
-						<h2>Saved Deck Library</h2>
-					</div>
-					
-					{#each groupedDecks as group, groupIdx (group.key)}
-						<div class="group-container" class:has-title={!!group.label}>
-							{#if group.label}
-								<h3 class="group-title">{group.label} ({group.items.length})</h3>
-							{/if}
-							
-							<div class="decks-grid">
-								<!-- Create New Deck card slot (if no drafts, render in first slot of first group) -->
-								{#if localDrafts.length === 0 && groupIdx === 0}
-									<div
-										class="deck-card create-card"
-										role="button"
-										tabindex="0"
-										onclick={handleNewDeckLink}
-										onkeydown={(e) => {
-											if (e.key === "Enter" || e.key === " ") {
-												e.preventDefault();
-												handleNewDeckLink();
-											}
-										}}
-									>
-										<div class="deck-art-preview create-art-preview">
-											<PlusCircle class="create-icon" size={32} />
-										</div>
-										<div class="deck-details create-details">
-											<h3 class="deck-name">Create New Deck</h3>
-											<p class="deck-desc">Start building a fresh draft</p>
-										</div>
-									</div>
-								{/if}
-
-								{#each group.items as deck (deck.id)}
-									<div
-										class="deck-card"
-										class:active={deckStore.id === deck.id}
-										role="button"
-										tabindex="0"
-										onclick={() => handleSelectDeck(deck)}
-										onkeydown={(e) => {
-											if (e.key === "Enter" || e.key === " ") {
-												e.preventDefault();
-												handleSelectDeck(deck);
-											}
-										}}
-									>
-										<div class="deck-art-preview">
-											{#if getDeckCoverArt(deck)}
-												<img
-													src={getDeckCoverArt(deck)}
-													alt=""
-													class="deck-art-img"
-												/>
-											{:else}
-												<div class="deck-art-fallback"></div>
-											{/if}
-											<div class="deck-badge">
-												{deck.cards?.format || "Commander"}
-											</div>
-										</div>
-
-										<div class="deck-details">
-											<h3 class="deck-name">{deck.name}</h3>
-											<div class="deck-meta">
-												{#if getDeckManaSymbols(deck).length > 0}
-													<div class="deck-mana-symbols">
-														{#each getDeckManaSymbols(deck) as sym}
-															<ManaSymbol symbol={sym} size="0.75rem" className="ms-cost" />
-														{/each}
-													</div>
-													<span class="meta-dot">•</span>
-												{/if}
-												<span class="card-count"
-													>{getCardCount(deck.cards)} Cards</span
-												>
-												<span class="meta-dot">•</span>
-												<span class="updated-time"
-													>Updated {formatUpdatedDate(
-														deck.updated_at,
-													)}</span
-												>
-											</div>
-										</div>
-
-										<div class="deck-actions">
-											<button
-												class="action-icon-btn delete-btn"
-												title="Delete Deck"
-												onclick={(e) => handleDeleteDeck(deck.id, e)}
-											>
-												<Trash2 size={16} />
-											</button>
-										</div>
-									</div>
-								{/each}
-							</div>
+							{/each}
 						</div>
-					{/each}
-				</section>
-			{/if}
+					</div>
+				{/each}
+			</section>
 		{/if}
 	</main>
 </div>
