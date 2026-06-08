@@ -15,6 +15,18 @@ store.method(state.maybeNull);
 store.method(state.maybeNull || 'fallback-value');
 ```
 
+### Error Signature: "Argument of type 'number' is not assignable to parameter of type 'string'." (e.g., when calling `parseFloat`/`parseInt` on a state/store property value)
+**Fix Pattern**: Use a ternary/typeof check to check the type first: `typeof val === 'string' ? parseFloat(val) : val`.
+**Logic**: Svelte `$state` properties typed as numbers might receive strings (e.g., from input fields) or numbers. Built-in parsing functions like `parseFloat` strictly require `string` arguments in static checks.
+
+```javascript
+// Before
+const numVal = parseFloat(val);
+
+// After
+const numVal = typeof val === 'string' ? parseFloat(val) : val;
+```
+
 ## Svelte Type Safety
 
 ### Error Signature: "Property 'focus' does not exist on type 'never'" or "Type 'HTMLInputElement' is not assignable to type 'null'"

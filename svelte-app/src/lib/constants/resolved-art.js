@@ -2,12 +2,39 @@
 export const RESOLVED_ART = [
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/fdn/327.jpg",
+        "name": "Abrade",
+        "artist": "Tyler Walpole",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/afr/216.jpg",
         "name": "Adult Gold Dragon",
         "artist": "Chris Rahn",
         "set": "Adventures in the Forgotten Realms",
         "setCode": "AFR",
         "collectorNumber": "216"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/mmc/150_2.jpg",
+        "name": "Agent of Masks",
+        "artist": "Allen Williams",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/khm/248.jpg",
+        "name": "Alpine Meadow",
+        "artist": "Piotr Dura",
+        "set": "Kaldheim",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -20,12 +47,39 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/khm/407.jpg",
+        "name": "Angel Warrior",
+        "artist": "Alexander Mokhov",
+        "set": "Kaldheim Tokens",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/bfz/208_1.jpg",
+        "name": "Angelic Captain",
+        "artist": "Volkan Baǵa",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/ths/112.jpg",
         "name": "Anger of the Gods",
         "artist": "Yigit Koroglu",
         "set": "Double Masters 2022",
         "setCode": "2X2",
         "collectorNumber": "102"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/ths/112.jpg",
+        "name": "Anger of the Gods",
+        "artist": "Yigit Koroglu",
+        "set": "Double Masters 2022",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -38,6 +92,15 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/fdn/116_1.jpg",
+        "name": "Anthem of Champions",
+        "artist": "Chris Rallis",
+        "set": "Foundations",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/con/098.jpg",
         "name": "Apocalypse Hydra",
         "artist": "Jason Chan",
@@ -47,12 +110,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/mh2/185.jpg",
+        "name": "Arcus Acolyte",
+        "artist": "Volkan Baǵa",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/ktk/163.jpg",
         "name": "Armament Corps",
         "artist": "Steven Belledin",
         "set": "Khans of Tarkir",
         "setCode": "KTK",
         "collectorNumber": "163"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/ktk/163.jpg",
+        "name": "Armament Corps",
+        "artist": "Steven Belledin",
+        "set": "Khans of Tarkir",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -74,6 +155,15 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/gtc/142.jpg",
+        "name": "Assemble the Legion",
+        "artist": "Eric Deschamps",
+        "set": "Gatecrash",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/roe/176.jpg",
         "name": "Awakening Zone",
         "artist": "Johann Bodin",
@@ -83,12 +173,48 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/roe/176.jpg",
+        "name": "Awakening Zone",
+        "artist": "Johann Bodin",
+        "set": "Secrets of Strixhaven Commander",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/rtr/210.jpg",
+        "name": "Azor’s Elocutors",
+        "artist": "Johannes Voss",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/m3c/070_1.jpg",
+        "name": "Bloodbraid Challenger",
+        "artist": "Lie Setiawan",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/soa/033.jpg",
         "name": "Cancel",
         "artist": "Warren Mahy",
         "set": "Shards of Alara",
         "setCode": "ALA",
         "collectorNumber": "33"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/soa/033.jpg",
+        "name": "Cancel",
+        "artist": "Warren Mahy",
+        "set": "Shards of Alara",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -119,12 +245,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/cmr/116.jpg",
+        "name": "Cuombajj Witches",
+        "artist": "Seb McKinnon",
+        "set": "Commander Legends",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/mat/002.jpg",
         "name": "Deification",
         "artist": "Maxime Minard",
         "set": "March of the Machine: The Aftermath",
         "setCode": "MAT",
         "collectorNumber": "2"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/mat/002.jpg",
+        "name": "Deification",
+        "artist": "Maxime Minard",
+        "set": "March of the Machine: The Aftermath",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -137,12 +281,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/dsk/092.jpg",
+        "name": "Demonic Counsel",
+        "artist": "Babs Webb",
+        "set": "Duskmourn: House of Horror",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/eld/187.jpg",
         "name": "Doom Foretold",
         "artist": "Daniel Ljunggren",
         "set": "Throne of Eldraine",
         "setCode": "ELD",
         "collectorNumber": "187"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/eld/187.jpg",
+        "name": "Doom Foretold",
+        "artist": "Daniel Ljunggren",
+        "set": "Throne of Eldraine",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -155,12 +317,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/avr/133.jpg",
+        "name": "Dual Casting",
+        "artist": "Johannes Voss",
+        "set": "Avacyn Restored",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/fvt/004.jpg",
         "name": "Fyndhorn Elves",
         "artist": "Kev Walker",
         "set": "From the Vault: Twenty",
         "setCode": "FVT",
         "collectorNumber": "4"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/fvt/004.jpg",
+        "name": "Fyndhorn Elves",
+        "artist": "Kev Walker",
+        "set": "From the Vault: Twenty",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -173,6 +353,24 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/stm/006.jpg",
+        "name": "Gift of Estates",
+        "artist": "Justin Hernandez & Alexis Hernandez",
+        "set": "Strixhaven Mystical Archive",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/khm/257.jpg",
+        "name": "Glacial Floodplain",
+        "artist": "Sarah Finnigan",
+        "set": "Kaldheim",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/plc/149.jpg",
         "name": "Harmonize",
         "artist": "Zoltan Boros",
@@ -182,12 +380,39 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/plc/149.jpg",
+        "name": "Harmonize",
+        "artist": "Zoltan Boros",
+        "set": "Teenage Mutant Ninja Turtles Eternal",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/2pc/019.jpg",
+        "name": "Hedron Fields of Agadeem",
+        "artist": "Vincent Proce",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/thb/024.jpg",
         "name": "Idyllic Tutor",
         "artist": "Jaime Jones",
         "set": "Theros Beyond Death",
         "setCode": "THB",
         "collectorNumber": "24"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/thb/024.jpg",
+        "name": "Idyllic Tutor",
+        "artist": "Jaime Jones",
+        "set": "Theros Beyond Death",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -209,6 +434,15 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/avr/061.jpg",
+        "name": "Infinite Reflection",
+        "artist": "Igor Kieryluk",
+        "set": "Avacyn Restored",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/stx/151.jpg",
         "name": "Jadzi, Oracle of Arcavios // Journey to the Oracle",
         "artist": "Chris Rahn",
@@ -218,12 +452,39 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/stx/151.jpg",
+        "name": "Jadzi, Oracle of Arcavios // Journey to the Oracle",
+        "artist": "Chris Rahn",
+        "set": "Strixhaven: School of Mages",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/sl1/247.jpg",
         "name": "Kaya, Ghost Assassin",
         "artist": "Dani Pendergast",
         "set": "Conspiracy: Take the Crown",
         "setCode": "CN2",
         "collectorNumber": "75"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/sl1/247.jpg",
+        "name": "Kaya, Ghost Assassin",
+        "artist": "Dani Pendergast",
+        "set": "Secret Lair Drop",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/moc/055.jpg",
+        "name": "Ketria",
+        "artist": "Piotr Dura",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -245,12 +506,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/grn/183.jpg",
+        "name": "Knight of Autumn",
+        "artist": "Ryan Pancoast",
+        "set": "Forgotten Realms Commander",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/m3c/171.jpg",
         "name": "Legion Loyalty",
         "artist": "Michal Ivan",
         "set": "Tarkir: Dragonstorm Commander",
         "setCode": "TDC",
         "collectorNumber": "122"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/m3c/171.jpg",
+        "name": "Legion Loyalty",
+        "artist": "Michal Ivan",
+        "set": "Modern Horizons 3 Commander",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -281,12 +560,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/ltc/172.jpg",
+        "name": "Marshal's Anthem",
+        "artist": "Erion Makuo",
+        "set": "Tales of Middle-earth Commander",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/sld/2142_2.jpg",
         "name": "Memory Lapse",
         "artist": "Wylie Beckert",
         "set": "Eternal Masters",
         "setCode": "EMA",
         "collectorNumber": "60"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/sld/2142_2.jpg",
+        "name": "Memory Lapse",
+        "artist": "Wylie Beckert",
+        "set": "Secret Lair Drop",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -308,6 +605,15 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/ecl/027.jpg",
+        "name": "Morningtide's Light",
+        "artist": "Mark Poole",
+        "set": "Lorwyn Eclipsed",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/stm/117.jpg",
         "name": "Natural Order",
         "artist": "Ayami Nakashima",
@@ -317,12 +623,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/stm/117.jpg",
+        "name": "Natural Order",
+        "artist": "Ayami Nakashima",
+        "set": "Strixhaven Mystical Archive",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/wot/024.jpg",
         "name": "Omniscience",
         "artist": "Justin Hernandez & Alexis Hernandez",
         "set": "Foundations",
         "setCode": "FDN",
         "collectorNumber": "161"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/wot/024.jpg",
+        "name": "Omniscience",
+        "artist": "Justin Hernandez & Alexis Hernandez",
+        "set": "Wilds of Eldraine: Enchanting Tales",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -344,12 +668,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/con/015.jpg",
+        "name": "Path to Exile",
+        "artist": "Todd Lockwood",
+        "set": "Secrets of Strixhaven Commander",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/spg/042.jpg",
         "name": "Persist",
         "artist": "Jarel Threat",
         "set": "Lorwyn Eclipsed Commander",
         "setCode": "ECC",
         "collectorNumber": "83"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/spg/042.jpg",
+        "name": "Persist",
+        "artist": "Jarel Threat",
+        "set": "Special Guests",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -371,6 +713,15 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/grn/267.jpg",
+        "name": "Precision Bolt",
+        "artist": "Grzegorz Rutkowski",
+        "set": "Guilds of Ravnica",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/con/121_5.jpg",
         "name": "Progenitus",
         "artist": "Jaime Jones",
@@ -386,6 +737,15 @@ export const RESOLVED_ART = [
         "set": "Eldritch Moon",
         "setCode": "EMN",
         "collectorNumber": "37"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/emn/037.jpg",
+        "name": "Providence",
+        "artist": "Zack Stella",
+        "set": "Eldritch Moon",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -416,12 +776,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/fdn/300.jpg",
+        "name": "Raise the Past",
+        "artist": "Jorge Jacinto",
+        "set": "Foundations",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/stm/056.jpg",
         "name": "Regrowth",
         "artist": "Minttu Hynninen",
         "set": "Modern Horizons",
         "setCode": "MH1",
         "collectorNumber": "175"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/stm/056.jpg",
+        "name": "Regrowth",
+        "artist": "Minttu Hynninen",
+        "set": "Strixhaven Mystical Archive",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -434,12 +812,39 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/wot/025.jpg",
+        "name": "Rhystic Study",
+        "artist": "Serena Malyon",
+        "set": "Wilds of Eldraine: Enchanting Tales",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/fdn/467.jpg",
         "name": "Rite of the Dragoncaller",
         "artist": "PINDURSKI",
         "set": "Foundations",
         "setCode": "FDN",
         "collectorNumber": "92"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/fdn/467.jpg",
+        "name": "Rite of the Dragoncaller",
+        "artist": "PINDURSKI",
+        "set": "Foundations",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/ori/030.jpg",
+        "name": "Sentinel of the Eternal Watch",
+        "artist": "Bastien L. Deharme",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -452,12 +857,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/aer/098.jpg",
+        "name": "Shock",
+        "artist": "Magali Villeneuve",
+        "set": "Aether Revolt",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/16c/042.jpg",
         "name": "Sidar Kondo of Jamuraa",
         "artist": "Ryan Alexander Lee",
         "set": "Commander 2016",
         "setCode": "C16",
         "collectorNumber": "42"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/16c/042.jpg",
+        "name": "Sidar Kondo of Jamuraa",
+        "artist": "Ryan Alexander Lee",
+        "set": "Commander 2016",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -470,12 +893,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/bng/155.jpg",
+        "name": "Siren of the Silent Song",
+        "artist": "Anthony Palumbo",
+        "set": "Born of the Gods",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/2xm/348.jpg",
         "name": "Sneak Attack",
         "artist": "Mark Zug",
         "set": "Dominaria Remastered",
         "setCode": "DMR",
         "collectorNumber": "139"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/2xm/348.jpg",
+        "name": "Sneak Attack",
+        "artist": "Mark Zug",
+        "set": "Double Masters",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -488,6 +929,15 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/fdn/729.jpg",
+        "name": "Solemn Simulacrum",
+        "artist": "Forrest Imel",
+        "set": "Foundations",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/mh1/214.jpg",
         "name": "Soulherder",
         "artist": "Seb McKinnon",
@@ -497,21 +947,57 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/pca/084.jpg",
+        "name": "Stairs to Infinity",
+        "artist": "Steven Belledin",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/2pc/034.jpg",
+        "name": "Stensia",
+        "artist": "Vincent Proce",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/stx/115.jpg",
         "name": "Storm-Kiln Artist",
-        "artist": "Manuel Casta\u00f1\u00f3n",
+        "artist": "Manuel Castañón",
         "set": "Strixhaven: School of Mages",
         "setCode": "STX",
         "collectorNumber": "115"
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/khm/270.jpg",
+        "name": "Sulfurous Mire",
+        "artist": "Titus Lunter",
+        "set": "Kaldheim",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/10m/112.jpg",
         "name": "Sunken Hope",
-        "artist": "Volkan Ba\u01f5a",
+        "artist": "Volkan Baǵa",
         "set": "Planechase Anthology",
         "setCode": "PCA",
         "collectorNumber": "26"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/10m/112.jpg",
+        "name": "Sunken Hope",
+        "artist": "Volkan Baǵa",
+        "set": "Tenth Edition",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -524,12 +1010,39 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/dmr/441_1.jpg",
+        "name": "Sylvan Library",
+        "artist": "Mark Poole",
+        "set": "Dominaria Remastered",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/moc/052.jpg",
+        "name": "The Golden City of Orazca",
+        "artist": "Alayna Danner",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/2x2/065.jpg",
         "name": "Thought Scour",
         "artist": "Julie Dillon",
         "set": "Double Masters 2022",
         "setCode": "2X2",
         "collectorNumber": "65"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/2x2/065.jpg",
+        "name": "Thought Scour",
+        "artist": "Julie Dillon",
+        "set": "Double Masters 2022",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -542,12 +1055,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/inr/318.jpg",
+        "name": "Tireless Tracker",
+        "artist": "Ekaterina Burmak",
+        "set": "Innistrad Remastered",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/dmu/072.jpg",
         "name": "Tolarian Terror",
         "artist": "Vincent Christiaens",
         "set": "Foundations",
         "setCode": "FDN",
         "collectorNumber": "167"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/dmu/072.jpg",
+        "name": "Tolarian Terror",
+        "artist": "Vincent Christiaens",
+        "set": "Dominaria United",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -560,12 +1091,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/thb/297.jpg",
+        "name": "Treeshaker Chimera",
+        "artist": "Vincent Proce",
+        "set": "New Capenna Commander",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
         "url": "https://www.mtgpics.com/pics/art/grn/208.jpg",
         "name": "Trostani Discordant",
         "artist": "Chase Stone",
         "set": "Ravnica: Clue Edition",
         "setCode": "CLU",
         "collectorNumber": "213"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/grn/208.jpg",
+        "name": "Trostani Discordant",
+        "artist": "Chase Stone",
+        "set": "Ravnica: Clue Edition",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Creatures",
@@ -593,6 +1142,24 @@ export const RESOLVED_ART = [
         "set": "Commander Masters",
         "setCode": "CMM",
         "collectorNumber": "198"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/dom/102.jpg",
+        "name": "Whisper, Blood Liturgist",
+        "artist": "Kieran Yanner",
+        "set": "Commander Masters",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Creatures",
+        "url": "https://www.mtgpics.com/pics/art/thb/205.jpg",
+        "name": "Wolfwillow Haven",
+        "artist": "Jakub Kasper",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Landscapes",
@@ -632,12 +1199,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/grn/244.jpg",
+        "name": "Boros Guildgate",
+        "artist": "Titus Lunter",
+        "set": "Guilds of Ravnica",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Landscapes",
         "url": "https://www.mtgpics.com/pics/art/khm/253.jpg",
         "name": "Bretagard Stronghold",
         "artist": "Jung Park",
         "set": "March of the Machine Commander",
         "setCode": "MOC",
         "collectorNumber": "392"
+    },
+    {
+        "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/khm/253.jpg",
+        "name": "Bretagard Stronghold",
+        "artist": "Jung Park",
+        "set": "March of the Machine Commander",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Landscapes",
@@ -656,6 +1241,15 @@ export const RESOLVED_ART = [
         "set": "Zendikar Expeditions",
         "setCode": "EXP",
         "collectorNumber": "5"
+    },
+    {
+        "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/zex/005.jpg",
+        "name": "Canopy Vista",
+        "artist": "Adam Paquette",
+        "set": "Zendikar Expeditions",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Landscapes",
@@ -713,12 +1307,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/ktk/238.jpg",
+        "name": "Flooded Strand",
+        "artist": "Andreas Rocha",
+        "set": "Khans of Tarkir",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Landscapes",
         "url": "https://www.mtgpics.com/pics/art/gk1/127.jpg",
         "name": "Forest",
         "artist": "Alayna Danner",
         "set": "Guilds of Ravnica Guild Kits",
         "setCode": "GK1",
         "collectorNumber": "127"
+    },
+    {
+        "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/gk1/127.jpg",
+        "name": "Forest",
+        "artist": "Alayna Danner",
+        "set": "Guilds of Ravnica Guild Kits",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Landscapes",
@@ -794,6 +1406,15 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/gtc/239.jpg",
+        "name": "Gruul Guildgate",
+        "artist": "Randy Gallegos",
+        "set": "Foundations",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Landscapes",
         "url": "https://www.mtgpics.com/pics/art/unf/277.jpg",
         "name": "Hallowed Fountain",
         "artist": "Piotr Dura",
@@ -821,12 +1442,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/khm/293.jpg",
+        "name": "Hengegate Pathway // Mistgate Pathway",
+        "artist": "Alayna Danner",
+        "set": "Kaldheim",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Landscapes",
         "url": "https://www.mtgpics.com/pics/art/khm/261.jpg",
         "name": "Highland Forest",
         "artist": "Alayna Danner",
         "set": "Commander Legends: Battle for Baldur's Gate",
         "setCode": "CLB",
         "collectorNumber": "896"
+    },
+    {
+        "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/khm/261.jpg",
+        "name": "Highland Forest",
+        "artist": "Alayna Danner",
+        "set": "Commander Legends: Battle for Baldur's Gate",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Landscapes",
@@ -854,6 +1493,15 @@ export const RESOLVED_ART = [
         "set": "Iconic Masters",
         "setCode": "IMA",
         "collectorNumber": "240"
+    },
+    {
+        "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/ima/240.jpg",
+        "name": "Horizon Canopy",
+        "artist": "Noah Bradley",
+        "set": "Iconic Masters",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Landscapes",
@@ -983,6 +1631,15 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/khm/394.jpg",
+        "name": "Plains",
+        "artist": "Piotr Dura",
+        "set": "Kaldheim",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Landscapes",
         "url": "https://www.mtgpics.com/pics/art/lci/280.jpg",
         "name": "Restless Anchorage",
         "artist": "Leon Tukker",
@@ -1010,6 +1667,15 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/mh2/253.jpg",
+        "name": "Rustvale Bridge",
+        "artist": "Craig J Spearing",
+        "set": "Modern Horizons 2",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Landscapes",
         "url": "https://www.mtgpics.com/pics/art/mh1/245.jpg",
         "name": "Secluded Steppe",
         "artist": "Noah Bradley",
@@ -1034,6 +1700,15 @@ export const RESOLVED_ART = [
         "set": "Zendikar Expeditions",
         "setCode": "EXP",
         "collectorNumber": "43"
+    },
+    {
+        "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/zex/043.jpg",
+        "name": "Strip Mine",
+        "artist": "Howard Lyon",
+        "set": "Zendikar Expeditions",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Landscapes",
@@ -1073,6 +1748,15 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/khm/396.jpg",
+        "name": "Swamp",
+        "artist": "Piotr Dura",
+        "set": "Kaldheim",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Landscapes",
         "url": "https://www.mtgpics.com/pics/art/neo/277.jpg",
         "name": "Swiftwater Cliffs",
         "artist": "Alayna Danner",
@@ -1106,6 +1790,15 @@ export const RESOLVED_ART = [
         "set": "Theros Beyond Death",
         "setCode": "THB",
         "collectorNumber": "248"
+    },
+    {
+        "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/pch/014.jpg",
+        "name": "The Great Forest",
+        "artist": "Howard Lyon",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Landscapes",
@@ -1145,12 +1838,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/xln/259.jpg",
+        "name": "Unknown Shores",
+        "artist": "Adam Paquette",
+        "set": "Ixalan",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Landscapes",
         "url": "https://www.mtgpics.com/pics/art/cmr/361.jpg",
         "name": "War Room",
-        "artist": "Milivoj \u0106eran",
+        "artist": "Milivoj Ćeran",
         "set": "Secrets of Strixhaven Commander",
         "setCode": "SOC",
         "collectorNumber": "422"
+    },
+    {
+        "category": "Landscapes",
+        "url": "https://www.mtgpics.com/pics/art/cmr/361.jpg",
+        "name": "War Room",
+        "artist": "Milivoj Ćeran",
+        "set": "Secrets of Strixhaven Commander",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Landscapes",
@@ -1199,12 +1910,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Objects",
+        "url": "https://www.mtgpics.com/pics/art/bfz/209.jpg",
+        "name": "Bring to Light",
+        "artist": "Jonas De Ro",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Objects",
         "url": "https://www.mtgpics.com/pics/art/khm/419.jpg",
         "name": "Cat Token",
         "artist": "Eschi",
         "set": "Kaldheim Tokens",
         "setCode": "KHM",
         "collectorNumber": "14"
+    },
+    {
+        "category": "Objects",
+        "url": "https://www.mtgpics.com/pics/art/khm/419.jpg",
+        "name": "Cat Token",
+        "artist": "Eschi",
+        "set": "Kaldheim Tokens",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Objects",
@@ -1244,12 +1973,30 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Objects",
+        "url": "https://www.mtgpics.com/pics/art/kli/039.jpg",
+        "name": "Grindstone",
+        "artist": "Johann Bodin",
+        "set": "Kaladesh Inventions",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Objects",
         "url": "https://www.mtgpics.com/pics/art/khm/422.jpg",
         "name": "Icy Manalith",
         "artist": "Andrew Mar",
         "set": "Kaldheim Tokens",
         "setCode": "TKHM",
         "collectorNumber": "17"
+    },
+    {
+        "category": "Objects",
+        "url": "https://www.mtgpics.com/pics/art/khm/422.jpg",
+        "name": "Icy Manalith",
+        "artist": "Andrew Mar",
+        "set": "Kaldheim Tokens",
+        "setCode": "UNK",
+        "collectorNumber": "0"
     },
     {
         "category": "Objects",
@@ -1316,6 +2063,24 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Objects",
+        "url": "https://www.mtgpics.com/pics/art/rna/242.jpg",
+        "name": "Tome of the Guildpact",
+        "artist": "Randy Gallegos",
+        "set": "Ravnica Allegiance",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Objects",
+        "url": "https://www.mtgpics.com/pics/art/2pc/037.jpg",
+        "name": "Trail of the Mage-Rings",
+        "artist": "Vincent Proce",
+        "set": "Unknown Set",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Objects",
         "url": "https://www.mtgpics.com/pics/art/isd/205.jpg",
         "name": "Travel Preparations",
         "artist": "Vincent Proce",
@@ -1327,7 +2092,7 @@ export const RESOLVED_ART = [
         "category": "Sagas",
         "url": "https://www.mtgpics.com/pics/art/acr/013.jpg",
         "name": "Ballad of the Black Flag",
-        "artist": "Mikl\u00f3s Ligeti",
+        "artist": "Miklós Ligeti",
         "set": "Assassin's Creed",
         "setCode": "ACR",
         "collectorNumber": "13"
@@ -1361,6 +2126,15 @@ export const RESOLVED_ART = [
     },
     {
         "category": "Sagas",
+        "url": "https://www.mtgpics.com/pics/art/thb/005.jpg",
+        "name": "The Birth of Meletis",
+        "artist": "Tyler Jacobson",
+        "set": "Theros Beyond Death",
+        "setCode": "UNK",
+        "collectorNumber": "0"
+    },
+    {
+        "category": "Sagas",
         "url": "https://www.mtgpics.com/pics/art/neo/012.jpg",
         "name": "The Fall of Lord Konda // Fragment of Konda",
         "artist": "Andrew Mar",
@@ -1372,7 +2146,7 @@ export const RESOLVED_ART = [
         "category": "Sagas",
         "url": "https://www.mtgpics.com/pics/art/dom/151.jpg",
         "name": "Warlord's Fury",
-        "artist": "Volkan Ba\u01f5a",
+        "artist": "Volkan Baǵa",
         "set": "Dominaria",
         "setCode": "DOM",
         "collectorNumber": "151"

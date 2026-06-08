@@ -151,7 +151,7 @@ function createSettings() {
 		},
 		get spoilerCardSize() { return spoilerCardSize; },
 		set spoilerCardSize(val) {
-			const numVal = parseFloat(val);
+			const numVal = typeof val === 'string' ? parseFloat(val) : val;
 			// Round cleanly to the nearest 5% increment (0.05 step)
 			const snappedVal = Math.round(numVal * 20) / 20;
 			spoilerCardSize = snappedVal;

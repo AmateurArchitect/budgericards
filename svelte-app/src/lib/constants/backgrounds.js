@@ -414,10 +414,90 @@ export const BACKGROUNDS = [
         "set": "Innistrad Remastered",
         "artist": "Ekaterina Burmak"
     },
-    {
-        "url": "https://www.mtgpics.com/pics/art/bng/155.jpg",
-        "title": "Siren of the Silent Song",
-        "set": "Born of the Gods",
-        "artist": "Anthony Palumbo"
-    }
+	{
+		"url": "https://www.mtgpics.com/pics/art/bng/155.jpg",
+		"title": "Siren of the Silent Song",
+		"set": "Born of the Gods",
+		"artist": "Anthony Palumbo"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/moc/052.jpg",
+		"title": "The Golden City of Orazca",
+		"artist": "Alayna Danner"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/pch/014.jpg",
+		"title": "The Great Forest",
+		"artist": "Howard Lyon"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/2pc/037.jpg",
+		"title": "Trail of the Mage-Rings",
+		"artist": "Vincent Proce"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/pca/084.jpg",
+		"title": "Stairs to Infinity",
+		"artist": "Steven Belledin"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/2pc/034.jpg",
+		"title": "Stensia",
+		"artist": "Vincent Proce"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/moc/055.jpg",
+		"title": "Ketria",
+		"artist": "Piotr Dura"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/2pc/019.jpg",
+		"title": "Hedron Fields of Agadeem",
+		"artist": "Vincent Proce"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/ori/030.jpg",
+		"title": "Sentinel of the Eternal Watch",
+		"artist": "Bastien L. Deharme"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/fdn/327.jpg",
+		"title": "Abrade",
+		"artist": "Tyler Walpole"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/thb/205.jpg",
+		"title": "Wolfwillow Haven",
+		"artist": "Jakub Kasper"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/m3c/070_1.jpg",
+		"title": "Bloodbraid Challenger",
+		"artist": "Lie Setiawan"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/bfz/209.jpg",
+		"title": "Bring to Light",
+		"artist": "Jonas De Ro"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/rtr/210.jpg",
+		"title": "Azor’s Elocutors",
+		"artist": "Johannes Voss"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/mh2/185.jpg",
+		"title": "Arcus Acolyte",
+		"artist": "Volkan Baǵa"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/bfz/208_1.jpg",
+		"title": "Angelic Captain",
+		"artist": "Volkan Baǵa"
+	},
+	{
+		"url": "https://www.mtgpics.com/pics/art/mmc/150_2.jpg",
+		"title": "Agent of Masks",
+		"artist": "Allen Williams"
+	}
 ];

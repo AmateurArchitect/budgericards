@@ -605,7 +605,7 @@
 		padding-left: 2.25rem !important;
 	}
 
-	.modal-action-btn {
+	.action-row :global(.modal-action-btn) {
 		width: 100%;
 		display: flex;
 		align-items: center;

@@ -117,7 +117,12 @@ async function main() {
             try {
                 await delay(300); // 300ms default rate limit delay
                 const url = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(bg.title)}`;
-                const res = await fetch(url);
+                const res = await fetch(url, {
+                    headers: {
+                        'User-Agent': 'Budgericards/1.0 (Contact: admin@budgericards.local)',
+                        'Accept': 'application/json'
+                    }
+                });
 
                 if (res.ok) {
                     cardData = await res.json();
@@ -129,7 +134,12 @@ async function main() {
                     // Try fuzzy search on 404
                     console.log(`  Named 404. Trying fuzzy search...`);
                     await delay(300);
-                    const fuzzyRes = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(bg.title)}`);
+                    const fuzzyRes = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(bg.title)}`, {
+                        headers: {
+                            'User-Agent': 'Budgericards/1.0 (Contact: admin@budgericards.local)',
+                            'Accept': 'application/json'
+                        }
+                    });
                     if (fuzzyRes.ok) {
                         cardData = await fuzzyRes.json();
                     }
