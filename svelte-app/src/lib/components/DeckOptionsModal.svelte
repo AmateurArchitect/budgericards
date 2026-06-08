@@ -257,6 +257,7 @@
 						bind:value={deckStore.name} 
 						placeholder="Name & Save Your Deck"
 						onkeydown={handleInputKeydown}
+						autofocus
 					/>
 				</div>
 

@@ -1,4 +1,5 @@
 <script>
+	import { onMount } from "svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import {
@@ -321,6 +322,24 @@
 		deckStore.activeBoard = id;
 		showBoardDropdown = false;
 	}
+
+	onMount(() => {
+		/** @param {KeyboardEvent} e */
+		const handleGlobalKeydown = (e) => {
+			const isCmdCtrl = e.metaKey || e.ctrlKey;
+			if (isCmdCtrl && e.key.toLowerCase() === "s") {
+				const isUnnamed = !deckStore.name || deckStore.name === "Untitled Deck";
+				if (isUnnamed) {
+					e.preventDefault();
+					showDeckOptionsModal = true;
+				}
+			}
+		};
+		window.addEventListener("keydown", handleGlobalKeydown);
+		return () => {
+			window.removeEventListener("keydown", handleGlobalKeydown);
+		};
+	});
 </script>
 
 <div class="deck-header">
@@ -940,16 +959,12 @@
 	}
 
 	.name-container h2.unnamed-prompt {
-		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
-			Georgia, serif;
-		font-style: italic;
-		font-weight: 500;
-		color: hsl(var(--primary) / 0.85);
+		color: hsl(var(--foreground) / 0.45);
 		transition: color 0.15s ease;
 	}
 
 	.deck-info:hover .unnamed-prompt {
-		color: hsl(var(--primary));
+		color: hsl(var(--foreground) / 0.75);
 	}
 
 	.draft-badge {
