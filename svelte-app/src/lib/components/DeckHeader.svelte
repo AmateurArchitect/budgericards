@@ -369,16 +369,16 @@
 			</div>
 
 			<div class="name-container">
-				{#if !deckStore.name || deckStore.name === 'Untitled Deck'}
-					<h2 class="unnamed-prompt">Name & Save This Deck</h2>
-				{:else}
-					<h2>{deckStore.name}</h2>
-				{/if}
+				<div class="deck-title-row">
+					{#if !deckStore.name || deckStore.name === "Untitled Deck"}
+						<h2 class="unnamed-prompt">Untitled Deck</h2>
+						<span class="draft-badge">Unsaved Draft</span>
+					{:else}
+						<h2>{deckStore.name}</h2>
+					{/if}
+				</div>
 
 				<div class="deck-meta">
-					{#if !deckStore.name || deckStore.name === 'Untitled Deck'}
-						<span class="draft-badge">Local Draft</span>
-					{/if}
 					{#if colorIdentity().length > 0}
 						<div class="deck-colors">
 							{#each colorIdentity() as col}
@@ -457,12 +457,21 @@
 					{#if authStore.isAuthenticated && (deckStore.syncState.isSyncing || deckStore.syncState.error)}
 						<div class="sync-indicator-container">
 							{#if deckStore.syncState.isSyncing}
-								<span class="sync-status is-syncing" title="Syncing with cloud...">
-									<RefreshCw size={11} class="icon animate-spin" />
+								<span
+									class="sync-status is-syncing"
+									title="Syncing with cloud..."
+								>
+									<RefreshCw
+										size={11}
+										class="icon animate-spin"
+									/>
 									<span>Syncing...</span>
 								</span>
 							{:else if deckStore.syncState.error}
-								<span class="sync-status has-error" title={deckStore.syncState.error}>
+								<span
+									class="sync-status has-error"
+									title={deckStore.syncState.error}
+								>
 									<CloudOff size={11} class="icon" />
 									<span>Error</span>
 								</span>
@@ -480,7 +489,7 @@
 	</div>
 
 	<div class="deck-controls">
-		{#if settingsStore.deckViewMode === 'list' && deckStore.isImportDirty}
+		{#if settingsStore.deckViewMode === "list" && deckStore.isImportDirty}
 			<div class="import-mode-actions">
 				<Button
 					variant="outline"
@@ -508,7 +517,8 @@
 								: "ghost"}
 							size="icon"
 							class="display-toggle-btn"
-							onclick={() => (settingsStore.deckViewMode = "stacks")}
+							onclick={() =>
+								(settingsStore.deckViewMode = "stacks")}
 							title="Stacks View"
 						>
 							<Layers size={14} />
@@ -519,7 +529,8 @@
 								: "ghost"}
 							size="icon"
 							class="display-toggle-btn"
-							onclick={() => (settingsStore.deckViewMode = "table")}
+							onclick={() =>
+								(settingsStore.deckViewMode = "table")}
 							title="Table View"
 						>
 							<Table size={14} />
@@ -530,7 +541,8 @@
 								: "ghost"}
 							size="icon"
 							class="display-toggle-btn"
-							onclick={() => (settingsStore.deckViewMode = "list")}
+							onclick={() =>
+								(settingsStore.deckViewMode = "list")}
 							title="List View"
 						>
 							<List size={14} />
@@ -541,7 +553,8 @@
 								: "ghost"}
 							size="icon"
 							class="display-toggle-btn"
-							onclick={() => (settingsStore.deckViewMode = "spoiler")}
+							onclick={() =>
+								(settingsStore.deckViewMode = "spoiler")}
 							title="Spoiler View"
 						>
 							<Image size={14} />
@@ -559,13 +572,15 @@
 							<button
 								class="header-select-trigger"
 								onclick={() =>
-									(showColumnsDropdown = !showColumnsDropdown)}
+									(showColumnsDropdown =
+										!showColumnsDropdown)}
 								aria-expanded={showColumnsDropdown}
 								aria-haspopup="listbox"
 							>
 								<span class="trigger-value"
-									>{columns.find((c) => c.id === deckStore.grouping)
-										?.label}</span
+									>{columns.find(
+										(c) => c.id === deckStore.grouping,
+									)?.label}</span
 								>
 								<ChevronDown
 									size={14}
@@ -594,8 +609,10 @@
 									{#each visibleGroupings as col}
 										<button
 											class="select-item"
-											class:active={deckStore.grouping === col.id}
-											onclick={() => selectGrouping(col.id)}
+											class:active={deckStore.grouping ===
+												col.id}
+											onclick={() =>
+												selectGrouping(col.id)}
 										>
 											{col.label}
 										</button>
@@ -699,9 +716,9 @@
 								(deckStore.splitView = !deckStore.splitView)}
 							title={settingsStore.deckViewMode === "spoiler"
 								? "Toggle Category Dividers"
-								: (deckStore.grouping === "type"
+								: deckStore.grouping === "type"
 									? "Toggle Type Split View (Creatures / Non-Creatures)"
-									: "Toggle Spell / Land Row Split View")}
+									: "Toggle Spell / Land Row Split View"}
 						>
 							{#if settingsStore.deckViewMode === "spoiler"}
 								<StretchHorizontal size={16} />
@@ -727,7 +744,10 @@
 									aria-expanded={showSortDropdown}
 									aria-haspopup="listbox"
 								>
-									<ArrowDownWideNarrow size={14} class="sort-icon" />
+									<ArrowDownWideNarrow
+										size={14}
+										class="sort-icon"
+									/>
 									<span class="trigger-value"
 										>{visibleSorts.find(
 											(s) => s.id === deckStore.sorting,
@@ -762,7 +782,8 @@
 												class="select-item"
 												class:active={deckStore.sorting ===
 													sort.id}
-												onclick={() => selectSorting(sort.id)}
+												onclick={() =>
+													selectSorting(sort.id)}
 											>
 												{sort.label}
 											</button>
@@ -775,9 +796,13 @@
 				{/if}
 
 				<div class="header-select-group" style="position: relative;">
-					<span class="group-label" style="visibility: hidden;">OPT</span>
+					<span class="group-label" style="visibility: hidden;"
+						>OPT</span
+					>
 					<Button
-						variant={showViewOptionsModal ? "toggle-active" : "ghost"}
+						variant={showViewOptionsModal
+							? "toggle-active"
+							: "ghost"}
 						size="icon"
 						class="view-options-btn"
 						bind:el={viewOptionsBtn}
@@ -885,6 +910,12 @@
 		gap: 0.25rem;
 	}
 
+	.deck-title-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
 	.deck-colors {
 		display: flex;
 		gap: 0.15em;
@@ -909,7 +940,8 @@
 	}
 
 	.name-container h2.unnamed-prompt {
-		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
+			Georgia, serif;
 		font-style: italic;
 		font-weight: 500;
 		color: hsl(var(--primary) / 0.85);
@@ -934,8 +966,6 @@
 		align-items: center;
 		line-height: 1;
 	}
-
-
 
 	:global(.deck-name-input) {
 		font-size: 1rem !important;
@@ -1280,15 +1310,17 @@
 		color: #f87171;
 	}
 
-
-
 	.sync-status :global(.icon) {
 		opacity: 0.8;
 	}
 
 	@keyframes spin {
-		from { transform: rotate(0deg); }
-		to { transform: rotate(360deg); }
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	:global(.animate-spin) {
