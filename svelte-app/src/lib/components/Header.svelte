@@ -344,7 +344,10 @@
 				<span class="logo-text">Budgie</span>
 			</a>
 			<nav class="nav-links">
-				<a href="/" class="nav-item" class:active={String($page.url.pathname) === '/'}>Deckbuilder</a>
+				<a href="/?new_deck=true" class="nav-item">New Deck</a>
+				{#if authStore.isAuthenticated}
+					<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>My Decks</a>
+				{/if}
 				<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>Browse Decks</a>
 				<a href="/gallery" class="nav-item" class:active={$page.url.pathname === '/gallery'}>Art Gallery</a>
 				<button class="nav-item" onclick={() => (showAboutModal = true)}>About</button>
