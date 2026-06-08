@@ -100,9 +100,9 @@
 	}
 </script>
 
+<div class="settings-page-wrapper">
 <div class="settings-page-container">
 	<header class="page-header">
-		<a href="/" class="back-link">← Back to deckbuilder</a>
 		<div class="title-area">
 			<Settings class="header-icon" size={24} />
 			<h1>User Settings</h1>
@@ -211,14 +211,22 @@
 		{/if}
 	</main>
 </div>
+</div>
 
 <style>
+	.settings-page-wrapper {
+		width: 100%;
+		height: 100%;
+		overflow-y: auto;
+		background: hsl(var(--background));
+	}
+
 	.settings-page-container {
 		width: 100%;
 		max-width: 600px;
 		margin: 0 auto;
 		padding: 3rem 1.5rem;
-		min-height: 100vh;
+		min-height: 100%;
 		display: flex;
 		flex-direction: column;
 		box-sizing: border-box;
@@ -231,18 +239,6 @@
 		margin-bottom: 2.5rem;
 		border-bottom: 1px solid hsl(var(--border) / 0.5);
 		padding-bottom: 1.5rem;
-	}
-
-	.back-link {
-		color: hsl(var(--muted-foreground));
-		text-decoration: none;
-		font-size: 0.875rem;
-		font-weight: 500;
-		transition: color 0.15s ease;
-	}
-
-	.back-link:hover {
-		color: hsl(var(--foreground));
 	}
 
 	.title-area {

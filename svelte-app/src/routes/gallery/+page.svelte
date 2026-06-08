@@ -195,10 +195,6 @@
 				</div>
 				<p class="gallery-subtitle">A curation of high-fidelity illustrations and card arts</p>
 			</div>
-
-			<a href="/" class="back-link">
-				<span>← Back to deckbuilder</span>
-			</a>
 		</div>
 
 		<!-- Toolbar: Categories and Search -->
@@ -489,8 +485,8 @@
 	.gallery-wrapper {
 		display: flex;
 		flex-direction: column;
-		width: 100vw;
-		height: 100vh;
+		width: 100%;
+		height: 100%;
 		background-color: #0d0d0f;
 		color: #ffffff;
 		overflow: hidden;
@@ -533,20 +529,7 @@
 		letter-spacing: 0.05em;
 	}
 
-	.back-link {
-		display: inline-flex;
-		align-items: center;
-		color: var(--text-muted);
-		text-decoration: none;
-		font-size: 0.8125rem;
-		font-weight: 600;
-		transition: color 0.15s;
-		margin-top: 0.25rem;
-	}
 
-	.back-link:hover {
-		color: var(--text-primary);
-	}
 
 	.title-section {
 		display: flex;

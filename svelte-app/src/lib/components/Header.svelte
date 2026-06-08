@@ -32,6 +32,7 @@
 	import DisplayNamePromptModal from "./DisplayNamePromptModal.svelte";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { goto } from "$app/navigation";
+	import { page } from "$app/stores";
 
 	let {} = $props();
 	let showCollectionDropdown = $state(false);
@@ -166,176 +167,186 @@
 
 <header class="app-header">
 	<div class="header-left">
-		<div class="budgie-menu-container">
-			<button
-				class="budgie-trigger"
-				onclick={() => (showBudgieDropdown = !showBudgieDropdown)}
-				aria-expanded={showBudgieDropdown}
-				aria-haspopup="menu"
-			>
-				<span class="logo-text">Budgie</span>
-				<ChevronDown size={14} class="chevron {showBudgieDropdown ? 'open' : ''}" />
-			</button>
+		{#if $page.url.pathname === '/'}
+			<div class="budgie-menu-container">
+				<button
+					class="budgie-trigger"
+					onclick={() => (showBudgieDropdown = !showBudgieDropdown)}
+					aria-expanded={showBudgieDropdown}
+					aria-haspopup="menu"
+				>
+					<span class="logo-text">Budgie</span>
+					<ChevronDown size={14} class="chevron {showBudgieDropdown ? 'open' : ''}" />
+				</button>
 
-			{#if showBudgieDropdown}
-				<div class="budgie-dropdown" transition:fade={{ duration: 150 }}>
-					<button class="menu-item" onclick={handleNewDeck}>
-						<PlusCircle size={14} />
-						<span>New Deck</span>
-					</button>
-					<button class="menu-item" onclick={handleBrowseDecks}>
-						<FolderOpen size={14} />
-						<span>Browse Decks</span>
-					</button>
-					<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
-						<Palette size={14} />
-						<span>Art Gallery</span>
-					</a>
-					<button class="menu-item" onclick={() => { showAboutModal = true; showBudgieDropdown = false; }}>
-						<HelpCircle size={14} />
-						<span>About Budgie</span>
-					</button>
-					<a 
-						href="https://scryfall.com/docs/syntax" 
-						target="_blank" 
-						rel="noopener noreferrer" 
-						class="menu-item nav-link"
-						onclick={() => (showBudgieDropdown = false)}
-					>
-						<HelpCircle size={14} />
-						<span>Help</span>
-					</a>
-				</div>
-			{/if}
-		</div>
-
-		<div class="search-bar">
-			<div
-				class="search-input-group"
-				class:is-focused={searchStore.isFocused}
-			>
-				<div class="collection-selector">
-					<button
-						class="collection-trigger"
-						onclick={() =>
-							(showCollectionDropdown = !showCollectionDropdown)}
-						aria-expanded={showCollectionDropdown}
-						aria-haspopup="listbox"
-					>
-						<div class="collection-value">
-							<span class="value-text"
-								>{collectionButtonText}</span
-							>
-							<ChevronDown
-								size={14}
-								class="chevron {showCollectionDropdown
-									? 'open'
-									: ''}"
-							/>
-						</div>
-					</button>
-
-					{#if showCollectionDropdown}
-						<div class="collection-menu">
-							{#each collections as item}
-								{#if item.divider}
-									<div class="menu-divider"></div>
-								{:else}
-									<button
-										class="menu-item"
-										class:active={searchStore.collection ===
-											item.id}
-										class:disabled={item.disabled}
-										onclick={() =>
-											!item.disabled &&
-											item.id &&
-											selectCollection(item.id)}
-										disabled={item.disabled}
-									>
-										{item.label}
-									</button>
-								{/if}
-							{/each}
-						</div>
-					{/if}
-				</div>
-
-				<div class="search-input-wrapper">
-					<Search size={14} class="search-icon" />
-					<Input
-						placeholder=""
-						class="header-search-input"
-						bind:value={searchStore.query}
-						onfocus={() => searchStore.setFocus(true)}
-						onblur={() => searchStore.setFocus(false)}
-						onkeydown={(/** @type {KeyboardEvent} */ e) => {
-							if (e.key === "Escape") {
-								// @ts-ignore
-								e.currentTarget.blur();
-							}
-						}}
-					/>
-					{#if searchStore.query !== ""}
-						<button
-							class="search-action-btn"
-							title="Clear search"
-							onclick={() => (searchStore.query = "")}
-							onmousedown={(e) => e.preventDefault()}
-							transition:fade={{ duration: 150 }}
-						>
-							<X size={14} />
+				{#if showBudgieDropdown}
+					<div class="budgie-dropdown" transition:fade={{ duration: 150 }}>
+						<button class="menu-item" onclick={handleNewDeck}>
+							<PlusCircle size={14} />
+							<span>New Deck</span>
 						</button>
-					{:else if showHelpIcon}
-						<a
-							href="https://scryfall.com/docs/syntax"
-							target="_blank"
-							rel="noopener noreferrer"
-							class="search-action-btn"
-							title="Scryfall Search Syntax Guide"
-							onmousedown={(e) => e.preventDefault()}
-							transition:fade={{ duration: 150 }}
+						<button class="menu-item" onclick={handleBrowseDecks}>
+							<FolderOpen size={14} />
+							<span>Browse Decks</span>
+						</button>
+						<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+							<Palette size={14} />
+							<span>Art Gallery</span>
+						</a>
+						<button class="menu-item" onclick={() => { showAboutModal = true; showBudgieDropdown = false; }}>
+							<HelpCircle size={14} />
+							<span>About Budgie</span>
+						</button>
+						<a 
+							href="https://scryfall.com/docs/syntax" 
+							target="_blank" 
+							rel="noopener noreferrer" 
+							class="menu-item nav-link"
+							onclick={() => (showBudgieDropdown = false)}
 						>
 							<HelpCircle size={14} />
+							<span>Help</span>
 						</a>
-					{/if}
-				</div>
-
-				<div class="search-divider"></div>
-
-				<button
-					bind:this={searchSettingsBtn}
-					class="search-settings-btn"
-					class:active={showSearchOptions}
-					onclick={() => (showSearchOptions = !showSearchOptions)}
-					aria-label="Search Settings"
-					title="Search Settings"
-				>
-					<SlidersHorizontal size={15} />
-				</button>
+					</div>
+				{/if}
 			</div>
-		</div>
 
-		<SearchOptionsModal
-			bind:isOpen={showSearchOptions}
-			triggerElement={searchSettingsBtn}
-		/>
-
-		{#if isManaFilterVisible}
-			<div
-				role="presentation"
-				in:slide={{ axis: "x", duration: 200, delay: 150 }}
-				out:slide={{ axis: "x", duration: 200 }}
-				onmouseenter={() => (isHoveringFilters = true)}
-				onmouseleave={() => (isHoveringFilters = false)}
-				class="mana-filter-wrapper"
-			>
+			<div class="search-bar">
 				<div
-					in:fade={{ duration: 100, delay: 250 }}
-					out:fade={{ duration: 100 }}
+					class="search-input-group"
+					class:is-focused={searchStore.isFocused}
 				>
-					<ManaFilter />
+					<div class="collection-selector">
+						<button
+							class="collection-trigger"
+							onclick={() =>
+								(showCollectionDropdown = !showCollectionDropdown)}
+							aria-expanded={showCollectionDropdown}
+							aria-haspopup="listbox"
+						>
+							<div class="collection-value">
+								<span class="value-text"
+									>{collectionButtonText}</span
+								>
+								<ChevronDown
+									size={14}
+									class="chevron {showCollectionDropdown
+										? 'open'
+										: ''}"
+								/>
+							</div>
+						</button>
+
+						{#if showCollectionDropdown}
+							<div class="collection-menu">
+								{#each collections as item}
+									{#if item.divider}
+										<div class="menu-divider"></div>
+									{:else}
+										<button
+											class="menu-item"
+											class:active={searchStore.collection ===
+												item.id}
+											class:disabled={item.disabled}
+											onclick={() =>
+												!item.disabled &&
+												item.id &&
+												selectCollection(item.id)}
+											disabled={item.disabled}
+										>
+											{item.label}
+										</button>
+									{/if}
+								{/each}
+							</div>
+						{/if}
+					</div>
+
+					<div class="search-input-wrapper">
+						<Search size={14} class="search-icon" />
+						<Input
+							placeholder=""
+							class="header-search-input"
+							bind:value={searchStore.query}
+							onfocus={() => searchStore.setFocus(true)}
+							onblur={() => searchStore.setFocus(false)}
+							onkeydown={(/** @type {KeyboardEvent} */ e) => {
+								if (e.key === "Escape") {
+									// @ts-ignore
+									e.currentTarget.blur();
+								}
+							}}
+						/>
+						{#if searchStore.query !== ""}
+							<button
+								class="search-action-btn"
+								title="Clear search"
+								onclick={() => (searchStore.query = "")}
+								onmousedown={(e) => e.preventDefault()}
+								transition:fade={{ duration: 150 }}
+							>
+								<X size={14} />
+							</button>
+						{:else if showHelpIcon}
+							<a
+								href="https://scryfall.com/docs/syntax"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="search-action-btn"
+								title="Scryfall Search Syntax Guide"
+								onmousedown={(e) => e.preventDefault()}
+								transition:fade={{ duration: 150 }}
+							>
+								<HelpCircle size={14} />
+							</a>
+						{/if}
+					</div>
+
+					<div class="search-divider"></div>
+
+					<button
+						bind:this={searchSettingsBtn}
+						class="search-settings-btn"
+						class:active={showSearchOptions}
+						onclick={() => (showSearchOptions = !showSearchOptions)}
+						aria-label="Search Settings"
+						title="Search Settings"
+					>
+						<SlidersHorizontal size={15} />
+					</button>
 				</div>
 			</div>
+
+			<SearchOptionsModal
+				bind:isOpen={showSearchOptions}
+				triggerElement={searchSettingsBtn}
+			/>
+
+			{#if isManaFilterVisible}
+				<div
+					role="presentation"
+					in:slide={{ axis: "x", duration: 200, delay: 150 }}
+					out:slide={{ axis: "x", duration: 200 }}
+					onmouseenter={() => (isHoveringFilters = true)}
+					onmouseleave={() => (isHoveringFilters = false)}
+					class="mana-filter-wrapper"
+				>
+					<div
+						in:fade={{ duration: 100, delay: 250 }}
+						out:fade={{ duration: 100 }}
+					>
+						<ManaFilter />
+					</div>
+				</div>
+			{/if}
+		{:else}
+			<a href="/" class="logo-link">
+				<span class="logo-text">Budgie</span>
+			</a>
+			<nav class="nav-links">
+				<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>Browse Decks</a>
+				<a href="/gallery" class="nav-item" class:active={$page.url.pathname === '/gallery'}>Art Gallery</a>
+			</nav>
 		{/if}
 	</div>
 
@@ -343,52 +354,75 @@
 		<div class="user-auth-bug">
 			{#if authStore.isLoading}
 				<div class="auth-loading-spinner spinner"></div>
-			{:else if authStore.isAuthenticated && authStore.user}
-				<div class="profile-menu-container">
-					<button 
-						class="profile-trigger" 
-						onclick={() => showProfileDropdown = !showProfileDropdown}
-						aria-expanded={showProfileDropdown}
-						aria-haspopup="menu"
-						aria-label="User menu"
-					>
-						<span class="user-name">{authStore.user.user_metadata?.display_name || authStore.user.email?.split('@')[0]}</span>
-						<ChevronDown size={14} class="chevron {showProfileDropdown ? 'open' : ''}" />
-					</button>
+			{:else if $page.url.pathname === '/'}
+				{#if authStore.isAuthenticated && authStore.user}
+					<div class="profile-menu-container">
+						<button 
+							class="profile-trigger" 
+							onclick={() => showProfileDropdown = !showProfileDropdown}
+							aria-expanded={showProfileDropdown}
+							aria-haspopup="menu"
+							aria-label="User menu"
+						>
+							<span class="user-name">{authStore.user.user_metadata?.display_name || authStore.user.email?.split('@')[0]}</span>
+							<ChevronDown size={14} class="chevron {showProfileDropdown ? 'open' : ''}" />
+						</button>
 
-					{#if showProfileDropdown}
-						<div class="profile-dropdown" transition:fade={{ duration: 150 }}>
-							<div class="dropdown-header">
-								<span class="dropdown-email">{authStore.user.email}</span>
-								{#if authStore.user.app_metadata?.provider}
-									<span class="provider-badge">{authStore.user.app_metadata.provider}</span>
-								{/if}
+						{#if showProfileDropdown}
+							<div class="profile-dropdown" transition:fade={{ duration: 150 }}>
+								<div class="dropdown-header">
+									<span class="dropdown-email">{authStore.user.email}</span>
+									{#if authStore.user.app_metadata?.provider}
+										<span class="provider-badge">{authStore.user.app_metadata.provider}</span>
+									{/if}
+								</div>
+								<div class="menu-divider"></div>
+								<button class="menu-item" onclick={handleNewDeck}>
+									<PlusCircle size={14} />
+									<span>New Deck</span>
+								</button>
+								<button class="menu-item" onclick={handleBrowseDecks}>
+									<FolderOpen size={14} />
+									<span>Your Decks</span>
+								</button>
+								<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
+									<SettingsIcon size={14} />
+									<span>Settings</span>
+								</button>
+								<div class="menu-divider"></div>
+								<button class="menu-item destructive" onclick={handleSignOut}>
+									<LogOut size={14} />
+									<span>Log Out</span>
+								</button>
 							</div>
-							<div class="menu-divider"></div>
-							<button class="menu-item" onclick={handleNewDeck}>
-								<PlusCircle size={14} />
-								<span>New Deck</span>
-							</button>
-							<button class="menu-item" onclick={handleBrowseDecks}>
-								<FolderOpen size={14} />
-								<span>Your Decks</span>
-							</button>
-							<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
-								<SettingsIcon size={14} />
-								<span>Settings</span>
-							</button>
-							<div class="menu-divider"></div>
-							<button class="menu-item destructive" onclick={handleSignOut}>
-								<LogOut size={14} />
-								<span>Log Out</span>
-							</button>
-						</div>
-					{/if}
-				</div>
+						{/if}
+					</div>
+				{:else}
+					<a href="/login" class="profile-trigger font-semibold" style="text-decoration: none;" aria-label="Log In">
+						<span class="user-name">Log In</span>
+					</a>
+				{/if}
 			{:else}
-				<a href="/login" class="profile-trigger font-semibold" style="text-decoration: none;" aria-label="Log In">
-					<span class="user-name">Log In</span>
-				</a>
+				<nav class="nav-links">
+					{#if authStore.isAuthenticated}
+						<button class="nav-item flex-align-center" onclick={handleNewDeck}>
+							<PlusCircle size={14} />
+							<span>New Deck</span>
+						</button>
+						<a href="/settings" class="nav-item flex-align-center" class:active={$page.url.pathname === '/settings'}>
+							<SettingsIcon size={14} />
+							<span>Settings</span>
+						</a>
+						<button class="nav-item flex-align-center destructive-text" onclick={handleSignOut}>
+							<LogOut size={14} />
+							<span>Log Out</span>
+						</button>
+					{:else}
+						<a href="/login" class="nav-item font-semibold" style="text-decoration: none;">
+							<span>Log In</span>
+						</a>
+					{/if}
+				</nav>
 			{/if}
 		</div>
 	</div>
@@ -937,5 +971,50 @@
 		font-size: 0.75rem;
 		color: hsl(var(--muted-foreground));
 		text-align: right;
+	}
+
+	.logo-link {
+		text-decoration: none;
+		display: flex;
+		align-items: center;
+		padding: 0.375rem 0.75rem;
+	}
+
+	.nav-links {
+		display: flex;
+		align-items: center;
+		gap: 1.5rem;
+		margin-left: 0.5rem;
+	}
+
+	.nav-item {
+		color: hsl(var(--muted-foreground));
+		font-size: 0.8125rem;
+		font-weight: 600;
+		text-decoration: none;
+		transition: color 0.15s ease;
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 0.25rem 0;
+	}
+
+	.nav-item:hover,
+	.nav-item.active {
+		color: hsl(var(--foreground));
+	}
+
+	.flex-align-center {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+	}
+
+	.destructive-text {
+		color: #f87171 !important;
+	}
+
+	.destructive-text:hover {
+		color: #ef4444 !important;
 	}
 </style>

@@ -11,6 +11,8 @@
 	import QuantityModal from '$lib/components/ui/QuantityModal.svelte';
 	import { syncManager } from '$lib/syncManager.svelte';
 	import { loginBgStore } from '$lib/stores/loginBg.svelte.js';
+	import { page } from '$app/stores';
+	import Header from '$lib/components/Header.svelte';
 
 	let { children } = $props();
 
@@ -47,7 +49,14 @@
 	style:--physical-card-width="{settingsStore.physicalCardWidth}px"
 	style={Object.entries(layoutStore.cssVariables).map(([k, v]) => `${k}: ${v}`).join("; ")}
 >
-	{@render children()}
+	{#if $page.url.pathname !== '/login' && !$page.url.pathname.startsWith('/auth')}
+		<Header />
+		<div class="app-content-wrapper">
+			{@render children()}
+		</div>
+	{:else}
+		{@render children()}
+	{/if}
 	<Tooltip />
 	<ContextMenu 
 		bind:isOpen={interactionStore.isMenuOpen} 
@@ -62,6 +71,17 @@
 
 <style>
 	.app-shell {
-		display: contents;
+		display: flex;
+		flex-direction: column;
+		height: 100vh;
+		width: 100vw;
+		overflow: hidden;
+	}
+
+	.app-content-wrapper {
+		flex: 1;
+		width: 100%;
+		min-height: 0;
+		overflow: hidden;
 	}
 </style>

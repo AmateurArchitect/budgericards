@@ -547,7 +547,7 @@
 <style>
 	.decks-page-wrapper {
 		width: 100%;
-		height: 100vh;
+		height: 100%;
 		overflow-y: auto;
 		background: hsl(var(--background));
 	}

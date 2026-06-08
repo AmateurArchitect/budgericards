@@ -1,5 +1,4 @@
 <script>
-	import Header from "$lib/components/Header.svelte";
 	import SearchPanel from "$lib/components/SearchPanel.svelte";
 	import DeckHeader from "$lib/components/DeckHeader.svelte";
 	import StacksView from "$lib/components/StacksView.svelte";
@@ -118,8 +117,6 @@
 	ondrop={handleGlobalDrop}
 	style={Object.entries(layoutStore.cssVariables).map(([k, v]) => `${k}: ${v}`).join("; ")}
 >
-	<Header />
-	
 	<main class="app-layout">
 		<SearchPanel />
 		
@@ -147,7 +144,7 @@
 	.app-root {
 		display: flex;
 		flex-direction: column;
-		height: 100vh;
+		height: 100%;
 		background: hsl(var(--background));
 		color: hsl(var(--foreground));
 		overflow: hidden;
