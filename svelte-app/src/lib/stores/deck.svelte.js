@@ -73,6 +73,54 @@ function createDeckState(initialData = null) {
 	};
 }
 
+/**
+ * @param {any} card
+ * @param {any} metadata
+ * @param {string} fieldName
+ * @param {any} value
+ * @returns {boolean}
+ */
+function isDefaultValue(card, metadata, fieldName, value) {
+	if (value === undefined || value === null) return true;
+
+	if (fieldName === 'manaValue' || fieldName === 'cmc') {
+		const defaultVal = metadata?.cmc !== undefined ? metadata.cmc : (card.cmc !== undefined ? card.cmc : 0);
+		return Number(value) === Number(defaultVal);
+	}
+
+	if (fieldName === 'primaryType') {
+		const defaultVal = metadata?.type_line || card.type_line || "Unknown";
+		return String(value).trim().toLowerCase() === defaultVal.trim().toLowerCase();
+	}
+
+	if (fieldName === 'colorCategory') {
+		const typeLine = metadata?.type_line || card.type_line || "";
+		const colors = metadata?.colors || card.colors || [];
+		let defaultCat = "Colorless";
+		if (typeLine.toLowerCase().includes("land")) {
+			defaultCat = "Lands";
+		} else if (colors.length > 1) {
+			defaultCat = "Multicolor";
+		} else if (colors.length === 1) {
+			/** @type {Record<string, string>} */
+			const colorNames = { W: "White", U: "Blue", B: "Black", R: "Red", G: "Green" };
+			defaultCat = colorNames[colors[0]] || "Colorless";
+		}
+		const norm = (s) => String(s).toLowerCase().trim().replace(/s$/, "");
+		return norm(value) === norm(defaultCat);
+	}
+
+	if (fieldName === 'colors' || fieldName === 'colorIdentity') {
+		const defaultArr = fieldName === 'colors' 
+			? (metadata?.colors || card.colors || [])
+			: (metadata?.color_identity || card.color_identity || []);
+		if (!Array.isArray(value) || !Array.isArray(defaultArr)) return false;
+		return [...value].sort().join(',') === [...defaultArr].sort().join(',');
+	}
+
+	return false;
+}
+
 function createDeck() {
 	// A reactive map of loaded decks in this tab session
 	/** @type {Record<string, ReturnType<typeof createDeckState>>} */
@@ -750,7 +798,17 @@ function createDeck() {
 				if (!result.card.overrides) {
 					result.card.overrides = {};
 				}
-				result.card.overrides[fieldName] = value;
+				
+				const metadata = activeDeck.metadata[result.card.name.toLowerCase()];
+				if (isDefaultValue(result.card, metadata, fieldName, value)) {
+					delete result.card.overrides[fieldName];
+				} else {
+					result.card.overrides[fieldName] = value;
+				}
+
+				if (Object.keys(result.card.overrides).length === 0) {
+					delete result.card.overrides;
+				}
 				persist(activeDeck);
 			}
 		},
