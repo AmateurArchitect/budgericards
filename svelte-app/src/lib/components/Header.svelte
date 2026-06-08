@@ -344,8 +344,11 @@
 				<span class="logo-text">Budgie</span>
 			</a>
 			<nav class="nav-links">
+				<a href="/" class="nav-item" class:active={String($page.url.pathname) === '/'}>Deckbuilder</a>
 				<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>Browse Decks</a>
 				<a href="/gallery" class="nav-item" class:active={$page.url.pathname === '/gallery'}>Art Gallery</a>
+				<button class="nav-item" onclick={() => (showAboutModal = true)}>About</button>
+				<a href="https://scryfall.com/docs/syntax" target="_blank" rel="noopener noreferrer" class="nav-item">Help</a>
 			</nav>
 		{/if}
 	</div>
@@ -405,6 +408,10 @@
 			{:else}
 				<nav class="nav-links">
 					{#if authStore.isAuthenticated}
+						{#if authStore.user}
+							<span class="nav-username">{authStore.user.user_metadata?.display_name || authStore.user.email?.split('@')[0]}</span>
+							<div class="nav-divider"></div>
+						{/if}
 						<button class="nav-item flex-align-center" onclick={handleNewDeck}>
 							<PlusCircle size={14} />
 							<span>New Deck</span>
@@ -1002,6 +1009,19 @@
 	.nav-item:hover,
 	.nav-item.active {
 		color: hsl(var(--foreground));
+	}
+
+	.nav-username {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+		opacity: 0.8;
+	}
+
+	.nav-divider {
+		width: 1px;
+		height: 14px;
+		background-color: hsl(var(--border) / 0.5);
 	}
 
 	.flex-align-center {

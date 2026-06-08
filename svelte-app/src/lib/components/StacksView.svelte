@@ -707,7 +707,7 @@
 																min="0"
 																max="999"
 																use:selectOnMount
-																onclick={(e) => e.stopPropagation()}
+																onclick={(/** @type {MouseEvent} */ e) => e.stopPropagation()}
 																onmousedown={(e) => e.stopPropagation()}
 																onkeydown={(e) => {
 																	if (e.key === "Enter") {
@@ -830,7 +830,7 @@
 																min="0"
 																max="999"
 																use:selectOnMount
-																onclick={(e) => e.stopPropagation()}
+																onclick={(/** @type {MouseEvent} */ e) => e.stopPropagation()}
 																onmousedown={(e) => e.stopPropagation()}
 																onkeydown={(e) => {
 																	if (e.key === "Enter") {
@@ -949,7 +949,7 @@
 																min="0"
 																max="999"
 																use:selectOnMount
-																onclick={(e) => e.stopPropagation()}
+																onclick={(/** @type {MouseEvent} */ e) => e.stopPropagation()}
 																onmousedown={(e) => e.stopPropagation()}
 																onkeydown={(e) => {
 																	if (e.key === "Enter") {
