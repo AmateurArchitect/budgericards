@@ -996,7 +996,7 @@
 		bottom: 0;
 		background-color: rgba(6, 6, 8, 0.85);
 		backdrop-filter: blur(16px);
-		z-index: 100;
+		z-index: 2000;
 		display: flex;
 		align-items: center;
 		justify-content: center;
