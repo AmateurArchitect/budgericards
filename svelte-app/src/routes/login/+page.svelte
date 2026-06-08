@@ -4,6 +4,7 @@
 	import { authStore } from "$lib/stores/auth.svelte.js";
 	import { loginBgStore } from "$lib/stores/loginBg.svelte.js";
 	import { goto } from "$app/navigation";
+	import { page } from "$app/stores";
 	import Button from "$lib/components/ui/Button.svelte";
 	import Input from "$lib/components/ui/Input.svelte";
 	import { Eye, EyeOff, ChevronUp } from "lucide-svelte";
@@ -46,7 +47,8 @@
 	// Reactively check if user gets authenticated and redirect
 	$effect(() => {
 		if (authStore.isAuthenticated && !authStore.isLoading) {
-			goto("/");
+			const from = $page.url.searchParams.get("redirectTo") || "/decks";
+			goto(from);
 		}
 	});
 
@@ -138,10 +140,11 @@
 		isSubmitting = true;
 		try {
 			const { supabase } = await import("$lib/supabase");
+			const from = $page.url.searchParams.get("redirectTo") || "/decks";
 			const { error } = await supabase.auth.signInWithOAuth({
 				provider,
 				options: {
-					redirectTo: `${window.location.origin}/auth/callback`,
+					redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(from)}`,
 				},
 			});
 			if (error) throw error;

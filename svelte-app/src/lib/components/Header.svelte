@@ -401,7 +401,7 @@
 						{/if}
 					</div>
 				{:else}
-					<a href="/login" class="profile-trigger font-semibold" style="text-decoration: none;" aria-label="Log In">
+					<a href="/login?redirectTo={encodeURIComponent($page.url.pathname)}" class="profile-trigger font-semibold" style="text-decoration: none;" aria-label="Log In">
 						<span class="user-name">Log In</span>
 					</a>
 				{/if}
@@ -425,7 +425,7 @@
 							<span>Log Out</span>
 						</button>
 					{:else}
-						<a href="/login" class="nav-item font-semibold" style="text-decoration: none;">
+						<a href="/login?redirectTo={encodeURIComponent($page.url.pathname)}" class="nav-item font-semibold" style="text-decoration: none;">
 							<span>Log In</span>
 						</a>
 					{/if}

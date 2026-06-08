@@ -56,7 +56,7 @@
 
 	$effect(() => {
 		if (!authStore.isLoading && !authStore.isAuthenticated) {
-			goto("/login");
+			goto("/login?redirectTo=/settings");
 		}
 	});
 

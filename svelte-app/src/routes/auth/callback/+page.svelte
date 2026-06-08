@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { supabase } from '$lib/supabase';
 
 	let statusMessage = $state('Completing authentication...');
@@ -11,29 +12,30 @@
 			// Supabase automatically parses hash tokens (access_token, refresh_token) 
 			// from the URL on load if the client is active. We fetch the session to verify.
 			const { data, error } = await supabase.auth.getSession();
+			const from = $page.url.searchParams.get('redirectTo') || '/decks';
 			
 			if (error) {
 				console.error('Callback error:', error.message);
 				statusMessage = `Authentication failed: ${error.message}`;
 				isError = true;
 				// Still redirect after a short delay so they aren't stuck
-				setTimeout(() => goto('/login'), 3000);
+				setTimeout(() => goto(`/login?redirectTo=${encodeURIComponent(from)}`), 3000);
 				return;
 			}
 
 			if (data.session) {
-				statusMessage = 'Authentication successful! Redirecting home...';
-				goto('/');
+				statusMessage = 'Authentication successful! Redirecting...';
+				goto(from);
 			} else {
 				// No session found yet, wait briefly and try one more time
 				setTimeout(async () => {
 					const { data: retryData } = await supabase.auth.getSession();
 					if (retryData.session) {
-						statusMessage = 'Authentication successful! Redirecting home...';
-						goto('/');
+						statusMessage = 'Authentication successful! Redirecting...';
+						goto(from);
 					} else {
 						statusMessage = 'No active session found. Redirecting to login...';
-						goto('/login');
+						goto(`/login?redirectTo=${encodeURIComponent(from)}`);
 					}
 				}, 1000);
 			}
@@ -41,7 +43,8 @@
 			console.error('Unhandled callback error:', err);
 			statusMessage = 'An unexpected error occurred. Redirecting to login...';
 			isError = true;
-			setTimeout(() => goto('/login'), 2000);
+			const from = $page.url.searchParams.get('redirectTo') || '/decks';
+			setTimeout(() => goto(`/login?redirectTo=${encodeURIComponent(from)}`), 2000);
 		}
 	});
 </script>
