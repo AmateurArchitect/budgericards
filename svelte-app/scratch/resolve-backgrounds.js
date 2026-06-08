@@ -194,8 +194,19 @@ async function main() {
         }
     }
 
-    // Merge and deduplicate
-    const merged = [...originalMtgPicsCards, ...newlyResolved];
+    // Merge and deduplicate by URL (newly resolved takes precedence over older cached/fallback versions)
+    const uniqueByUrl = {};
+    originalMtgPicsCards.forEach(card => {
+        uniqueByUrl[card.url] = card;
+    });
+    newlyResolved.forEach(card => {
+        const existing = uniqueByUrl[card.url];
+        if (!existing || (card.setCode !== 'UNK' && card.collectorNumber !== '0') || (existing.setCode === 'UNK' && existing.collectorNumber === '0')) {
+            uniqueByUrl[card.url] = card;
+        }
+    });
+
+    const merged = Object.values(uniqueByUrl);
     const grouped = {};
     const anomalies = [];
 
