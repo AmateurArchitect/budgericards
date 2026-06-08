@@ -167,50 +167,43 @@
 
 <header class="app-header">
 	<div class="header-left">
-		{#if $page.url.pathname === '/'}
-			<div class="budgie-menu-container">
-				<button
-					class="budgie-trigger"
-					onclick={() => (showBudgieDropdown = !showBudgieDropdown)}
-					aria-expanded={showBudgieDropdown}
-					aria-haspopup="menu"
-				>
-					<span class="logo-text">Budgie</span>
-					<ChevronDown size={14} class="chevron {showBudgieDropdown ? 'open' : ''}" />
-				</button>
+		<div class="budgie-menu-container">
+			<button
+				class="budgie-trigger"
+				onclick={() => (showBudgieDropdown = !showBudgieDropdown)}
+				aria-expanded={showBudgieDropdown}
+				aria-haspopup="menu"
+			>
+				<span class="logo-text">Budgie</span>
+				<ChevronDown size={14} class="chevron {showBudgieDropdown ? 'open' : ''}" />
+			</button>
 
-				{#if showBudgieDropdown}
-					<div class="budgie-dropdown" transition:fade={{ duration: 150 }}>
-						<button class="menu-item" onclick={handleNewDeck}>
-							<PlusCircle size={14} />
-							<span>New Deck</span>
-						</button>
-						<button class="menu-item" onclick={handleBrowseDecks}>
-							<FolderOpen size={14} />
-							<span>Browse Decks</span>
-						</button>
-						<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
-							<Palette size={14} />
-							<span>Art Gallery</span>
-						</a>
-						<button class="menu-item" onclick={() => { showAboutModal = true; showBudgieDropdown = false; }}>
-							<HelpCircle size={14} />
-							<span>About Budgie</span>
-						</button>
-						<a 
-							href="https://scryfall.com/docs/syntax" 
-							target="_blank" 
-							rel="noopener noreferrer" 
-							class="menu-item nav-link"
-							onclick={() => (showBudgieDropdown = false)}
-						>
-							<HelpCircle size={14} />
-							<span>Help</span>
-						</a>
-					</div>
-				{/if}
-			</div>
+			{#if showBudgieDropdown}
+				<div class="budgie-dropdown" transition:fade={{ duration: 150 }}>
+					<button class="menu-item" onclick={() => { showAboutModal = true; showBudgieDropdown = false; }}>
+						<HelpCircle size={14} />
+						<span>About Budgie</span>
+					</button>
+					<a 
+						href="https://scryfall.com/docs/syntax" 
+						target="_blank" 
+						rel="noopener noreferrer" 
+						class="menu-item nav-link"
+						onclick={() => (showBudgieDropdown = false)}
+					>
+						<HelpCircle size={14} />
+						<span>Help</span>
+					</a>
+				</div>
+			{/if}
+		</div>
 
+		<nav class="nav-links">
+			<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>Browse Decks</a>
+			<a href="/gallery" class="nav-item" class:active={$page.url.pathname === '/gallery'}>Art Gallery</a>
+		</nav>
+
+		{#if String($page.url.pathname) === '/'}
 			<div class="search-bar">
 				<div
 					class="search-input-group"
@@ -339,20 +332,6 @@
 					</div>
 				</div>
 			{/if}
-		{:else}
-			<a href="/" class="logo-link">
-				<span class="logo-text">Budgie</span>
-			</a>
-			<nav class="nav-links">
-				<a href="/?new_deck=true" class="nav-item">New Deck</a>
-				{#if authStore.isAuthenticated}
-					<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>My Decks</a>
-				{/if}
-				<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>Browse Decks</a>
-				<a href="/gallery" class="nav-item" class:active={$page.url.pathname === '/gallery'}>Art Gallery</a>
-				<button class="nav-item" onclick={() => (showAboutModal = true)}>About</button>
-				<a href="https://scryfall.com/docs/syntax" target="_blank" rel="noopener noreferrer" class="nav-item">Help</a>
-			</nav>
 		{/if}
 	</div>
 
@@ -360,8 +339,12 @@
 		<div class="user-auth-bug">
 			{#if authStore.isLoading}
 				<div class="auth-loading-spinner spinner"></div>
-			{:else if $page.url.pathname === '/'}
+			{:else}
 				{#if authStore.isAuthenticated && authStore.user}
+					<nav class="nav-links" style="margin-right: 1.25rem;">
+						<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>Your Decks</a>
+					</nav>
+
 					<div class="profile-menu-container">
 						<button 
 							class="profile-trigger" 
@@ -387,10 +370,10 @@
 									<PlusCircle size={14} />
 									<span>New Deck</span>
 								</button>
-								<button class="menu-item" onclick={handleBrowseDecks}>
+								<a href="/decks" class="menu-item nav-link" onclick={() => (showProfileDropdown = false)}>
 									<FolderOpen size={14} />
 									<span>Your Decks</span>
-								</button>
+								</a>
 								<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
 									<SettingsIcon size={14} />
 									<span>Settings</span>
@@ -408,31 +391,6 @@
 						<span class="user-name">Log In</span>
 					</a>
 				{/if}
-			{:else}
-				<nav class="nav-links">
-					{#if authStore.isAuthenticated}
-						{#if authStore.user}
-							<span class="nav-username">{authStore.user.user_metadata?.display_name || authStore.user.email?.split('@')[0]}</span>
-							<div class="nav-divider"></div>
-						{/if}
-						<button class="nav-item flex-align-center" onclick={handleNewDeck}>
-							<PlusCircle size={14} />
-							<span>New Deck</span>
-						</button>
-						<a href="/settings" class="nav-item flex-align-center" class:active={$page.url.pathname === '/settings'}>
-							<SettingsIcon size={14} />
-							<span>Settings</span>
-						</a>
-						<button class="nav-item flex-align-center destructive-text" onclick={handleSignOut}>
-							<LogOut size={14} />
-							<span>Log Out</span>
-						</button>
-					{:else}
-						<a href="/login?redirectTo={encodeURIComponent($page.url.pathname)}" class="nav-item font-semibold" style="text-decoration: none;">
-							<span>Log In</span>
-						</a>
-					{/if}
-				</nav>
 			{/if}
 		</div>
 	</div>
