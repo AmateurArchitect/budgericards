@@ -18,7 +18,7 @@ function createSettings() {
 	let deckViewMode = $state("stacks");
 	let visibleColumns = $state(['mana', 'cmc', 'type', 'printing', 'color-cat', 'color-id', 'tags', 'price']);
 	let showTotalPrice = $state(false);
-	let spoilerCardSize = $state(0.75);
+	let spoilerCardSize = $state(0.50);
 
 	if (browser) {
 		const isMac = navigator.userAgent.includes('Mac');
@@ -52,7 +52,7 @@ function createSettings() {
 		}
 		showTotalPrice = localStorage.getItem('budgericards_show_total_price') === 'true';
 		const savedSize = localStorage.getItem('budgericards_spoiler_card_size');
-		spoilerCardSize = savedSize ? parseFloat(savedSize) : 0.75;
+		spoilerCardSize = savedSize ? parseFloat(savedSize) : 0.50;
 	}
 
 	return {
@@ -132,7 +132,12 @@ function createSettings() {
 		get deckViewMode() { return deckViewMode; },
 		set deckViewMode(val) {
 			deckViewMode = val;
-			if (browser) localStorage.setItem('budgericards_deck_view_mode', val);
+			if (browser) {
+				localStorage.setItem('budgericards_deck_view_mode', val);
+				if (val !== 'list') {
+					localStorage.setItem('budgericards_last_active_view_mode', val);
+				}
+			}
 		},
 		get visibleColumns() { return visibleColumns; },
 		set visibleColumns(val) {

@@ -59,9 +59,16 @@ export function createStacksEngine() {
 				continue;
 			}
 
+			const overrides = card.overrides || {};
+			const manaValue = overrides.manaValue !== undefined ? overrides.manaValue : (card.cmc !== undefined ? card.cmc : (metadata?.cmc || 0));
+			const colors = overrides.colors !== undefined ? overrides.colors : (card.colors !== undefined ? card.colors : (metadata?.colors || []));
+			const colorIdentity = overrides.colorIdentity !== undefined ? overrides.colorIdentity : (card.color_identity !== undefined ? card.color_identity : (metadata?.color_identity || []));
+			const typeLineStr = (overrides.primaryType !== undefined ? overrides.primaryType : (details.type_line || "")).toLowerCase();
+			const isCreatureOverride = overrides.creature !== undefined ? overrides.creature : null;
+			const isCreature = isCreatureOverride !== null ? isCreatureOverride : typeLineStr.includes("creature");
+
 			const basicLandNames = ["plains", "island", "swamp", "mountain", "forest", "wastes"];
 			const isBasicLandName = basicLandNames.some(name => card.name.toLowerCase().includes(name));
-			const typeLineStr = (details.type_line || "").toLowerCase();
 			const isLand = (typeLineStr.includes("land") || isBasicLandName) && !typeLineStr.includes("//");
 
 			let key = "Other";
@@ -79,13 +86,15 @@ export function createStacksEngine() {
 			if (key === "Other") {
 				if (details.notFound || card.notFound) {
 					key = "Unknown";
+				} else if (effectiveGrouping === "primarytag") {
+					key = card.primaryTag || "No Tag";
 				} else if (effectiveGrouping === "color") {
-					// Funnel lands to the special column ONLY if we are NOT in split view.
-					// In split view, we want them in their color columns (Spells Top / Lands Bottom).
-					if (isLand && !splitView) {
+					if (overrides.colorCategory) {
+						key = overrides.colorCategory;
+					} else if (isLand && !splitView) {
 						key = "Lands";
 					} else {
-						const colorIds = (settingsStore.useColorIdentity || isLand) ? (details.color_identity || []) : (details.colors || []);
+						const colorIds = (settingsStore.useColorIdentity || isLand) ? colorIdentity : colors;
 						if (colorIds.length === 0) key = "Colorless";
 						else if (colorIds.length > 1) key = "Multicolor";
 						else {
@@ -100,13 +109,12 @@ export function createStacksEngine() {
 					} else if (isLand) {
 						key = "Lands";
 					} else if (effectiveGrouping === "creature") {
-						if (typeLineStr.includes("creature")) key = "Creatures";
+						if (isCreature) key = "Creatures";
 						else key = "Non-Creatures";
 					} else if (effectiveGrouping === "cmc") {
-						const cmc = details.cmc || 0;
-						const floorCmc = Math.floor(cmc);
+						const floorCmc = Math.floor(manaValue);
 						if (settingsStore.combine01Drops && (floorCmc === 0 || floorCmc === 1)) key = "0-1";
-						else if (settingsStore.combine6PlusDrops && cmc >= 6) key = "6+";
+						else if (settingsStore.combine6PlusDrops && manaValue >= 6) key = "6+";
 						else key = floorCmc.toString();
 					} else if (effectiveGrouping === "type") {
 						const tl = typeLineStr;
@@ -132,11 +140,22 @@ export function createStacksEngine() {
 					isTop = !isLand;
 				} else {
 					if (isLand) isTop = true;
-					else isTop = (details.type_line || "").includes("Creature");
+					else isTop = isCreature;
 				}
 			}
 
-			const finalCard = { ...metadata, ...card, _metadata: metadata };
+			const finalCard = { 
+				...metadata, 
+				...card, 
+				_metadata: metadata,
+				cmc: manaValue,
+				colors,
+				color_identity: colorIdentity
+			};
+			if (overrides.primaryType) {
+				finalCard.type_line = overrides.primaryType;
+			}
+			
 			if (isTop) columnMap[key].top.push(finalCard);
 			else columnMap[key].bottom.push(finalCard);
 		}
@@ -323,6 +342,12 @@ export function createStacksEngine() {
 			return [...special, "Deck"];
 		} else if (effectiveGrouping === "creature") {
 			return [...special, "Creatures", "Non-Creatures", "Lands"];
+		} else if (effectiveGrouping === "primarytag") {
+			const tagKeys = Object.keys(columnMap).filter(k => k !== "Special" && k !== "No Tag" && k !== "Loading" && k !== "Unknown").sort((a, b) => a.localeCompare(b));
+			const suffix = [];
+			if (columnMap["Unknown"]) suffix.push("Unknown");
+			if (columnMap["No Tag"]) suffix.push("No Tag");
+			return [...special, ...tagKeys, ...suffix];
 		} else if (effectiveGrouping === "cmc") {
 			const numericKeys = Object.keys(columnMap).filter((k) => k.match(/^\d+$/) || k === "0-1").sort((a, b) => {
 				if (a === "0-1") return -1;

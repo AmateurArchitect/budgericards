@@ -19,6 +19,13 @@ import { deckStore } from "./deck.svelte.js";
  * @property {number | null} quantityModal.price
  * @property {number} quantityModal.initialValue
  * @property {boolean} quantityModal.isAdding
+ * @property {Set<string>} selectedCardIds
+ * @property {string | null} lastSelectedCardId
+ * @property {any[]} currentVisibleCardIds
+ * @property {any[]} copiedCards
+ * @property {boolean} isCut
+ * @property {string | null} hoveredColumnKey
+ * @property {number} generateTagsTrigger
  */
 
 function createInteractionStore() {
@@ -41,17 +48,71 @@ function createInteractionStore() {
 			price: null,
 			initialValue: 1,
 			isAdding: false
-		}
+		},
+		selectedCardIds: new Set(),
+		lastSelectedCardId: null,
+		/** @type {any[]} */
+		currentVisibleCardIds: [],
+		copiedCards: [],
+		isCut: false,
+		hoveredColumnKey: null,
+		generateTagsTrigger: 0
 	});
 
 	// Global key listener
 	if (typeof window !== 'undefined') {
 		window.addEventListener('keydown', (e) => {
-			if (!state.hoveredCard || state.isMenuOpen) return;
-
 			// Don't trigger shortcuts if typing in an input
 			const target = /** @type {HTMLElement} */ (e.target);
 			if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+
+			if (state.isMenuOpen) return;
+
+			const isCmdCtrl = e.metaKey || e.ctrlKey;
+			const key = e.key.toLowerCase();
+
+			// 1. Global Clipboard/Selection Shortcuts (don't require hover)
+			if (isCmdCtrl && key === 'a') {
+				e.preventDefault();
+				state.selectedCardIds.clear();
+				for (const id of state.currentVisibleCardIds) {
+					state.selectedCardIds.add(id);
+				}
+				return;
+			}
+
+			if (isCmdCtrl && key === 'c') {
+				e.preventDefault();
+				interactionStore.copySelected();
+				return;
+			}
+
+			if (isCmdCtrl && key === 'x') {
+				e.preventDefault();
+				interactionStore.cutSelected();
+				return;
+			}
+
+			if (isCmdCtrl && key === 'v') {
+				e.preventDefault();
+				interactionStore.pasteSelected(state.hoveredColumnKey);
+				return;
+			}
+
+			// Backspace/Delete works on selected cards globally if there is a selection
+			if ((e.key === 'Backspace' || e.key === 'Delete') && state.selectedCardIds.size > 0) {
+				e.preventDefault();
+				interactionStore.deleteSelected();
+				return;
+			}
+
+			// Escape clears selection
+			if (e.key === 'Escape' && state.selectedCardIds.size > 0) {
+				state.selectedCardIds.clear();
+				return;
+			}
+
+			if (!state.hoveredCard) return;
 
 			const name = /** @type {string} */ (state.hoveredCard.name);
 			const zone = /** @type {string} */ (state.hoveredZone);
@@ -84,9 +145,9 @@ function createInteractionStore() {
 					break;
 				case 'q':
 					if (['mainboard', 'sideboard', 'maybeboard', 'commander', 'companion'].includes(zone)) {
-						this.startEditing(card.id, zone, price);
+						interactionStore.startEditing(card.id, zone, price);
 					} else {
-						this.showQuantityModal(card, zone, price);
+						interactionStore.showQuantityModal(card, zone, price);
 					}
 					break;
 				case 'delete':
@@ -126,6 +187,141 @@ function createInteractionStore() {
 		get menuPosition() { return state.menuPosition; },
 		get editingCardId() { return state.editingCardId; },
 		get quantityModal() { return state.quantityModal; },
+		get selectedCardIds() { return state.selectedCardIds; },
+		get hoveredColumnKey() { return state.hoveredColumnKey; },
+		set hoveredColumnKey(val) { state.hoveredColumnKey = val; },
+		get currentVisibleCardIds() { return state.currentVisibleCardIds; },
+		set currentVisibleCardIds(val) { state.currentVisibleCardIds = val; },
+		get generateTagsTrigger() { return state.generateTagsTrigger; },
+		triggerGenerateTags() { state.generateTagsTrigger++; },
+
+		clearSelection() {
+			state.selectedCardIds.clear();
+			state.lastSelectedCardId = null;
+		},
+
+		/**
+		 * @param {string} cardId
+		 * @param {boolean} isShift
+		 * @param {boolean} isCmdCtrl
+		 */
+		handleCardSelectClick(cardId, isShift, isCmdCtrl) {
+			if (isShift && state.lastSelectedCardId) {
+				const startIdx = state.currentVisibleCardIds.indexOf(state.lastSelectedCardId);
+				const endIdx = state.currentVisibleCardIds.indexOf(cardId);
+				if (startIdx !== -1 && endIdx !== -1) {
+					const min = Math.min(startIdx, endIdx);
+					const max = Math.max(startIdx, endIdx);
+					const idsToSelect = state.currentVisibleCardIds.slice(min, max + 1);
+					for (const id of idsToSelect) {
+						state.selectedCardIds.add(id);
+					}
+				}
+			} else if (isCmdCtrl) {
+				if (state.selectedCardIds.has(cardId)) {
+					state.selectedCardIds.delete(cardId);
+				} else {
+					state.selectedCardIds.add(cardId);
+				}
+				state.lastSelectedCardId = cardId;
+			} else {
+				state.selectedCardIds.clear();
+				state.selectedCardIds.add(cardId);
+				state.lastSelectedCardId = cardId;
+			}
+		},
+
+		copySelected() {
+			if (state.selectedCardIds.size === 0) return;
+			const cardsToCopy = [];
+			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+			for (const id of state.selectedCardIds) {
+				for (const board of boards) {
+					if (deckStore[board]) {
+						const card = deckStore[board].find(c => c.id === id);
+						if (card) {
+							cardsToCopy.push({ ...card, sourceBoard: board });
+						}
+					}
+				}
+			}
+			state.copiedCards = cardsToCopy;
+			state.isCut = false;
+		},
+
+		cutSelected() {
+			this.copySelected();
+			state.isCut = true;
+			this.deleteSelected();
+		},
+
+		deleteSelected() {
+			if (state.selectedCardIds.size === 0) return;
+			const idsToDelete = [...state.selectedCardIds];
+			state.selectedCardIds.clear();
+			
+			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+			for (const board of boards) {
+				if (deckStore[board]) {
+					const toRemove = deckStore[board].filter(c => idsToDelete.includes(c.id)) || [];
+					for (const c of toRemove) {
+						deckStore.removeCard(c.name, board, c.id);
+					}
+				}
+			}
+		},
+
+		/**
+		 * @param {string | null} targetColumnName
+		 */
+		pasteSelected(targetColumnName) {
+			if (!state.copiedCards || state.copiedCards.length === 0) return;
+			
+			const grouping = deckStore.grouping?.toLowerCase();
+			for (const card of state.copiedCards) {
+				const newId = deckStore.addCard(card.name, deckStore.activeBoard, card.price, card._metadata);
+				if (newId) {
+					if (grouping === 'freeform') {
+						// Set freeform target col if supported
+					} else if (grouping === 'cmc') {
+						let val = parseInt(targetColumnName || '', 10);
+						if (targetColumnName === '0-1') val = 1;
+						if (targetColumnName === '6+') val = 6;
+						if (!isNaN(val)) deckStore.setCardOverride(newId, 'manaValue', val);
+					} else if (grouping === 'color') {
+						const category = targetColumnName;
+						/** @type {Record<string, string[]>} */
+						const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
+						if (category) {
+							deckStore.setCardOverride(newId, 'colorCategory', category);
+							if (mapColors[category]) {
+								deckStore.setCardOverride(newId, 'colors', mapColors[category]);
+								deckStore.setCardOverride(newId, 'colorIdentity', mapColors[category]);
+							}
+						}
+					} else if (grouping === 'creature') {
+						if (targetColumnName) {
+							deckStore.setCardOverride(newId, 'creature', targetColumnName === 'Creatures');
+						}
+					} else if (grouping === 'type') {
+						let typeVal = targetColumnName;
+						if (targetColumnName === 'Creatures') typeVal = 'Creature';
+						else if (targetColumnName === 'Planeswalkers') typeVal = 'Planeswalker';
+						else if (targetColumnName === 'Instants') typeVal = 'Instant';
+						else if (targetColumnName === 'Sorceries') typeVal = 'Sorcery';
+						else if (targetColumnName === 'Artifacts') typeVal = 'Artifact';
+						else if (targetColumnName === 'Enchantments') typeVal = 'Enchantment';
+						else if (targetColumnName === 'Battles') typeVal = 'Battle';
+						else if (targetColumnName === 'Lands') typeVal = 'Land';
+						if (typeVal) deckStore.setCardOverride(newId, 'primaryType', typeVal);
+					} else if (grouping === 'primarytag') {
+						if (targetColumnName && targetColumnName !== 'No Tag') {
+							deckStore.setPrimaryTag(newId, targetColumnName);
+						}
+					}
+				}
+			}
+		},
 
 		/**
 		 * @param {any} card

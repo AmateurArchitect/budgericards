@@ -19,6 +19,18 @@ export function parseManaCost(manaCostStr) {
 	return result;
 }
 
+/**
+ * @typedef {Object} CategoryGroup
+ * @property {string} name
+ * @property {any[]} cards
+ * @property {number} totalQty
+ * @property {number} totalPrice
+ * @property {string} [totalQtyText]
+ */
+
+/**
+ * @returns {CategoryGroup[]}
+ */
 export function getGroupedCategories() {
 	const grouping = deckStore.grouping?.toLowerCase() || "cmc";
 	const effectiveGrouping =
@@ -61,90 +73,95 @@ export function getGroupedCategories() {
 
 		let groupKey = "Other";
 
-		const basicLandNames = [
-			"plains",
-			"island",
-			"swamp",
-			"mountain",
-			"forest",
-			"wastes",
-		];
-		const isBasicLand = details
-			? basicLandNames.some((name) =>
-					card.name.toLowerCase().includes(name),
-				)
-			: false;
-		const typeLineStr = details?.type_line?.toLowerCase() || "";
-		const isLand = details
-			? (typeLineStr.includes("land") || isBasicLand) &&
-				!typeLineStr.includes("//")
-			: false;
-
 		if (!details) {
 			groupKey = "Unknown";
-		} else if (effectiveGrouping === "none") {
-			groupKey = "Deck";
-		} else if (effectiveGrouping === "creature") {
-			if (isLand) {
-				groupKey = "Lands";
-			} else if (typeLineStr.includes("creature")) {
-				groupKey = "Creatures";
-			} else {
-				groupKey = "Non-Creatures";
-			}
-		} else if (effectiveGrouping === "color") {
-			if (isLand) {
-				groupKey = "Lands";
-			} else {
-				const colorIds = settingsStore.useColorIdentity
-					? details.color_identity || []
-					: details.colors || [];
-				if (colorIds.length === 0) groupKey = "Colorless";
-				else if (colorIds.length > 1) groupKey = "Multicolor";
-				else {
-					/** @type {Record<string, string>} */
-					const colorNames = {
-						W: "White",
-						U: "Blue",
-						B: "Black",
-						R: "Red",
-						G: "Green",
-					};
-					groupKey = colorNames[colorIds[0]] || "Colorless";
+		} else {
+			const overrides = card.overrides || {};
+			const manaValue = overrides.manaValue !== undefined ? overrides.manaValue : (card.cmc !== undefined ? card.cmc : (metadata?.cmc || 0));
+			const colors = overrides.colors !== undefined ? overrides.colors : (card.colors !== undefined ? card.colors : (metadata?.colors || []));
+			const colorIdentity = overrides.colorIdentity !== undefined ? overrides.colorIdentity : (card.color_identity !== undefined ? card.color_identity : (metadata?.color_identity || []));
+			const typeLineStr = (overrides.primaryType !== undefined ? overrides.primaryType : (details.type_line || "")).toLowerCase();
+			const isCreatureOverride = overrides.creature !== undefined ? overrides.creature : null;
+			const isCreature = isCreatureOverride !== null ? isCreatureOverride : typeLineStr.includes("creature");
+
+			const basicLandNames = [
+				"plains",
+				"island",
+				"swamp",
+				"mountain",
+				"forest",
+				"wastes",
+			];
+			const isBasicLand = basicLandNames.some((name) =>
+				card.name.toLowerCase().includes(name),
+			);
+			const isLand = (typeLineStr.includes("land") || isBasicLand) && !typeLineStr.includes("//");
+
+			if (effectiveGrouping === "none") {
+				groupKey = "Deck";
+			} else if (effectiveGrouping === "primarytag") {
+				groupKey = card.primaryTag || "No Tag";
+			} else if (effectiveGrouping === "creature") {
+				if (isLand) {
+					groupKey = "Lands";
+				} else if (isCreature) {
+					groupKey = "Creatures";
+				} else {
+					groupKey = "Non-Creatures";
 				}
+			} else if (effectiveGrouping === "color") {
+				if (overrides.colorCategory) {
+					groupKey = overrides.colorCategory;
+				} else if (isLand) {
+					groupKey = "Lands";
+				} else {
+					const colorIds = settingsStore.useColorIdentity ? colorIdentity : colors;
+					if (colorIds.length === 0) groupKey = "Colorless";
+					else if (colorIds.length > 1) groupKey = "Multicolor";
+					else {
+						/** @type {Record<string, string>} */
+						const colorNames = {
+							W: "White",
+							U: "Blue",
+							B: "Black",
+							R: "Red",
+							G: "Green",
+						};
+						groupKey = colorNames[colorIds[0]] || "Colorless";
+					}
+				}
+			} else if (effectiveGrouping === "cmc") {
+				if (isLand) {
+					groupKey = "Lands";
+				} else {
+					const floorCmc = Math.floor(manaValue);
+					if (
+						settingsStore.combine01Drops &&
+						(floorCmc === 0 || floorCmc === 1)
+					)
+						groupKey = "0-1 Drop";
+					else if (settingsStore.combine6PlusDrops && manaValue >= 6)
+						groupKey = "6-Drop+";
+					else groupKey = `${floorCmc}-Drop`;
+				}
+			} else if (effectiveGrouping === "type") {
+				if (isLand) {
+					groupKey = "Lands";
+				} else if (typeLineStr.includes("creature"))
+					groupKey = "Creatures";
+				else if (typeLineStr.includes("planeswalker"))
+					groupKey = "Planeswalkers";
+				else if (typeLineStr.includes("instant")) groupKey = "Instants";
+				else if (typeLineStr.includes("sorcery"))
+					groupKey = "Sorceries";
+				else if (typeLineStr.includes("artifact"))
+					groupKey = "Artifacts";
+				else if (typeLineStr.includes("enchantment"))
+					groupKey = "Enchantments";
+				else if (typeLineStr.includes("battle"))
+					groupKey = "Battles";
+				else groupKey = "Other";
 			}
-		} else if (effectiveGrouping === "cmc") {
-			if (isLand) {
-				groupKey = "Lands";
-			} else {
-				const cmc = details.cmc || 0;
-				const floorCmc = Math.floor(cmc);
-				if (
-					settingsStore.combine01Drops &&
-					(floorCmc === 0 || floorCmc === 1)
-				)
-					groupKey = "0-1 Drop";
-				else if (settingsStore.combine6PlusDrops && cmc >= 6)
-					groupKey = "6-Drop+";
-				else groupKey = `${floorCmc}-Drop`;
-			}
-		} else if (effectiveGrouping === "type") {
-			if (isLand) {
-				groupKey = "Lands";
-			} else if (typeLineStr.includes("creature"))
-				groupKey = "Creatures";
-			else if (typeLineStr.includes("planeswalker"))
-				groupKey = "Planeswalkers";
-			else if (typeLineStr.includes("instant")) groupKey = "Instants";
-			else if (typeLineStr.includes("sorcery"))
-				groupKey = "Sorceries";
-			else if (typeLineStr.includes("artifact"))
-				groupKey = "Artifacts";
-			else if (typeLineStr.includes("enchantment"))
-				groupKey = "Enchantments";
-			else if (typeLineStr.includes("battle"))
-				groupKey = "Battles";
-			else groupKey = "Other";
 		}
 
 		if (!groups[groupKey]) groups[groupKey] = [];
@@ -235,6 +252,7 @@ export function getGroupedCategories() {
  * @param {string} groupName
  * @param {any[]} rawCards
  * @param {string} zone
+ * @returns {CategoryGroup}
  */
 function processCategory(groupName, rawCards, zone) {
 	const grouped = new Map();
@@ -254,11 +272,24 @@ function processCategory(groupName, rawCards, zone) {
 						details?.prices?.usd_foil ||
 						0;
 
-			const legality = checkLegality(details || card);
+			const overrides = card.overrides || {};
+			const manaValue = overrides.manaValue !== undefined ? overrides.manaValue : (card.cmc !== undefined ? card.cmc : (details?.cmc || 0));
+			const colors = overrides.colors !== undefined ? overrides.colors : (card.colors !== undefined ? card.colors : (details?.colors || []));
+			const colorIdentity = overrides.colorIdentity !== undefined ? overrides.colorIdentity : (card.color_identity !== undefined ? card.color_identity : (details?.color_identity || []));
+			const typeLine = overrides.primaryType !== undefined ? overrides.primaryType : (details?.type_line || "Unknown");
+
+			const detailsWithOverrides = {
+				...(details || card),
+				cmc: manaValue,
+				colors,
+				color_identity: colorIdentity,
+				type_line: typeLine
+			};
+			const legality = checkLegality(detailsWithOverrides);
 
 			entry = {
 				name: card.name,
-				card: details || card,
+				card: detailsWithOverrides,
 				zone,
 				price: parseFloat(price) || 0,
 				quantity: 0,
@@ -271,7 +302,7 @@ function processCategory(groupName, rawCards, zone) {
 					details?.image_uris?.normal ||
 					details?.card_faces?.[0]?.image_uris?.normal ||
 					"",
-				type: details?.type_line || "Unknown",
+				type: typeLine,
 				manaSymbols: parseManaCost(
 					details?.mana_cost ||
 						details?.card_faces?.[0]?.mana_cost ||
@@ -280,9 +311,9 @@ function processCategory(groupName, rawCards, zone) {
 				isIllegal: !legality.isLegal,
 				legalityReasons: legality.reasons,
 				addedAt: card.addedAt || 0,
-				cmc: details?.cmc !== undefined ? details.cmc : 0,
-				color_identity: details?.color_identity || [],
-				colors: details?.colors || [],
+				cmc: manaValue,
+				color_identity: colorIdentity,
+				colors: colors,
 			};
 			grouped.set(card.name, entry);
 		}

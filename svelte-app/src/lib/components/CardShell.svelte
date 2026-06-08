@@ -24,9 +24,23 @@
 				: searchStore.collection
 		);
 
-		if (e.shiftKey) {
+		const isAddShortcut = e.altKey;
+		const isMultiSelectToggle = e.metaKey || (e.ctrlKey && !e.altKey);
+		const isRangeSelect = e.shiftKey;
+
+		if (isAddShortcut) {
 			deckStore.addCard(card.name, deckStore.activeBoard, price, card);
-		} else if (inSearchPanel && isLocalBoard) {
+			return;
+		}
+
+		if (!inSearchPanel && (isMultiSelectToggle || isRangeSelect || interactionStore.selectedCardIds.size > 0)) {
+			e.stopPropagation();
+			e.preventDefault();
+			interactionStore.handleCardSelectClick(card.id, isRangeSelect, isMultiSelectToggle);
+			return;
+		}
+
+		if (inSearchPanel && isLocalBoard) {
 			deckStore.moveCard(
 				card.name,
 				currentBoard,
@@ -140,6 +154,7 @@
 	class="card-shell {className}"
 	style="{style}"
 	class:is-dragging={isDragging}
+	class:is-selected={!inSearchPanel && interactionStore.selectedCardIds.has(card.id)}
 	onclick={handleLeftClick}
 	onkeydown={(e) => {
 		if (e.key === "Enter" || e.key === " ") {
@@ -178,6 +193,13 @@
 </div>
 
 <style>
+	.card-shell.is-selected {
+		box-shadow: 0 0 0 3px hsl(var(--primary));
+		border-radius: var(--radius-md);
+		transform: scale(0.98);
+		z-index: 10;
+	}
+
 	.card-shell {
 		position: relative;
 		display: block;

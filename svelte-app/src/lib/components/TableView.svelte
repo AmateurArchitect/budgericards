@@ -18,6 +18,9 @@
 		AlertTriangle,
 		ArrowUp,
 		ArrowDown,
+		Plus,
+		X,
+		Star
 	} from "lucide-svelte";
 
 	let isDragOver = $state(false);
@@ -32,6 +35,99 @@
 			collapsedCategories.add(categoryName);
 		}
 	}
+
+	// Selection Visible IDs sync
+	$effect(() => {
+		/** @type {string[]} */
+		const visibleIds = [];
+		for (const cat of groupedCategories) {
+			for (const cardRow of cat.cards) {
+				for (const inst of cardRow.instances) {
+					visibleIds.push(inst.id);
+				}
+			}
+		}
+		interactionStore.currentVisibleCardIds = visibleIds;
+	});
+
+	// Tag states & dragging
+	let activeTagsPopoverCardId = $state(null);
+	let newTagValue = $state("");
+
+	const deckTagsList = $derived.by(() => {
+		const tags = new Set();
+		const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+		const storeAny = /** @type {any} */ (deckStore);
+		for (const board of boards) {
+			if (storeAny[board]) {
+				const list = storeAny[board] || [];
+				for (const c of list) {
+					if (c.tags) {
+						for (const t of c.tags) {
+							tags.add(t);
+						}
+					}
+				}
+			}
+		}
+		return Array.from(tags).sort();
+	});
+
+	/** @param {string} tag */
+	function getTagBgColor(tag) {
+		let hash = 0;
+		for (let i = 0; i < tag.length; i++) {
+			hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+		}
+		const h = Math.abs(hash) % 360;
+		return `hsl(${h}, 25%, 35%)`;
+	}
+
+	/** @type {number | null} */
+	let draggedTagIdx = null;
+	/** @type {string | null} */
+	let draggedTagCardId = null;
+
+	/**
+	 * @param {DragEvent} e
+	 * @param {string} cardId
+	 * @param {number} idx
+	 */
+	function handleTagDragStart(e, cardId, idx) {
+		draggedTagIdx = idx;
+		draggedTagCardId = cardId;
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = "move";
+		}
+	}
+
+	/**
+	 * @param {DragEvent} e
+	 * @param {string} cardId
+	 * @param {number} targetIdx
+	 */
+	function handleTagDrop(e, cardId, targetIdx) {
+		e.preventDefault();
+		if (draggedTagCardId !== cardId || draggedTagIdx === null) return;
+		
+		const cardRes = deckStore.findCardById(cardId);
+		if (cardRes && cardRes.card && cardRes.card.tags) {
+			const tags = [...cardRes.card.tags];
+			const [removed] = tags.splice(draggedTagIdx, 1);
+			tags.splice(targetIdx, 0, removed);
+			deckStore.reorderCardTags(cardId, tags);
+		}
+		draggedTagIdx = null;
+		draggedTagCardId = null;
+	}
+
+	// Inline Overrides states
+	let editingCmcCardId = $state(null);
+	let editingTypeCardId = $state(null);
+	let editingColorCardId = $state(null);
+
+	let inlineCmcVal = $state("");
+	let inlineTypeVal = $state("");
 
 	let editingCardName = $state(null);
 	let editingCardZone = $state(null);
@@ -517,7 +613,7 @@
 										>
 											<div class="category-pill-box">
 												<span class="category-count"
-													>{category.totalQtyText || category.totalQty}</span
+													>{(/** @type {any} */ (category)).totalQtyText || category.totalQty}</span
 												>
 												<span class="category-title"
 													>{category.name}</span
@@ -553,7 +649,7 @@
 										>
 											<div class="category-pill-box">
 												<span class="category-count"
-													>{category.totalQtyText || category.totalQty}</span
+													>{(/** @type {any} */ (category)).totalQtyText || category.totalQty}</span
 												>
 												<span class="category-title"
 													>{category.name}</span
@@ -621,13 +717,26 @@
 							<!-- Individual Card Rows -->
 							{#if !collapsedCategories.has(category.name)}
 								{#each category.cards as cardRow (cardRow.name)}
+									{@const isSelected = interactionStore.selectedCardIds.has(cardRow.instances[0]?.id)}
 									<tr
 										class="card-row"
 										class:is-illegal={cardRow.isIllegal}
+										class:is-selected={isSelected}
 										class:is-editing={editingCardName ===
 											cardRow.name &&
 											editingCardZone === cardRow.zone}
 										data-tooltip-img={cardRow.imgUrl}
+										onclick={(e) => {
+											if (cardRow.instances[0]) {
+												const isCmdCtrl = e.metaKey || e.ctrlKey;
+												const isShift = e.shiftKey;
+												interactionStore.handleCardSelectClick(
+													cardRow.instances[0].id,
+													isShift,
+													isCmdCtrl
+												);
+											}
+										}}
 										oncontextmenu={(e) => {
 											e.preventDefault();
 											interactionStore.showMenu(
@@ -727,21 +836,103 @@
 
 										<!-- Mana Value (Numerical CMC) -->
 										{#if settingsStore.visibleColumns.includes("cmc")}
-											<td class="col-cmc">
-												<span class="cmc-badge"
-													>{cardRow.cmc}</span
-												>
+											{@const hasCmcOverride = cardRow.instances[0]?.overrides?.manaValue !== undefined}
+											<td 
+												class="col-cmc"
+												ondblclick={(e) => {
+													e.stopPropagation();
+													if (cardRow.instances[0]) {
+														editingCmcCardId = cardRow.instances[0].id;
+														inlineCmcVal = String(cardRow.cmc);
+													}
+												}}
+											>
+												{#if editingCmcCardId && cardRow.instances[0] && editingCmcCardId === cardRow.instances[0].id}
+													<input
+														type="number"
+														class="qty-inline-input"
+														bind:value={inlineCmcVal}
+														onblur={() => {
+															const parsed = parseInt(inlineCmcVal, 10);
+															if (!isNaN(parsed) && cardRow.instances[0]) {
+																deckStore.setCardOverride(cardRow.instances[0].id, 'manaValue', parsed);
+															}
+															editingCmcCardId = null;
+														}}
+														onkeydown={(e) => {
+															if (e.key === "Enter") {
+																e.preventDefault();
+																const parsed = parseInt(inlineCmcVal, 10);
+																if (!isNaN(parsed) && cardRow.instances[0]) {
+																	deckStore.setCardOverride(cardRow.instances[0].id, 'manaValue', parsed);
+																}
+																editingCmcCardId = null;
+															} else if (e.key === "Escape") {
+																editingCmcCardId = null;
+															}
+														}}
+														use:focusOnMount
+														onclick={(e) => e.stopPropagation()}
+													/>
+												{:else}
+													<span 
+														class="cmc-badge"
+														class:is-overridden={hasCmcOverride}
+														title={hasCmcOverride ? "Double click to edit override (Customized)" : "Double click to override"}
+													>
+														{cardRow.cmc}
+													</span>
+												{/if}
 											</td>
 										{/if}
 
 										<!-- Type Line -->
 										{#if settingsStore.visibleColumns.includes("type")}
-											<td class="col-type">
-												<span
-													class="type-text"
-													title={cardRow.type}
-													>{cardRow.type}</span
-												>
+											{@const hasTypeOverride = cardRow.instances[0]?.overrides?.primaryType !== undefined}
+											<td 
+												class="col-type"
+												ondblclick={(e) => {
+													e.stopPropagation();
+													if (cardRow.instances[0]) {
+														editingTypeCardId = cardRow.instances[0].id;
+														inlineTypeVal = String(cardRow.type);
+													}
+												}}
+											>
+												{#if editingTypeCardId && cardRow.instances[0] && editingTypeCardId === cardRow.instances[0].id}
+													<input
+														type="text"
+														class="qty-inline-input text-left"
+														style="text-align: left;"
+														bind:value={inlineTypeVal}
+														onblur={() => {
+															if (cardRow.instances[0]) {
+																deckStore.setCardOverride(cardRow.instances[0].id, 'primaryType', inlineTypeVal.trim());
+															}
+															editingTypeCardId = null;
+														}}
+														onkeydown={(e) => {
+															if (e.key === "Enter") {
+																e.preventDefault();
+																if (cardRow.instances[0]) {
+																	deckStore.setCardOverride(cardRow.instances[0].id, 'primaryType', inlineTypeVal.trim());
+																}
+																editingTypeCardId = null;
+															} else if (e.key === "Escape") {
+																editingTypeCardId = null;
+															}
+														}}
+														use:focusOnMount
+														onclick={(e) => e.stopPropagation()}
+													/>
+												{:else}
+													<span
+														class="type-text"
+														class:is-overridden={hasTypeOverride}
+														title={hasTypeOverride ? "Double click to edit override (Customized)" : "Double click to override"}
+														>{cardRow.type}</span
+													>
+												{/if}
 											</td>
 										{/if}
 
@@ -771,14 +962,80 @@
 
 										<!-- Color Category -->
 										{#if settingsStore.visibleColumns.includes("color-cat")}
-											<td class="col-color-cat">
-												<span
-													class="color-cat-text class-{getColorCategory(
-														cardRow,
-													).toLowerCase()}"
-												>
-													{getColorCategory(cardRow)}
-												</span>
+											{@const hasColorOverride = cardRow.instances[0]?.overrides?.colorCategory !== undefined}
+											<!-- svelte-ignore a11y_click_events_have_key_events -->
+											<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+											<td 
+												class="col-color-cat"
+												onclick={(e) => {
+													e.stopPropagation();
+													if (cardRow.instances[0]) {
+														editingColorCardId = editingColorCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
+													}
+												}}
+											>
+												<div style="position: relative; cursor: pointer;">
+													<span
+														class="color-cat-text class-{getColorCategory(
+															cardRow,
+														).toLowerCase()}"
+														class:is-overridden={hasColorOverride}
+														title={hasColorOverride ? "Click to change color override (Customized)" : "Click to override"}
+													>
+														{getColorCategory(cardRow)}
+													</span>
+
+													{#if editingColorCardId && cardRow.instances[0] && editingColorCardId === cardRow.instances[0].id}
+														<!-- svelte-ignore a11y_click_events_have_key_events -->
+														<!-- svelte-ignore a11y_no_static_element_interactions -->
+														<div 
+															class="color-picker-dropdown"
+															onclick={(evt) => evt.stopPropagation()}
+														>
+															<div class="dropdown-backdrop" role="presentation" onclick={() => editingColorCardId = null}></div>
+															<div class="color-picker-menu">
+																{#each ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"] as colorOpt}
+																	<button
+																		type="button"
+																		class="color-opt-btn"
+																		onclick={() => {
+																			if (cardRow.instances[0]) {
+																				deckStore.setCardOverride(cardRow.instances[0].id, 'colorCategory', colorOpt);
+																				/** @type {Record<string, string[]>} */
+																				const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
+																				if (mapColors[colorOpt]) {
+																					deckStore.setCardOverride(cardRow.instances[0].id, 'colors', mapColors[colorOpt]);
+																					deckStore.setCardOverride(cardRow.instances[0].id, 'colorIdentity', mapColors[colorOpt]);
+																				} else if (colorOpt === "Colorless") {
+																					deckStore.setCardOverride(cardRow.instances[0].id, 'colors', []);
+																					deckStore.setCardOverride(cardRow.instances[0].id, 'colorIdentity', []);
+																				}
+																			}
+																			editingColorCardId = null;
+																		}}
+																	>
+																		{colorOpt}
+																	</button>
+																{/each}
+																<div class="menu-divider"></div>
+																<button
+																	type="button"
+																	class="color-opt-btn reset-btn"
+																	onclick={() => {
+																		if (cardRow.instances[0]) {
+																			deckStore.resetCardOverride(cardRow.instances[0].id, 'colorCategory');
+																			deckStore.resetCardOverride(cardRow.instances[0].id, 'colors');
+																			deckStore.resetCardOverride(cardRow.instances[0].id, 'colorIdentity');
+																		}
+																		editingColorCardId = null;
+																	}}
+																>
+																	Reset to Default
+																</button>
+															</div>
+														</div>
+													{/if}
+												</div>
 											</td>
 										{/if}
 
@@ -802,12 +1059,131 @@
 											</td>
 										{/if}
 
-										<!-- Tags (Empty for now) -->
+										<!-- Tags (Premium Popover Selection Dropdown) -->
 										{#if settingsStore.visibleColumns.includes("tags")}
-											<td class="col-tags">
-												<span class="placeholder-dash"
-													>—</span
-												>
+											{@const tags = cardRow.instances[0]?.tags || []}
+											<!-- svelte-ignore a11y_click_events_have_key_events -->
+											<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+											<td 
+												class="col-tags"
+												onclick={(e) => {
+													e.stopPropagation();
+													if (cardRow.instances[0]) {
+														activeTagsPopoverCardId = activeTagsPopoverCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
+														newTagValue = "";
+													}
+												}}
+											>
+												<div style="position: relative; cursor: pointer;" class="tags-popover-anchor">
+													<div class="tags-badges-list">
+														{#each tags as tag, idx}
+															<span 
+																class="tag-badge"
+																style="background-color: {getTagBgColor(tag)}"
+																draggable="true"
+																ondragstart={(e) => handleTagDragStart(e, cardRow.instances[0].id, idx)}
+																ondragover={(e) => e.preventDefault()}
+																ondrop={(e) => handleTagDrop(e, cardRow.instances[0].id, idx)}
+															>
+																{#if idx === 0}
+																	<Star size={10} class="star-icon text-yellow-400 fill-yellow-400" />
+																{/if}
+																<span>{tag}</span>
+															</span>
+														{:else}
+															<span class="placeholder-dash">+ Tag</span>
+														{/each}
+													</div>
+
+													{#if activeTagsPopoverCardId && cardRow.instances[0] && activeTagsPopoverCardId === cardRow.instances[0].id}
+														<!-- svelte-ignore a11y_click_events_have_key_events -->
+														<!-- svelte-ignore a11y_no_static_element_interactions -->
+														<div 
+															class="tags-popover-menu"
+															onclick={(evt) => evt.stopPropagation()}
+														>
+															<div class="dropdown-backdrop" role="presentation" onclick={() => activeTagsPopoverCardId = null}></div>
+															<div class="tags-popover-content">
+																<div class="popover-title">Card Tags</div>
+																
+																<!-- Active tags on card -->
+																<div class="popover-section-title">Active ({tags.length})</div>
+																<div class="active-tags-container">
+																	{#each tags as tag}
+																		<div class="active-tag-row">
+																			<button
+																				type="button"
+																				class="star-tag-btn"
+																				class:is-primary={cardRow.instances[0].primaryTag === tag}
+																				title="Make Primary Tag"
+																				onclick={() => deckStore.setPrimaryTag(cardRow.instances[0].id, tag)}
+																			>
+																				<Star size={11} class="star-icon" />
+																			</button>
+																			<span class="tag-text">{tag}</span>
+																			<button
+																				type="button"
+																				class="remove-tag-btn"
+																				onclick={() => deckStore.removeCardTag(cardRow.instances[0].id, tag)}
+																			>
+																				<X size={11} />
+																			</button>
+																		</div>
+																	{/each}
+																</div>
+
+																<div class="menu-divider"></div>
+
+																<!-- Global tag suggestions -->
+																<div class="popover-section-title">All Tags</div>
+																<div class="all-tags-suggestions">
+																	{#each deckTagsList as gTag}
+																		{#if !tags.includes(gTag)}
+																			<button
+																				type="button"
+																				class="suggestion-tag-btn"
+																				onclick={() => deckStore.addCardTag(cardRow.instances[0].id, gTag)}
+																			>
+																				{gTag}
+																			</button>
+																		{/if}
+																	{/each}
+																</div>
+
+																<div class="tag-input-box">
+																	<input
+																		type="text"
+																		placeholder="Create Tag..."
+																		bind:value={newTagValue}
+																		onkeydown={(evt) => {
+																			if (evt.key === 'Enter') {
+																				evt.preventDefault();
+																				const val = newTagValue.trim();
+																				if (val) {
+																					deckStore.addCardTag(cardRow.instances[0].id, val);
+																					newTagValue = "";
+																				}
+																			}
+																		}}
+																	/>
+																	<button
+																		type="button"
+																		class="add-tag-submit-btn"
+																		onclick={() => {
+																			const val = newTagValue.trim();
+																			if (val) {
+																				deckStore.addCardTag(cardRow.instances[0].id, val);
+																				newTagValue = "";
+																			}
+																		}}
+																	>
+																		<Plus size={14} />
+																	</button>
+																</div>
+															</div>
+														</div>
+													{/if}
+												</div>
 											</td>
 										{/if}
 
@@ -1056,6 +1432,10 @@
 		background: hsla(0, 0%, 100%, 0.025);
 	}
 
+	.card-row.is-selected {
+		background-color: hsla(var(--primary-hsl), 0.1) !important;
+	}
+
 	.card-row.is-editing {
 		background: hsla(var(--primary-hsl), 0.08) !important;
 	}
@@ -1079,6 +1459,233 @@
 
 	.card-row.is-illegal:hover {
 		background: hsla(var(--destructive) / 0.08);
+	}
+
+	/* Notion Table Overrides visual custom indicator (Italics and colors) */
+	.is-overridden {
+		font-style: italic !important;
+		color: hsl(var(--primary)) !important;
+		opacity: 0.95;
+	}
+
+	/* Tags Badge layouts */
+	.tags-badges-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		align-items: center;
+	}
+
+	.tag-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 2px 6px;
+		border-radius: 4px;
+		font-size: 11px;
+		font-weight: 500;
+		color: #ffffff;
+		line-height: 1;
+		user-select: none;
+	}
+
+	.tag-badge :global(.star-icon) {
+		color: #fbbf24;
+		fill: #fbbf24;
+	}
+
+	/* Tags Popover Menu styling */
+	.tags-popover-menu {
+		position: absolute;
+		top: calc(100% + 4px);
+		left: 0;
+		z-index: 1000;
+		width: 220px;
+		background: hsl(var(--popover) / 0.95);
+		backdrop-filter: blur(16px);
+		border: 1px solid hsl(var(--border) / 0.6);
+		border-radius: var(--radius-md);
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+		padding: 10px;
+	}
+
+	.tags-popover-content {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.popover-title {
+		font-size: 12px;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin-bottom: 4px;
+	}
+
+	.popover-section-title {
+		font-size: 10px;
+		font-weight: 600;
+		color: hsl(var(--muted-foreground));
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		margin-top: 4px;
+	}
+
+	.active-tags-container {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		max-height: 120px;
+		overflow-y: auto;
+	}
+
+	.active-tag-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		background: hsl(var(--muted) / 0.15);
+		padding: 3px 6px;
+		border-radius: 4px;
+		font-size: 11px;
+		color: hsl(var(--foreground));
+	}
+
+	.star-tag-btn {
+		background: none;
+		border: none;
+		color: hsl(var(--muted-foreground) / 0.4);
+		cursor: pointer;
+		padding: 2px;
+		display: flex;
+		align-items: center;
+	}
+
+	.star-tag-btn.is-primary {
+		color: #fbbf24;
+	}
+
+	.remove-tag-btn {
+		background: none;
+		border: none;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		padding: 2px;
+		display: flex;
+		align-items: center;
+	}
+
+	.remove-tag-btn:hover {
+		color: hsl(var(--destructive));
+	}
+
+	.all-tags-suggestions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		max-height: 80px;
+		overflow-y: auto;
+	}
+
+	.suggestion-tag-btn {
+		background: hsl(var(--muted) / 0.2);
+		border: 1px solid hsl(var(--border) / 0.4);
+		color: hsl(var(--foreground));
+		font-size: 10px;
+		padding: 2px 6px;
+		border-radius: 4px;
+		cursor: pointer;
+	}
+
+	.suggestion-tag-btn:hover {
+		background: hsl(var(--primary) / 0.2);
+		border-color: hsl(var(--primary));
+	}
+
+	.tag-input-box {
+		display: flex;
+		gap: 4px;
+		margin-top: 6px;
+	}
+
+	.tag-input-box input {
+		flex: 1;
+		background: hsl(var(--muted) / 0.2);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: 4px;
+		padding: 4px 6px;
+		font-size: 11px;
+		color: hsl(var(--foreground));
+		outline: none;
+	}
+
+	.add-tag-submit-btn {
+		background: hsl(var(--primary));
+		color: white;
+		border: none;
+		border-radius: 4px;
+		width: 24px;
+		height: 24px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+	}
+
+	/* Color Picker Dropdown Menu */
+	.color-picker-dropdown {
+		position: absolute;
+		top: calc(100% + 4px);
+		left: 0;
+		z-index: 1000;
+		width: 140px;
+		background: hsl(var(--popover) / 0.95);
+		backdrop-filter: blur(16px);
+		border: 1px solid hsl(var(--border) / 0.6);
+		border-radius: var(--radius-md);
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+		padding: 4px;
+	}
+
+	.color-picker-menu {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+	}
+
+	.color-opt-btn {
+		width: 100%;
+		text-align: left;
+		padding: 4px 8px;
+		font-size: 11px;
+		font-weight: 500;
+		color: hsl(var(--foreground));
+		background: none;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+	}
+
+	.color-opt-btn:hover {
+		background: hsl(var(--primary) / 0.15);
+		color: hsl(var(--primary));
+	}
+
+	.color-opt-btn.reset-btn {
+		color: hsl(var(--muted-foreground));
+		font-weight: 600;
+	}
+
+	.color-opt-btn.reset-btn:hover {
+		background: hsl(var(--destructive) / 0.1);
+		color: hsl(var(--destructive));
+	}
+
+	.menu-divider {
+		height: 1px;
+		background: hsl(var(--border) / 0.4);
+		margin: 2px 0;
 	}
 
 	.deck-table td {

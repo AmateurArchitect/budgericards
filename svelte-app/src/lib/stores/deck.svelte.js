@@ -725,6 +725,196 @@ function createDeck() {
 		},
 
 		/**
+		 * @param {string} cardId
+		 */
+		findCardById(cardId) {
+			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+			for (const board of boards) {
+				if (activeDeck.deck[board]) {
+					const card = activeDeck.deck[board].find(/** @param {any} c */ c => c.id === cardId);
+					if (card) return { card, board };
+				}
+			}
+			return null;
+		},
+
+		/**
+		 * @param {string} cardId
+		 * @param {string} fieldName
+		 * @param {any} value
+		 */
+		setCardOverride(cardId, fieldName, value) {
+			const result = this.findCardById(cardId);
+			if (result) {
+				saveHistory(activeDeck);
+				if (!result.card.overrides) {
+					result.card.overrides = {};
+				}
+				result.card.overrides[fieldName] = value;
+				persist(activeDeck);
+			}
+		},
+
+		/**
+		 * @param {string} cardId
+		 * @param {string} fieldName
+		 */
+		resetCardOverride(cardId, fieldName) {
+			const result = this.findCardById(cardId);
+			if (result && result.card.overrides) {
+				saveHistory(activeDeck);
+				delete result.card.overrides[fieldName];
+				if (Object.keys(result.card.overrides).length === 0) {
+					delete result.card.overrides;
+				}
+				persist(activeDeck);
+			}
+		},
+
+		/**
+		 * @param {string} cardId
+		 */
+		resetAllOverridesForCard(cardId) {
+			const result = this.findCardById(cardId);
+			if (result) {
+				saveHistory(activeDeck);
+				delete result.card.overrides;
+				persist(activeDeck);
+			}
+		},
+
+		resetAllOverridesForDeck() {
+			saveHistory(activeDeck);
+			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+			for (const board of boards) {
+				if (activeDeck.deck[board]) {
+					for (const card of activeDeck.deck[board]) {
+						delete card.overrides;
+					}
+				}
+			}
+			persist(activeDeck);
+		},
+
+		/**
+		 * @param {string} cardId
+		 * @param {string} tagName
+		 */
+		addCardTag(cardId, tagName) {
+			const result = this.findCardById(cardId);
+			if (result) {
+				saveHistory(activeDeck);
+				if (!result.card.tags) {
+					result.card.tags = [];
+				}
+				const trimmed = tagName.trim();
+				if (trimmed && !result.card.tags.includes(trimmed)) {
+					result.card.tags.push(trimmed);
+				}
+				if (!result.card.primaryTag && result.card.tags.length > 0) {
+					result.card.primaryTag = result.card.tags[0];
+				}
+				persist(activeDeck);
+			}
+		},
+
+		/**
+		 * @param {string} cardId
+		 * @param {string} tagName
+		 */
+		removeCardTag(cardId, tagName) {
+			const result = this.findCardById(cardId);
+			if (result && result.card.tags) {
+				saveHistory(activeDeck);
+				result.card.tags = result.card.tags.filter((/** @type {string} */ t) => t !== tagName);
+				if (result.card.primaryTag === tagName) {
+					result.card.primaryTag = result.card.tags[0] || undefined;
+				}
+				if (result.card.tags.length === 0) {
+					delete result.card.tags;
+					delete result.card.primaryTag;
+				}
+				persist(activeDeck);
+			}
+		},
+
+		/**
+		 * @param {string} cardId
+		 * @param {string} tagName
+		 */
+		setPrimaryTag(cardId, tagName) {
+			const result = this.findCardById(cardId);
+			if (result) {
+				saveHistory(activeDeck);
+				if (!result.card.tags) {
+					result.card.tags = [];
+				}
+				const trimmed = tagName.trim();
+				if (trimmed && !result.card.tags.includes(trimmed)) {
+					result.card.tags.unshift(trimmed);
+				} else if (trimmed) {
+					// Move to front/first position or explicitly assign
+					result.card.tags = [trimmed, ...result.card.tags.filter((/** @type {string} */ t) => t !== trimmed)];
+				}
+				result.card.primaryTag = trimmed || undefined;
+				persist(activeDeck);
+			}
+		},
+
+		/**
+		 * @param {string} oldName
+		 * @param {string} newName
+		 */
+		renameDeckTag(oldName, newName) {
+			const trimmedOld = oldName.trim();
+			const trimmedNew = newName.trim();
+			if (!trimmedOld || !trimmedNew || trimmedOld === trimmedNew) return;
+
+			saveHistory(activeDeck);
+			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+			for (const board of boards) {
+				if (activeDeck.deck[board]) {
+					for (const card of activeDeck.deck[board]) {
+						if (card.tags && card.tags.includes(trimmedOld)) {
+							// Filter out if newName already exists (prevent duplicate) to preserve uniqueness
+							const filtered = card.tags.filter((/** @type {string} */ t) => t !== trimmedOld);
+							if (!filtered.includes(trimmedNew)) {
+								card.tags = card.tags.map((/** @type {string} */ t) => t === trimmedOld ? trimmedNew : t);
+							} else {
+								card.tags = filtered;
+							}
+						}
+						if (card.primaryTag === trimmedOld) {
+							card.primaryTag = trimmedNew;
+						}
+					}
+				}
+			}
+			persist(activeDeck);
+		},
+
+		/**
+		 * @param {string} cardId
+		 * @param {string[]} tagArray
+		 */
+		reorderCardTags(cardId, tagArray) {
+			const result = this.findCardById(cardId);
+			if (result) {
+				saveHistory(activeDeck);
+				const uniqueTags = [...new Set(tagArray.map(t => t.trim()).filter(Boolean))];
+				if (uniqueTags.length > 0) {
+					result.card.tags = uniqueTags;
+					result.card.primaryTag = uniqueTags[0];
+				} else {
+					delete result.card.tags;
+					delete result.card.primaryTag;
+				}
+				persist(activeDeck);
+			}
+		},
+
+
+		/**
 		 * @param {string} cardName
 		 * @param {string} zone
 		 * @param {string | null} instanceId
@@ -953,12 +1143,18 @@ function createDeck() {
 
 		cancelImport() {
 			activeDeck.importText = cleanDecklistTextFor(activeDeck);
+			const lastView = localStorage.getItem('budgericards_last_active_view_mode') || 'stacks';
+			settingsStore.deckViewMode = lastView;
 		},
 
 		saveImport() {
 			const parsedCards = parseDecklist(activeDeck.importText);
 			importCardsInternal(activeDeck, parsedCards, { replace: true });
 			activeDeck.importText = cleanDecklistTextFor(activeDeck);
+			
+			// Return back to last used view mode besides list
+			const lastView = localStorage.getItem('budgericards_last_active_view_mode') || 'stacks';
+			settingsStore.deckViewMode = lastView;
 		}
 	};
 }

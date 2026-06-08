@@ -149,13 +149,15 @@
 		{ id: "creature", label: "Creature/Non-Creature" },
 		{ id: "type", label: "Type" },
 		{ id: "color", label: "Color" },
+		{ id: "primarytag", label: "Primary Tag" },
+		{ id: "freeform", label: "Freeform" },
 		{ id: "none", label: "None" },
 	];
 
 	const visibleGroupings = $derived(
 		settingsStore.deckViewMode === "stacks"
 			? columns.filter((c) => c.id !== "creature" && c.id !== "none")
-			: columns,
+			: columns.filter((c) => c.id !== "freeform"),
 	);
 
 	$effect(() => {

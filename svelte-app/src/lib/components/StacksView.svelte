@@ -18,6 +18,58 @@
 
 	let isInitialLoad = $state(true);
 
+	function generateTagsFromCurrentStacks() {
+		const cardsToUpdate = [];
+		let hasAnyExistingTags = false;
+		
+		for (const row of rows) {
+			for (const col of row.columns) {
+				const colName = col.key;
+				if (colName === 'Special' || colName === 'Commanders' || colName === 'Companions') continue;
+				const tagName = colName.trim();
+				if (!tagName) continue;
+				
+				for (const stack of col.stacks) {
+					for (const card of stack.cards) {
+						const realCards = card.isStack && card.stackIds ? card.stackIds : [card.id];
+						for (const id of realCards) {
+							const cardRes = deckStore.findCardById(id);
+							if (cardRes && cardRes.card) {
+								if (cardRes.card.tags && cardRes.card.tags.length > 0) {
+									hasAnyExistingTags = true;
+								}
+								cardsToUpdate.push({ cardId: id, tagName });
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (cardsToUpdate.length === 0) return;
+
+		let overwrite = false;
+		if (hasAnyExistingTags) {
+			overwrite = confirm("Some cards already have tags. Do you want to overwrite existing tags? (Cancel will append the new tags instead)");
+		}
+
+		for (const item of cardsToUpdate) {
+			if (overwrite) {
+				deckStore.reorderCardTags(item.cardId, [item.tagName]);
+			} else {
+				deckStore.addCardTag(item.cardId, item.tagName);
+			}
+		}
+	}
+
+	let lastTriggerVal = $state(0);
+	$effect(() => {
+		if (interactionStore.generateTagsTrigger > lastTriggerVal) {
+			lastTriggerVal = interactionStore.generateTagsTrigger;
+			generateTagsFromCurrentStacks();
+		}
+	});
+
 	// --- FREEFORM EPHEMERAL STATE ---
 	let freeformLayout = $state(new Map());
 
@@ -227,7 +279,8 @@
 						targetBoard === "commander" ||
 						targetBoard === "companion"
 					) {
-						const currentCards = deckStore[targetBoard];
+						const storeAny = /** @type {any} */ (deckStore);
+						const currentCards = storeAny[targetBoard];
 						if (currentCards.length > 0) {
 							// For commander, check if we should swap (non-partner case)
 							const isCommander = targetBoard === "commander";
@@ -290,6 +343,53 @@
 				newMap.set(data.id, colKey);
 				freeformLayout = newMap;
 				pruneEmptyFreeformColumns();
+			} else if (
+				colKey &&
+				colKey !== "Special" &&
+				colKey !== "Commanders" &&
+				colKey !== "Companions"
+			) {
+				const grouping = deckStore.grouping?.toLowerCase();
+				if (grouping === 'cmc') {
+					let val = parseInt(colKey, 10);
+					if (colKey === '0-1') val = 1;
+					if (colKey === '6+') val = 6;
+					if (!isNaN(val)) {
+						deckStore.setCardOverride(data.id, 'manaValue', val);
+					}
+				} else if (grouping === 'color') {
+					const category = colKey;
+					/** @type {Record<string, string[]>} */
+					const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
+					deckStore.setCardOverride(data.id, 'colorCategory', category);
+					if (mapColors[category]) {
+						deckStore.setCardOverride(data.id, 'colors', mapColors[category]);
+						deckStore.setCardOverride(data.id, 'colorIdentity', mapColors[category]);
+					}
+				} else if (grouping === 'creature') {
+					const isCreature = colKey === 'Creatures';
+					deckStore.setCardOverride(data.id, 'creature', isCreature);
+				} else if (grouping === 'type') {
+					let typeVal = colKey;
+					if (colKey === 'Creatures') typeVal = 'Creature';
+					else if (colKey === 'Planeswalkers') typeVal = 'Planeswalker';
+					else if (colKey === 'Instants') typeVal = 'Instant';
+					else if (colKey === 'Sorceries') typeVal = 'Sorcery';
+					else if (colKey === 'Artifacts') typeVal = 'Artifact';
+					else if (colKey === 'Enchantments') typeVal = 'Enchantment';
+					else if (colKey === 'Battles') typeVal = 'Battle';
+					else if (colKey === 'Lands') typeVal = 'Land';
+					deckStore.setCardOverride(data.id, 'primaryType', typeVal);
+				} else if (grouping === 'primarytag') {
+					if (colKey !== 'No Tag') {
+						deckStore.setPrimaryTag(data.id, colKey);
+					} else {
+						const cardRes = deckStore.findCardById(data.id);
+						if (cardRes?.card?.primaryTag) {
+							deckStore.removeCardTag(data.id, cardRes.card.primaryTag);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -346,6 +446,25 @@
 	);
 	/** @type {any[]} */
 	const rows = $derived(layoutData.rows || layoutData); // Handle both old and new return types
+
+	$effect(() => {
+		/** @type {string[]} */
+		const visibleIds = [];
+		for (const row of rows) {
+			for (const col of row.columns) {
+				for (const stack of col.stacks) {
+					for (const card of stack.cards) {
+						if (card.isStack && card.stackIds) {
+							visibleIds.push(...card.stackIds);
+						} else {
+							visibleIds.push(card.id);
+						}
+					}
+				}
+			}
+		}
+		interactionStore.currentVisibleCardIds = visibleIds;
+	});
 	/** @type {any[]} */
 	const typeGroups = $derived(layoutData.typeGroups || []);
 	const columnTrackMap = $derived(layoutData.columnTrackMap || new Map());
@@ -523,9 +642,13 @@
 					isLands && typeGroups.length === 0
 						? Math.max(colTrack, layoutStore.numCols)
 						: colTrack}
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
 					class="grid-cell stack-container-cell"
+					role="presentation"
 					data-column-key={column.key}
+					onmouseenter={() => { interactionStore.hoveredColumnKey = column.key; }}
+					onmouseleave={() => { if (interactionStore.hoveredColumnKey === column.key) interactionStore.hoveredColumnKey = null; }}
 					style="grid-column: {finalColTrack}; 
 							grid-row: {typeGroups.length > 0
 						? column.key === 'Special'

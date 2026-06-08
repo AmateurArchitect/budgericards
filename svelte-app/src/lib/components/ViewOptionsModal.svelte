@@ -2,6 +2,7 @@
 	import { fade, fly } from "svelte/transition";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
+	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { onMount, tick } from "svelte";
 
 	/** @type {{ isOpen: boolean, triggerElement: HTMLElement | null }} */
@@ -165,25 +166,27 @@
 					</div>
 				{/if}
 
-				<!-- Use Color Identity option (common to all views) -->
-				<div class="form-group toggle-group" style="margin-top: 0.5rem;">
-					<label for="use-color-id-view" class="toggle-label"
-						>Use Color Identity</label
-					>
-					<label class="switch">
-						<input
-							type="checkbox"
-							id="use-color-id-view"
-							bind:checked={settingsStore.useColorIdentity}
-						/>
-						<span class="slider"></span>
-					</label>
-				</div>
+				{#if settingsStore.deckViewMode !== "list"}
+					<!-- Use Color Identity option (common to all views except list) -->
+					<div class="form-group toggle-group" style="margin-top: 0.5rem;">
+						<label for="use-color-id-view" class="toggle-label"
+							>Use Color Identity</label
+						>
+						<label class="switch">
+							<input
+								type="checkbox"
+								id="use-color-id-view"
+								bind:checked={settingsStore.useColorIdentity}
+							/>
+							<span class="slider"></span>
+						</label>
+					</div>
 
-				<div class="divider"></div>
+					<div class="divider"></div>
+				{/if}
 
-				<!-- SECTION 2: CMC GROUPING OPTIONS (common to all views when grouping is CMC) -->
-				{#if deckStore.grouping === "cmc"}
+				<!-- SECTION 2: CMC GROUPING OPTIONS (common to all views except list when grouping is CMC) -->
+				{#if deckStore.grouping === "cmc" && settingsStore.deckViewMode !== "list"}
 					<div class="form-group toggle-group">
 						<label for="combine-01-view" class="toggle-label"
 							>Combine 0 & 1-Drops</label
@@ -217,6 +220,21 @@
 
 				<!-- SECTION 3: STACKS-EXCLUSIVE DROPDOWNS -->
 				{#if settingsStore.deckViewMode === "stacks"}
+					<!-- Show Column Headers option -->
+					<div class="form-group toggle-group" style="margin-bottom: 0.75rem;">
+						<label for="show-column-headers" class="toggle-label"
+							>Show Column Headers</label
+						>
+						<label class="switch">
+							<input
+								type="checkbox"
+								id="show-column-headers"
+								bind:checked={settingsStore.showColumnHeaders}
+							/>
+							<span class="slider"></span>
+						</label>
+					</div>
+
 					<!-- Combine Duplicates option -->
 					<div class="form-group">
 						<span class="group-label">Combine Duplicates</span>
@@ -249,6 +267,23 @@
 								<span>Never</span>
 							</label>
 						</div>
+					</div>
+				{/if}
+
+				{#if settingsStore.deckViewMode === "stacks" && deckStore.grouping === "freeform"}
+					<div class="divider"></div>
+					<div class="form-group">
+						<span class="group-label">Freeform Actions</span>
+						<button 
+							type="button" 
+							class="view-action-btn"
+							onclick={() => {
+								close();
+								interactionStore.triggerGenerateTags();
+							}}
+						>
+							Generate Tags from Stacks
+						</button>
 					</div>
 				{/if}
 
@@ -621,5 +656,25 @@
 	.slider-stop-indicator.active .stop-label {
 		color: #0066ff;
 		font-weight: 700;
+	}
+
+	.view-action-btn {
+		width: 100%;
+		padding: 0.5rem;
+		background: hsl(var(--primary) / 0.1);
+		border: 1px solid hsl(var(--primary) / 0.3);
+		color: hsl(var(--primary));
+		border-radius: var(--radius-md);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		text-align: center;
+	}
+
+	.view-action-btn:hover {
+		background: hsl(var(--primary));
+		color: white;
+		border-color: hsl(var(--primary));
 	}
 </style>
