@@ -180,6 +180,16 @@
 
 			{#if showBudgieDropdown}
 				<div class="budgie-dropdown" transition:fade={{ duration: 150 }}>
+					{#if String($page.url.pathname) === '/'}
+						<a href="/decks" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+							<FolderOpen size={14} />
+							<span>Browse Decks</span>
+						</a>
+						<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+							<Palette size={14} />
+							<span>Art Gallery</span>
+						</a>
+					{/if}
 					<button class="menu-item" onclick={() => { showAboutModal = true; showBudgieDropdown = false; }}>
 						<HelpCircle size={14} />
 						<span>About Budgie</span>
@@ -198,10 +208,12 @@
 			{/if}
 		</div>
 
-		<nav class="nav-links">
-			<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>Browse Decks</a>
-			<a href="/gallery" class="nav-item" class:active={$page.url.pathname === '/gallery'}>Art Gallery</a>
-		</nav>
+		{#if String($page.url.pathname) !== '/'}
+			<nav class="nav-links">
+				<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>Browse Decks</a>
+				<a href="/gallery" class="nav-item" class:active={$page.url.pathname === '/gallery'}>Art Gallery</a>
+			</nav>
+		{/if}
 
 		{#if String($page.url.pathname) === '/'}
 			<div class="search-bar">
@@ -341,10 +353,11 @@
 				<div class="auth-loading-spinner spinner"></div>
 			{:else}
 				{#if authStore.isAuthenticated && authStore.user}
-					<nav class="nav-links" style="margin-right: 1.25rem;">
-						<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>Your Decks</a>
-					</nav>
-
+					{#if String($page.url.pathname) !== '/'}
+						<nav class="nav-links" style="margin-right: 1.25rem;">
+							<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>Your Decks</a>
+						</nav>
+					{/if}
 					<div class="profile-menu-container">
 						<button 
 							class="profile-trigger" 
