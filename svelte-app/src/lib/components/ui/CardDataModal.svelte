@@ -73,14 +73,12 @@
 	let newTagInput = $state("");
 
 	// Autocomplete/dropdown search terms
-	let supertypeInputVal = $state("");
-	let cardTypeInputVal = $state("");
+	let typesInputVal = $state("");
 	let subtypeInputVal = $state("");
 
 	// Control dropdown visibilities
 	let showColorDropdown = $state(false);
-	let showSupertypeDropdown = $state(false);
-	let showCardTypeDropdown = $state(false);
+	let showTypesDropdown = $state(false);
 	let showSubtypeDropdown = $state(false);
 	let subtypeValidationError = $state("");
 
@@ -206,13 +204,11 @@
 
 					// Reset palette states
 					newTagInput = "";
-					supertypeInputVal = "";
-					cardTypeInputVal = "";
+					typesInputVal = "";
 					subtypeInputVal = "";
 					subtypeValidationError = "";
 					showColorDropdown = false;
-					showSupertypeDropdown = false;
-					showCardTypeDropdown = false;
+					showTypesDropdown = false;
 					showSubtypeDropdown = false;
 				}
 			});
@@ -321,6 +317,15 @@
 		}
 	}
 
+	/** @param {string} item */
+	function toggleType(item) {
+		if (LEGAL_SUPERTYPES.includes(item)) {
+			toggleSupertype(item);
+		} else if (LEGAL_CARD_TYPES.includes(item)) {
+			toggleCardType(item);
+		}
+	}
+
 	function addSubtypeFromSearch() {
 		const val = subtypeInputVal.trim();
 		if (!val) return;
@@ -409,12 +414,8 @@
 	let isAnyFieldCustom = $derived(isCmcCustom || isTypeLineCustom || isColorCustom || isTagsCustom);
 
 	// Filtering for Autocomplete dropdowns
-	let filteredSupertypes = $derived(
-		LEGAL_SUPERTYPES.filter(s => s.toLowerCase().includes(supertypeInputVal.toLowerCase()))
-	);
-
-	let filteredCardTypes = $derived(
-		LEGAL_CARD_TYPES.filter(t => t.toLowerCase().includes(cardTypeInputVal.toLowerCase()))
+	let filteredTypesList = $derived(
+		[...LEGAL_SUPERTYPES, ...LEGAL_CARD_TYPES].filter(t => t.toLowerCase().includes(typesInputVal.toLowerCase()))
 	);
 
 	let filteredSubtypesList = $derived(
@@ -495,9 +496,8 @@
 
 							<div class="type-line-group-container">
 								
-								<!-- Supertypes Pillbox -->
+								<!-- Supertypes & Card Types combined Pillbox -->
 								<div class="sub-type-field">
-									<span class="sub-label">Supertypes</span>
 									<div class="pillbox-container">
 										{#each supertypes as item}
 											<div class="type-pill supertype-pill">
@@ -507,46 +507,6 @@
 												</button>
 											</div>
 										{/each}
-										
-										<div class="palette-anchor">
-											<input 
-												type="text" 
-												placeholder="+ Add Supertype..." 
-												class="inline-pill-input"
-												bind:value={supertypeInputVal}
-												onfocus={() => showSupertypeDropdown = true}
-												onblur={() => setTimeout(() => showSupertypeDropdown = false, 150)}
-											/>
-
-											{#if showSupertypeDropdown && filteredSupertypes.length > 0}
-												<div class="palette-popover">
-													<div class="palette-items-list">
-														{#each filteredSupertypes as item}
-															<button 
-																type="button" 
-																class="palette-item-option"
-																onmousedown={() => {
-																	toggleSupertype(item);
-																	supertypeInputVal = "";
-																}}
-															>
-																<span>{item}</span>
-																{#if supertypes.includes(item)}
-																	<Check size={12} class="check-icon text-blue-500" />
-																{/if}
-															</button>
-														{/each}
-													</div>
-												</div>
-											{/if}
-										</div>
-									</div>
-								</div>
-
-								<!-- Card Types Pillbox -->
-								<div class="sub-type-field">
-									<span class="sub-label">Card Types</span>
-									<div class="pillbox-container">
 										{#each cardTypes as item}
 											<div class="type-pill type-pill-bg">
 												<span>{item}</span>
@@ -561,25 +521,25 @@
 												type="text" 
 												placeholder="+ Add Type..." 
 												class="inline-pill-input"
-												bind:value={cardTypeInputVal}
-												onfocus={() => showCardTypeDropdown = true}
-												onblur={() => setTimeout(() => showCardTypeDropdown = false, 150)}
+												bind:value={typesInputVal}
+												onfocus={() => showTypesDropdown = true}
+												onblur={() => setTimeout(() => showTypesDropdown = false, 150)}
 											/>
 
-											{#if showCardTypeDropdown && filteredCardTypes.length > 0}
+											{#if showTypesDropdown && filteredTypesList.length > 0}
 												<div class="palette-popover">
 													<div class="palette-items-list">
-														{#each filteredCardTypes as item}
+														{#each filteredTypesList as item}
 															<button 
 																type="button" 
 																class="palette-item-option"
 																onmousedown={() => {
-																	toggleCardType(item);
-																	cardTypeInputVal = "";
+																	toggleType(item);
+																	typesInputVal = "";
 																}}
 															>
 																<span>{item}</span>
-																{#if cardTypes.includes(item)}
+																{#if supertypes.includes(item) || cardTypes.includes(item)}
 																	<Check size={12} class="check-icon text-blue-500" />
 																{/if}
 															</button>
@@ -593,7 +553,6 @@
 
 								<!-- Subtypes Pillbox -->
 								<div class="sub-type-field">
-									<span class="sub-label">Subtypes</span>
 									<div class="pillbox-container">
 										{#each subtypes as item}
 											<div class="type-pill subtype-pill">
@@ -982,18 +941,21 @@
 	/* Type Line Nested Inputs */
 	.type-line-group-container {
 		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
+		flex-direction: row;
+		gap: 0.5rem;
 		border: 1px solid hsl(var(--border));
 		background-color: hsla(var(--input) / 0.1);
 		border-radius: var(--radius-md);
 		padding: 0.75rem;
+		width: 100%;
 	}
 
 	.sub-type-field {
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;
+		flex: 1;
+		min-width: 0;
 	}
 
 	.sub-type-field .sub-label {
