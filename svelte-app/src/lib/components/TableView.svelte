@@ -1226,12 +1226,32 @@
 		overflow: hidden;
 		border: 1px solid hsl(var(--border) / 0.5);
 		border-radius: var(--radius-md);
+		background: hsla(0, 0%, 100%, 0.03);
 	}
 
 	.table-wrapper {
 		flex: 1;
 		overflow-x: auto;
 		overflow-y: auto;
+	}
+
+	/* Elegant Custom Scrollbar for Table Wrapper */
+	.table-wrapper::-webkit-scrollbar {
+		width: 6px;
+		height: 6px;
+	}
+
+	.table-wrapper::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.table-wrapper::-webkit-scrollbar-thumb {
+		background: hsl(var(--muted-foreground) / 0.25);
+		border-radius: 3px;
+	}
+
+	.table-wrapper::-webkit-scrollbar-thumb:hover {
+		background: hsl(var(--muted-foreground) / 0.45);
 	}
 
 	.deck-table {
@@ -1260,7 +1280,7 @@
 		top: 0;
 		z-index: 10;
 		height: 38px;
-		background: hsl(var(--background));
+		background: linear-gradient(hsla(0, 0%, 100%, 0.03), hsla(0, 0%, 100%, 0.03)), hsl(var(--background));
 		padding: 0 14px;
 		font-size: 0.6875rem;
 		font-weight: 700;
@@ -1276,6 +1296,7 @@
 
 	.deck-table th:last-child {
 		border-right: none;
+		padding-right: 20px !important;
 	}
 
 	/* Columns Sizes */
@@ -1409,7 +1430,7 @@
 		background: hsla(var(--primary-hsl), 0.08) !important;
 	}
 
-	.card-row:last-child td {
+	.category-group:last-of-type .card-row:last-child td {
 		border-bottom: none;
 	}
 
@@ -1664,6 +1685,7 @@
 
 	.deck-table td:last-child {
 		border-right: none;
+		padding-right: 20px !important;
 	}
 
 	/* Clickable Quantity Badge Button */
@@ -1932,7 +1954,7 @@
 		position: sticky;
 		top: 37px;
 		z-index: 5;
-		background: hsl(var(--background));
+		background: linear-gradient(hsla(0, 0%, 100%, 0.03), hsla(0, 0%, 100%, 0.03)), hsl(var(--background));
 		border-bottom: 1px solid hsl(var(--border) / 0.5);
 		border-top: none;
 		border-right: none !important;
