@@ -3,16 +3,27 @@
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { fade, scale } from "svelte/transition";
 	import { X } from "lucide-svelte";
+	import Input from "$lib/components/ui/Input.svelte";
+	import Button from "$lib/components/ui/Button.svelte";
 
 	let cmc = $state(0);
 	let typeLine = $state("");
 	let colorCategory = $state("Default");
 	let customColumn = $state("");
 
-	/** @type {HTMLInputElement | null} */
-	let inputEl = $state(null);
+	// Track values as they were when the modal opened
+	let initialCmc = $state(0);
+	let initialTypeLine = $state("");
+	let initialColorCategory = $state("Default");
+	let initialCustomColumn = $state("");
 
 	let card = $derived(interactionStore.cardDataModal.card);
+
+	// Derived default values from card metadata
+	let defaultCmc = $derived(card ? (deckStore.metadata[card.name.toLowerCase()]?.cmc ?? card.cmc ?? 0) : 0);
+	let defaultTypeLine = $derived(card ? (card.type_line || deckStore.metadata[card.name.toLowerCase()]?.type_line || "") : "");
+	let defaultColorCategory = $derived("Default");
+	let defaultCustomColumn = $derived("");
 
 	$effect(() => {
 		if (interactionStore.cardDataModal.isOpen && card) {
@@ -33,7 +44,11 @@
 
 			customColumn = card.customColumn || "";
 
-			setTimeout(() => inputEl?.focus(), 50);
+			// Store initial values to determine if newly edited
+			initialCmc = cmc;
+			initialTypeLine = typeLine;
+			initialColorCategory = colorCategory;
+			initialCustomColumn = customColumn;
 		}
 	});
 
@@ -117,23 +132,24 @@
 			<div class="modal-body">
 				<div class="form-group">
 					<label for="card-cmc">Mana Value (CMC)</label>
-					<input
+					<Input
 						id="card-cmc"
-						bind:this={inputEl}
 						type="number"
 						bind:value={cmc}
 						min="0"
 						max="99"
+						class={cmc !== initialCmc ? 'text-blue' : (cmc !== defaultCmc ? 'text-white' : 'text-muted')}
 						onkeydown={handleKeydown}
 					/>
 				</div>
 
 				<div class="form-group">
 					<label for="card-type">Type Line</label>
-					<input
+					<Input
 						id="card-type"
 						type="text"
 						bind:value={typeLine}
+						class={typeLine !== initialTypeLine ? 'text-blue' : (typeLine !== defaultTypeLine ? 'text-white' : 'text-muted')}
 						onkeydown={handleKeydown}
 						placeholder="e.g. Creature — Elf Warrior"
 					/>
@@ -141,7 +157,11 @@
 
 				<div class="form-group">
 					<label for="card-color-cat">Color Category</label>
-					<select id="card-color-cat" bind:value={colorCategory}>
+					<select 
+						id="card-color-cat" 
+						bind:value={colorCategory}
+						class={colorCategory !== initialColorCategory ? 'text-blue' : (colorCategory !== 'Default' ? 'text-white' : 'text-muted')}
+					>
 						<option value="Default">Default (Based on Card Colors)</option>
 						<option value="White">White</option>
 						<option value="Blue">Blue</option>
@@ -155,11 +175,12 @@
 				</div>
 
 				<div class="form-group">
-					<label for="card-custom-column">Custom Column</label>
-					<input
+					<label for="card-custom-column">Custom Column (for Freeform Layout)</label>
+					<Input
 						id="card-custom-column"
 						type="text"
 						bind:value={customColumn}
+						class={customColumn !== initialCustomColumn ? 'text-blue' : (customColumn !== defaultCustomColumn ? 'text-white' : 'text-muted')}
 						onkeydown={handleKeydown}
 						placeholder="e.g. Draw, Removal, Ramp"
 					/>
@@ -167,8 +188,8 @@
 			</div>
 
 			<div class="modal-footer">
-				<button class="btn btn-outline" onclick={handleClose}>Cancel</button>
-				<button class="btn btn-primary" onclick={handleSubmit}>Confirm</button>
+				<Button variant="outline" onclick={handleClose}>Cancel</Button>
+				<Button variant="default" onclick={handleSubmit}>Confirm</Button>
 			</div>
 		</div>
 	</div>
@@ -255,57 +276,46 @@
 		color: hsl(var(--muted-foreground));
 	}
 
-	.form-group input, .form-group select {
-		background: hsl(var(--background));
+	/* Select styling matching standard ui-input but with chevron spacing */
+	select {
+		display: flex;
+		height: 2.25rem;
+		width: 100%;
+		border-radius: var(--radius);
 		border: 1px solid hsl(var(--border));
-		border-radius: var(--radius-md);
-		padding: 0.75rem 1rem;
-		color: hsl(var(--foreground));
+		background-color: hsla(var(--input) / 0.3);
+		padding: 0 2.25rem 0 0.75rem;
 		font-size: 0.875rem;
+		transition: border-color 0.15s, box-shadow 0.15s;
+		color: hsl(var(--foreground));
 		outline: none;
-		font-family: inherit;
-		transition: all 0.2s;
+		appearance: none;
+		-webkit-appearance: none;
+		background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='hsl(240, 5%, 65%)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+		background-repeat: no-repeat;
+		background-position: right 0.75rem center;
+		background-size: 1rem;
 	}
 
-	.form-group input:focus, .form-group select:focus {
+	select:focus-visible {
 		border-color: hsl(var(--primary));
-		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+		box-shadow: 0 0 0 3px hsla(var(--primary) / 0.2);
+	}
+
+	/* Text color themes based on default, custom/saved override, or dirty edited state */
+	:global(.ui-input.text-blue), select.text-blue {
+		color: #3b82f6 !important;
+	}
+	:global(.ui-input.text-white), select.text-white {
+		color: #ffffff !important;
+	}
+	:global(.ui-input.text-muted), select.text-muted {
+		color: hsl(var(--muted-foreground)) !important;
 	}
 
 	.modal-footer {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 0.75rem;
-	}
-
-	.btn {
-		padding: 0.75rem 1rem;
-		border-radius: var(--radius-md);
-		font-size: 0.875rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.15s ease;
-		border: 1px solid transparent;
-	}
-
-	.btn-outline {
-		background: transparent;
-		border-color: hsl(var(--border));
-		color: hsl(var(--foreground));
-	}
-
-	.btn-outline:hover {
-		background: hsl(var(--accent));
-	}
-
-	.btn-primary {
-		background: hsl(var(--primary-dark));
-		color: hsl(var(--primary-foreground));
-		box-shadow: 0 4px 12px hsl(var(--primary) / 0.2);
-	}
-
-	.btn-primary:hover {
-		background: hsl(var(--primary));
-		box-shadow: 0 6px 15px hsl(var(--primary) / 0.3);
 	}
 </style>
