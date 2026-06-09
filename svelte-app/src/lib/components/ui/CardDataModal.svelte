@@ -53,17 +53,14 @@
 		"Zombie", "Zubera"
 	];
 
+	const ALL_LEGAL_WORDS = [...LEGAL_SUPERTYPES, ...LEGAL_CARD_TYPES, ...LEGAL_SUBTYPES];
+
 	// --- Component States ---
 	let cmc = $state(0);
 	let colorCategory = $state("Default");
 
-	// Separated Type States
-	/** @type {string[]} */
-	let supertypes = $state([]);
-	/** @type {string[]} */
-	let cardTypes = $state([]);
-	/** @type {string[]} */
-	let subtypes = $state([]);
+	// Type Line State
+	let typeLine = $state("");
 
 	// Local tags state
 	/** @type {string[]} */
@@ -72,25 +69,14 @@
 	let primaryTag = $state(null);
 	let newTagInput = $state("");
 
-	// Autocomplete/dropdown search terms
-	let typesInputVal = $state("");
-	let subtypeInputVal = $state("");
-
-	// Control dropdown visibilities
+	// Control dropdown/autocomplete visibilities
 	let showColorDropdown = $state(false);
-	let showTypesDropdown = $state(false);
-	let showSubtypeDropdown = $state(false);
-	let subtypeValidationError = $state("");
+	let showTypeSuggestions = $state(false);
 
 	// Track initial values for styling
 	let initialCmc = $state(0);
 	let initialColorCategory = $state("Default");
-	/** @type {string[]} */
-	let initialSupertypes = $state([]);
-	/** @type {string[]} */
-	let initialCardTypes = $state([]);
-	/** @type {string[]} */
-	let initialSubtypes = $state([]);
+	let initialTypeLine = $state("");
 	/** @type {string[]} */
 	let initialTags = $state([]);
 	/** @type {string | null} */
@@ -101,36 +87,8 @@
 	// Derived defaults from database metadata
 	let defaultCmc = $derived(card ? (deckStore.metadata[card.name.toLowerCase()]?.cmc ?? card.cmc ?? 0) : 0);
 
-	// Parse native typeline into structures
-	/** 
-	 * @param {string} tlString
-	 */
-	function parseTypeLine(tlString) {
-		const parts = tlString.split(/[—\-]/);
-		const left = parts[0] || "";
-		const right = parts[1] || "";
-		
-		const leftWords = left.trim().split(/\s+/).filter(Boolean);
-		const parsedSupertypes = leftWords.filter(w => LEGAL_SUPERTYPES.includes(w));
-		const parsedCardTypes = leftWords.filter(w => LEGAL_CARD_TYPES.includes(w));
-		
-		// Subtypes can be any of the remainder words
-		const parsedSubtypes = right.trim().split(/\s+/).filter(Boolean);
-		
-		return {
-			supertypes: parsedSupertypes,
-			cardTypes: parsedCardTypes,
-			subtypes: parsedSubtypes
-		};
-	}
-
-	// derived defaults for type line
-	let defaultTypeLineParts = $derived.by(() => {
-		if (!card) return { supertypes: [], cardTypes: [], subtypes: [] };
-		const metadata = deckStore.metadata[card.name.toLowerCase()] || {};
-		const baseStr = card.type_line || metadata.type_line || "";
-		return parseTypeLine(baseStr);
-	});
+	// Derived defaults for type line
+	let defaultTypeLine = $derived(card ? (card.type_line || deckStore.metadata[card.name.toLowerCase()]?.type_line || "") : "");
 
 	// Derived global list of tags in the deck
 	let deckTagsList = $derived.by(() => {
@@ -181,14 +139,9 @@
 						? overrides.colorCategory 
 						: "Default";
 
-					const typeLineStr = overrides.primaryType !== undefined 
+					typeLine = overrides.primaryType !== undefined 
 						? overrides.primaryType 
 						: (card.type_line || metadata.type_line || "");
-
-					const parsed = parseTypeLine(typeLineStr);
-					supertypes = parsed.supertypes;
-					cardTypes = parsed.cardTypes;
-					subtypes = parsed.subtypes;
 
 					tags = card.tags ? [...card.tags] : [];
 					primaryTag = card.primaryTag || (tags[0] || null);
@@ -196,20 +149,13 @@
 					// Initialize initial state references
 					initialCmc = cmc;
 					initialColorCategory = colorCategory;
-					initialSupertypes = [...supertypes];
-					initialCardTypes = [...cardTypes];
-					initialSubtypes = [...subtypes];
+					initialTypeLine = typeLine;
 					initialTags = [...tags];
 					initialPrimaryTag = primaryTag;
 
 					// Reset palette states
 					newTagInput = "";
-					typesInputVal = "";
-					subtypeInputVal = "";
-					subtypeValidationError = "";
 					showColorDropdown = false;
-					showTypesDropdown = false;
-					showSubtypeDropdown = false;
 				}
 			});
 		}
@@ -230,13 +176,8 @@
 			deckStore.setCardOverride(cardId, 'manaValue', parsedCmc);
 		}
 
-		// 2. Type Override (Rebuilt from supertypes, cardTypes, subtypes)
-		let left = [...supertypes, ...cardTypes].join(" ");
-		let fullType = left;
-		if (subtypes.length > 0) {
-			fullType = `${left} — ${subtypes.join(" ")}`;
-		}
-		deckStore.setCardOverride(cardId, 'primaryType', fullType.trim());
+		// 2. Type Override
+		deckStore.setCardOverride(cardId, 'primaryType', formatTypeLine(typeLine).trim());
 
 		// 3. Color Category Override
 		if (colorCategory === "Default") {
@@ -276,9 +217,7 @@
 	}
 
 	function resetTypeLineFields() {
-		supertypes = [...defaultTypeLineParts.supertypes];
-		cardTypes = [...defaultTypeLineParts.cardTypes];
-		subtypes = [...defaultTypeLineParts.subtypes];
+		typeLine = defaultTypeLine;
 	}
 
 	function resetColorCategoryField() {
@@ -297,59 +236,7 @@
 		resetTagsField();
 	}
 
-	// --- Helper actions for adding/removing array values ---
-	
-	/** @param {string} item */
-	function toggleSupertype(item) {
-		if (supertypes.includes(item)) {
-			supertypes = supertypes.filter(x => x !== item);
-		} else {
-			supertypes = [...supertypes, item];
-		}
-	}
-
-	/** @param {string} item */
-	function toggleCardType(item) {
-		if (cardTypes.includes(item)) {
-			cardTypes = cardTypes.filter(x => x !== item);
-		} else {
-			cardTypes = [...cardTypes, item];
-		}
-	}
-
-	/** @param {string} item */
-	function toggleType(item) {
-		if (LEGAL_SUPERTYPES.includes(item)) {
-			toggleSupertype(item);
-		} else if (LEGAL_CARD_TYPES.includes(item)) {
-			toggleCardType(item);
-		}
-	}
-
-	function addSubtypeFromSearch() {
-		const val = subtypeInputVal.trim();
-		if (!val) return;
-		const normalized = val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
-
-		// Validation check
-		if (!LEGAL_SUBTYPES.includes(normalized)) {
-			subtypeValidationError = `"${normalized}" is not a legal Magic subtype.`;
-			return;
-		}
-
-		if (!subtypes.includes(normalized)) {
-			subtypes = [...subtypes, normalized];
-		}
-		subtypeInputVal = "";
-		subtypeValidationError = "";
-		showSubtypeDropdown = false;
-	}
-
-	/** @param {string} item */
-	function removeSubtype(item) {
-		subtypes = subtypes.filter(x => x !== item);
-	}
-
+	// --- Helper actions for adding/removing tag array values ---
 	function addTag() {
 		const val = newTagInput.trim();
 		if (val && !tags.includes(val)) {
@@ -381,30 +268,8 @@
 	let isColorChanged = $derived(colorCategory !== initialColorCategory);
 	let isColorCustom = $derived(colorCategory !== "Default");
 
-	// Types equality checks
-	let isSupertypesChanged = $derived(
-		supertypes.length !== initialSupertypes.length || supertypes.some((s, i) => s !== initialSupertypes[i])
-	);
-	let isSupertypesCustom = $derived(
-		supertypes.length !== defaultTypeLineParts.supertypes.length || supertypes.some((s, i) => s !== defaultTypeLineParts.supertypes[i])
-	);
-
-	let isCardTypesChanged = $derived(
-		cardTypes.length !== initialCardTypes.length || cardTypes.some((t, i) => t !== initialCardTypes[i])
-	);
-	let isCardTypesCustom = $derived(
-		cardTypes.length !== defaultTypeLineParts.cardTypes.length || cardTypes.some((t, i) => t !== defaultTypeLineParts.cardTypes[i])
-	);
-
-	let isSubtypesChanged = $derived(
-		subtypes.length !== initialSubtypes.length || subtypes.some((s, i) => s !== initialSubtypes[i])
-	);
-	let isSubtypesCustom = $derived(
-		subtypes.length !== defaultTypeLineParts.subtypes.length || subtypes.some((s, i) => s !== defaultTypeLineParts.subtypes[i])
-	);
-
-	let isTypeLineChanged = $derived(isSupertypesChanged || isCardTypesChanged || isSubtypesChanged);
-	let isTypeLineCustom = $derived(isSupertypesCustom || isCardTypesCustom || isSubtypesCustom);
+	let isTypeLineChanged = $derived(typeLine !== initialTypeLine);
+	let isTypeLineCustom = $derived(typeLine !== defaultTypeLine);
 
 	let isTagsChanged = $derived(
 		tags.length !== initialTags.length || tags.some((t, i) => t !== initialTags[i]) || primaryTag !== initialPrimaryTag
@@ -413,14 +278,72 @@
 
 	let isAnyFieldCustom = $derived(isCmcCustom || isTypeLineCustom || isColorCustom || isTagsCustom);
 
-	// Filtering for Autocomplete dropdowns
-	let filteredTypesList = $derived(
-		[...LEGAL_SUPERTYPES, ...LEGAL_CARD_TYPES].filter(t => t.toLowerCase().includes(typesInputVal.toLowerCase()))
-	);
+	// Autocomplete word check & validation helpers
+	let currentWord = $derived.by(() => {
+		if (!typeLine) return "";
+		const words = typeLine.split(/[\s—\-]+/);
+		return words[words.length - 1] || "";
+	});
 
-	let filteredSubtypesList = $derived(
-		LEGAL_SUBTYPES.filter(s => s.toLowerCase().includes(subtypeInputVal.toLowerCase()))
-	);
+	let suggestions = $derived.by(() => {
+		const word = currentWord.trim();
+		if (!word || word.length < 1) return [];
+		return ALL_LEGAL_WORDS.filter(w => 
+			w.toLowerCase().startsWith(word.toLowerCase()) && 
+			w.toLowerCase() !== word.toLowerCase()
+		).slice(0, 5);
+	});
+
+	let invalidWords = $derived.by(() => {
+		if (!typeLine) return [];
+		const words = typeLine.split(/[\s—\-]+/).filter(Boolean);
+		return words.filter(w => !ALL_LEGAL_WORDS.map(x => x.toLowerCase()).includes(w.toLowerCase()));
+	});
+
+	/** @param {string} val */
+	function selectSuggestion(val) {
+		const trimmed = typeLine;
+		const lastWordRegex = /[a-zA-Z0-9']+(?!.*[a-zA-Z0-9'])/;
+		const match = trimmed.match(lastWordRegex);
+		if (match) {
+			const index = trimmed.lastIndexOf(match[0]);
+			typeLine = trimmed.substring(0, index) + val + " ";
+		} else {
+			typeLine = trimmed + val + " ";
+		}
+		showTypeSuggestions = false;
+	}
+
+	/** @param {string} rawString */
+	function formatTypeLine(rawString) {
+		const words = rawString.split(/[\s—\-]+/).filter(Boolean);
+		/** @type {string[]} */
+		const parsedSupertypes = [];
+		/** @type {string[]} */
+		const parsedCardTypes = [];
+		/** @type {string[]} */
+		const parsedSubtypes = [];
+		
+		for (const w of words) {
+			const normalized = w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+			if (LEGAL_SUPERTYPES.includes(normalized)) {
+				if (!parsedSupertypes.includes(normalized)) parsedSupertypes.push(normalized);
+			} else if (LEGAL_CARD_TYPES.includes(normalized)) {
+				if (!parsedCardTypes.includes(normalized)) parsedCardTypes.push(normalized);
+			} else {
+				const matchedSubtype = LEGAL_SUBTYPES.find(x => x.toLowerCase() === w.toLowerCase());
+				const val = matchedSubtype || normalized;
+				if (!parsedSubtypes.includes(val)) parsedSubtypes.push(val);
+			}
+		}
+		
+		let left = [...parsedSupertypes, ...parsedCardTypes].join(" ");
+		let result = left;
+		if (parsedSubtypes.length > 0) {
+			result = `${left} — ${parsedSubtypes.join(" ")}`;
+		}
+		return result;
+	}
 </script>
 
 {#if interactionStore.cardDataModal.isOpen}
@@ -485,139 +408,53 @@
 							/>
 						</div>
 
-						<!-- Type Line Flex Container -->
+						<!-- Type Line field -->
 						<div class="form-group">
 							<div class="label-row">
-								<span class="form-label {isTypeLineChanged ? 'label-blue' : (isTypeLineCustom ? 'label-white' : 'label-muted')}">Type Line</span>
+								<label for="card-typeline" class={isTypeLineChanged ? 'label-blue' : (isTypeLineCustom ? 'label-white' : 'label-muted')}>Type Line</label>
 								{#if isTypeLineCustom}
 									<button type="button" class="field-reset-action" onclick={resetTypeLineFields}>Reset to Default</button>
 								{/if}
 							</div>
+							<div class="palette-anchor w-full">
+								<Input
+									id="card-typeline"
+									type="text"
+									bind:value={typeLine}
+									class={isTypeLineChanged ? 'text-blue' : (isTypeLineCustom ? 'text-white' : 'text-muted')}
+									onfocus={() => showTypeSuggestions = true}
+									onblur={() => setTimeout(() => showTypeSuggestions = false, 150)}
+									onkeydown={(/** @type {KeyboardEvent} */ e) => {
+										if (e.key === "Enter") handleSubmit();
+										if (e.key === "Escape") handleClose();
+									}}
+								/>
 
-							<div class="type-line-row">
-								
-								<!-- Supertypes & Card Types combined Pillbox -->
-								<div class="sub-type-field">
-									<div class="pillbox-container">
-										{#each supertypes as item}
-											<div class="type-pill supertype-pill">
-												<span>{item}</span>
-												<button type="button" class="pill-remove-btn" onclick={() => toggleSupertype(item)} aria-label="Remove">
-													<X size={10} />
+								{#if showTypeSuggestions && suggestions.length > 0}
+									<div class="palette-popover">
+										<div class="palette-items-list">
+											{#each suggestions as item}
+												<button 
+													type="button" 
+													class="palette-item-option"
+													onmousedown={() => {
+														selectSuggestion(item);
+													}}
+												>
+													<span>{item}</span>
 												</button>
-											</div>
-										{/each}
-										{#each cardTypes as item}
-											<div class="type-pill type-pill-bg">
-												<span>{item}</span>
-												<button type="button" class="pill-remove-btn" onclick={() => toggleCardType(item)} aria-label="Remove">
-													<X size={10} />
-												</button>
-											</div>
-										{/each}
-										
-										<div class="palette-anchor">
-											<input 
-												type="text" 
-												placeholder="+ Add Type..." 
-												class="inline-pill-input"
-												bind:value={typesInputVal}
-												onfocus={() => showTypesDropdown = true}
-												onblur={() => setTimeout(() => showTypesDropdown = false, 150)}
-											/>
-
-											{#if showTypesDropdown && filteredTypesList.length > 0}
-												<div class="palette-popover">
-													<div class="palette-items-list">
-														{#each filteredTypesList as item}
-															<button 
-																type="button" 
-																class="palette-item-option"
-																onmousedown={() => {
-																	toggleType(item);
-																	typesInputVal = "";
-																}}
-															>
-																<span>{item}</span>
-																{#if supertypes.includes(item) || cardTypes.includes(item)}
-																	<Check size={12} class="check-icon text-blue-500" />
-																{/if}
-															</button>
-														{/each}
-													</div>
-												</div>
-											{/if}
+											{/each}
 										</div>
 									</div>
-								</div>
-
-								<!-- Subtypes Pillbox -->
-								<div class="sub-type-field">
-									<div class="pillbox-container">
-										{#each subtypes as item}
-											<div class="type-pill subtype-pill">
-												<span>{item}</span>
-												<button type="button" class="pill-remove-btn" onclick={() => removeSubtype(item)} aria-label="Remove">
-													<X size={10} />
-												</button>
-											</div>
-										{/each}
-										
-										<div class="palette-anchor">
-											<input 
-												type="text" 
-												placeholder="+ Add Subtype..." 
-												class="inline-pill-input"
-												bind:value={subtypeInputVal}
-												onfocus={() => {
-													showSubtypeDropdown = true;
-													subtypeValidationError = "";
-												}}
-												onblur={() => setTimeout(() => showSubtypeDropdown = false, 150)}
-												onkeydown={(e) => {
-													if (e.key === "Enter") {
-														e.preventDefault();
-														addSubtypeFromSearch();
-													}
-												}}
-											/>
-
-											{#if showSubtypeDropdown && filteredSubtypesList.length > 0}
-												<div class="palette-popover">
-													<div class="palette-items-list">
-														{#each filteredSubtypesList as item}
-															<button 
-																type="button" 
-																class="palette-item-option"
-																onmousedown={() => {
-																	if (!subtypes.includes(item)) {
-																		subtypes = [...subtypes, item];
-																	}
-																	subtypeInputVal = "";
-																	subtypeValidationError = "";
-																}}
-															>
-																<span>{item}</span>
-																{#if subtypes.includes(item)}
-																	<Check size={12} class="check-icon text-blue-500" />
-																{/if}
-															</button>
-														{/each}
-													</div>
-												</div>
-											{/if}
-										</div>
-									</div>
-
-									{#if subtypeValidationError}
-										<div class="validation-message-row" transition:fade={{ duration: 100 }}>
-											<AlertCircle size={12} />
-											<span>{subtypeValidationError}</span>
-										</div>
-									{/if}
-								</div>
-
+								{/if}
 							</div>
+
+							{#if invalidWords.length > 0}
+								<div class="validation-message-row" transition:fade={{ duration: 100 }}>
+									<AlertCircle size={12} />
+									<span>Invalid word{invalidWords.length > 1 ? 's' : ''}: {invalidWords.join(', ')}</span>
+								</div>
+							{/if}
 						</div>
 
 						<!-- Custom Color Category Select Dropdown -->
@@ -938,29 +775,7 @@
 		color: hsl(var(--muted-foreground)) !important;
 	}
 
-	/* Type Line Nested Inputs */
-	.type-line-row {
-		display: flex;
-		flex-direction: row;
-		gap: 0.5rem;
-		width: 100%;
-	}
 
-	.sub-type-field {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-		flex: 0 1 max-content;
-		min-width: 0;
-	}
-
-	.sub-type-field .sub-label {
-		font-size: 0.6875rem;
-		font-weight: 600;
-		color: hsl(var(--muted-foreground));
-		text-transform: uppercase;
-		letter-spacing: 0.02em;
-	}
 
 	/* Custom select dropdown styling */
 	.custom-select-trigger {
