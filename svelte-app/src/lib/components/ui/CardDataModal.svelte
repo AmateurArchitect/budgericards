@@ -2,20 +2,29 @@
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { fade, scale } from "svelte/transition";
-	import { X } from "lucide-svelte";
+	import { X, Plus, Star } from "lucide-svelte";
 	import Input from "$lib/components/ui/Input.svelte";
 	import Button from "$lib/components/ui/Button.svelte";
 
 	let cmc = $state(0);
 	let typeLine = $state("");
 	let colorCategory = $state("Default");
-	let customColumn = $state("");
+	
+	// Local tags state
+	/** @type {string[]} */
+	let tags = $state([]);
+	/** @type {string | null} */
+	let primaryTag = $state(null);
+	let newTagInput = $state("");
 
 	// Track values as they were when the modal opened
 	let initialCmc = $state(0);
 	let initialTypeLine = $state("");
 	let initialColorCategory = $state("Default");
-	let initialCustomColumn = $state("");
+	/** @type {string[]} */
+	let initialTags = $state([]);
+	/** @type {string | null} */
+	let initialPrimaryTag = $state(null);
 
 	let card = $derived(interactionStore.cardDataModal.card);
 
@@ -23,7 +32,26 @@
 	let defaultCmc = $derived(card ? (deckStore.metadata[card.name.toLowerCase()]?.cmc ?? card.cmc ?? 0) : 0);
 	let defaultTypeLine = $derived(card ? (card.type_line || deckStore.metadata[card.name.toLowerCase()]?.type_line || "") : "");
 	let defaultColorCategory = $derived("Default");
-	let defaultCustomColumn = $derived("");
+
+	// Derived global list of tags in the deck
+	let deckTagsList = $derived.by(() => {
+		const allTags = new Set();
+		const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+		const storeAny = /** @type {any} */ (deckStore);
+		for (const board of boards) {
+			if (storeAny[board]) {
+				const list = storeAny[board] || [];
+				for (const c of list) {
+					if (c.tags) {
+						for (const t of c.tags) {
+							allTags.add(t);
+						}
+					}
+				}
+			}
+		}
+		return [...allTags].sort((a, b) => a.localeCompare(b));
+	});
 
 	$effect(() => {
 		if (interactionStore.cardDataModal.isOpen && card) {
@@ -42,18 +70,44 @@
 				? overrides.colorCategory 
 				: "Default";
 
-			customColumn = card.customColumn || "";
+			tags = card.tags ? [...card.tags] : [];
+			primaryTag = card.primaryTag || (tags[0] || null);
 
 			// Store initial values to determine if newly edited
 			initialCmc = cmc;
 			initialTypeLine = typeLine;
 			initialColorCategory = colorCategory;
-			initialCustomColumn = customColumn;
+			initialTags = [...tags];
+			initialPrimaryTag = primaryTag;
 		}
 	});
 
 	function handleClose() {
 		interactionStore.closeCardDataModal();
+	}
+
+	function addTag() {
+		const val = newTagInput.trim();
+		if (val && !tags.includes(val)) {
+			tags.push(val);
+			if (!primaryTag) {
+				primaryTag = val;
+			}
+			newTagInput = "";
+		}
+	}
+
+	/** @param {string} tag */
+	function removeTag(tag) {
+		tags = tags.filter(t => t !== tag);
+		if (primaryTag === tag) {
+			primaryTag = tags[0] || null;
+		}
+	}
+
+	/** @param {string} tag */
+	function togglePrimary(tag) {
+		primaryTag = primaryTag === tag ? (tags.find(t => t !== tag) || null) : tag;
 	}
 
 	function handleSubmit() {
@@ -87,13 +141,14 @@
 			}
 		}
 
-		// 4. Custom Column Override
-		if (customColumn.trim()) {
-			deckStore.setCustomColumn(cardId, customColumn.trim());
+		// 4. Tags Override
+		deckStore.reorderCardTags(cardId, tags);
+		if (primaryTag) {
+			deckStore.setPrimaryTag(cardId, primaryTag);
 		} else {
 			const result = deckStore.findCardById(cardId);
 			if (result && result.card) {
-				delete result.card.customColumn;
+				delete result.card.primaryTag;
 			}
 		}
 
@@ -105,6 +160,17 @@
 		if (e.key === "Enter") handleSubmit();
 		if (e.key === "Escape") handleClose();
 	}
+
+	// Dynamic comparison for tags array equality
+	let isTagsChanged = $derived(
+		tags.length !== initialTags.length ||
+		tags.some((t, i) => t !== initialTags[i]) ||
+		primaryTag !== initialPrimaryTag
+	);
+
+	let isTagsCustom = $derived(
+		tags.length > 0
+	);
 </script>
 
 {#if interactionStore.cardDataModal.isOpen}
@@ -174,16 +240,78 @@
 					</select>
 				</div>
 
+				<!-- Tags Editor -->
 				<div class="form-group">
-					<label for="card-custom-column">Custom Column (for Freeform Layout)</label>
-					<Input
-						id="card-custom-column"
-						type="text"
-						bind:value={customColumn}
-						class={customColumn !== initialCustomColumn ? 'text-blue' : (customColumn !== defaultCustomColumn ? 'text-white' : 'text-muted')}
-						onkeydown={handleKeydown}
-						placeholder="e.g. Draw, Removal, Ramp"
-					/>
+					<label for="card-tags" class={isTagsChanged ? 'label-blue' : (isTagsCustom ? 'label-white' : 'label-muted')}>Card Tags</label>
+					
+					<!-- Active Tags Badges -->
+					<div class="active-tags-list">
+						{#each tags as tag}
+							<div class="tag-badge-pill" class:is-primary={primaryTag === tag}>
+								<button 
+									type="button" 
+									class="primary-star-btn"
+									onclick={() => togglePrimary(tag)}
+									title={primaryTag === tag ? "Primary tag (click to demote)" : "Make primary tag"}
+								>
+									<Star size={12} fill={primaryTag === tag ? "currentColor" : "none"} />
+								</button>
+								<span class="tag-label-text">{tag}</span>
+								<button 
+									type="button" 
+									class="remove-tag-btn" 
+									onclick={() => removeTag(tag)}
+									aria-label="Remove tag"
+								>
+									<X size={12} />
+								</button>
+							</div>
+						{:else}
+							<span class="no-tags-placeholder">No tags assigned</span>
+						{/each}
+					</div>
+
+					<!-- Input to Add Tag -->
+					<div class="tag-input-row">
+						<Input
+							id="card-tags"
+							type="text"
+							placeholder="Add a tag..."
+							bind:value={newTagInput}
+							onkeydown={(e) => {
+								if (e.key === "Enter") {
+									e.preventDefault();
+									addTag();
+								}
+							}}
+						/>
+						<Button variant="outline" size="icon" onclick={addTag} aria-label="Add tag">
+							<Plus size={16} />
+						</Button>
+					</div>
+
+					<!-- Suggestions -->
+					{#if deckTagsList.some(t => !tags.includes(t))}
+						<div class="suggestions-section">
+							<span class="suggestions-label">Suggestions:</span>
+							<div class="suggestions-list">
+								{#each deckTagsList as gTag}
+									{#if !tags.includes(gTag)}
+										<button 
+											type="button" 
+											class="suggestion-pill"
+											onclick={() => {
+												tags.push(gTag);
+												if (!primaryTag) primaryTag = gTag;
+											}}
+										>
+											{gTag}
+										</button>
+									{/if}
+								{/each}
+							</div>
+						</div>
+					{/if}
 				</div>
 			</div>
 
@@ -216,7 +344,7 @@
 		border: 1px solid hsl(var(--border));
 		border-radius: var(--radius-lg);
 		width: 100%;
-		max-width: 400px;
+		max-width: 420px;
 		padding: 2.5rem 2rem 2rem;
 		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 		color: hsl(var(--foreground));
@@ -274,6 +402,17 @@
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		color: hsl(var(--muted-foreground));
+		transition: color 0.15s;
+	}
+
+	.label-blue {
+		color: #3b82f6 !important;
+	}
+	.label-white {
+		color: #ffffff !important;
+	}
+	.label-muted {
+		color: hsl(var(--muted-foreground)) !important;
 	}
 
 	/* Select styling matching standard ui-input but with chevron spacing */
@@ -311,6 +450,113 @@
 	}
 	:global(.ui-input.text-muted), select.text-muted {
 		color: hsl(var(--muted-foreground)) !important;
+	}
+
+	/* Tags Editor specific styles */
+	.active-tags-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-bottom: 0.25rem;
+		min-height: 1.5rem;
+		align-items: center;
+	}
+
+	.no-tags-placeholder {
+		font-size: 0.875rem;
+		color: hsl(var(--muted-foreground));
+		font-style: italic;
+	}
+
+	.tag-badge-pill {
+		display: inline-flex;
+		align-items: center;
+		background: hsla(var(--muted) / 0.4);
+		border: 1px solid hsla(var(--border) / 0.5);
+		border-radius: var(--radius-sm);
+		padding: 2px 6px;
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: hsl(var(--foreground));
+		gap: 4px;
+	}
+
+	.tag-badge-pill.is-primary {
+		background: hsl(var(--primary) / 0.15);
+		border-color: hsl(var(--primary) / 0.4);
+		color: hsl(var(--primary));
+	}
+
+	.primary-star-btn {
+		background: transparent;
+		border: none;
+		color: hsl(var(--muted-foreground));
+		padding: 0;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+	}
+
+	.tag-badge-pill.is-primary .primary-star-btn {
+		color: hsl(var(--primary));
+	}
+
+	.tag-badge-pill:hover .primary-star-btn {
+		color: hsl(var(--foreground));
+	}
+
+	.remove-tag-btn {
+		background: transparent;
+		border: none;
+		color: hsl(var(--muted-foreground));
+		padding: 0;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+	}
+
+	.remove-tag-btn:hover {
+		color: hsl(var(--destructive));
+	}
+
+	.tag-input-row {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.suggestions-section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		margin-top: 0.25rem;
+	}
+
+	.suggestions-label {
+		font-size: 0.6875rem;
+		font-weight: 600;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.suggestions-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+	}
+
+	.suggestion-pill {
+		background: hsla(var(--muted) / 0.25);
+		border: 1px solid hsla(var(--border) / 0.3);
+		border-radius: var(--radius-sm);
+		padding: 1px 5px;
+		font-size: 0.6875rem;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		transition: all 0.1s;
+	}
+
+	.suggestion-pill:hover {
+		background: hsla(var(--muted) / 0.5);
+		color: hsl(var(--foreground));
 	}
 
 	.modal-footer {

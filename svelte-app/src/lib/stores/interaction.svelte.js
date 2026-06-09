@@ -477,7 +477,10 @@ function createInteractionStore() {
 						this.showCardDataModal(card, zone, price);
 					}
 				});
-				const hasOverrides = (card.overrides && Object.keys(card.overrides).length > 0) || (card.customColumn !== undefined && card.customColumn !== null && card.customColumn !== "");
+				const hasOverrides = (card.overrides && Object.keys(card.overrides).length > 0) || 
+					(card.customColumn !== undefined && card.customColumn !== null && card.customColumn !== "") ||
+					(card.tags && card.tags.length > 0) || 
+					(card.primaryTag !== undefined && card.primaryTag !== null);
 				if (hasOverrides) {
 					items.push({
 						label: "Reset Card Data",

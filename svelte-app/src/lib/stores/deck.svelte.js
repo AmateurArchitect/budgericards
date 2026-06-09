@@ -838,6 +838,8 @@ function createDeck() {
 				saveHistory(activeDeck);
 				delete result.card.overrides;
 				delete result.card.customColumn;
+				delete result.card.tags;
+				delete result.card.primaryTag;
 				persist(activeDeck);
 			}
 		},
