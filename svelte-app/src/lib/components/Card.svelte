@@ -64,7 +64,7 @@
 		box-shadow:
 			var(--shadow-sm),
 			var(--inner-glow),
-			inset 0 0 0 1px var(--border);
+			inset 0 0 0 1px hsl(var(--border));
 		width: 100%;
 		cursor: pointer;
 		user-select: none;
@@ -82,7 +82,7 @@
 		box-shadow:
 			var(--shadow-md),
 			var(--inner-glow),
-			inset 0 0 0 1px var(--border-hover);
+			inset 0 0 0 1px hsl(var(--border) / 0.5);
 		transform: translateY(-4px);
 	}
 

@@ -1241,7 +1241,7 @@
 		table-layout: auto;
 		--padding-y: 8px;
 		--row-height: 28px;
-		border-top: 1px solid hsla(var(--border) / 0.15);
+		border-top: 1px solid hsl(var(--border));
 	}
 
 	.compact .deck-table {
@@ -1268,7 +1268,7 @@
 		color: hsl(var(--muted-foreground));
 		border-bottom: 1px solid hsla(var(--border) / 0.8);
 		border-top: none;
-		border-right: 1px solid hsla(var(--border) / 0.15);
+		border-right: 1px solid hsl(var(--border));
 		white-space: nowrap;
 		box-sizing: border-box;
 	}
@@ -1418,7 +1418,7 @@
 	}
 
 	.category-group .card-row:last-child:hover td {
-		border-bottom-color: hsla(var(--border) / 0.15);
+		border-bottom-color: hsl(var(--border));
 	}
 
 	.card-row.is-illegal {
@@ -1666,8 +1666,8 @@
 			height 0.2s ease,
 			border-color 0.2s ease;
 		white-space: nowrap;
-		border-bottom: 1px solid hsla(var(--border) / 0.15); /* Clean border-bottom directly on cells */
-		border-right: 1px solid hsla(var(--border) / 0.15);
+		border-bottom: 1px solid hsl(var(--border)); /* Clean border-bottom directly on cells */
+		border-right: 1px solid hsl(var(--border));
 	}
 
 	.deck-table td:last-child {
@@ -1937,12 +1937,15 @@
 
 	/* Category Section Header Row Styling */
 	.category-header-row td {
-		background: transparent;
-		border-bottom: 1px solid hsla(var(--border) / 0.15);
+		position: sticky;
+		top: 37px;
+		z-index: 5;
+		background: hsl(var(--background));
+		border-bottom: 1px solid hsl(var(--border));
 		border-top: none;
 		border-right: none !important;
 		padding: var(--padding-y) 14px !important;
-		height: var(--row-height);
+		height: calc(var(--row-height) * 2);
 		box-shadow: none;
 		transition: background-color 0.15s ease;
 	}

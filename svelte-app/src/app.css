@@ -249,8 +249,8 @@ body {
 .spinner {
 	width: 20px;
 	height: 20px;
-	border: 2px solid var(--border);
-	border-top-color: var(--accent);
+	border: 2px solid hsl(var(--border));
+	border-top-color: hsl(var(--accent));
 	border-radius: 50%;
 	animation: spin 1s linear infinite;
 }
