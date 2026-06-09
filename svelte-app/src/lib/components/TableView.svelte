@@ -1958,7 +1958,7 @@
 		position: sticky;
 		top: 37px;
 		z-index: 5;
-		background: hsl(var(--background));
+		background: linear-gradient(hsla(0, 0%, 100%, 0.015), hsla(0, 0%, 100%, 0.015)), hsl(var(--background));
 		border-bottom: 1px solid hsl(var(--border) / 0.5);
 		border-top: none;
 		border-right: none !important;
@@ -1969,7 +1969,7 @@
 	}
 
 	.category-header-row:hover td {
-		background: hsla(0, 0%, 100%, 0.025) !important;
+		background: linear-gradient(hsla(0, 0%, 100%, 0.035), hsla(0, 0%, 100%, 0.035)), hsl(var(--background)) !important;
 	}
 
 	.category-header-row td.col-actions {
@@ -2123,11 +2123,11 @@
 
 	/* Highlight all card rows in the category ONLY when hovering the header row */
 	.category-group:has(.category-header-row:hover) .card-row {
-		background-color: hsla(0, 0%, 100%, 0.016);
+		background-color: hsla(0, 0%, 100%, 0.01) !important;
 	}
 
-	.category-group:has(.category-header-row:hover) .card-row td {
-		border-bottom-color: transparent;
+	.category-group:has(.category-header-row:hover) .card-row:nth-child(even) {
+		background-color: hsla(0, 0%, 100%, 0.025) !important;
 	}
 
 </style>
