@@ -359,8 +359,17 @@
 		stuckCategories = newStuck;
 		activeCategoryName = currentActive;
 	}
+	let isDraggingSelection = $state(false);
+
 	onMount(() => {
 		handleScroll();
+		const handleGlobalMouseUp = () => {
+			isDraggingSelection = false;
+		};
+		window.addEventListener("mouseup", handleGlobalMouseUp);
+		return () => {
+			window.removeEventListener("mouseup", handleGlobalMouseUp);
+		};
 	});
 </script>
 
@@ -688,13 +697,21 @@
 											cardRow.name &&
 											editingCardZone === cardRow.zone}
 										data-tooltip-img={cardRow.imgUrl}
-										onclick={(e) => {
+										onmousedown={(e) => {
+											if (e.button !== 0) return;
+											if (e.target instanceof HTMLElement && (
+												e.target.closest('button') || 
+												e.target.closest('input') || 
+												e.target.closest('.action-buttons-cell') ||
+												e.target.closest('.col-actions')
+											)) return;
+
 											if (cardRow.instances[0]) {
+												isDraggingSelection = true;
 												const isCmdCtrl = e.metaKey || e.ctrlKey;
-												const isShift = e.shiftKey;
 												interactionStore.handleCardSelectClick(
 													cardRow.instances[0].id,
-													isShift,
+													e.shiftKey,
 													isCmdCtrl
 												);
 											}
@@ -708,12 +725,20 @@
 												cardRow.price,
 											);
 										}}
-										onmouseenter={() =>
+										onmouseenter={() => {
 											interactionStore.registerHover(
 												cardRow.card,
 												cardRow.zone,
 												cardRow.price,
-											)}
+											);
+											if (isDraggingSelection && cardRow.instances[0]) {
+												interactionStore.handleCardSelectClick(
+													cardRow.instances[0].id,
+													true,
+													false
+												);
+											}
+										}}
 										onmouseleave={() =>
 											interactionStore.unregisterHover()}
 									>
@@ -1263,6 +1288,7 @@
 		table-layout: auto;
 		--padding-y: 8px;
 		--row-height: 28px;
+		user-select: none;
 	}
 
 	.compact .deck-table {
