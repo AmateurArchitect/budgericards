@@ -494,7 +494,7 @@
 								{/if}
 							</div>
 
-							<div class="type-line-group-container">
+							<div class="type-line-row">
 								
 								<!-- Supertypes & Card Types combined Pillbox -->
 								<div class="sub-type-field">
@@ -939,14 +939,10 @@
 	}
 
 	/* Type Line Nested Inputs */
-	.type-line-group-container {
+	.type-line-row {
 		display: flex;
 		flex-direction: row;
 		gap: 0.5rem;
-		border: 1px solid hsl(var(--border));
-		background-color: hsla(var(--input) / 0.1);
-		border-radius: var(--radius-md);
-		padding: 0.75rem;
 		width: 100%;
 	}
 
@@ -954,7 +950,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;
-		flex: 1;
+		flex: 0 1 auto;
 		min-width: 0;
 	}
 
