@@ -707,6 +707,7 @@
 											)) return;
 
 											if (cardRow.instances[0]) {
+												e.preventDefault();
 												isDraggingSelection = true;
 												const isCmdCtrl = e.metaKey || e.ctrlKey;
 												interactionStore.handleCardSelectClick(
@@ -1454,7 +1455,7 @@
 	}
 
 	.card-row.is-selected {
-		background-color: hsla(var(--primary-hsl), 0.1) !important;
+		background-color: rgba(239, 68, 68, 0.4) !important;
 	}
 
 	.card-row.is-editing {
