@@ -472,7 +472,7 @@ function createInteractionStore() {
 					}
 				});
 				items.push({
-					label: "Change Card Data...",
+					label: "Edit Card Data...",
 					action: () => {
 						this.showCardDataModal(card, zone, price);
 					}

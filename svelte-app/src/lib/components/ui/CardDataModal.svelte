@@ -2,7 +2,7 @@
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { fade, scale } from "svelte/transition";
-	import { X, Plus, Star, Search, AlertCircle, Check } from "lucide-svelte";
+	import { X, Star, AlertCircle, Check } from "lucide-svelte";
 	import Input from "$lib/components/ui/Input.svelte";
 	import Button from "$lib/components/ui/Button.svelte";
 	import { untrack } from "svelte";
@@ -15,7 +15,6 @@
 		"Sorcery", "Planeswalker", "Battle", "Kindred", "Tribal"
 	];
 
-	// Common / legal subtypes across all card types
 	const LEGAL_SUBTYPES = [
 		// Basic Land Types
 		"Plains", "Island", "Swamp", "Mountain", "Forest", "Wastes",
@@ -73,16 +72,15 @@
 	let primaryTag = $state(null);
 	let newTagInput = $state("");
 
-	// Autocomplete/Command Palette states
-	let showColorDropdown = $state(false);
-	
-	let supertypeSearchQuery = $state("");
-	let showSupertypeDropdown = $state(false);
-	
-	let cardTypeSearchQuery = $state("");
-	let showCardTypeDropdown = $state(false);
+	// Autocomplete/dropdown search terms
+	let supertypeInputVal = $state("");
+	let cardTypeInputVal = $state("");
+	let subtypeInputVal = $state("");
 
-	let subtypeSearchQuery = $state("");
+	// Control dropdown visibilities
+	let showColorDropdown = $state(false);
+	let showSupertypeDropdown = $state(false);
+	let showCardTypeDropdown = $state(false);
 	let showSubtypeDropdown = $state(false);
 	let subtypeValidationError = $state("");
 
@@ -104,7 +102,7 @@
 
 	// Derived defaults from database metadata
 	let defaultCmc = $derived(card ? (deckStore.metadata[card.name.toLowerCase()]?.cmc ?? card.cmc ?? 0) : 0);
-	
+
 	// Parse native typeline into structures
 	/** 
 	 * @param {string} tlString
@@ -156,6 +154,17 @@
 		return [...allTags].sort((a, b) => a.localeCompare(b));
 	});
 
+	// Image Preview URL resolver
+	let imgUrl = $derived.by(() => {
+		if (!card) return "";
+		const metadata = deckStore.metadata[card.name.toLowerCase()] || {};
+		return card.image_uris?.normal || 
+			(card.card_faces && card.card_faces[0]?.image_uris?.normal) ||
+			metadata.image_uris?.normal ||
+			(metadata.card_faces && metadata.card_faces[0]?.image_uris?.normal) ||
+			"";
+	});
+
 	// Handle Modal opening / initial values injection using untrack to prevent reactive trigger loops
 	let lastOpenState = false;
 	$effect(() => {
@@ -197,9 +206,9 @@
 
 					// Reset palette states
 					newTagInput = "";
-					supertypeSearchQuery = "";
-					cardTypeSearchQuery = "";
-					subtypeSearchQuery = "";
+					supertypeInputVal = "";
+					cardTypeInputVal = "";
+					subtypeInputVal = "";
 					subtypeValidationError = "";
 					showColorDropdown = false;
 					showSupertypeDropdown = false;
@@ -265,6 +274,33 @@
 		handleClose();
 	}
 
+	// --- Resets ---
+	function resetCmcField() {
+		cmc = defaultCmc;
+	}
+
+	function resetTypeLineFields() {
+		supertypes = [...defaultTypeLineParts.supertypes];
+		cardTypes = [...defaultTypeLineParts.cardTypes];
+		subtypes = [...defaultTypeLineParts.subtypes];
+	}
+
+	function resetColorCategoryField() {
+		colorCategory = "Default";
+	}
+
+	function resetTagsField() {
+		tags = [];
+		primaryTag = null;
+	}
+
+	function resetAllFields() {
+		resetCmcField();
+		resetTypeLineFields();
+		resetColorCategoryField();
+		resetTagsField();
+	}
+
 	// --- Helper actions for adding/removing array values ---
 	
 	/** @param {string} item */
@@ -286,11 +322,9 @@
 	}
 
 	function addSubtypeFromSearch() {
-		const val = subtypeSearchQuery.trim();
-		// Normalize casing to MTG standard title case (e.g. elf -> Elf)
+		const val = subtypeInputVal.trim();
+		if (!val) return;
 		const normalized = val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
-		
-		if (!normalized) return;
 
 		// Validation check
 		if (!LEGAL_SUBTYPES.includes(normalized)) {
@@ -301,7 +335,7 @@
 		if (!subtypes.includes(normalized)) {
 			subtypes = [...subtypes, normalized];
 		}
-		subtypeSearchQuery = "";
+		subtypeInputVal = "";
 		subtypeValidationError = "";
 		showSubtypeDropdown = false;
 	}
@@ -364,22 +398,27 @@
 		subtypes.length !== defaultTypeLineParts.subtypes.length || subtypes.some((s, i) => s !== defaultTypeLineParts.subtypes[i])
 	);
 
+	let isTypeLineChanged = $derived(isSupertypesChanged || isCardTypesChanged || isSubtypesChanged);
+	let isTypeLineCustom = $derived(isSupertypesCustom || isCardTypesCustom || isSubtypesCustom);
+
 	let isTagsChanged = $derived(
 		tags.length !== initialTags.length || tags.some((t, i) => t !== initialTags[i]) || primaryTag !== initialPrimaryTag
 	);
 	let isTagsCustom = $derived(tags.length > 0);
 
+	let isAnyFieldCustom = $derived(isCmcCustom || isTypeLineCustom || isColorCustom || isTagsCustom);
+
 	// Filtering for Autocomplete dropdowns
 	let filteredSupertypes = $derived(
-		LEGAL_SUPERTYPES.filter(s => s.toLowerCase().includes(supertypeSearchQuery.toLowerCase()))
+		LEGAL_SUPERTYPES.filter(s => s.toLowerCase().includes(supertypeInputVal.toLowerCase()))
 	);
 
 	let filteredCardTypes = $derived(
-		LEGAL_CARD_TYPES.filter(t => t.toLowerCase().includes(cardTypeSearchQuery.toLowerCase()))
+		LEGAL_CARD_TYPES.filter(t => t.toLowerCase().includes(cardTypeInputVal.toLowerCase()))
 	);
 
 	let filteredSubtypesList = $derived(
-		LEGAL_SUBTYPES.filter(s => s.toLowerCase().includes(subtypeSearchQuery.toLowerCase()))
+		LEGAL_SUBTYPES.filter(s => s.toLowerCase().includes(subtypeInputVal.toLowerCase()))
 	);
 </script>
 
@@ -400,357 +439,376 @@
 				<X size={16} />
 			</button>
 
-			<div class="modal-header">
-				<h3 class="text-lg font-semibold tracking-tight">Change Card Data</h3>
-				<p class="text-sm text-muted-foreground">{card?.name}</p>
-			</div>
-
-			<div class="modal-body">
+			<div class="modal-layout-container">
 				
-				<!-- CMC field -->
-				<div class="form-group">
-					<label for="card-cmc">Mana Value (CMC)</label>
-					<Input
-						id="card-cmc"
-						type="number"
-						bind:value={cmc}
-						min="0"
-						max="99"
-						class={isCmcChanged ? 'text-blue' : (isCmcCustom ? 'text-white' : 'text-muted')}
-						onkeydown={(e) => {
-							if (e.key === "Enter") handleSubmit();
-							if (e.key === "Escape") handleClose();
-						}}
-					/>
-				</div>
-
-				<!-- Supertypes Pillbox -->
-				<div class="form-group">
-					<label class={isSupertypesChanged ? 'label-blue' : (isSupertypesCustom ? 'label-white' : 'label-muted')}>Supertypes</label>
-					<div class="pillbox-container">
-						{#each supertypes as item}
-							<div class="type-pill supertype-pill">
-								<span>{item}</span>
-								<button type="button" class="pill-remove-btn" onclick={() => toggleSupertype(item)} aria-label="Remove">
-									<X size={10} />
-								</button>
-							</div>
-						{/each}
-						
-						<!-- Add Supertype Palette Anchor -->
-						<div class="palette-anchor">
-							<button 
-								type="button" 
-								class="add-pill-trigger-btn"
-								onclick={() => showSupertypeDropdown = !showSupertypeDropdown}
-							>
-								<Plus size={12} /> Add Supertype
-							</button>
-
-							{#if showSupertypeDropdown}
-								<div class="palette-popover">
-									<div class="dropdown-backdrop" role="presentation" onclick={() => showSupertypeDropdown = false}></div>
-									<div class="palette-search-container">
-										<Search size={14} class="search-icon" />
-										<input 
-											type="text" 
-											placeholder="Search supertypes..." 
-											bind:value={supertypeSearchQuery}
-											focus
-										/>
-									</div>
-									<div class="palette-items-list">
-										{#each filteredSupertypes as item}
-											<button 
-												type="button" 
-												class="palette-item-option"
-												onclick={() => {
-													toggleSupertype(item);
-													showSupertypeDropdown = false;
-												}}
-											>
-												<span>{item}</span>
-												{#if supertypes.includes(item)}
-													<Check size={14} class="check-icon text-blue-500" />
-												{/if}
-											</button>
-										{:else}
-											<span class="no-options-placeholder">No matching supertypes</span>
-										{/each}
-									</div>
-								</div>
-							{/if}
-						</div>
-					</div>
-				</div>
-
-				<!-- Card Types Pillbox -->
-				<div class="form-group">
-					<label class={isCardTypesChanged ? 'label-blue' : (isCardTypesCustom ? 'label-white' : 'label-muted')}>Card Types</label>
-					<div class="pillbox-container">
-						{#each cardTypes as item}
-							<div class="type-pill type-pill-bg">
-								<span>{item}</span>
-								<button type="button" class="pill-remove-btn" onclick={() => toggleCardType(item)} aria-label="Remove">
-									<X size={10} />
-								</button>
-							</div>
-						{/each}
-						
-						<!-- Add Card Type Palette Anchor -->
-						<div class="palette-anchor">
-							<button 
-								type="button" 
-								class="add-pill-trigger-btn"
-								onclick={() => showCardTypeDropdown = !showCardTypeDropdown}
-							>
-								<Plus size={12} /> Add Card Type
-							</button>
-
-							{#if showCardTypeDropdown}
-								<div class="palette-popover">
-									<div class="dropdown-backdrop" role="presentation" onclick={() => showCardTypeDropdown = false}></div>
-									<div class="palette-search-container">
-										<Search size={14} class="search-icon" />
-										<input 
-											type="text" 
-											placeholder="Search types..." 
-											bind:value={cardTypeSearchQuery}
-										/>
-									</div>
-									<div class="palette-items-list">
-										{#each filteredCardTypes as item}
-											<button 
-												type="button" 
-												class="palette-item-option"
-												onclick={() => {
-													toggleCardType(item);
-													showCardTypeDropdown = false;
-												}}
-											>
-												<span>{item}</span>
-												{#if cardTypes.includes(item)}
-													<Check size={14} class="check-icon text-blue-500" />
-												{/if}
-											</button>
-										{:else}
-											<span class="no-options-placeholder">No matching card types</span>
-										{/each}
-									</div>
-								</div>
-							{/if}
-						</div>
-					</div>
-				</div>
-
-				<!-- Subtypes Pillbox with Autocomplete Enforced Validation -->
-				<div class="form-group">
-					<label class={isSubtypesChanged ? 'label-blue' : (isSubtypesCustom ? 'label-white' : 'label-muted')}>Subtypes</label>
-					<div class="pillbox-container">
-						{#each subtypes as item}
-							<div class="type-pill subtype-pill">
-								<span>{item}</span>
-								<button type="button" class="pill-remove-btn" onclick={() => removeSubtype(item)} aria-label="Remove">
-									<X size={10} />
-								</button>
-							</div>
-						{/each}
-						
-						<!-- Add Subtype Palette Anchor -->
-						<div class="palette-anchor">
-							<button 
-								type="button" 
-								class="add-pill-trigger-btn"
-								onclick={() => {
-									showSubtypeDropdown = !showSubtypeDropdown;
-									subtypeValidationError = "";
-								}}
-							>
-								<Plus size={12} /> Add Subtype
-							</button>
-
-							{#if showSubtypeDropdown}
-								<div class="palette-popover">
-									<div class="dropdown-backdrop" role="presentation" onclick={() => showSubtypeDropdown = false}></div>
-									<div class="palette-search-container">
-										<Search size={14} class="search-icon" />
-										<input 
-											type="text" 
-											placeholder="Search or enter subtype..." 
-											bind:value={subtypeSearchQuery}
-											onkeydown={(e) => {
-												if (e.key === "Enter") {
-													e.preventDefault();
-													addSubtypeFromSearch();
-												}
-											}}
-										/>
-									</div>
-									<div class="palette-items-list">
-										{#each filteredSubtypesList as item}
-											<button 
-												type="button" 
-												class="palette-item-option"
-												onclick={() => {
-													if (!subtypes.includes(item)) {
-														subtypes = [...subtypes, item];
-													}
-													subtypeSearchQuery = "";
-													subtypeValidationError = "";
-													showSubtypeDropdown = false;
-												}}
-											>
-												<span>{item}</span>
-												{#if subtypes.includes(item)}
-													<Check size={14} class="check-icon text-blue-500" />
-												{/if}
-											</button>
-										{:else}
-											<span class="no-options-placeholder">No matching subtypes</span>
-										{/each}
-									</div>
-								</div>
-							{/if}
-						</div>
-					</div>
-
-					{#if subtypeValidationError}
-						<div class="validation-message-row" transition:fade={{ duration: 100 }}>
-							<AlertCircle size={12} />
-							<span>{subtypeValidationError}</span>
+				<!-- Left Column: Card Image Preview -->
+				<div class="card-preview-column">
+					{#if imgUrl}
+						<img src={imgUrl} alt={card?.name || "Card art crop"} class="card-preview-img" />
+					{:else}
+						<div class="card-preview-placeholder">
+							<span class="text-sm text-muted-foreground">No image available</span>
 						</div>
 					{/if}
 				</div>
 
-				<!-- Custom Color Category Select Dropdown -->
-				<div class="form-group">
-					<label class={isColorChanged ? 'label-blue' : (isColorCustom ? 'label-white' : 'label-muted')}>Color Category</label>
+				<!-- Right Column: Form Editor Inputs -->
+				<div class="editor-form-column">
 					
-					<div class="palette-anchor w-full">
-						<button
-							type="button"
-							class="custom-select-trigger"
-							class:text-blue={isColorChanged}
-							class:text-white={isColorCustom && !isColorChanged}
-							class:text-muted={!isColorCustom && !isColorChanged}
-							onclick={() => showColorDropdown = !showColorDropdown}
-						>
-							<span>
-								{colorCategory === "Default" ? "Default (Based on Card Colors)" : colorCategory}
-							</span>
-							<span class="select-chevron"></span>
-						</button>
+					<div class="modal-header">
+						<h3 class="text-xl font-bold tracking-tight">Edit Card Data</h3>
+						<p class="text-sm text-muted-foreground">{card?.name}</p>
+					</div>
 
-						{#if showColorDropdown}
-							<div class="select-popover">
-								<div class="dropdown-backdrop" role="presentation" onclick={() => showColorDropdown = false}></div>
-								<div class="select-options-list">
-									{#each ["Default", "White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"] as opt}
-										<button
-											type="button"
-											class="select-option-item"
-											onclick={() => {
-												colorCategory = opt;
-												showColorDropdown = false;
-											}}
-										>
-											<div class="option-content">
-												{#if opt !== "Default"}
-													<span class="color-indicator-circle class-{opt.toLowerCase()}"></span>
-												{:else}
-													<span class="color-indicator-circle default"></span>
-												{/if}
-												<span>{opt === "Default" ? "Default (Based on Card Colors)" : opt}</span>
+					<div class="modal-body">
+						
+						<!-- CMC field -->
+						<div class="form-group">
+							<div class="label-row">
+								<label for="card-cmc">Mana Value (CMC)</label>
+								{#if isCmcCustom}
+									<button type="button" class="field-reset-action" onclick={resetCmcField}>Reset to Default</button>
+								{/if}
+							</div>
+							<Input
+								id="card-cmc"
+								type="number"
+								bind:value={cmc}
+								min="0"
+								max="99"
+								class={isCmcChanged ? 'text-blue' : (isCmcCustom ? 'text-white' : 'text-muted')}
+								onkeydown={(e) => {
+									if (e.key === "Enter") handleSubmit();
+									if (e.key === "Escape") handleClose();
+								}}
+							/>
+						</div>
+
+						<!-- Type Line Flex Container -->
+						<div class="form-group">
+							<div class="label-row">
+								<label class={isTypeLineChanged ? 'label-blue' : (isTypeLineCustom ? 'label-white' : 'label-muted')}>Type Line</label>
+								{#if isTypeLineCustom}
+									<button type="button" class="field-reset-action" onclick={resetTypeLineFields}>Reset to Default</button>
+								{/if}
+							</div>
+
+							<div class="type-line-group-container">
+								
+								<!-- Supertypes Pillbox -->
+								<div class="sub-type-field">
+									<span class="sub-label">Supertypes</span>
+									<div class="pillbox-container">
+										{#each supertypes as item}
+											<div class="type-pill supertype-pill">
+												<span>{item}</span>
+												<button type="button" class="pill-remove-btn" onclick={() => toggleSupertype(item)} aria-label="Remove">
+													<X size={10} />
+												</button>
 											</div>
-											{#if colorCategory === opt}
-												<Check size={14} class="check-icon text-blue-500" />
+										{/each}
+										
+										<div class="palette-anchor">
+											<input 
+												type="text" 
+												placeholder="+ Add Supertype..." 
+												class="inline-pill-input"
+												bind:value={supertypeInputVal}
+												onfocus={() => showSupertypeDropdown = true}
+												onblur={() => setTimeout(() => showSupertypeDropdown = false, 150)}
+											/>
+
+											{#if showSupertypeDropdown && filteredSupertypes.length > 0}
+												<div class="palette-popover">
+													<div class="palette-items-list">
+														{#each filteredSupertypes as item}
+															<button 
+																type="button" 
+																class="palette-item-option"
+																onmousedown={() => {
+																	toggleSupertype(item);
+																	supertypeInputVal = "";
+																}}
+															>
+																<span>{item}</span>
+																{#if supertypes.includes(item)}
+																	<Check size={12} class="check-icon text-blue-500" />
+																{/if}
+															</button>
+														{/each}
+													</div>
+												</div>
 											{/if}
-										</button>
-									{/each}
+										</div>
+									</div>
 								</div>
+
+								<!-- Card Types Pillbox -->
+								<div class="sub-type-field">
+									<span class="sub-label">Card Types</span>
+									<div class="pillbox-container">
+										{#each cardTypes as item}
+											<div class="type-pill type-pill-bg">
+												<span>{item}</span>
+												<button type="button" class="pill-remove-btn" onclick={() => toggleCardType(item)} aria-label="Remove">
+													<X size={10} />
+												</button>
+											</div>
+										{/each}
+										
+										<div class="palette-anchor">
+											<input 
+												type="text" 
+												placeholder="+ Add Type..." 
+												class="inline-pill-input"
+												bind:value={cardTypeInputVal}
+												onfocus={() => showCardTypeDropdown = true}
+												onblur={() => setTimeout(() => showCardTypeDropdown = false, 150)}
+											/>
+
+											{#if showCardTypeDropdown && filteredCardTypes.length > 0}
+												<div class="palette-popover">
+													<div class="palette-items-list">
+														{#each filteredCardTypes as item}
+															<button 
+																type="button" 
+																class="palette-item-option"
+																onmousedown={() => {
+																	toggleCardType(item);
+																	cardTypeInputVal = "";
+																}}
+															>
+																<span>{item}</span>
+																{#if cardTypes.includes(item)}
+																	<Check size={12} class="check-icon text-blue-500" />
+																{/if}
+															</button>
+														{/each}
+													</div>
+												</div>
+											{/if}
+										</div>
+									</div>
+								</div>
+
+								<!-- Subtypes Pillbox -->
+								<div class="sub-type-field">
+									<span class="sub-label">Subtypes</span>
+									<div class="pillbox-container">
+										{#each subtypes as item}
+											<div class="type-pill subtype-pill">
+												<span>{item}</span>
+												<button type="button" class="pill-remove-btn" onclick={() => removeSubtype(item)} aria-label="Remove">
+													<X size={10} />
+												</button>
+											</div>
+										{/each}
+										
+										<div class="palette-anchor">
+											<input 
+												type="text" 
+												placeholder="+ Add Subtype..." 
+												class="inline-pill-input"
+												bind:value={subtypeInputVal}
+												onfocus={() => {
+													showSubtypeDropdown = true;
+													subtypeValidationError = "";
+												}}
+												onblur={() => setTimeout(() => showSubtypeDropdown = false, 150)}
+												onkeydown={(e) => {
+													if (e.key === "Enter") {
+														e.preventDefault();
+														addSubtypeFromSearch();
+													}
+												}}
+											/>
+
+											{#if showSubtypeDropdown && filteredSubtypesList.length > 0}
+												<div class="palette-popover">
+													<div class="palette-items-list">
+														{#each filteredSubtypesList as item}
+															<button 
+																type="button" 
+																class="palette-item-option"
+																onmousedown={() => {
+																	if (!subtypes.includes(item)) {
+																		subtypes = [...subtypes, item];
+																	}
+																	subtypeInputVal = "";
+																	subtypeValidationError = "";
+																}}
+															>
+																<span>{item}</span>
+																{#if subtypes.includes(item)}
+																	<Check size={12} class="check-icon text-blue-500" />
+																{/if}
+															</button>
+														{/each}
+													</div>
+												</div>
+											{/if}
+										</div>
+									</div>
+
+									{#if subtypeValidationError}
+										<div class="validation-message-row" transition:fade={{ duration: 100 }}>
+											<AlertCircle size={12} />
+											<span>{subtypeValidationError}</span>
+										</div>
+									{/if}
+								</div>
+
 							</div>
-						{/if}
-					</div>
-				</div>
+						</div>
 
-				<!-- Tags Editor -->
-				<div class="form-group">
-					<label for="card-tags" class={isTagsChanged ? 'label-blue' : (isTagsCustom ? 'label-white' : 'label-muted')}>Card Tags</label>
-					
-					<!-- Active Tags Badges -->
-					<div class="active-tags-list">
-						{#each tags as tag}
-							<div class="tag-badge-pill" class:is-primary={primaryTag === tag}>
-								<button 
-									type="button" 
-									class="primary-star-btn"
-									onclick={() => togglePrimary(tag)}
-									title={primaryTag === tag ? "Primary tag (click to demote)" : "Make primary tag"}
-								>
-									<Star size={12} fill={primaryTag === tag ? "currentColor" : "none"} />
-								</button>
-								<span class="tag-label-text">{tag}</span>
-								<button 
-									type="button" 
-									class="remove-tag-btn" 
-									onclick={() => removeTag(tag)}
-									aria-label="Remove tag"
-								>
-									<X size={12} />
-								</button>
+						<!-- Custom Color Category Select Dropdown -->
+						<div class="form-group">
+							<div class="label-row">
+								<label class={isColorChanged ? 'label-blue' : (isColorCustom ? 'label-white' : 'label-muted')}>Color Category</label>
+								{#if isColorCustom}
+									<button type="button" class="field-reset-action" onclick={resetColorCategoryField}>Reset to Default</button>
+								{/if}
 							</div>
-						{:else}
-							<span class="no-tags-placeholder">No tags assigned</span>
-						{/each}
-					</div>
+							
+							<div class="palette-anchor w-full">
+								<button
+									type="button"
+									class="custom-select-trigger"
+									class:text-blue={isColorChanged}
+									class:text-white={isColorCustom && !isColorChanged}
+									class:text-muted={!isColorCustom && !isColorChanged}
+									onclick={() => showColorDropdown = !showColorDropdown}
+								>
+									<span>
+										{colorCategory === "Default" ? "Default (Based on Card Colors)" : colorCategory}
+									</span>
+									<span class="select-chevron"></span>
+								</button>
 
-					<!-- Input to Add Tag -->
-					<div class="tag-input-row">
-						<Input
-							id="card-tags"
-							type="text"
-							placeholder="Add a tag..."
-							bind:value={newTagInput}
-							onkeydown={(e) => {
-								if (e.key === "Enter") {
-									e.preventDefault();
-									addTag();
-								}
-							}}
-						/>
-						<Button variant="outline" size="icon" onclick={addTag} aria-label="Add tag">
-							<Plus size={16} />
-						</Button>
-					</div>
+								{#if showColorDropdown}
+									<div class="select-popover">
+										<div class="dropdown-backdrop" role="presentation" onclick={() => showColorDropdown = false}></div>
+										<div class="select-options-list">
+											{#each ["Default", "White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"] as opt}
+												<button
+													type="button"
+													class="select-option-item"
+													onclick={() => {
+														colorCategory = opt;
+														showColorDropdown = false;
+													}}
+												>
+													<div class="option-content">
+														{#if opt !== "Default"}
+															<span class="color-indicator-circle class-{opt.toLowerCase()}"></span>
+														{:else}
+															<span class="color-indicator-circle default"></span>
+														{/if}
+														<span>{opt === "Default" ? "Default (Based on Card Colors)" : opt}</span>
+													</div>
+													{#if colorCategory === opt}
+														<Check size={14} class="check-icon text-blue-500" />
+													{/if}
+												</button>
+											{/each}
+										</div>
+									</div>
+								{/if}
+							</div>
+						</div>
 
-					<!-- Suggestions -->
-					{#if deckTagsList.some(t => !tags.includes(t))}
-						<div class="suggestions-section">
-							<span class="suggestions-label">Suggestions:</span>
-							<div class="suggestions-list">
-								{#each deckTagsList as gTag}
-									{#if !tags.includes(gTag)}
+						<!-- Tags Editor -->
+						<div class="form-group">
+							<div class="label-row">
+								<label for="card-tags" class={isTagsChanged ? 'label-blue' : (isTagsCustom ? 'label-white' : 'label-muted')}>Card Tags</label>
+								{#if isTagsCustom}
+									<button type="button" class="field-reset-action" onclick={resetTagsField}>Clear Tags</button>
+								{/if}
+							</div>
+							
+							<!-- Active Tags Badges -->
+							<div class="active-tags-list">
+								{#each tags as tag}
+									<div class="tag-badge-pill" class:is-primary={primaryTag === tag}>
 										<button 
 											type="button" 
-											class="suggestion-pill"
-											onclick={() => {
-												tags.push(gTag);
-												if (!primaryTag) primaryTag = gTag;
-											}}
+											class="primary-star-btn"
+											onclick={() => togglePrimary(tag)}
+											title={primaryTag === tag ? "Primary tag (click to demote)" : "Make primary tag"}
 										>
-											{gTag}
+											<Star size={12} fill={primaryTag === tag ? "currentColor" : "none"} />
 										</button>
-									{/if}
+										<span class="tag-label-text">{tag}</span>
+										<button 
+											type="button" 
+											class="remove-tag-btn" 
+											onclick={() => removeTag(tag)}
+											aria-label="Remove tag"
+										>
+											<X size={12} />
+										</button>
+									</div>
+								{:else}
+									<span class="no-tags-placeholder">No tags assigned</span>
 								{/each}
 							</div>
-						</div>
-					{/if}
-				</div>
-			</div>
 
-			<div class="modal-footer">
-				<Button variant="outline" onclick={handleClose}>Cancel</Button>
-				<Button variant="default" onclick={handleSubmit}>Confirm</Button>
+							<!-- Input to Add Tag -->
+							<div class="tag-input-row">
+								<Input
+									id="card-tags"
+									type="text"
+									placeholder="Add a tag..."
+									bind:value={newTagInput}
+									onkeydown={(e) => {
+										if (e.key === "Enter") {
+											e.preventDefault();
+											addTag();
+										}
+									}}
+								/>
+								<Button variant="outline" size="icon" onclick={addTag} aria-label="Add tag">
+									<Plus size={16} />
+								</Button>
+							</div>
+
+							<!-- Suggestions -->
+							{#if deckTagsList.some(t => !tags.includes(t))}
+								<div class="suggestions-section">
+									<span class="suggestions-label">Suggestions:</span>
+									<div class="suggestions-list">
+										{#each deckTagsList as gTag}
+											{#if !tags.includes(gTag)}
+												<button 
+													type="button" 
+													class="suggestion-pill"
+													onclick={() => {
+														tags.push(gTag);
+														if (!primaryTag) primaryTag = gTag;
+													}}
+												>
+													{gTag}
+												</button>
+											{/if}
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
+					</div>
+
+					<div class="modal-footer-row">
+						{#if isAnyFieldCustom}
+							<Button variant="ghost" onclick={resetAllFields} class="text-muted-foreground hover:text-foreground">Reset All</Button>
+						{/if}
+						<div class="footer-actions-right">
+							<Button variant="outline" onclick={handleClose}>Cancel</Button>
+							<Button variant="default" onclick={handleSubmit}>Confirm</Button>
+						</div>
+					</div>
+
+				</div>
+
 			</div>
 		</div>
 	</div>
@@ -777,10 +835,52 @@
 		border: 1px solid hsl(var(--border));
 		border-radius: var(--radius-lg);
 		width: 100%;
-		max-width: 440px;
-		padding: 2.5rem 2rem 2rem;
+		max-width: 720px;
+		padding: 2rem;
 		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 		color: hsl(var(--foreground));
+	}
+
+	.modal-layout-container {
+		display: flex;
+		gap: 2rem;
+	}
+
+	/* Left Column: Image Preview Styles */
+	.card-preview-column {
+		width: 220px;
+		flex-shrink: 0;
+		display: flex;
+		align-items: flex-start;
+		justify-content: center;
+	}
+
+	.card-preview-img {
+		width: 100%;
+		border-radius: 4.75% / 3.5%;
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+		display: block;
+	}
+
+	.card-preview-placeholder {
+		width: 100%;
+		aspect-ratio: 2.5 / 3.5;
+		background: hsla(var(--muted) / 0.15);
+		border: 1px dashed hsl(var(--border));
+		border-radius: 10px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		padding: 1rem;
+	}
+
+	/* Right Column: Form Styles */
+	.editor-form-column {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
 	}
 
 	.close-btn {
@@ -802,8 +902,8 @@
 	}
 
 	.modal-header {
-		text-align: center;
-		margin-bottom: 2rem;
+		text-align: left;
+		margin-bottom: 1.5rem;
 	}
 
 	.modal-header h3 {
@@ -812,14 +912,25 @@
 	}
 
 	.modal-header p {
-		margin: 0.5rem 0 0;
+		margin: 0.25rem 0 0;
 	}
 
 	.modal-body {
-		margin-bottom: 2.5rem;
+		margin-bottom: 2rem;
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
+		overflow-y: auto;
+		max-height: 480px;
+		padding-right: 4px;
+	}
+
+	.modal-body::-webkit-scrollbar {
+		width: 5px;
+	}
+	.modal-body::-webkit-scrollbar-thumb {
+		background: hsla(var(--muted) / 0.3);
+		border-radius: 3px;
 	}
 
 	.form-group {
@@ -829,6 +940,12 @@
 		text-align: left;
 	}
 
+	.label-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
 	.form-group label {
 		font-size: 0.75rem;
 		font-weight: 600;
@@ -836,6 +953,20 @@
 		letter-spacing: 0.05em;
 		color: hsl(var(--muted-foreground));
 		transition: color 0.15s;
+	}
+
+	.field-reset-action {
+		background: transparent;
+		border: none;
+		font-size: 0.6875rem;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		padding: 0;
+		text-decoration: underline;
+	}
+
+	.field-reset-action:hover {
+		color: hsl(var(--foreground));
 	}
 
 	.label-blue {
@@ -848,7 +979,32 @@
 		color: hsl(var(--muted-foreground)) !important;
 	}
 
-	/* Select styling matching standard ui-input but with chevron spacing */
+	/* Type Line Nested Inputs */
+	.type-line-group-container {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		border: 1px solid hsl(var(--border));
+		background-color: hsla(var(--input) / 0.1);
+		border-radius: var(--radius-md);
+		padding: 0.75rem;
+	}
+
+	.sub-type-field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.sub-type-field .sub-label {
+		font-size: 0.6875rem;
+		font-weight: 600;
+		color: hsl(var(--muted-foreground));
+		text-transform: uppercase;
+		letter-spacing: 0.02em;
+	}
+
+	/* Custom select dropdown styling */
 	.custom-select-trigger {
 		display: flex;
 		align-items: center;
@@ -951,46 +1107,18 @@
 
 	.palette-popover {
 		position: absolute;
-		top: 100%;
+		bottom: 100%;
 		left: 0;
 		z-index: 10100;
 		background: hsl(var(--card));
 		border: 1px solid hsl(var(--border));
 		border-radius: var(--radius-md);
 		box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
-		margin-top: 4px;
+		margin-bottom: 4px;
 		width: 200px;
-		max-height: 240px;
+		max-height: 180px;
 		display: flex;
 		flex-direction: column;
-	}
-
-	.dropdown-backdrop {
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100vw;
-		height: 100vh;
-		z-index: -1;
-		background: transparent;
-	}
-
-	.palette-search-container {
-		display: flex;
-		align-items: center;
-		padding: 4px 8px;
-		border-bottom: 1px solid hsl(var(--border));
-		gap: 6px;
-	}
-
-	.palette-search-container input {
-		background: transparent;
-		border: none;
-		font-size: 0.75rem;
-		color: hsl(var(--foreground));
-		outline: none;
-		flex: 1;
-		padding: 4px 0;
 	}
 
 	.palette-items-list {
@@ -1019,24 +1147,16 @@
 		background: hsl(var(--accent));
 	}
 
-	.no-options-placeholder {
-		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground));
-		text-align: center;
-		padding: 8px;
-		font-style: italic;
-	}
-
-	/* Pillbox layouts */
+	/* Pillbox input styles */
 	.pillbox-container {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
+		gap: 0.375rem;
 		border: 1px solid hsl(var(--border));
-		background-color: hsla(var(--input) / 0.1);
-		border-radius: var(--radius-md);
-		padding: 0.5rem;
-		min-height: 2.25rem;
+		background-color: hsla(var(--input) / 0.15);
+		border-radius: var(--radius-sm);
+		padding: 0.375rem;
+		min-height: 2rem;
 		align-items: center;
 	}
 
@@ -1045,8 +1165,8 @@
 		align-items: center;
 		border: 1px solid hsla(var(--border) / 0.6);
 		border-radius: var(--radius-sm);
-		padding: 1px 6px;
-		font-size: 0.75rem;
+		padding: 1px 5px;
+		font-size: 0.725rem;
 		font-weight: 500;
 		color: hsl(var(--foreground));
 		gap: 4px;
@@ -1081,22 +1201,20 @@
 		color: hsl(var(--destructive));
 	}
 
-	.add-pill-trigger-btn {
+	.inline-pill-input {
 		background: transparent;
-		border: 1px dashed hsl(var(--border));
-		border-radius: var(--radius-sm);
-		padding: 1px 6px;
+		border: none;
+		outline: none;
 		font-size: 0.725rem;
-		color: hsl(var(--muted-foreground));
-		cursor: pointer;
-		display: inline-flex;
-		align-items: center;
-		gap: 2px;
+		color: hsl(var(--foreground));
+		padding: 2px 4px;
+		min-width: 100px;
+		flex: 1;
 	}
 
-	.add-pill-trigger-btn:hover {
-		border-color: hsl(var(--primary));
-		color: hsl(var(--foreground));
+	.inline-pill-input::placeholder {
+		color: hsl(var(--muted-foreground));
+		opacity: 0.7;
 	}
 
 	.validation-message-row {
@@ -1109,13 +1227,13 @@
 	}
 
 	/* Text color themes based on default, custom/saved override, or dirty edited state */
-	:global(.ui-input.text-blue), select.text-blue {
+	:global(.ui-input.text-blue) {
 		color: #3b82f6 !important;
 	}
-	:global(.ui-input.text-white), select.text-white {
+	:global(.ui-input.text-white) {
 		color: #ffffff !important;
 	}
-	:global(.ui-input.text-muted), select.text-muted {
+	:global(.ui-input.text-muted) {
 		color: hsl(var(--muted-foreground)) !important;
 	}
 
@@ -1226,9 +1344,16 @@
 		color: hsl(var(--foreground));
 	}
 
-	.modal-footer {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
+	/* Footer Row */
+	.modal-footer-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-top: 1rem;
+	}
+
+	.footer-actions-right {
+		display: flex;
 		gap: 0.75rem;
 	}
 </style>
