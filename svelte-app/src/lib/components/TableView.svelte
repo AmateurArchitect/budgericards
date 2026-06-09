@@ -1251,6 +1251,7 @@
 		overflow: hidden;
 		border: 1px solid hsl(var(--border) / 0.5);
 		border-radius: var(--radius-md);
+		background: hsla(0, 0%, 100%, 0.015);
 	}
 
 	.table-wrapper {
@@ -1984,7 +1985,7 @@
 		position: sticky;
 		top: 37px;
 		z-index: 5;
-		background: hsl(var(--background));
+		background: linear-gradient(hsla(0, 0%, 100%, 0.015), hsla(0, 0%, 100%, 0.015)), hsl(var(--background));
 		border-bottom: 1px solid hsl(var(--border) / 0.5);
 		border-top: none;
 		border-right: none !important;
@@ -1995,7 +1996,7 @@
 	}
 
 	.category-header-row:hover td {
-		background: linear-gradient(hsla(0, 0%, 100%, 0.03), hsla(0, 0%, 100%, 0.03)), hsl(var(--background)) !important;
+		background: linear-gradient(hsla(0, 0%, 100%, 0.045), hsla(0, 0%, 100%, 0.045)), hsl(var(--background)) !important;
 	}
 
 	.category-header-row td.col-actions {
