@@ -29,12 +29,10 @@ const parser = new LocalQueryParser({
 // Public helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Returns true if the query contains any token that requires Scryfall
- * (printing-specific lookups that don't exist in our local schema).
- */
 export function isPrintingQuery(query: string): boolean {
-	return /\b(set|cn|collector_number|lang|artist|flavor|watermark|border|game|new|order|dir|prefer|in|is)\s*[:<>=]/.test(
+	const trimmed = query.trim();
+	if (trimmed.startsWith('!')) return true;
+	return /\b(set|cn|collector_number|lang|artist|flavor|watermark|border|game|new|order|dir|prefer|in|is|unique|cube|frame)\s*[:<>=]/.test(
 		query
 	);
 }
