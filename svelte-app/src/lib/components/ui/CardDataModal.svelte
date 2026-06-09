@@ -950,7 +950,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;
-		flex: 1 0 auto;
+		flex: 0 1 auto;
 		min-width: 0;
 	}
 
@@ -1061,6 +1061,8 @@
 	/* Palette Popover CSS */
 	.palette-anchor {
 		position: relative;
+		display: inline-flex;
+		flex: 1 1 auto;
 	}
 
 	.palette-popover {
@@ -1166,8 +1168,8 @@
 		font-size: 0.725rem;
 		color: hsl(var(--foreground));
 		padding: 2px 4px;
-		min-width: 100px;
-		flex: 1;
+		width: 100%;
+		min-width: 70px;
 	}
 
 	.inline-pill-input::placeholder {
