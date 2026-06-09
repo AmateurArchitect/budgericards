@@ -1286,7 +1286,7 @@
 		font-size: 0.875rem;
 		table-layout: auto;
 		--padding-y: 8px;
-		--row-height: 28px;
+		--row-height: 1.5rem;
 		user-select: none;
 	}
 
@@ -1297,7 +1297,7 @@
 
 	.spacious .deck-table {
 		--padding-y: 8px;
-		--row-height: 28px;
+		--row-height: 1.5rem;
 	}
 
 	.deck-table th {
@@ -1438,7 +1438,7 @@
 
 	/* Row Styling */
 	.card-row {
-		background: transparent;
+		background: hsla(0, 0%, 100%, 0.03);
 		transition: background-color 0.15s ease;
 		cursor: pointer;
 		position: relative;
@@ -1984,18 +1984,18 @@
 		position: sticky;
 		top: 37px;
 		z-index: 5;
-		background: linear-gradient(hsla(0, 0%, 100%, 0.03), hsla(0, 0%, 100%, 0.03)), hsl(var(--background));
+		background: hsl(var(--background));
 		border-bottom: 1px solid hsl(var(--border) / 0.5);
 		border-top: none;
 		border-right: none !important;
 		padding: var(--padding-y) 14px !important;
-		height: calc(var(--row-height) * 2);
+		height: calc(var(--row-height) * 1.5);
 		box-shadow: none;
 		transition: background-color 0.15s ease;
 	}
 
 	.category-header-row:hover td {
-		background: linear-gradient(hsla(0, 0%, 100%, 0.06), hsla(0, 0%, 100%, 0.06)), hsl(var(--background)) !important;
+		background: linear-gradient(hsla(0, 0%, 100%, 0.03), hsla(0, 0%, 100%, 0.03)), hsl(var(--background)) !important;
 	}
 
 	.category-header-row td.col-actions {
@@ -2147,13 +2147,9 @@
 		border: none;
 	}
 
-	.category-group {
-		background: linear-gradient(to bottom, hsla(0, 0%, 100%, 0.03) 0%, hsla(0, 0%, 100%, 0) 100%);
-	}
-
 	/* Highlight all card rows in the category ONLY when hovering the header row */
 	.category-group:has(.category-header-row:hover) .card-row {
-		background-color: hsla(0, 0%, 100%, 0.03) !important;
+		background-color: hsla(0, 0%, 100%, 0.06) !important;
 	}
 
 	.category-group:has(.category-header-row:hover) .card-row:nth-child(even) {
