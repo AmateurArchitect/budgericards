@@ -603,33 +603,19 @@
 											settingsStore.visibleColumns.length}
 										class="spanned-cat-cell"
 									>
-										<div
-											class="category-header-content"
-											class:fade-out={stuckCategories.has(
-												category.name,
-											) &&
-												activeCategoryName !==
-													category.name}
-										>
+										<div class="category-header-content">
 											<div class="category-pill-box">
-												<span class="category-count"
-													>{(/** @type {any} */ (category)).totalQtyText || category.totalQty}</span
-												>
-												<span class="category-title"
-													>{category.name}</span
-												>
-												<div class="chevron-zone">
-													<ChevronDown
-														size={14}
-														class="category-chevron {collapsedCategories.has(
-															category.name,
-														)
-															? 'collapsed'
-															: ''}"
-													/>
-												</div>
+												<ChevronDown
+													size={14}
+													class="category-chevron {collapsedCategories.has(
+														category.name,
+													)
+														? 'collapsed'
+														: ''}"
+												/>
+												<span class="category-title">{category.name}</span>
+												<span class="category-count">({(/** @type {any} */ (category)).totalQtyText || category.totalQty})</span>
 											</div>
-											<div class="category-line"></div>
 										</div>
 									</td>
 									<td class="col-actions"></td>
@@ -639,33 +625,19 @@
 											settingsStore.visibleColumns.length}
 										class="spanned-cat-cell"
 									>
-										<div
-											class="category-header-content"
-											class:fade-out={stuckCategories.has(
-												category.name,
-											) &&
-												activeCategoryName !==
-													category.name}
-										>
+										<div class="category-header-content">
 											<div class="category-pill-box">
-												<span class="category-count"
-													>{(/** @type {any} */ (category)).totalQtyText || category.totalQty}</span
-												>
-												<span class="category-title"
-													>{category.name}</span
-												>
-												<div class="chevron-zone">
-													<ChevronDown
-														size={14}
-														class="category-chevron {collapsedCategories.has(
-															category.name,
-														)
-															? 'collapsed'
-															: ''}"
-													/>
-												</div>
+												<ChevronDown
+													size={14}
+													class="category-chevron {collapsedCategories.has(
+														category.name,
+													)
+														? 'collapsed'
+														: ''}"
+												/>
+												<span class="category-title">{category.name}</span>
+												<span class="category-count">({(/** @type {any} */ (category)).totalQtyText || category.totalQty})</span>
 											</div>
-											<div class="category-line"></div>
 										</div>
 									</td>
 									{#if settingsStore.showTotalPrice}
@@ -674,11 +646,6 @@
 											{#if category.totalPrice > 0}
 												<div
 													class="category-sum"
-													class:fade-out={stuckCategories.has(
-														category.name,
-													) &&
-														activeCategoryName !==
-															category.name}
 													transition:fade={{
 														duration: 100,
 													}}
@@ -694,11 +661,6 @@
 											{#if category.totalPrice > 0}
 												<div
 													class="category-sum"
-													class:fade-out={stuckCategories.has(
-														category.name,
-													) &&
-														activeCategoryName !==
-															category.name}
 													transition:fade={{
 														duration: 100,
 													}}
@@ -2032,35 +1994,18 @@
 	.category-pill-box {
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		background: hsl(var(--foreground) / 0.04);
-		border: 1px solid hsla(var(--border) / 0.25);
-		border-left: none;
-		border-radius: var(--radius-sm);
-		border-top-left-radius: 0;
-		border-bottom-left-radius: 0;
-		padding: 3px 8px 3px var(--base-margin, 20px);
-		transition: all 0.2s ease;
-		flex-shrink: 0;
-	}
-
-	.category-header-row:hover .category-pill-box {
-		background: hsl(var(--foreground) / 0.08);
-		border-color: hsla(var(--border) / 0.45);
-	}
-
-	.chevron-zone {
-		display: flex;
-		justify-content: center;
-		align-items: center;
+		gap: 6px;
+		background: none !important;
+		border: none !important;
+		padding: 0 !important;
+		border-radius: 0 !important;
+		transition: none !important;
 		flex-shrink: 0;
 	}
 
 	:global(.category-chevron) {
 		color: hsl(var(--muted-foreground) / 0.6);
-		transition:
-			transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
-			color 0.2s ease;
+		transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 		flex-shrink: 0;
 	}
 
@@ -2074,33 +2019,20 @@
 		color: hsl(var(--muted-foreground) / 0.85);
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
-		transition: color 0.2s ease;
 		white-space: nowrap;
 		flex-shrink: 0;
 	}
 
 	.category-count {
 		display: inline-block;
-		box-sizing: border-box;
-		width: 26px;
-		text-align: right;
 		font-size: 11px;
-		font-weight: 600;
-		color: hsl(var(--muted-foreground) / 0.85);
-		font-variant-numeric: tabular-nums;
-		line-height: 1;
-		font-family: inherit;
-		flex-shrink: 0;
-		transition: color 0.2s;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground) / 0.6);
+		margin-left: 4px;
 	}
 
 	.category-line {
-		flex: 1;
-		height: 1px;
-		background: hsl(var(--border) / 0.4);
-		margin-left: 0.75rem;
-		margin-right: 0.75rem;
-		transition: opacity 0.2s ease;
+		display: none !important;
 	}
 
 	.category-header-row:hover .category-title {
@@ -2111,16 +2043,8 @@
 		color: hsl(var(--foreground));
 	}
 
-	.category-header-row:hover .category-line {
-		opacity: 0;
-	}
-
 	.category-header-row:hover .category-count {
 		color: hsl(var(--foreground));
-	}
-
-	.category-header-row:hover .category-line {
-		background: hsl(var(--border));
 	}
 
 	.category-sum {
