@@ -1224,6 +1224,8 @@
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: var(--radius-md);
 	}
 
 	.table-wrapper {
@@ -1241,7 +1243,6 @@
 		table-layout: auto;
 		--padding-y: 8px;
 		--row-height: 28px;
-		border-top: 1px solid hsl(var(--border));
 	}
 
 	.compact .deck-table {
@@ -1268,7 +1269,7 @@
 		color: hsl(var(--muted-foreground));
 		border-bottom: 1px solid hsla(var(--border) / 0.8);
 		border-top: none;
-		border-right: 1px solid hsl(var(--border));
+		border-right: 1px solid hsl(var(--border) / 0.5);
 		white-space: nowrap;
 		box-sizing: border-box;
 	}
@@ -1410,15 +1411,6 @@
 
 	.card-row:last-child td {
 		border-bottom: none;
-	}
-
-	/* Hide bottom border of the card row preceding a category header */
-	.category-group .card-row:last-child td {
-		border-bottom-color: transparent;
-	}
-
-	.category-group .card-row:last-child:hover td {
-		border-bottom-color: hsl(var(--border));
 	}
 
 	.card-row.is-illegal {
@@ -1666,8 +1658,8 @@
 			height 0.2s ease,
 			border-color 0.2s ease;
 		white-space: nowrap;
-		border-bottom: 1px solid hsl(var(--border)); /* Clean border-bottom directly on cells */
-		border-right: 1px solid hsl(var(--border));
+		border-bottom: 1px solid hsl(var(--border) / 0.5); /* Clean border-bottom directly on cells */
+		border-right: 1px solid hsl(var(--border) / 0.5);
 	}
 
 	.deck-table td:last-child {
@@ -1941,7 +1933,7 @@
 		top: 37px;
 		z-index: 5;
 		background: hsl(var(--background));
-		border-bottom: 1px solid hsl(var(--border));
+		border-bottom: 1px solid hsl(var(--border) / 0.5);
 		border-top: none;
 		border-right: none !important;
 		padding: var(--padding-y) 14px !important;
