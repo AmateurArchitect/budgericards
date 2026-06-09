@@ -19,6 +19,11 @@ import { deckStore } from "./deck.svelte.js";
  * @property {number | null} quantityModal.price
  * @property {number} quantityModal.initialValue
  * @property {boolean} quantityModal.isAdding
+ * @property {Object} cardDataModal
+ * @property {boolean} cardDataModal.isOpen
+ * @property {any | null} cardDataModal.card
+ * @property {string | null} cardDataModal.zone
+ * @property {number | null} cardDataModal.price
  * @property {Set<string>} selectedCardIds
  * @property {string | null} lastSelectedCardId
  * @property {any[]} currentVisibleCardIds
@@ -48,6 +53,12 @@ function createInteractionStore() {
 			price: null,
 			initialValue: 1,
 			isAdding: false
+		},
+		cardDataModal: {
+			isOpen: false,
+			card: null,
+			zone: null,
+			price: null
 		},
 		selectedCardIds: new Set(),
 		lastSelectedCardId: null,
@@ -187,6 +198,7 @@ function createInteractionStore() {
 		get menuPosition() { return state.menuPosition; },
 		get editingCardId() { return state.editingCardId; },
 		get quantityModal() { return state.quantityModal; },
+		get cardDataModal() { return state.cardDataModal; },
 		get selectedCardIds() { return state.selectedCardIds; },
 		get hoveredColumnKey() { return state.hoveredColumnKey; },
 		set hoveredColumnKey(val) { state.hoveredColumnKey = val; },
@@ -345,6 +357,24 @@ function createInteractionStore() {
 		},
 
 		/**
+		 * @param {any} card
+		 * @param {string} zone
+		 * @param {number | null} price
+		 */
+		showCardDataModal(card, zone, price) {
+			state.cardDataModal = {
+				isOpen: true,
+				card,
+				zone,
+				price
+			};
+		},
+
+		closeCardDataModal() {
+			state.cardDataModal.isOpen = false;
+		},
+
+		/**
 		 * @param {string | null} id 
 		 * @param {string} zone 
 		 * @param {number | null} price 
@@ -441,6 +471,21 @@ function createInteractionStore() {
 						}
 					}
 				});
+				items.push({
+					label: "Change Card Data...",
+					action: () => {
+						this.showCardDataModal(card, zone, price);
+					}
+				});
+				const hasOverrides = (card.overrides && Object.keys(card.overrides).length > 0) || (card.customColumn !== undefined && card.customColumn !== null && card.customColumn !== "");
+				if (hasOverrides) {
+					items.push({
+						label: "Reset Card Data",
+						action: () => {
+							deckStore.resetAllOverridesForCard(card.id);
+						}
+					});
+				}
 			}
 
 			items.push({ divider: true });

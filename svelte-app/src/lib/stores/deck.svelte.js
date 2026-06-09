@@ -837,6 +837,7 @@ function createDeck() {
 			if (result) {
 				saveHistory(activeDeck);
 				delete result.card.overrides;
+				delete result.card.customColumn;
 				persist(activeDeck);
 			}
 		},
