@@ -1280,7 +1280,7 @@
 		top: 0;
 		z-index: 10;
 		height: 38px;
-		background: linear-gradient(hsla(0, 0%, 100%, 0.03), hsla(0, 0%, 100%, 0.03)), hsl(var(--background));
+		background: linear-gradient(hsla(0, 0%, 100%, 0.06), hsla(0, 0%, 100%, 0.06)), hsl(var(--background));
 		padding: 0 14px;
 		font-size: 0.6875rem;
 		font-weight: 700;
@@ -1418,8 +1418,12 @@
 		position: relative;
 	}
 
+	.card-row:nth-child(even) {
+		background: hsla(0, 0%, 100%, 0.015);
+	}
+
 	.card-row:hover {
-		background: hsla(0, 0%, 100%, 0.025);
+		background: hsla(0, 0%, 100%, 0.04) !important;
 	}
 
 	.card-row.is-selected {
@@ -1954,7 +1958,7 @@
 		position: sticky;
 		top: 37px;
 		z-index: 5;
-		background: linear-gradient(hsla(0, 0%, 100%, 0.03), hsla(0, 0%, 100%, 0.03)), hsl(var(--background));
+		background: hsl(var(--background));
 		border-bottom: 1px solid hsl(var(--border) / 0.5);
 		border-top: none;
 		border-right: none !important;
