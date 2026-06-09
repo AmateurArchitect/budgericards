@@ -1248,7 +1248,7 @@
 		flex-direction: column;
 		overflow: hidden;
 		background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), transparent);
-		padding: 1rem 0;
+		padding: 1.25rem 2rem;
 		position: relative;
 		transition: background-color 0.2s ease;
 	}
@@ -1279,6 +1279,7 @@
 		table-layout: auto;
 		--padding-y: 8px;
 		--row-height: 28px;
+		border-top: 1px solid hsla(var(--border) / 0.15);
 	}
 
 	.compact .deck-table {
@@ -1305,8 +1306,13 @@
 		color: hsl(var(--muted-foreground));
 		border-bottom: 1px solid hsla(var(--border) / 0.8);
 		border-top: none;
+		border-right: 1px solid hsla(var(--border) / 0.1);
 		white-space: nowrap;
 		box-sizing: border-box;
+	}
+
+	.deck-table th:last-child {
+		border-right: none;
 	}
 
 	/* Columns Sizes */
@@ -1699,6 +1705,11 @@
 			border-color 0.2s ease;
 		white-space: nowrap;
 		border-bottom: 1px solid hsla(var(--border) / 0.15); /* Clean border-bottom directly on cells */
+		border-right: 1px solid hsla(var(--border) / 0.1);
+	}
+
+	.deck-table td:last-child {
+		border-right: none;
 	}
 
 	/* Clickable Quantity Badge Button */
@@ -1964,29 +1975,18 @@
 
 	/* Category Section Header Row Styling */
 	.category-header-row td {
-		position: sticky;
-		top: 37px; /* Overlap th by 1px to seal 1px subpixel gap */
-		z-index: 5;
-		background: hsl(var(--background));
-		border-bottom: 1px solid transparent;
-		border-top: 1px solid transparent;
-		padding: 0;
+		background: transparent;
+		border-bottom: 1px solid hsla(var(--border) / 0.15);
+		border-top: none;
+		border-right: none !important;
+		padding: var(--padding-y) 14px !important;
+		height: var(--row-height);
 		box-shadow: none;
-		transition:
-			border-color 0.2s ease,
-			box-shadow 0.2s ease,
-			background 0.2s ease;
+		transition: background-color 0.15s ease;
 	}
 
 	.category-header-row:hover td {
-		background: linear-gradient(
-				hsla(0, 0%, 100%, 0.016),
-				hsla(0, 0%, 100%, 0.016)
-			),
-			hsl(var(--background));
-		border-bottom-color: transparent;
-		border-top-color: transparent;
-		box-shadow: none;
+		background: hsla(0, 0%, 100%, 0.025) !important;
 	}
 
 	.category-header-row td.col-actions {
@@ -1996,23 +1996,15 @@
 		padding: 0 !important;
 	}
 
-	.spacious .category-header-row td {
-		height: 36px;
-	}
-
-	.compact .category-header-row td {
-		height: 30px;
-	}
-
 	.category-header-row td.col-price,
 	.category-header-row td.col-total {
-		padding-right: 14px;
+		padding-right: 14px !important;
 		text-align: right;
 		vertical-align: middle;
 	}
 
 	.category-header-row td.spanned-cat-cell {
-		padding: 0 !important;
+		padding: var(--padding-y) 14px !important;
 	}
 
 	.category-header-content {
