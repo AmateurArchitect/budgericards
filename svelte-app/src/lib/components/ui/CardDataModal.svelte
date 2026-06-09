@@ -2,7 +2,7 @@
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { fade, scale } from "svelte/transition";
-	import { X, Star, AlertCircle, Check } from "lucide-svelte";
+	import { X, Star, Search, AlertCircle, Check, Plus } from "lucide-svelte";
 	import Input from "$lib/components/ui/Input.svelte";
 	import Button from "$lib/components/ui/Button.svelte";
 	import { untrack } from "svelte";
@@ -433,7 +433,7 @@
 		<div 
 			class="modal-content" 
 			transition:scale={{ duration: 200, start: 0.98 }}
-			onclick={(e) => e.stopPropagation()}
+			onclick={(/** @type {MouseEvent} */ e) => e.stopPropagation()}
 		>
 			<button class="close-btn" onclick={handleClose} aria-label="Close">
 				<X size={16} />
@@ -477,7 +477,7 @@
 								min="0"
 								max="99"
 								class={isCmcChanged ? 'text-blue' : (isCmcCustom ? 'text-white' : 'text-muted')}
-								onkeydown={(e) => {
+								onkeydown={(/** @type {KeyboardEvent} */ e) => {
 									if (e.key === "Enter") handleSubmit();
 									if (e.key === "Escape") handleClose();
 								}}
@@ -487,7 +487,7 @@
 						<!-- Type Line Flex Container -->
 						<div class="form-group">
 							<div class="label-row">
-								<label class={isTypeLineChanged ? 'label-blue' : (isTypeLineCustom ? 'label-white' : 'label-muted')}>Type Line</label>
+								<span class="form-label {isTypeLineChanged ? 'label-blue' : (isTypeLineCustom ? 'label-white' : 'label-muted')}">Type Line</span>
 								{#if isTypeLineCustom}
 									<button type="button" class="field-reset-action" onclick={resetTypeLineFields}>Reset to Default</button>
 								{/if}
@@ -664,7 +664,7 @@
 						<!-- Custom Color Category Select Dropdown -->
 						<div class="form-group">
 							<div class="label-row">
-								<label class={isColorChanged ? 'label-blue' : (isColorCustom ? 'label-white' : 'label-muted')}>Color Category</label>
+								<span class="form-label {isColorChanged ? 'label-blue' : (isColorCustom ? 'label-white' : 'label-muted')}">Color Category</span>
 								{#if isColorCustom}
 									<button type="button" class="field-reset-action" onclick={resetColorCategoryField}>Reset to Default</button>
 								{/if}
@@ -760,7 +760,7 @@
 									type="text"
 									placeholder="Add a tag..."
 									bind:value={newTagInput}
-									onkeydown={(e) => {
+									onkeydown={(/** @type {KeyboardEvent} */ e) => {
 										if (e.key === "Enter") {
 											e.preventDefault();
 											addTag();
@@ -946,7 +946,7 @@
 		align-items: center;
 	}
 
-	.form-group label {
+	.form-group label, .form-label {
 		font-size: 0.75rem;
 		font-weight: 600;
 		text-transform: uppercase;
