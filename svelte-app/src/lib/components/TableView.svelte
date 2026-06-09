@@ -1251,7 +1251,6 @@
 		overflow: hidden;
 		border: 1px solid hsl(var(--border) / 0.5);
 		border-radius: var(--radius-md);
-		background: hsla(0, 0%, 100%, 0.03);
 	}
 
 	.table-wrapper {
@@ -1439,6 +1438,7 @@
 
 	/* Row Styling */
 	.card-row {
+		background: hsla(0, 0%, 100%, 0.03);
 		transition: background-color 0.15s ease;
 		cursor: pointer;
 		position: relative;
@@ -1449,7 +1449,7 @@
 	}
 
 	.card-row:hover {
-		background: hsla(0, 0%, 100%, 0.04) !important;
+		background: hsla(0, 0%, 100%, 0.05) !important;
 	}
 
 	.card-row.is-selected {
@@ -1984,7 +1984,7 @@
 		position: sticky;
 		top: 37px;
 		z-index: 5;
-		background: linear-gradient(hsla(0, 0%, 100%, 0.015), hsla(0, 0%, 100%, 0.015)), hsl(var(--background));
+		background: linear-gradient(hsla(0, 0%, 100%, 0.045), hsla(0, 0%, 100%, 0.045)), hsl(var(--background));
 		border-bottom: 1px solid hsl(var(--border) / 0.5);
 		border-top: none;
 		border-right: none !important;
@@ -1995,7 +1995,7 @@
 	}
 
 	.category-header-row:hover td {
-		background: linear-gradient(hsla(0, 0%, 100%, 0.035), hsla(0, 0%, 100%, 0.035)), hsl(var(--background)) !important;
+		background: linear-gradient(hsla(0, 0%, 100%, 0.06), hsla(0, 0%, 100%, 0.06)), hsl(var(--background)) !important;
 	}
 
 	.category-header-row td.col-actions {
@@ -2149,7 +2149,7 @@
 
 	/* Highlight all card rows in the category ONLY when hovering the header row */
 	.category-group:has(.category-header-row:hover) .card-row {
-		background-color: hsla(0, 0%, 100%, 0.01) !important;
+		background-color: hsla(0, 0%, 100%, 0.04) !important;
 	}
 
 	.category-group:has(.category-header-row:hover) .card-row:nth-child(even) {
