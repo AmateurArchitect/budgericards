@@ -1268,7 +1268,7 @@
 		color: hsl(var(--muted-foreground));
 		border-bottom: 1px solid hsla(var(--border) / 0.8);
 		border-top: none;
-		border-right: 1px solid hsla(var(--border) / 0.1);
+		border-right: 1px solid hsla(var(--border) / 0.15);
 		white-space: nowrap;
 		box-sizing: border-box;
 	}
@@ -1667,7 +1667,7 @@
 			border-color 0.2s ease;
 		white-space: nowrap;
 		border-bottom: 1px solid hsla(var(--border) / 0.15); /* Clean border-bottom directly on cells */
-		border-right: 1px solid hsla(var(--border) / 0.1);
+		border-right: 1px solid hsla(var(--border) / 0.15);
 	}
 
 	.deck-table td:last-child {
