@@ -950,7 +950,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;
-		flex: 1 1 auto;
+		flex: 0 1 auto;
 		min-width: 0;
 	}
 
