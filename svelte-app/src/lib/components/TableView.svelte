@@ -130,6 +130,7 @@
 	let inlineTypeVal = $state("");
 	let inlineColorVal = $state("");
 	let activeColorOptionIdx = $state(0);
+	let hasTyped = $state(false);
 
 	let editingCardName = $state(null);
 	let editingCardZone = $state(null);
@@ -175,15 +176,26 @@
 		}
 	}
 
+	const allColorOptions = ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"];
+
 	/**
 	 * @param {string} query
-	 * @returns {string[]}
+	 * @param {boolean} typed
+	 * @returns {{ option: string, matches: boolean, visible: boolean }[]}
 	 */
-	function getFilteredColorOptions(query) {
+	function getColorOptionsState(query, typed) {
 		const q = (query || "").trim().toLowerCase();
-		return ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"].filter(opt =>
-			opt.toLowerCase().includes(q)
-		);
+		if (!typed) {
+			return allColorOptions.map(opt => ({ option: opt, matches: true, visible: true }));
+		}
+		return allColorOptions.map(opt => {
+			const matches = opt.toLowerCase().includes(q);
+			return {
+				option: opt,
+				matches,
+				visible: allColorOptions.length < 10 ? true : matches
+			};
+		});
 	}
 
 	/**
@@ -191,18 +203,24 @@
 	 * @param {any} cardRow
 	 */
 	function handleColorKeyDown(e, cardRow) {
-		const filtered = getFilteredColorOptions(inlineColorVal);
+		const optionsState = getColorOptionsState(inlineColorVal, hasTyped);
+		const activeOptions = optionsState.filter(item => item.visible && item.matches);
+		
 		if (e.key === "ArrowDown") {
 			e.preventDefault();
-			activeColorOptionIdx = (activeColorOptionIdx + 1) % Math.max(1, filtered.length);
+			if (activeOptions.length > 0) {
+				activeColorOptionIdx = (activeColorOptionIdx + 1) % activeOptions.length;
+			}
 		} else if (e.key === "ArrowUp") {
 			e.preventDefault();
-			activeColorOptionIdx = (activeColorOptionIdx - 1 + filtered.length) % Math.max(1, filtered.length);
+			if (activeOptions.length > 0) {
+				activeColorOptionIdx = (activeColorOptionIdx - 1 + activeOptions.length) % activeOptions.length;
+			}
 		} else if (e.key === "Enter") {
 			e.preventDefault();
-			if (filtered.length > 0) {
-				const selectedOpt = filtered[activeColorOptionIdx];
-				applyColorOverride(cardRow, selectedOpt);
+			const selectedItem = activeOptions[activeColorOptionIdx];
+			if (selectedItem) {
+				applyColorOverride(cardRow, selectedItem.option);
 			} else {
 				applyColorOverride(cardRow, inlineColorVal);
 			}
@@ -215,13 +233,14 @@
 	 * @param {any} cardRow
 	 */
 	function handleColorSubmit(cardRow) {
-		const filtered = getFilteredColorOptions(inlineColorVal);
-		if (filtered.length > 0) {
-			const match = filtered.find(opt => opt.toLowerCase() === inlineColorVal.trim().toLowerCase());
+		const optionsState = getColorOptionsState(inlineColorVal, hasTyped);
+		const activeOptions = optionsState.filter(item => item.visible && item.matches);
+		if (activeOptions.length > 0) {
+			const match = activeOptions.find(opt => opt.option.toLowerCase() === inlineColorVal.trim().toLowerCase());
 			if (match) {
-				applyColorOverride(cardRow, match);
+				applyColorOverride(cardRow, match.option);
 			} else {
-				applyColorOverride(cardRow, filtered[0]);
+				applyColorOverride(cardRow, activeOptions[0].option);
 			}
 		} else {
 			editingColorCardId = null;
@@ -1074,18 +1093,22 @@
 														if (editingColorCardId) {
 															inlineColorVal = getColorCategory(cardRow);
 															activeColorOptionIdx = 0;
+															hasTyped = false;
 														}
 													}
 												}}
 											>
 												<div style="position: relative; cursor: pointer;">
 													{#if editingColorCardId && cardRow.instances[0] && editingColorCardId === cardRow.instances[0].id}
-														{@const filtered = getFilteredColorOptions(inlineColorVal)}
+														{@const optionsState = getColorOptionsState(inlineColorVal, hasTyped)}
+														{@const visibleOptions = optionsState.filter(o => o.visible)}
+														{@const activeOptions = optionsState.filter(o => o.visible && o.matches)}
 														<input
 															type="text"
 															class="color-inline-input"
 															bind:value={inlineColorVal}
 															use:selectOnMount
+															oninput={() => hasTyped = true}
 															onblur={() => handleColorSubmit(cardRow)}
 															onkeydown={(e) => handleColorKeyDown(e, cardRow)}
 															onclick={(e) => e.stopPropagation()}
@@ -1099,17 +1122,19 @@
 														>
 															<div class="dropdown-backdrop" role="presentation" onclick={() => editingColorCardId = null}></div>
 															<div class="color-picker-menu">
-																{#each filtered as colorOpt, idx}
+																{#each visibleOptions as item, idx}
+																	{@const isActive = activeOptions[activeColorOptionIdx]?.option === item.option}
 																	<button
 																		type="button"
 																		class="color-opt-btn"
-																		class:active={idx === activeColorOptionIdx}
+																		class:active={isActive}
+																		class:dimmed={!item.matches}
 																		onmousedown={(e) => {
 																			e.preventDefault();
-																			applyColorOverride(cardRow, colorOpt);
+																			applyColorOverride(cardRow, item.option);
 																		}}
 																	>
-																		{colorOpt}
+																		{item.option}
 																	</button>
 																{/each}
 																<div class="menu-divider"></div>
@@ -1801,6 +1826,11 @@
 	.color-opt-btn.active {
 		background: hsl(var(--primary) / 0.25);
 		color: hsl(var(--primary-foreground));
+	}
+
+	.color-opt-btn.dimmed {
+		opacity: 0.4;
+		font-style: italic;
 	}
 
 	.color-opt-btn.reset-btn {
