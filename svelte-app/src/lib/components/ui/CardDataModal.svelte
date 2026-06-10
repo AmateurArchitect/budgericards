@@ -68,6 +68,7 @@
 	/** @type {string | null} */
 	let primaryTag = $state(null);
 	let newTagInput = $state("");
+	let cursorPos = $state(0);
 
 	// Control dropdown/autocomplete visibilities
 	let showColorDropdown = $state(false);
@@ -169,6 +170,15 @@
 	function handleSubmit() {
 		if (!card) return;
 		const cardId = card.id;
+
+		// Auto-save tag input text if user hasn't pressed enter
+		const val = newTagInput.trim();
+		if (val && !tags.includes(val)) {
+			tags.push(val);
+			if (!primaryTag) {
+				primaryTag = val;
+			}
+		}
 
 		// 1. CMC Override
 		const parsedCmc = parseInt(String(cmc), 10);
@@ -296,8 +306,28 @@
 
 	let invalidWords = $derived.by(() => {
 		if (!typeLine) return [];
-		const words = typeLine.split(/[\s—\-]+/).filter(Boolean);
-		return words.filter(w => !ALL_LEGAL_WORDS.map(x => x.toLowerCase()).includes(w.toLowerCase()));
+		
+		const wordRegex = /[a-zA-Z0-9']+/g;
+		let match;
+		const wordsWithIndices = [];
+		while ((match = wordRegex.exec(typeLine)) !== null) {
+			wordsWithIndices.push({
+				word: match[0],
+				start: match.index,
+				end: match.index + match[0].length
+			});
+		}
+
+		return wordsWithIndices
+			.filter(({ word, start, end }) => {
+				const isCursorInWord = cursorPos >= start && cursorPos <= end;
+				if (isCursorInWord) {
+					return false;
+				}
+				const isLegal = ALL_LEGAL_WORDS.some(x => x.toLowerCase() === word.toLowerCase());
+				return !isLegal;
+			})
+			.map(w => w.word);
 	});
 
 	/** @param {string} val */
@@ -380,8 +410,8 @@
 				<div class="editor-form-column">
 					
 					<div class="modal-header">
-						<h3 class="text-xl font-bold tracking-tight">Edit Card Data</h3>
-						<p class="text-sm text-muted-foreground">{card?.name}</p>
+						<span class="modal-subtitle">Edit Card Data</span>
+						<h3 class="modal-title">{card?.name}</h3>
 					</div>
 
 					<div class="modal-body">
@@ -422,8 +452,20 @@
 									type="text"
 									bind:value={typeLine}
 									class={isTypeLineChanged ? 'text-blue' : (isTypeLineCustom ? 'text-white' : 'text-muted')}
-									onfocus={() => showTypeSuggestions = true}
+									onfocus={(e) => {
+										showTypeSuggestions = true;
+										cursorPos = e.currentTarget.selectionStart || 0;
+									}}
 									onblur={() => setTimeout(() => showTypeSuggestions = false, 150)}
+									oninput={(e) => {
+										cursorPos = e.currentTarget.selectionStart || 0;
+									}}
+									onclick={(e) => {
+										cursorPos = e.currentTarget.selectionStart || 0;
+									}}
+									onkeyup={(e) => {
+										cursorPos = e.currentTarget.selectionStart || 0;
+									}}
 									onkeydown={(/** @type {KeyboardEvent} */ e) => {
 										if (e.key === "Enter") handleSubmit();
 										if (e.key === "Escape") handleClose();
@@ -544,25 +586,30 @@
 											<X size={12} />
 										</button>
 									</div>
-								{:else}
-									<span class="no-tags-placeholder">No tags assigned</span>
 								{/each}
 							</div>
 
 							<!-- Input to Add Tag -->
 							<div class="tag-input-row">
-								<Input
-									id="card-tags"
-									type="text"
-									placeholder="Add a tag..."
-									bind:value={newTagInput}
-									onkeydown={(/** @type {KeyboardEvent} */ e) => {
-										if (e.key === "Enter") {
-											e.preventDefault();
-											addTag();
-										}
-									}}
-								/>
+								<div class="tag-input-container">
+									<Input
+										id="card-tags"
+										type="text"
+										placeholder="Add a tag..."
+										bind:value={newTagInput}
+										onkeydown={(/** @type {KeyboardEvent} */ e) => {
+											if (e.key === "Enter") {
+												e.preventDefault();
+												addTag();
+											}
+										}}
+									/>
+									{#if newTagInput.trim()}
+										<span class="enter-hint" transition:fade={{ duration: 100 }}>
+											press <kbd class="enter-kbd">Enter</kbd>
+										</span>
+									{/if}
+								</div>
 								<Button variant="outline" size="icon" onclick={addTag} aria-label="Add tag">
 									<Plus size={16} />
 								</Button>
@@ -700,15 +747,26 @@
 	.modal-header {
 		text-align: left;
 		margin-bottom: 1.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
 	}
 
-	.modal-header h3 {
+	.modal-subtitle {
+		font-size: 0.75rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.modal-title {
 		margin: 0;
+		font-size: 1.5rem;
+		font-weight: 700;
+		letter-spacing: -0.025em;
+		line-height: 1.25;
 		color: hsl(var(--foreground));
-	}
-
-	.modal-header p {
-		margin: 0.25rem 0 0;
 	}
 
 	.modal-body {
@@ -1082,6 +1140,33 @@
 	.tag-input-row {
 		display: flex;
 		gap: 0.5rem;
+	}
+
+	.tag-input-container {
+		position: relative;
+		flex: 1;
+		display: flex;
+		align-items: center;
+	}
+
+	.enter-hint {
+		position: absolute;
+		right: 0.75rem;
+		font-size: 0.7rem;
+		color: hsl(var(--muted-foreground));
+		pointer-events: none;
+		background: hsl(var(--muted) / 0.8);
+		padding: 2px 6px;
+		border-radius: 3px;
+		border: 1px solid hsl(var(--border));
+		display: flex;
+		align-items: center;
+		gap: 3px;
+	}
+
+	.enter-kbd {
+		font-family: inherit;
+		font-weight: 600;
 	}
 
 	.suggestions-section {
