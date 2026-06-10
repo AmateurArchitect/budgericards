@@ -21,7 +21,8 @@
 		ArrowDown,
 		Plus,
 		X,
-		Star
+		Star,
+		Undo
 	} from "lucide-svelte";
 
 	let isDragOver = $state(false);
@@ -1539,17 +1540,34 @@
 														onclick={(e) => e.stopPropagation()}
 													/>
 												{:else}
-													<span 
-														class="cmc-badge"
-														class:is-overridden={hasCmcOverride}
-														title={hasCmcOverride ? "Double click to edit override (Customized)" : "Double click to override"}
-													>
-														{#if editingCmcCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:cmc`) && interactionStore.selectedCells.has(`${editingCmcCardId}:cmc`)}
-															{inlineCmcVal}
-														{:else}
-															{cardRow.cmc}
+													<div class="cell-display-wrapper">
+														<span 
+															class="cmc-badge"
+															class:is-overridden={hasCmcOverride}
+															title={hasCmcOverride ? "Double click to edit override (Customized)" : "Double click to override"}
+														>
+															{#if editingCmcCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:cmc`) && interactionStore.selectedCells.has(`${editingCmcCardId}:cmc`)}
+																{inlineCmcVal}
+															{:else}
+																{cardRow.cmc}
+															{/if}
+														</span>
+														{#if hasCmcOverride}
+															<button
+																type="button"
+																class="reset-override-btn"
+																onclick={(e) => {
+																	e.stopPropagation();
+																	if (cardRow.instances[0]) {
+																		deckStore.resetCardOverride(cardRow.instances[0].id, 'manaValue');
+																	}
+																}}
+																title="Reset to default CMC"
+															>
+																<Undo size={12} />
+															</button>
 														{/if}
-													</span>
+													</div>
 												{/if}
 											</td>
 										{/if}
@@ -1611,17 +1629,34 @@
 														onclick={(e) => e.stopPropagation()}
 													/>
 												{:else}
-													<span
-														class="type-text"
-														class:is-overridden={hasTypeOverride}
-														title={hasTypeOverride ? "Double click to edit override (Customized)" : "Double click to override"}
-													>
-														{#if editingTypeCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:type`) && interactionStore.selectedCells.has(`${editingTypeCardId}:type`)}
-															{inlineTypeVal}
-														{:else}
-															{cardRow.type}
+													<div class="cell-display-wrapper">
+														<span
+															class="type-text"
+															class:is-overridden={hasTypeOverride}
+															title={hasTypeOverride ? "Double click to edit override (Customized)" : "Double click to override"}
+														>
+															{#if editingTypeCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:type`) && interactionStore.selectedCells.has(`${editingTypeCardId}:type`)}
+																{inlineTypeVal}
+															{:else}
+																{cardRow.type}
+															{/if}
+														</span>
+														{#if hasTypeOverride}
+															<button
+																type="button"
+																class="reset-override-btn"
+																onclick={(e) => {
+																	e.stopPropagation();
+																	if (cardRow.instances[0]) {
+																		deckStore.resetCardOverride(cardRow.instances[0].id, 'primaryType');
+																	}
+																}}
+																title="Reset to default Type"
+															>
+																<Undo size={12} />
+															</button>
 														{/if}
-													</span>
+													</div>
 												{/if}
 											</td>
 										{/if}
@@ -1830,13 +1865,32 @@
 														</div>
 													{:else}
 														{@const currentCategory = editingColorCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:color-cat`) && interactionStore.selectedCells.has(`${editingColorCardId}:color-cat`) ? inlineColorVal : getColorCategory(cardRow)}
-														<span
-															class="color-cat-text class-{currentCategory.toLowerCase()}"
-															class:is-overridden={hasColorOverride}
-															title={hasColorOverride ? "Click to change color override (Customized)" : "Click to override"}
-														>
-															{currentCategory}
-														</span>
+														<div class="cell-display-wrapper">
+															<span
+																class="color-cat-text class-{currentCategory.toLowerCase()}"
+																class:is-overridden={hasColorOverride}
+																title={hasColorOverride ? "Click to change color override (Customized)" : "Click to override"}
+															>
+																{currentCategory}
+															</span>
+															{#if hasColorOverride}
+																<button
+																	type="button"
+																	class="reset-override-btn"
+																	onclick={(e) => {
+																		e.stopPropagation();
+																		if (cardRow.instances[0]) {
+																			deckStore.resetCardOverride(cardRow.instances[0].id, 'colorCategory');
+																			deckStore.resetCardOverride(cardRow.instances[0].id, 'colors');
+																			deckStore.resetCardOverride(cardRow.instances[0].id, 'colorIdentity');
+																		}
+																	}}
+																	title="Reset to default Color Category"
+																>
+																	<Undo size={12} />
+																</button>
+															{/if}
+														</div>
 													{/if}
 												</div>
 											</td>
@@ -3166,6 +3220,31 @@
 		font-size: 11px;
 		color: hsl(var(--muted-foreground));
 		text-align: center;
+	}
+
+	.cell-display-wrapper {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		position: relative;
+	}
+
+	.reset-override-btn {
+		background: none;
+		border: none;
+		color: hsl(var(--muted-foreground));
+		padding: 2px;
+		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 4px;
+		transition: background-color 0.2s, color 0.2s;
+	}
+
+	.reset-override-btn:hover {
+		background: hsla(0, 0%, 100%, 0.1);
+		color: hsl(var(--foreground));
 	}
 
 </style>
