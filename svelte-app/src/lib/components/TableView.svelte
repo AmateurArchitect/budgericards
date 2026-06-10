@@ -1443,6 +1443,7 @@
 											<td 
 												class="col-printing"
 												class:is-selected={isSelected && interactionStore.selectedColumnKey === 'printing'}
+												class:is-editing={editingPrintingCardId && cardRow.instances[0] && editingPrintingCardId === cardRow.instances[0].id}
 												onclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
@@ -1520,6 +1521,7 @@
 																			type="button"
 																			class="printing-opt-btn"
 																			class:active={isActive}
+																			data-tooltip-img={item.image_uris?.normal || item.card_faces?.[0]?.image_uris?.normal || ""}
 																			onmousedown={(e) => {
 																				e.preventDefault();
 																				applyPrinting(cardRow, item);
@@ -1675,6 +1677,7 @@
 											<td 
 												class="col-tags"
 												class:is-selected={isSelected && interactionStore.selectedColumnKey === 'tags'}
+												class:is-editing={editingTagsCardId && cardRow.instances[0] && editingTagsCardId === cardRow.instances[0].id}
 												onclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
@@ -1948,6 +1951,10 @@
 	.col-printing {
 		width: 100px;
 	}
+	.col-printing.is-editing {
+		width: 150px;
+		min-width: 150px;
+	}
 	.col-color-cat {
 		width: 110px;
 	}
@@ -1956,6 +1963,10 @@
 	}
 	.col-tags {
 		width: 90px;
+	}
+	.col-tags.is-editing {
+		width: 220px;
+		min-width: 220px;
 	}
 	.col-price {
 		width: 85px;
