@@ -343,6 +343,7 @@ function createInteractionStore() {
 		 * @param {string | null} [columnKey]
 		 */
 		handleCardSelectClick(cardId, isShift, isCmdCtrl, columnKey = null) {
+			console.log("handleCardSelectClick called:", { cardId, isShift, isCmdCtrl, columnKey, currentCellsSize: state.selectedCells.size });
 			const col = columnKey || 'name';
 
 			if (isShift && state.selectionAnchor) {
@@ -384,6 +385,7 @@ function createInteractionStore() {
 				state.selectionAnchor = { cardId, columnKey: col };
 				state.selectionFocus = { cardId, columnKey: col };
 			}
+			state.selectedCells = new Set(state.selectedCells);
 		},
 
 		copySelected() {
