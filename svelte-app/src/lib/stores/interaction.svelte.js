@@ -657,7 +657,7 @@ function createInteractionStore() {
 							if (boardArray) {
 								const card = boardArray.find(c => c.id === id);
 								if (card) {
-									deckStore.removeCard(card.name, board, id);
+									deckStore.removeAllCopies(card.name, board);
 									break;
 								}
 							}

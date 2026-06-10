@@ -44,10 +44,9 @@
 		for (const cat of groupedCategories) {
 			if (!collapsedCategories.has(cat.name)) {
 				for (const cardRow of cat.cards) {
-					for (const inst of cardRow.instances) {
-						if (inst.id) {
-							visibleIds.push(inst.id);
-						}
+					const firstInst = cardRow.instances[0];
+					if (firstInst && firstInst.id) {
+						visibleIds.push(firstInst.id);
 					}
 				}
 			}
