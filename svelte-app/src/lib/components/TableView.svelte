@@ -229,10 +229,10 @@
 		}
 	}
 
-	/**
-	 * @param {any} cardRow
-	 */
 	function handleColorSubmit(cardRow) {
+		if (editingColorCardId !== cardRow.instances[0]?.id) return;
+		editingColorCardId = null;
+
 		const optionsState = getColorOptionsState(inlineColorVal, hasTyped);
 		const activeOptions = optionsState.filter(item => item.visible && item.matches);
 		if (activeOptions.length > 0) {
@@ -242,8 +242,6 @@
 			} else {
 				applyColorOverride(cardRow, activeOptions[0].option);
 			}
-		} else {
-			editingColorCardId = null;
 		}
 	}
 
@@ -1131,6 +1129,7 @@
 																		class:dimmed={!item.matches}
 																		onmousedown={(e) => {
 																			e.preventDefault();
+																			editingColorCardId = null;
 																			applyColorOverride(cardRow, item.option);
 																		}}
 																	>
@@ -1143,6 +1142,7 @@
 																	class="color-opt-btn reset-btn"
 																	onmousedown={(e) => {
 																		e.preventDefault();
+																		editingColorCardId = null;
 																		resetColorOverride(cardRow);
 																	}}
 																>
