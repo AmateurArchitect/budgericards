@@ -2218,7 +2218,7 @@
 	}
 
 	.card-row.is-selected {
-		background-color: rgba(239, 68, 68, 0.4) !important;
+		background-color: rgba(37, 99, 235, 0.15) !important;
 	}
 
 	.card-row.is-editing {
