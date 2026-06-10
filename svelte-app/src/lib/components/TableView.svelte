@@ -361,6 +361,22 @@
 	}
 	let isDraggingSelection = $state(false);
 
+	$effect(() => {
+		const editId = interactionStore.editingCardId;
+		if (editId) {
+			for (const cat of groupedCategories) {
+				const match = cat.cards.find(row => row.instances.some(inst => inst.id === editId));
+				if (match) {
+					editingCardName = match.name;
+					editingCardZone = match.zone;
+					localQtyText = String(match.quantity);
+					interactionStore.stopEditing();
+					break;
+				}
+			}
+		}
+	});
+
 	onMount(() => {
 		handleScroll();
 		const handleGlobalMouseUp = () => {

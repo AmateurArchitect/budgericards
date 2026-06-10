@@ -128,6 +128,22 @@
 			}
 		}
 	}
+
+	$effect(() => {
+		const editId = interactionStore.editingCardId;
+		if (editId) {
+			for (const cat of groupedCategories) {
+				const match = cat.cards.find(row => row.instances.some(inst => inst.id === editId));
+				if (match) {
+					editingCardName = match.name;
+					editingCardZone = match.zone;
+					localQtyText = String(match.quantity);
+					interactionStore.stopEditing();
+					break;
+				}
+			}
+		}
+	});
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
