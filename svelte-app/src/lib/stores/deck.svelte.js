@@ -716,6 +716,28 @@ function createDeck() {
 
 		/**
 		 * @param {string} cardName
+		 * @param {any} scryfallCard
+		 */
+		setCardPrinting(cardName, scryfallCard) {
+			saveHistory(activeDeck);
+			activeDeck.metadata[cardName.toLowerCase()] = scryfallCard;
+			const price = parseFloat(scryfallCard.prices?.usd || scryfallCard.prices?.usd_foil) || 0;
+			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+			for (const board of boards) {
+				if (activeDeck.deck[board]) {
+					activeDeck.deck[board].forEach(c => {
+						if (c.name.toLowerCase() === cardName.toLowerCase()) {
+							c.price = price;
+						}
+					});
+				}
+			}
+			persist(activeDeck);
+		},
+
+
+		/**
+		 * @param {string} cardName
 		 * @param {string} zone
 		 * @param {number | null} price
 		 * @param {any} cardMetadata

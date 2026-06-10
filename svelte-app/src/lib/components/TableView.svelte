@@ -146,6 +146,148 @@
 	let hasNameTyped = $state(false);
 	let nameError = $state(false);
 
+	// Tags inline editing states
+	let editingTagsCardId = $state(null);
+	let inlineTagsVal = $state("");
+	let activeTagsOptionIdx = $state(0);
+	let hasTagsTyped = $state(false);
+
+	// Printing inline editing states
+	let editingPrintingCardId = $state(null);
+	let inlinePrintingVal = $state("");
+	/** @type {any[]} */
+	let availablePrintings = $state([]);
+	let activePrintingOptionIdx = $state(0);
+	let hasPrintingTyped = $state(false);
+	let isLoadingPrintings = $state(false);
+
+	import { scryfallFetch } from "$lib/api/scryfall.js";
+
+	/**
+	 * @param {string} query
+	 * @returns {string[]}
+	 */
+	function getFilteredTags(query) {
+		const parts = (query || "").split(",");
+		const lastPart = (parts[parts.length - 1] || "").trim().toLowerCase();
+		if (!lastPart) return deckTagsList;
+		return deckTagsList.filter(t => t.toLowerCase().includes(lastPart));
+	}
+
+	/**
+	 * @param {any} cardRow
+	 * @param {string} tag
+	 */
+	function selectTagSuggestion(cardRow, tag) {
+		const parts = inlineTagsVal.split(",").map(p => p.trim());
+		if (parts.length > 0) {
+			parts[parts.length - 1] = tag;
+		} else {
+			parts.push(tag);
+		}
+		inlineTagsVal = parts.join(", ") + ", ";
+		activeTagsOptionIdx = 0;
+	}
+
+	/**
+	 * @param {any} cardRow
+	 */
+	function handleTagsSubmit(cardRow) {
+		if (editingTagsCardId !== cardRow.instances[0]?.id) return;
+		editingTagsCardId = null;
+
+		const cleanTags = inlineTagsVal
+			.split(",")
+			.map(t => t.trim())
+			.filter(Boolean);
+
+		const uniqueTags = [...new Set(cleanTags)];
+		const ids = (interactionStore.selectedColumnKey === 'tags' && interactionStore.selectedCardIds.has(cardRow.instances[0].id))
+			? [...interactionStore.selectedCardIds]
+			: [cardRow.instances[0].id];
+
+		for (const id of ids) {
+			deckStore.reorderCardTags(id, uniqueTags);
+		}
+	}
+
+	/**
+	 * @param {string} cardName
+	 */
+	async function fetchCardPrintings(cardName) {
+		isLoadingPrintings = true;
+		availablePrintings = [];
+		try {
+			const q = `!"${cardName}" unique:prints`;
+			const response = await scryfallFetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}`);
+			if (response.ok) {
+				const data = await response.json();
+				if (data && data.data) {
+					availablePrintings = data.data;
+				}
+			}
+		} catch (e) {
+			console.error("Failed to fetch card printings:", e);
+		} finally {
+			isLoadingPrintings = false;
+		}
+	}
+
+	/**
+	 * @param {string} query
+	 * @returns {any[]}
+	 */
+	function getFilteredPrintings(query) {
+		const q = (query || "").trim().toLowerCase();
+		if (!q) return availablePrintings;
+		return availablePrintings.filter(p => {
+			const setCode = (p.set || "").toLowerCase();
+			const setName = (p.set_name || "").toLowerCase();
+			const collectorNumber = (p.collector_number || "").toLowerCase();
+			return setCode.includes(q) || setName.includes(q) || collectorNumber.includes(q) || `${setCode} ${collectorNumber}`.includes(q);
+		});
+	}
+
+	/**
+	 * @param {any} cardRow
+	 * @param {any} printingCard
+	 */
+	async function applyPrinting(cardRow, printingCard) {
+		if (printingCard) {
+			deckStore.setCardPrinting(cardRow.name, printingCard);
+		} else {
+			try {
+				const defaultCard = await db.cards.where("name").equals(cardRow.name).first();
+				if (defaultCard) {
+					const localPrice = priceStore.getPrice(cardRow.name);
+					const metadata = {
+						id: defaultCard.id,
+						name: defaultCard.name,
+						type_line: defaultCard.type,
+						oracle_text: defaultCard.text,
+						mana_cost: defaultCard.mana,
+						cmc: defaultCard.cmc,
+						colors: defaultCard.colors || [],
+						color_identity: defaultCard.identity || [],
+						image_uris: {
+							normal: defaultCard.image,
+							art_crop: defaultCard.image ? defaultCard.image.replace('/normal/', '/art_crop/') : null
+						},
+						prices: {
+							usd: localPrice !== null ? String(localPrice) : null,
+							usd_foil: null
+						}
+					};
+					deckStore.setCardPrinting(cardRow.name, metadata);
+				}
+			} catch (e) {
+				console.error("Failed to reset printing:", e);
+			}
+		}
+		editingPrintingCardId = null;
+	}
+
+
 	/**
 	 * @param {string} query
 	 */
@@ -1292,27 +1434,122 @@
 
 										<!-- Printing (Set and Collector Number) -->
 										{#if settingsStore.visibleColumns.includes("printing")}
-											<td class="col-printing">
-												<span class="printing-text" data-tooltip-img={cardRow.imgUrl}>
-													{#if cardRow.card?.set}
-														<span class="set-code"
-															>{cardRow.card.set.toUpperCase()}</span
+											<td 
+												class="col-printing"
+												class:is-selected={isSelected && interactionStore.selectedColumnKey === 'printing'}
+												onclick={(e) => {
+													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
+													e.stopPropagation();
+													if (cardRow.instances[0]) {
+														editingPrintingCardId = editingPrintingCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
+														if (editingPrintingCardId) {
+															inlinePrintingVal = cardRow.card?.set 
+																? `${cardRow.card.set.toUpperCase()} ${cardRow.card.collector_number || ""}`.trim()
+																: "";
+															activePrintingOptionIdx = 0;
+															hasPrintingTyped = false;
+															fetchCardPrintings(cardRow.name);
+														}
+													}
+												}}
+											>
+												<div style="position: relative; cursor: pointer;">
+													{#if editingPrintingCardId && cardRow.instances[0] && editingPrintingCardId === cardRow.instances[0].id}
+														{@const filteredPrintings = getFilteredPrintings(inlinePrintingVal)}
+														<input
+															type="text"
+															class="printing-inline-input"
+															bind:value={inlinePrintingVal}
+															use:selectOnMount
+															oninput={() => hasPrintingTyped = true}
+															onblur={() => {
+																const matches = filteredPrintings;
+																const bestMatch = matches[activePrintingOptionIdx] || matches[0];
+																if (inlinePrintingVal.trim() === "") {
+																	applyPrinting(cardRow, null);
+																} else {
+																	applyPrinting(cardRow, bestMatch);
+																}
+															}}
+															onkeydown={(e) => {
+																const matches = filteredPrintings;
+																if (e.key === "ArrowDown") {
+																	e.preventDefault();
+																	if (matches.length > 0) {
+																		activePrintingOptionIdx = (activePrintingOptionIdx + 1) % matches.length;
+																	}
+																} else if (e.key === "ArrowUp") {
+																	e.preventDefault();
+																	if (matches.length > 0) {
+																		activePrintingOptionIdx = (activePrintingOptionIdx - 1 + matches.length) % matches.length;
+																	}
+																} else if (e.key === "Enter") {
+																	e.preventDefault();
+																	const selected = matches[activePrintingOptionIdx] || matches[0];
+																	if (inlinePrintingVal.trim() === "") {
+																		applyPrinting(cardRow, null);
+																	} else {
+																		applyPrinting(cardRow, selected);
+																	}
+																} else if (e.key === "Escape") {
+																	editingPrintingCardId = null;
+																}
+															}}
+															onclick={(e) => e.stopPropagation()}
+														/>
+
+														<div 
+															class="printing-picker-dropdown"
+															onclick={(evt) => evt.stopPropagation()}
 														>
-														<span
-															class="collector-number"
-															>{cardRow.card
-																.collector_number ||
-																""}</span
-														>
+															<div class="dropdown-backdrop" role="presentation" onclick={() => editingPrintingCardId = null}></div>
+															<div class="printing-picker-menu">
+																{#if isLoadingPrintings}
+																	<div class="printing-loading-text">Loading prints...</div>
+																{:else}
+																	{#each filteredPrintings as item, idx}
+																		{@const isActive = idx === activePrintingOptionIdx}
+																		<button
+																			type="button"
+																			class="printing-opt-btn"
+																			class:active={isActive}
+																			onmousedown={(e) => {
+																				e.preventDefault();
+																				applyPrinting(cardRow, item);
+																			}}
+																		>
+																			<span class="set-code">{item.set.toUpperCase()}</span>
+																			<span class="collector-number">{item.collector_number}</span>
+																			<span class="set-name">- {item.set_name}</span>
+																			{#if item.prices?.usd}
+																				<span class="price-span">${item.prices.usd}</span>
+																			{/if}
+																		</button>
+																	{:else}
+																		<div class="printing-no-results">No prints found</div>
+																	{/each}
+																{/if}
+															</div>
+														</div>
 													{:else}
-														<span
-															class="placeholder-dash"
-															>—</span
-														>
+														<span class="printing-text" data-tooltip-img={cardRow.imgUrl}>
+															{#if cardRow.card?.set}
+																<span class="set-code"
+																	>{cardRow.card.set.toUpperCase()}</span
+																>
+																<span
+																	class="collector-number"
+																	>{cardRow.card
+																		.collector_number ||
+																		""}</span
+																>
+															{/if}
+														</span>
 													{/if}
-												</span>
+												</div>
 											</td>
 										{/if}
+
 
 										<!-- Color Category -->
 										{#if settingsStore.visibleColumns.includes("color-cat")}
@@ -1424,128 +1661,101 @@
 											</td>
 										{/if}
 
-										<!-- Tags (Premium Popover Selection Dropdown) -->
+										<!-- Tags (Inline Tag Input with Autocomplete) -->
 										{#if settingsStore.visibleColumns.includes("tags")}
 											{@const tags = cardRow.instances[0]?.tags || []}
-											<!-- svelte-ignore a11y_click_events_have_key_events -->
-											<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 											<td 
 												class="col-tags"
+												class:is-selected={isSelected && interactionStore.selectedColumnKey === 'tags'}
 												onclick={(e) => {
+													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
 													if (cardRow.instances[0]) {
-														activeTagsPopoverCardId = activeTagsPopoverCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
-														newTagValue = "";
+														editingTagsCardId = editingTagsCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
+														if (editingTagsCardId) {
+															inlineTagsVal = tags.join(", ");
+															activeTagsOptionIdx = 0;
+															hasTagsTyped = false;
+														}
 													}
 												}}
 											>
-												<div style="position: relative; cursor: pointer;" class="tags-popover-anchor">
-													<div class="tags-badges-list">
-														{#each tags as tag, idx}
-															<span 
-																class="tag-badge"
-																style="background-color: {getTagBgColor(tag)}"
-																draggable="true"
-																ondragstart={(e) => handleTagDragStart(e, cardRow.instances[0].id, idx)}
-																ondragover={(e) => e.preventDefault()}
-																ondrop={(e) => handleTagDrop(e, cardRow.instances[0].id, idx)}
-															>
-																{#if idx === 0}
-																	<Star size={10} class="star-icon text-yellow-400 fill-yellow-400" />
-																{/if}
-																<span>{tag}</span>
-															</span>
-														{:else}
-															<span class="placeholder-dash">+ Tag</span>
-														{/each}
-													</div>
+												<div style="position: relative; cursor: pointer;">
+													{#if editingTagsCardId && cardRow.instances[0] && editingTagsCardId === cardRow.instances[0].id}
+														{@const filteredSuggestions = getFilteredTags(inlineTagsVal)}
+														<input
+															type="text"
+															class="tags-inline-input"
+															bind:value={inlineTagsVal}
+															use:selectOnMount
+															oninput={() => hasTagsTyped = true}
+															onblur={() => handleTagsSubmit(cardRow)}
+															onkeydown={(e) => {
+																const matches = filteredSuggestions;
+																if (e.key === "ArrowDown") {
+																	e.preventDefault();
+																	if (matches.length > 0) {
+																		activeTagsOptionIdx = (activeTagsOptionIdx + 1) % matches.length;
+																	}
+																} else if (e.key === "ArrowUp") {
+																	e.preventDefault();
+																	if (matches.length > 0) {
+																		activeTagsOptionIdx = (activeTagsOptionIdx - 1 + matches.length) % matches.length;
+																	}
+																} else if (e.key === "Enter") {
+																	e.preventDefault();
+																	const selected = matches[activeTagsOptionIdx];
+																	if (selected) {
+																		selectTagSuggestion(cardRow, selected);
+																	} else {
+																		handleTagsSubmit(cardRow);
+																	}
+																} else if (e.key === "Escape") {
+																	editingTagsCardId = null;
+																}
+															}}
+															onclick={(e) => e.stopPropagation()}
+														/>
 
-													{#if activeTagsPopoverCardId && cardRow.instances[0] && activeTagsPopoverCardId === cardRow.instances[0].id}
-														<!-- svelte-ignore a11y_click_events_have_key_events -->
-														<!-- svelte-ignore a11y_no_static_element_interactions -->
 														<div 
-															class="tags-popover-menu"
+															class="tags-picker-dropdown"
 															onclick={(evt) => evt.stopPropagation()}
 														>
-															<div class="dropdown-backdrop" role="presentation" onclick={() => activeTagsPopoverCardId = null}></div>
-															<div class="tags-popover-content">
-																<div class="popover-title">Card Tags</div>
-																
-																<!-- Active tags on card -->
-																<div class="popover-section-title">Active ({tags.length})</div>
-																<div class="active-tags-container">
-																	{#each tags as tag}
-																		<div class="active-tag-row">
-																			<button
-																				type="button"
-																				class="star-tag-btn"
-																				class:is-primary={cardRow.instances[0].primaryTag === tag}
-																				title="Make Primary Tag"
-																				onclick={() => deckStore.setPrimaryTag(cardRow.instances[0].id, tag)}
-																			>
-																				<Star size={11} class="star-icon" />
-																			</button>
-																			<span class="tag-text">{tag}</span>
-																			<button
-																				type="button"
-																				class="remove-tag-btn"
-																				onclick={() => deckStore.removeCardTag(cardRow.instances[0].id, tag)}
-																			>
-																				<X size={11} />
-																			</button>
-																		</div>
-																	{/each}
-																</div>
-
-																<div class="menu-divider"></div>
-
-																<!-- Global tag suggestions -->
-																<div class="popover-section-title">All Tags</div>
-																<div class="all-tags-suggestions">
-																	{#each deckTagsList as gTag}
-																		{#if !tags.includes(gTag)}
-																			<button
-																				type="button"
-																				class="suggestion-tag-btn"
-																				onclick={() => deckStore.addCardTag(cardRow.instances[0].id, gTag)}
-																			>
-																				{gTag}
-																			</button>
-																		{/if}
-																	{/each}
-																</div>
-
-																<div class="tag-input-box">
-																	<input
-																		type="text"
-																		placeholder="Create Tag..."
-																		bind:value={newTagValue}
-																		onkeydown={(evt) => {
-																			if (evt.key === 'Enter') {
-																				evt.preventDefault();
-																				const val = newTagValue.trim();
-																				if (val) {
-																					deckStore.addCardTag(cardRow.instances[0].id, val);
-																					newTagValue = "";
-																				}
-																			}
-																		}}
-																	/>
+															<div class="dropdown-backdrop" role="presentation" onclick={() => editingTagsCardId = null}></div>
+															<div class="tags-picker-menu">
+																{#each filteredSuggestions as item, idx}
+																	{@const isActive = idx === activeTagsOptionIdx}
 																	<button
 																		type="button"
-																		class="add-tag-submit-btn"
-																		onclick={() => {
-																			const val = newTagValue.trim();
-																			if (val) {
-																				deckStore.addCardTag(cardRow.instances[0].id, val);
-																				newTagValue = "";
-																			}
+																		class="tag-opt-btn"
+																		class:active={isActive}
+																		onmousedown={(e) => {
+																			e.preventDefault();
+																			selectTagSuggestion(cardRow, item);
 																		}}
 																	>
-																		<Plus size={14} />
+																		{item}
 																	</button>
-																</div>
+																{/each}
 															</div>
+														</div>
+													{:else}
+														<div class="tags-badges-list">
+															{#each tags as tag, idx}
+																<span 
+																	class="tag-badge"
+																	style="background-color: {getTagBgColor(tag)}"
+																	draggable="true"
+																	ondragstart={(e) => handleTagDragStart(e, cardRow.instances[0].id, idx)}
+																	ondragover={(e) => e.preventDefault()}
+																	ondrop={(e) => handleTagDrop(e, cardRow.instances[0].id, idx)}
+																>
+																	{#if idx === 0}
+																		<Star size={10} class="star-icon text-yellow-400 fill-yellow-400" />
+																	{/if}
+																	<span>{tag}</span>
+																</span>
+															{/each}
 														</div>
 													{/if}
 												</div>
@@ -2634,6 +2844,110 @@
 	td.is-selected {
 		background-color: rgba(239, 68, 68, 0.4) !important;
 		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+	}
+
+	.tags-inline-input,
+	.printing-inline-input {
+		background: transparent;
+		border: none;
+		color: hsl(var(--foreground));
+		font-weight: 500;
+		font-size: 0.8125rem;
+		font-family: inherit;
+		padding: 2px 4px;
+		width: 100%;
+		text-align: left;
+		outline: none;
+		box-sizing: border-box;
+		border-bottom: 1px dashed hsl(var(--primary) / 0.5);
+	}
+
+	.tags-picker-dropdown,
+	.printing-picker-dropdown {
+		position: absolute;
+		top: calc(100% + 4px);
+		left: 0;
+		z-index: 1000;
+		width: 200px;
+		background: hsl(var(--popover) / 0.95);
+		backdrop-filter: blur(16px);
+		border: 1px solid hsl(var(--border) / 0.6);
+		border-radius: var(--radius-md);
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+		padding: 4px;
+	}
+
+	.printing-picker-dropdown {
+		width: 250px;
+	}
+
+	.tags-picker-menu,
+	.printing-picker-menu {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+		max-height: 200px;
+		overflow-y: auto;
+	}
+
+	.tag-opt-btn,
+	.printing-opt-btn {
+		width: 100%;
+		text-align: left;
+		padding: 6px 8px;
+		font-size: 11px;
+		font-weight: 500;
+		color: hsl(var(--foreground));
+		background: none;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.tag-opt-btn:hover,
+	.printing-opt-btn:hover {
+		background: hsl(var(--primary) / 0.15);
+		color: hsl(var(--primary));
+	}
+
+	.tag-opt-btn.active,
+	.printing-opt-btn.active {
+		background: hsl(var(--primary) / 0.25);
+		color: hsl(var(--primary-foreground));
+	}
+
+	.printing-opt-btn .set-code {
+		font-weight: 700;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.printing-opt-btn .collector-number {
+		color: hsl(var(--muted-foreground));
+	}
+
+	.printing-opt-btn .set-name {
+		flex: 1;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.printing-opt-btn .price-span {
+		font-variant-numeric: tabular-nums;
+		color: hsl(var(--primary));
+		font-weight: 600;
+	}
+
+	.printing-loading-text,
+	.printing-no-results {
+		padding: 8px;
+		font-size: 11px;
+		color: hsl(var(--muted-foreground));
+		text-align: center;
 	}
 
 </style>
