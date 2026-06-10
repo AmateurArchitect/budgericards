@@ -180,8 +180,35 @@ function createDeck() {
 		activeDeckId = activeId;
 	}
 
+	let isBatching = false;
+	let batchNeedsPersist = false;
+
+	function batchUpdate(fn) {
+		if (isBatching) {
+			fn();
+			return;
+		}
+		saveHistory(activeDeck);
+		isBatching = true;
+		batchNeedsPersist = false;
+		
+		try {
+			fn();
+		} finally {
+			isBatching = false;
+			if (batchNeedsPersist) {
+				persist(activeDeck);
+				triggerCloudSync(activeDeck);
+			}
+		}
+	}
+
 	/** @param {ReturnType<typeof createDeckState>} deckState */
 	function saveHistory(deckState) {
+		if (isBatching) {
+			batchNeedsPersist = true;
+			return;
+		}
 		const snapshot = JSON.stringify($state.snapshot({
 			commander: deckState.deck.commander,
 			companion: deckState.deck.companion,
@@ -361,6 +388,10 @@ function createDeck() {
 	/** @param {ReturnType<typeof createDeckState>} deckState */
 	function persist(deckState) {
 		if (!browser) return;
+		if (isBatching) {
+			batchNeedsPersist = true;
+			return;
+		}
 		try {
 			const dataToSave = $state.snapshot({
 				id: deckState.deck.id,
@@ -649,6 +680,7 @@ function createDeck() {
 	}
 
 	return {
+		batchUpdate,
 		get id() { return activeDeck.deck.id; },
 		get syncState() { return syncState; },
 		async syncNow() { await triggerCloudSyncNow(activeDeck); },

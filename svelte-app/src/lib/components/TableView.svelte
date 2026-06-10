@@ -42,9 +42,13 @@
 		/** @type {string[]} */
 		const visibleIds = [];
 		for (const cat of groupedCategories) {
-			for (const cardRow of cat.cards) {
-				for (const inst of cardRow.instances) {
-					visibleIds.push(inst.id);
+			if (!collapsedCategories.has(cat.name)) {
+				for (const cardRow of cat.cards) {
+					for (const inst of cardRow.instances) {
+						if (inst.id) {
+							visibleIds.push(inst.id);
+						}
+					}
 				}
 			}
 		}
@@ -161,6 +165,65 @@
 	let hasPrintingTyped = $state(false);
 	let isLoadingPrintings = $state(false);
 
+	// Visible columns order sync
+	$effect(() => {
+		const order = ['qty', 'name'];
+		const cols = settingsStore.visibleColumns;
+		if (cols.includes('mana')) order.push('mana');
+		if (cols.includes('cmc')) order.push('cmc');
+		if (cols.includes('type')) order.push('type');
+		if (cols.includes('printing')) order.push('printing');
+		if (cols.includes('color-cat')) order.push('color-cat');
+		if (cols.includes('color-id')) order.push('color-id');
+		if (cols.includes('tags')) order.push('tags');
+		if (cols.includes('price')) order.push('price');
+		interactionStore.visibleColumnsOrder = order;
+	});
+
+	// Handle typing-to-edit triggers
+	$effect(() => {
+		const trigger = interactionStore.inlineEditTrigger;
+		if (trigger) {
+			const { cardId, columnKey, initialKey } = trigger;
+			if (columnKey === 'cmc') {
+				editingCmcCardId = cardId;
+				inlineCmcVal = initialKey;
+			} else if (columnKey === 'type') {
+				editingTypeCardId = cardId;
+				inlineTypeVal = initialKey;
+			} else if (columnKey === 'color-cat') {
+				editingColorCardId = cardId;
+				inlineColorVal = initialKey;
+				hasTyped = true;
+			} else if (columnKey === 'name') {
+				editingNameCardId = cardId;
+				inlineNameVal = initialKey;
+				hasNameTyped = true;
+				nameSuggestions = [];
+			} else if (columnKey === 'qty') {
+				for (const cat of groupedCategories) {
+					for (const row of cat.cards) {
+						if (row.instances[0]?.id === cardId) {
+							editingCardName = row.name;
+							editingCardZone = row.zone;
+							localQtyText = initialKey;
+							break;
+						}
+					}
+				}
+			} else if (columnKey === 'tags') {
+				editingTagsCardId = cardId;
+				inlineTagsVal = initialKey;
+				hasTagsTyped = true;
+			} else if (columnKey === 'printing') {
+				editingPrintingCardId = cardId;
+				inlinePrintingVal = initialKey;
+				hasPrintingTyped = true;
+			}
+			interactionStore.clearInlineEditTrigger();
+		}
+	});
+
 	import { scryfallFetch } from "$lib/api/scryfall.js";
 
 	/**
@@ -202,8 +265,10 @@
 			.filter(Boolean);
 
 		const uniqueTags = [...new Set(cleanTags)];
-		const ids = (interactionStore.selectedColumnKey === 'tags' && interactionStore.selectedCardIds.has(cardRow.instances[0].id))
-			? [...interactionStore.selectedCardIds]
+		const ids = interactionStore.selectedCells.has(`${cardRow.instances[0].id}:tags`)
+			? [...interactionStore.selectedCells]
+				.filter(k => k.endsWith(':tags'))
+				.map(k => k.split(':')[0])
 			: [cardRow.instances[0].id];
 
 		for (const id of ids) {
@@ -518,8 +583,10 @@
 			const validOptions = ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"];
 			const matchedOpt = validOptions.find(o => o.toLowerCase() === formattedOpt.toLowerCase()) || formattedOpt;
 
-			const ids = (interactionStore.selectedColumnKey === 'color-cat' && interactionStore.selectedCardIds.has(cardRow.instances[0].id))
-				? [...interactionStore.selectedCardIds]
+			const ids = interactionStore.selectedCells.has(`${cardRow.instances[0].id}:color-cat`)
+				? [...interactionStore.selectedCells]
+					.filter(k => k.endsWith(':color-cat'))
+					.map(k => k.split(':')[0])
 				: [cardRow.instances[0].id];
 
 			for (const id of ids) {
@@ -543,8 +610,10 @@
 	 */
 	function resetColorOverride(cardRow) {
 		if (cardRow.instances[0]) {
-			const ids = (interactionStore.selectedColumnKey === 'color-cat' && interactionStore.selectedCardIds.has(cardRow.instances[0].id))
-				? [...interactionStore.selectedCardIds]
+			const ids = interactionStore.selectedCells.has(`${cardRow.instances[0].id}:color-cat`)
+				? [...interactionStore.selectedCells]
+					.filter(k => k.endsWith(':color-cat'))
+					.map(k => k.split(':')[0])
 				: [cardRow.instances[0].id];
 
 			for (const id of ids) {
@@ -1093,11 +1162,11 @@
 							<!-- Individual Card Rows -->
 							{#if !collapsedCategories.has(category.name)}
 								{#each category.cards as cardRow (cardRow.name)}
-									{@const isSelected = interactionStore.selectedCardIds.has(cardRow.instances[0]?.id)}
+									{@const isSelected = cardRow.instances[0] && [...interactionStore.selectedCells].some(cell => cell.startsWith(`${cardRow.instances[0].id}:`))}
 									<tr
 										class="card-row"
 										class:is-illegal={cardRow.isIllegal}
-										class:is-selected={isSelected && !interactionStore.selectedColumnKey}
+										class:is-selected={isSelected}
 										class:is-editing={editingCardName ===
 											cardRow.name &&
 											editingCardZone === cardRow.zone}
@@ -1123,6 +1192,7 @@
 													else if (targetTd.classList.contains('col-name')) colKey = 'name';
 													else if (targetTd.classList.contains('col-tags')) colKey = 'tags';
 													else if (targetTd.classList.contains('col-printing')) colKey = 'printing';
+													else if (targetTd.classList.contains('col-price')) colKey = 'price';
 												}
 
 												if (e.shiftKey || isCmdCtrl) {
@@ -1150,18 +1220,35 @@
 												cardRow.price,
 											);
 										}}
-										onmouseenter={() => {
+										onmouseover={(e) => {
+											const targetEl = e.target instanceof HTMLElement ? e.target : null;
+											let colKey = null;
+											if (targetEl) {
+												const targetTd = targetEl.closest('td');
+												if (targetTd) {
+													if (targetTd.classList.contains('col-cmc')) colKey = 'cmc';
+													else if (targetTd.classList.contains('col-type')) colKey = 'type';
+													else if (targetTd.classList.contains('col-color-cat')) colKey = 'color-cat';
+													else if (targetTd.classList.contains('col-qty')) colKey = 'qty';
+													else if (targetTd.classList.contains('col-name')) colKey = 'name';
+													else if (targetTd.classList.contains('col-tags')) colKey = 'tags';
+													else if (targetTd.classList.contains('col-printing')) colKey = 'printing';
+													else if (targetTd.classList.contains('col-price')) colKey = 'price';
+												}
+											}
+
 											interactionStore.registerHover(
 												cardRow.instances[0] || cardRow.card,
 												cardRow.zone,
 												cardRow.price,
 											);
-											if (isDraggingSelection && cardRow.instances[0]) {
+											
+											if (isDraggingSelection && cardRow.instances[0] && colKey) {
 												interactionStore.handleCardSelectClick(
 													cardRow.instances[0].id,
 													true,
 													false,
-													interactionStore.selectedColumnKey
+													colKey
 												);
 											}
 										}}
@@ -1169,7 +1256,18 @@
 											interactionStore.unregisterHover()}
 									>
 										<!-- Quantity Display (Clickable/Typable inline input) -->
-										<td class="col-qty" class:is-selected={isSelected && interactionStore.selectedColumnKey === 'qty'}>
+										<td 
+											class="col-qty" 
+											class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:qty`)}
+											ondblclick={(e) => {
+												if (e.shiftKey || e.metaKey || e.ctrlKey) return;
+												e.stopPropagation();
+												if (interactionStore.selectedCells.size > 1) return;
+												editingCardName = cardRow.name;
+												editingCardZone = cardRow.zone;
+												localQtyText = String(cardRow.quantity);
+											}}
+										>
 											{#if editingCardName === cardRow.name && editingCardZone === cardRow.zone}
 												<input
 													type="number"
@@ -1194,10 +1292,10 @@
 												<button
 													type="button"
 													class="qty-text-btn"
-													onclick={(e) => {
+													ondblclick={(e) => {
 														if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 														e.stopPropagation();
-														if (interactionStore.selectedCardIds.size > 1) return;
+														if (interactionStore.selectedCells.size > 1) return;
 														editingCardName =
 															cardRow.name;
 														editingCardZone =
@@ -1206,7 +1304,7 @@
 															cardRow.quantity,
 														);
 													}}
-													title="Click to change quantity inline"
+													title="Double click to change quantity inline"
 												>
 													{cardRow.quantity}
 												</button>
@@ -1218,12 +1316,12 @@
 										<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 										<td 
 											class="col-name" 
-											class:is-selected={isSelected && interactionStore.selectedColumnKey === 'name'}
+											class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:name`)}
 											data-tooltip-img={editingNameCardId === cardRow.instances[0]?.id ? null : cardRow.imgUrl}
-											onclick={(e) => {
+											ondblclick={(e) => {
 												if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 												e.stopPropagation();
-												if (interactionStore.selectedCardIds.size > 1) return;
+												if (interactionStore.selectedCells.size > 1) return;
 												if (cardRow.instances[0]) {
 													editingNameCardId = cardRow.instances[0].id;
 													inlineNameVal = cardRow.name;
@@ -1315,11 +1413,11 @@
 											{@const hasCmcOverride = cardRow.instances[0]?.overrides?.manaValue !== undefined}
 											<td 
 												class="col-cmc"
-												class:is-selected={isSelected && interactionStore.selectedColumnKey === 'cmc'}
-												onclick={(e) => {
+												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:cmc`)}
+												ondblclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
-													if (interactionStore.selectedCardIds.size > 1) return;
+													if (interactionStore.selectedCells.size > 1) return;
 													if (cardRow.instances[0]) {
 														editingCmcCardId = cardRow.instances[0].id;
 														inlineCmcVal = String(cardRow.cmc);
@@ -1334,8 +1432,10 @@
 														onblur={() => {
 															const parsed = parseInt(inlineCmcVal, 10);
 															if (!isNaN(parsed) && cardRow.instances[0]) {
-																const ids = (interactionStore.selectedColumnKey === 'cmc' && interactionStore.selectedCardIds.has(cardRow.instances[0].id))
-																	? [...interactionStore.selectedCardIds]
+																const ids = interactionStore.selectedCells.has(`${cardRow.instances[0].id}:cmc`)
+																	? [...interactionStore.selectedCells]
+																		.filter(k => k.endsWith(':cmc'))
+																		.map(k => k.split(':')[0])
 																	: [cardRow.instances[0].id];
 																for (const id of ids) {
 																	deckStore.setCardOverride(id, 'manaValue', parsed);
@@ -1348,8 +1448,10 @@
 																e.preventDefault();
 																const parsed = parseInt(inlineCmcVal, 10);
 																if (!isNaN(parsed) && cardRow.instances[0]) {
-																	const ids = (interactionStore.selectedColumnKey === 'cmc' && interactionStore.selectedCardIds.has(cardRow.instances[0].id))
-																		? [...interactionStore.selectedCardIds]
+																	const ids = interactionStore.selectedCells.has(`${cardRow.instances[0].id}:cmc`)
+																		? [...interactionStore.selectedCells]
+																			.filter(k => k.endsWith(':cmc'))
+																			.map(k => k.split(':')[0])
 																		: [cardRow.instances[0].id];
 																	for (const id of ids) {
 																		deckStore.setCardOverride(id, 'manaValue', parsed);
@@ -1380,11 +1482,11 @@
 											{@const hasTypeOverride = cardRow.instances[0]?.overrides?.primaryType !== undefined}
 											<td 
 												class="col-type"
-												class:is-selected={isSelected && interactionStore.selectedColumnKey === 'type'}
-												onclick={(e) => {
+												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:type`)}
+												ondblclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
-													if (interactionStore.selectedCardIds.size > 1) return;
+													if (interactionStore.selectedCells.size > 1) return;
 													if (cardRow.instances[0]) {
 														editingTypeCardId = cardRow.instances[0].id;
 														inlineTypeVal = String(cardRow.type);
@@ -1399,8 +1501,10 @@
 														bind:value={inlineTypeVal}
 														onblur={() => {
 															if (cardRow.instances[0]) {
-																const ids = (interactionStore.selectedColumnKey === 'type' && interactionStore.selectedCardIds.has(cardRow.instances[0].id))
-																	? [...interactionStore.selectedCardIds]
+																const ids = interactionStore.selectedCells.has(`${cardRow.instances[0].id}:type`)
+																	? [...interactionStore.selectedCells]
+																		.filter(k => k.endsWith(':type'))
+																		.map(k => k.split(':')[0])
 																	: [cardRow.instances[0].id];
 																for (const id of ids) {
 																	deckStore.setCardOverride(id, 'primaryType', inlineTypeVal.trim());
@@ -1412,8 +1516,10 @@
 															if (e.key === "Enter") {
 																e.preventDefault();
 																if (cardRow.instances[0]) {
-																	const ids = (interactionStore.selectedColumnKey === 'type' && interactionStore.selectedCardIds.has(cardRow.instances[0].id))
-																		? [...interactionStore.selectedCardIds]
+																	const ids = interactionStore.selectedCells.has(`${cardRow.instances[0].id}:type`)
+																		? [...interactionStore.selectedCells]
+																			.filter(k => k.endsWith(':type'))
+																			.map(k => k.split(':')[0])
 																		: [cardRow.instances[0].id];
 																	for (const id of ids) {
 																		deckStore.setCardOverride(id, 'primaryType', inlineTypeVal.trim());
@@ -1442,12 +1548,12 @@
 										{#if settingsStore.visibleColumns.includes("printing")}
 											<td 
 												class="col-printing"
-												class:is-selected={isSelected && interactionStore.selectedColumnKey === 'printing'}
+												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:printing`)}
 												class:is-editing={editingPrintingCardId && cardRow.instances[0] && editingPrintingCardId === cardRow.instances[0].id}
-												onclick={(e) => {
+												ondblclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
-													if (interactionStore.selectedCardIds.size > 1) return;
+													if (interactionStore.selectedCells.size > 1) return;
 													if (cardRow.instances[0]) {
 														editingPrintingCardId = editingPrintingCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
 														if (editingPrintingCardId) {
@@ -1567,11 +1673,11 @@
 											<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 											<td 
 												class="col-color-cat"
-												class:is-selected={isSelected && interactionStore.selectedColumnKey === 'color-cat'}
-												onclick={(e) => {
+												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:color-cat`)}
+												ondblclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
-													if (interactionStore.selectedCardIds.size > 1) return;
+													if (interactionStore.selectedCells.size > 1) return;
 													if (cardRow.instances[0]) {
 														editingColorCardId = editingColorCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
 														if (editingColorCardId) {
@@ -1676,12 +1782,12 @@
 											{@const tags = cardRow.instances[0]?.tags || []}
 											<td 
 												class="col-tags"
-												class:is-selected={isSelected && interactionStore.selectedColumnKey === 'tags'}
+												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:tags`)}
 												class:is-editing={editingTagsCardId && cardRow.instances[0] && editingTagsCardId === cardRow.instances[0].id}
-												onclick={(e) => {
+												ondblclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
-													if (interactionStore.selectedCardIds.size > 1) return;
+													if (interactionStore.selectedCells.size > 1) return;
 													if (cardRow.instances[0]) {
 														editingTagsCardId = editingTagsCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
 														if (editingTagsCardId) {
@@ -1776,7 +1882,10 @@
 
 										<!-- Price (Optional) -->
 										{#if settingsStore.visibleColumns.includes("price")}
-											<td class="col-price">
+											<td 
+												class="col-price"
+												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:price`)}
+											>
 												<span class="price-span">
 													{cardRow.price > 0
 														? `$${cardRow.price.toFixed(2)}`

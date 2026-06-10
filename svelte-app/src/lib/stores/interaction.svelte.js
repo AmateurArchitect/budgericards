@@ -102,9 +102,11 @@ function createInteractionStore() {
 			zone: null,
 			price: null
 		},
-		selectedCardIds: new Set(),
-		lastSelectedCardId: null,
-		selectedColumnKey: null,
+		selectedCells: new Set(),
+		selectionAnchor: null, // { cardId, columnKey }
+		selectionFocus: null,  // { cardId, columnKey }
+		/** @type {string[]} */
+		visibleColumnsOrder: [],
 		/** @type {any[]} */
 		currentVisibleCardIds: [],
 		copiedCards: [],
@@ -114,7 +116,8 @@ function createInteractionStore() {
 		/** @type {string[] | null} */
 		copiedCellValues: null,
 		/** @type {string | null} */
-		copiedColumnKey: null
+		copiedColumnKey: null,
+		inlineEditTrigger: null // { cardId, columnKey, initialKey }
 	});
 
 	// Global key listener
@@ -132,10 +135,15 @@ function createInteractionStore() {
 			// 1. Global Clipboard/Selection Shortcuts (don't require hover)
 			if (isCmdCtrl && key === 'a') {
 				e.preventDefault();
-				state.selectedCardIds.clear();
-				for (const id of state.currentVisibleCardIds) {
-					state.selectedCardIds.add(id);
+				state.selectedCells.clear();
+				if (state.currentVisibleCardIds.length > 0 && state.visibleColumnsOrder.length > 0) {
+					for (const id of state.currentVisibleCardIds) {
+						for (const col of state.visibleColumnsOrder) {
+							state.selectedCells.add(`${id}:${col}`);
+						}
+					}
 				}
+				state.selectedCells = new Set(state.selectedCells);
 				return;
 			}
 
@@ -158,16 +166,75 @@ function createInteractionStore() {
 			}
 
 			// Backspace/Delete works on selected cards globally if there is a selection
-			if ((e.key === 'Backspace' || e.key === 'Delete') && state.selectedCardIds.size > 0) {
+			if ((e.key === 'Backspace' || e.key === 'Delete') && state.selectedCells.size > 0) {
 				e.preventDefault();
 				interactionStore.deleteSelected();
 				return;
 			}
 
 			// Escape clears selection
-			if (e.key === 'Escape' && state.selectedCardIds.size > 0) {
-				state.selectedCardIds.clear();
-				return;
+			if (e.key === 'Escape') {
+				if (state.selectedCells.size > 0) {
+					state.selectedCells.clear();
+					state.selectionAnchor = null;
+					state.selectionFocus = null;
+					state.selectedCells = new Set();
+					return;
+				}
+			}
+
+			// Grid Navigation
+			if (state.selectionFocus && !e.metaKey && !e.ctrlKey) {
+				const focusId = state.selectionFocus.cardId;
+				const focusCol = state.selectionFocus.columnKey;
+
+				let rIdx = state.currentVisibleCardIds.indexOf(focusId);
+				let cIdx = state.visibleColumnsOrder.indexOf(focusCol);
+
+				if (rIdx !== -1 && cIdx !== -1) {
+					let moved = false;
+					if (e.key === 'ArrowRight' || (e.key === 'Tab' && !e.shiftKey)) {
+						cIdx++; moved = true;
+					} else if (e.key === 'ArrowLeft' || (e.key === 'Tab' && e.shiftKey)) {
+						cIdx--; moved = true;
+					} else if (e.key === 'ArrowDown' || (e.key === 'Enter' && !e.shiftKey)) {
+						rIdx++; moved = true;
+					} else if (e.key === 'ArrowUp' || (e.key === 'Enter' && e.shiftKey)) {
+						rIdx--; moved = true;
+					}
+
+					if (moved) {
+						e.preventDefault();
+						rIdx = Math.max(0, Math.min(state.currentVisibleCardIds.length - 1, rIdx));
+						cIdx = Math.max(0, Math.min(state.visibleColumnsOrder.length - 1, cIdx));
+						const nextId = state.currentVisibleCardIds[rIdx];
+						const nextCol = state.visibleColumnsOrder[cIdx];
+						
+						if (e.shiftKey && e.key.startsWith('Arrow')) {
+							interactionStore.handleCardSelectClick(nextId, true, false, nextCol);
+						} else {
+							interactionStore.handleCardSelectClick(nextId, false, false, nextCol);
+						}
+						return;
+					}
+				}
+			}
+
+			// Typing to edit
+			if (e.key.length === 1 && !isCmdCtrl && !e.altKey && state.selectionFocus) {
+				if (state.selectedCells.size > 0) {
+					const focusId = state.selectionFocus.cardId;
+					const focusCol = state.selectionFocus.columnKey;
+					
+					state.selectedCells.clear();
+					state.selectedCells.add(`${focusId}:${focusCol}`);
+					state.selectionAnchor = { cardId: focusId, columnKey: focusCol };
+
+					state.inlineEditTrigger = { cardId: focusId, columnKey: focusCol, initialKey: e.key };
+					state.selectedCells = new Set(state.selectedCells);
+					e.preventDefault();
+					return;
+				}
 			}
 
 			if (!state.hoveredCard) return;
@@ -246,20 +313,25 @@ function createInteractionStore() {
 		get editingCardId() { return state.editingCardId; },
 		get quantityModal() { return state.quantityModal; },
 		get cardDataModal() { return state.cardDataModal; },
-		get selectedCardIds() { return state.selectedCardIds; },
-		get selectedColumnKey() { return state.selectedColumnKey; },
-		set selectedColumnKey(val) { state.selectedColumnKey = val; },
+		get selectedCells() { return state.selectedCells; },
+		get selectionAnchor() { return state.selectionAnchor; },
+		get selectionFocus() { return state.selectionFocus; },
+		get visibleColumnsOrder() { return state.visibleColumnsOrder; },
+		set visibleColumnsOrder(val) { state.visibleColumnsOrder = val; },
 		get hoveredColumnKey() { return state.hoveredColumnKey; },
 		set hoveredColumnKey(val) { state.hoveredColumnKey = val; },
+		get inlineEditTrigger() { return state.inlineEditTrigger; },
+		clearInlineEditTrigger() { state.inlineEditTrigger = null; },
 		get currentVisibleCardIds() { return state.currentVisibleCardIds; },
 		set currentVisibleCardIds(val) { state.currentVisibleCardIds = val; },
 		get generateTagsTrigger() { return state.generateTagsTrigger; },
 		triggerGenerateTags() { state.generateTagsTrigger++; },
 
 		clearSelection() {
-			state.selectedCardIds.clear();
-			state.lastSelectedCardId = null;
-			state.selectedColumnKey = null;
+			state.selectedCells.clear();
+			state.selectionAnchor = null;
+			state.selectionFocus = null;
+			state.selectedCells = new Set();
 		},
 
 		/**
@@ -269,65 +341,106 @@ function createInteractionStore() {
 		 * @param {string | null} [columnKey]
 		 */
 		handleCardSelectClick(cardId, isShift, isCmdCtrl, columnKey = null) {
-			if (state.selectedColumnKey !== columnKey) {
-				state.selectedCardIds.clear();
-				state.selectedColumnKey = columnKey;
-				state.lastSelectedCardId = null;
-			}
+			const col = columnKey || 'name';
 
-			if (isShift && state.lastSelectedCardId) {
-				const startIdx = state.currentVisibleCardIds.indexOf(state.lastSelectedCardId);
-				const endIdx = state.currentVisibleCardIds.indexOf(cardId);
-				if (startIdx !== -1 && endIdx !== -1) {
-					const min = Math.min(startIdx, endIdx);
-					const max = Math.max(startIdx, endIdx);
-					const idsToSelect = state.currentVisibleCardIds.slice(min, max + 1);
-					for (const id of idsToSelect) {
-						state.selectedCardIds.add(id);
+			if (isShift && state.selectionAnchor) {
+				const rStart = state.currentVisibleCardIds.indexOf(state.selectionAnchor.cardId);
+				const rEnd = state.currentVisibleCardIds.indexOf(cardId);
+				const cStart = state.visibleColumnsOrder.indexOf(state.selectionAnchor.columnKey);
+				const cEnd = state.visibleColumnsOrder.indexOf(col);
+
+				if (rStart !== -1 && rEnd !== -1 && cStart !== -1 && cEnd !== -1) {
+					const rMin = Math.min(rStart, rEnd);
+					const rMax = Math.max(rStart, rEnd);
+					const cMin = Math.min(cStart, cEnd);
+					const cMax = Math.max(cStart, cEnd);
+
+					if (!isCmdCtrl) {
+						state.selectedCells.clear();
 					}
+					for (let r = rMin; r <= rMax; r++) {
+						const rId = state.currentVisibleCardIds[r];
+						for (let c = cMin; c <= cMax; c++) {
+							const cKey = state.visibleColumnsOrder[c];
+							state.selectedCells.add(`${rId}:${cKey}`);
+						}
+					}
+					state.selectionFocus = { cardId, columnKey: col };
 				}
 			} else if (isCmdCtrl) {
-				if (state.selectedCardIds.has(cardId)) {
-					state.selectedCardIds.delete(cardId);
+				const cellKey = `${cardId}:${col}`;
+				if (state.selectedCells.has(cellKey)) {
+					state.selectedCells.delete(cellKey);
 				} else {
-					state.selectedCardIds.add(cardId);
+					state.selectedCells.add(cellKey);
 				}
-				state.lastSelectedCardId = cardId;
+				state.selectionAnchor = { cardId, columnKey: col };
+				state.selectionFocus = { cardId, columnKey: col };
 			} else {
-				state.selectedCardIds.clear();
-				state.selectedCardIds.add(cardId);
-				state.lastSelectedCardId = cardId;
+				state.selectedCells.clear();
+				state.selectedCells.add(`${cardId}:${col}`);
+				state.selectionAnchor = { cardId, columnKey: col };
+				state.selectionFocus = { cardId, columnKey: col };
 			}
 		},
 
 		copySelected() {
-			if (state.selectedCardIds.size === 0) return;
-			const cardsToCopy = [];
+			if (state.selectedCells.size === 0) return;
+
+			const selectedRowIds = state.currentVisibleCardIds.filter(id => 
+				state.visibleColumnsOrder.some(col => state.selectedCells.has(`${id}:${col}`))
+			);
+			const selectedCols = state.visibleColumnsOrder.filter(col => 
+				state.currentVisibleCardIds.some(id => state.selectedCells.has(`${id}:${col}`))
+			);
+
+			if (selectedRowIds.length === 0 || selectedCols.length === 0) return;
+
+			const tsvRows = [];
 			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
-			for (const id of state.selectedCardIds) {
+			
+			const cardsToCopy = [];
+			for (const id of selectedRowIds) {
 				for (const board of boards) {
 					if (deckStore[board]) {
 						const card = deckStore[board].find(c => c.id === id);
 						if (card) {
 							cardsToCopy.push({ ...card, sourceBoard: board });
+							break;
 						}
 					}
 				}
 			}
+			state.copiedCards = cardsToCopy;
+			state.isCut = false;
 
-			if (state.selectedColumnKey) {
-				const values = cardsToCopy.map(c => String(getCardCellValue(c, state.selectedColumnKey)));
-				if (typeof navigator !== 'undefined' && navigator.clipboard) {
-					navigator.clipboard.writeText(values.join('\n')).catch(() => {});
+			for (const id of selectedRowIds) {
+				let card = null;
+				for (const board of boards) {
+					if (deckStore[board]) {
+						card = deckStore[board].find(c => c.id === id);
+						if (card) break;
+					}
 				}
-				state.copiedCellValues = values;
-				state.copiedColumnKey = state.selectedColumnKey;
-			} else {
-				state.copiedCards = cardsToCopy;
-				state.isCut = false;
-				state.copiedCellValues = null;
-				state.copiedColumnKey = null;
+				if (!card) continue;
+
+				const rowVals = [];
+				for (const col of selectedCols) {
+					if (state.selectedCells.has(`${id}:${col}`)) {
+						rowVals.push(String(getCardCellValue(card, col)));
+					} else {
+						rowVals.push("");
+					}
+				}
+				tsvRows.push(rowVals.join('\t'));
 			}
+
+			const tsvText = tsvRows.join('\n');
+			if (typeof navigator !== 'undefined' && navigator.clipboard) {
+				navigator.clipboard.writeText(tsvText).catch(() => {});
+			}
+			state.copiedCellValues = tsvRows;
+			state.copiedColumnKey = selectedCols.length === 1 ? selectedCols[0] : null;
 		},
 
 		cutSelected() {
@@ -336,32 +449,56 @@ function createInteractionStore() {
 			this.deleteSelected();
 		},
 
-		deleteSelected() {
-			if (state.selectedCardIds.size === 0) return;
-			const idsToDelete = [...state.selectedCardIds];
+		deleteSelected(forceDeleteCard = false) {
+			if (state.selectedCells.size === 0) return;
 
-			if (state.selectedColumnKey) {
-				for (const id of idsToDelete) {
-					if (state.selectedColumnKey === 'cmc') {
-						deckStore.resetCardOverride(id, 'manaValue');
-					} else if (state.selectedColumnKey === 'type') {
-						deckStore.resetCardOverride(id, 'primaryType');
-					} else if (state.selectedColumnKey === 'color-cat') {
-						deckStore.resetCardOverride(id, 'colorCategory');
-						deckStore.resetCardOverride(id, 'colors');
-						deckStore.resetCardOverride(id, 'colorIdentity');
-					}
+			const cellMap = new Map();
+			for (const cell of state.selectedCells) {
+				const [id, col] = cell.split(':');
+				if (!cellMap.has(id)) {
+					cellMap.set(id, new Set());
 				}
-			} else {
-				state.selectedCardIds.clear();
+				cellMap.get(id).add(col);
+			}
+
+			deckStore.batchUpdate(() => {
 				const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
-				for (const board of boards) {
-					if (deckStore[board]) {
-						const toRemove = deckStore[board].filter(c => idsToDelete.includes(c.id)) || [];
-						for (const c of toRemove) {
-							deckStore.removeCard(c.name, board, c.id);
+				
+				for (const [id, cols] of cellMap.entries()) {
+					if (forceDeleteCard || cols.has('name')) {
+						for (const board of boards) {
+							if (deckStore[board]) {
+								const card = deckStore[board].find(c => c.id === id);
+								if (card) {
+									deckStore.removeCard(card.name, board, id);
+									break;
+								}
+							}
+						}
+					} else {
+						for (const col of cols) {
+							if (col === 'cmc') {
+								deckStore.resetCardOverride(id, 'manaValue');
+							} else if (col === 'type') {
+								deckStore.resetCardOverride(id, 'primaryType');
+							} else if (col === 'color-cat') {
+								deckStore.resetCardOverride(id, 'colorCategory');
+								deckStore.resetCardOverride(id, 'colors');
+								deckStore.resetCardOverride(id, 'colorIdentity');
+							}
 						}
 					}
+				}
+			});
+
+			const allCardIds = new Set(
+				['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard']
+					.flatMap(b => deckStore[b] ? deckStore[b].map(c => c.id) : [])
+			);
+			for (const cell of [...state.selectedCells]) {
+				const [id] = cell.split(':');
+				if (!allCardIds.has(id)) {
+					state.selectedCells.delete(cell);
 				}
 			}
 		},
@@ -369,100 +506,136 @@ function createInteractionStore() {
 		/**
 		 * @param {string | null} targetColumnName
 		 */
-		async pasteSelected(targetColumnName) {
-			if (state.selectedColumnKey && state.selectedCardIds.size > 0) {
-				let text = "";
-				try {
-					if (typeof navigator !== 'undefined' && navigator.clipboard) {
-						text = await navigator.clipboard.readText();
-					}
-				} catch (e) {}
-
-				if (!text && state.copiedCellValues) {
-					text = state.copiedCellValues.join('\n');
+		async pasteSelected(targetColumnName = null) {
+			let text = "";
+			try {
+				if (typeof navigator !== 'undefined' && navigator.clipboard) {
+					text = await navigator.clipboard.readText();
 				}
+			} catch (e) {}
 
-				if (text) {
-					const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-					const ids = [...state.selectedCardIds];
-					for (let i = 0; i < ids.length; i++) {
-						const id = ids[i];
-						const val = lines[i % lines.length];
-						if (val) {
-							if (state.selectedColumnKey === 'cmc') {
-								const num = parseInt(val, 10);
-								if (!isNaN(num)) {
-									deckStore.setCardOverride(id, 'manaValue', num);
+			if (!text && state.copiedCellValues) {
+				text = state.copiedCellValues.join('\n');
+			}
+
+			if (text) {
+				const rows = text.split(/\r?\n/).map(line => line.split('\t'));
+				if (rows.length > 0) {
+					const selectedRowIds = state.currentVisibleCardIds.filter(id => 
+						state.visibleColumnsOrder.some(col => state.selectedCells.has(`${id}:${col}`))
+					);
+					const selectedCols = state.visibleColumnsOrder.filter(col => 
+						state.currentVisibleCardIds.some(id => state.selectedCells.has(`${id}:${col}`))
+					);
+
+					let startCardId = state.selectionFocus?.cardId;
+					let startColKey = state.selectionFocus?.columnKey;
+
+					if (!startCardId && selectedRowIds.length > 0) {
+						startCardId = selectedRowIds[0];
+					}
+					if (!startColKey && selectedCols.length > 0) {
+						startColKey = selectedCols[0];
+					}
+
+					if (startCardId && startColKey) {
+						const startRowIdx = state.currentVisibleCardIds.indexOf(startCardId);
+						const startColIdx = state.visibleColumnsOrder.indexOf(startColKey);
+
+						if (startRowIdx !== -1 && startColIdx !== -1) {
+							deckStore.batchUpdate(() => {
+								for (let r = 0; r < rows.length; r++) {
+									const rowIdx = startRowIdx + r;
+									if (rowIdx >= state.currentVisibleCardIds.length) break;
+									const cardId = state.currentVisibleCardIds[rowIdx];
+									const rowData = rows[r];
+
+									for (let c = 0; c < rowData.length; c++) {
+										const colIdx = startColIdx + c;
+										if (colIdx >= state.visibleColumnsOrder.length) break;
+										const colKey = state.visibleColumnsOrder[colIdx];
+										const val = rowData[c]?.trim();
+										if (val !== undefined) {
+											if (colKey === 'cmc') {
+												const num = parseInt(val, 10);
+												if (!isNaN(num)) {
+													deckStore.setCardOverride(cardId, 'manaValue', num);
+												}
+											} else if (colKey === 'type') {
+												deckStore.setCardOverride(cardId, 'primaryType', val);
+											} else if (colKey === 'color-cat') {
+												const formatted = val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
+												const validOptions = ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"];
+												const matched = validOptions.find(o => o.toLowerCase() === formatted.toLowerCase()) || formatted;
+												deckStore.setCardOverride(cardId, 'colorCategory', matched);
+												/** @type {Record<string, string[]>} */
+												const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
+												if (mapColors[matched]) {
+													deckStore.setCardOverride(cardId, 'colors', mapColors[matched]);
+													deckStore.setCardOverride(cardId, 'colorIdentity', mapColors[matched]);
+												} else if (matched === "Colorless") {
+													deckStore.setCardOverride(cardId, 'colors', []);
+													deckStore.setCardOverride(cardId, 'colorIdentity', []);
+												}
+											}
+										}
+									}
 								}
-							} else if (state.selectedColumnKey === 'type') {
-								deckStore.setCardOverride(id, 'primaryType', val);
-							} else if (state.selectedColumnKey === 'color-cat') {
-								const formatted = val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
-								const validOptions = ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"];
-								const matched = validOptions.find(o => o.toLowerCase() === formatted.toLowerCase()) || formatted;
-								deckStore.setCardOverride(id, 'colorCategory', matched);
-								/** @type {Record<string, string[]>} */
-								const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
-								if (mapColors[matched]) {
-									deckStore.setCardOverride(id, 'colors', mapColors[matched]);
-									deckStore.setCardOverride(id, 'colorIdentity', mapColors[matched]);
-								} else if (matched === "Colorless") {
-									deckStore.setCardOverride(id, 'colors', []);
-									deckStore.setCardOverride(id, 'colorIdentity', []);
-								}
-							}
+							});
+							return;
 						}
 					}
 				}
-				return;
 			}
 
 			if (!state.copiedCards || state.copiedCards.length === 0) return;
 			
-			const grouping = deckStore.grouping?.toLowerCase();
-			for (const card of state.copiedCards) {
-				const newId = deckStore.addCard(card.name, deckStore.activeBoard, card.price, card._metadata);
-				if (newId) {
-					if (grouping === 'freeform') {
-						// Set freeform target col if supported
-					} else if (grouping === 'cmc') {
-						let val = parseInt(targetColumnName || '', 10);
-						if (targetColumnName === '0-1') val = 1;
-						if (targetColumnName === '6+') val = 6;
-						if (!isNaN(val)) deckStore.setCardOverride(newId, 'manaValue', val);
-					} else if (grouping === 'color') {
-						const category = targetColumnName;
-						/** @type {Record<string, string[]>} */
-						const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
-						if (category) {
-							deckStore.setCardOverride(newId, 'colorCategory', category);
-							if (mapColors[category]) {
-								deckStore.setCardOverride(newId, 'colors', mapColors[category]);
-								deckStore.setCardOverride(newId, 'colorIdentity', mapColors[category]);
+			deckStore.batchUpdate(() => {
+				const grouping = deckStore.grouping?.toLowerCase();
+				for (const card of state.copiedCards) {
+					const newId = deckStore.addCard(card.name, deckStore.activeBoard, card.price, card._metadata);
+					if (newId) {
+						if (grouping === 'freeform') {
+							// Set freeform target col if supported
+						} else if (grouping === 'cmc') {
+							let val = parseInt(targetColumnName || '', 10);
+							if (targetColumnName === '0-1') val = 1;
+							if (targetColumnName === '6+') val = 6;
+							if (!isNaN(val)) deckStore.setCardOverride(newId, 'manaValue', val);
+						} else if (grouping === 'color') {
+							const category = targetColumnName;
+							/** @type {Record<string, string[]>} */
+							const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
+							if (category) {
+								deckStore.setCardOverride(newId, 'colorCategory', category);
+								if (mapColors[category]) {
+									deckStore.setCardOverride(newId, 'colors', mapColors[category]);
+									deckStore.setCardOverride(newId, 'colorIdentity', mapColors[category]);
+								}
 							}
-						}
-					} else if (grouping === 'creature') {
-						if (targetColumnName) {
-							deckStore.setCardOverride(newId, 'creature', targetColumnName === 'Creatures');
-						}
-					} else if (grouping === 'type') {
-						let typeVal = targetColumnName;
-						if (targetColumnName === 'Creatures') typeVal = 'Creature';
-						else if (targetColumnName === 'Planeswalkers') typeVal = 'Planeswalker';
-						else if (targetColumnName === 'Instants') typeVal = 'Instant';
-						else if (targetColumnName === 'Sorceries') typeVal = 'Sorcery';
-						else if (targetColumnName === 'Artifacts') typeVal = 'Artifact';
-						else if (targetColumnName === 'Enchantments') typeVal = 'Enchantment';
-						else if (targetColumnName === 'Battles') typeVal = 'Battle';
-						else if (targetColumnName === 'Lands') typeVal = 'Land';
-						if (typeVal) deckStore.setCardOverride(newId, 'primaryType', typeVal);
-					} else if (grouping === 'primarytag') {
-						if (targetColumnName && targetColumnName !== 'No Tag') {
-							deckStore.setPrimaryTag(newId, targetColumnName);
+						} else if (grouping === 'creature') {
+							if (targetColumnName) {
+								deckStore.setCardOverride(newId, 'creature', targetColumnName === 'Creatures');
+							}
+						} else if (grouping === 'type') {
+							let typeVal = targetColumnName;
+							if (targetColumnName === 'Creatures') typeVal = 'Creature';
+							else if (targetColumnName === 'Planeswalkers') typeVal = 'Planeswalker';
+							else if (targetColumnName === 'Instants') typeVal = 'Instant';
+							else if (targetColumnName === 'Sorceries') typeVal = 'Sorcery';
+							else if (targetColumnName === 'Artifacts') typeVal = 'Artifact';
+							else if (targetColumnName === 'Enchantments') typeVal = 'Enchantment';
+							else if (targetColumnName === 'Battles') typeVal = 'Battle';
+							else if (targetColumnName === 'Lands') typeVal = 'Land';
+							if (typeVal) deckStore.setCardOverride(newId, 'primaryType', typeVal);
+						} else if (grouping === 'primarytag') {
+							if (targetColumnName && targetColumnName !== 'No Tag') {
+								deckStore.setPrimaryTag(newId, targetColumnName);
+							}
 						}
 					}
 				}
-			}
+			});
 		},
 
 		/**
