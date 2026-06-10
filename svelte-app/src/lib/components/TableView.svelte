@@ -721,7 +721,7 @@
 											e.preventDefault();
 											interactionStore.showMenu(
 												e,
-												cardRow.card,
+												cardRow.instances[0],
 												cardRow.zone,
 												cardRow.price,
 											);
