@@ -36,6 +36,24 @@ function getCardCellValue(card, columnKey) {
 		}
 		return 1;
 	}
+	if (columnKey === 'name') {
+		return name;
+	}
+	if (columnKey === 'mana') {
+		return meta?.mana_cost || "";
+	}
+	if (columnKey === 'printing') {
+		return card.set ? `${card.set.toUpperCase()} ${card.collector_number || ""}`.trim() : "";
+	}
+	if (columnKey === 'color-id') {
+		return meta?.color_identity?.join("") || "";
+	}
+	if (columnKey === 'tags') {
+		return card.tags?.join(", ") || "";
+	}
+	if (columnKey === 'price') {
+		return card.price ? `${card.price.toFixed(2)}` : "";
+	}
 	return "";
 }
 
