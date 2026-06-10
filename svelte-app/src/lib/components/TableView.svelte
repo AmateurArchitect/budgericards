@@ -128,6 +128,8 @@
 
 	let inlineCmcVal = $state("");
 	let inlineTypeVal = $state("");
+	let inlineColorVal = $state("");
+	let activeColorOptionIdx = $state(0);
 
 	let editingCardName = $state(null);
 	let editingCardZone = $state(null);
@@ -171,6 +173,101 @@
 			editingCardName = null;
 			editingCardZone = null;
 		}
+	}
+
+	/**
+	 * @param {string} query
+	 * @returns {string[]}
+	 */
+	function getFilteredColorOptions(query) {
+		const q = (query || "").trim().toLowerCase();
+		return ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"].filter(opt =>
+			opt.toLowerCase().includes(q)
+		);
+	}
+
+	/**
+	 * @param {KeyboardEvent} e
+	 * @param {any} cardRow
+	 */
+	function handleColorKeyDown(e, cardRow) {
+		const filtered = getFilteredColorOptions(inlineColorVal);
+		if (e.key === "ArrowDown") {
+			e.preventDefault();
+			activeColorOptionIdx = (activeColorOptionIdx + 1) % Math.max(1, filtered.length);
+		} else if (e.key === "ArrowUp") {
+			e.preventDefault();
+			activeColorOptionIdx = (activeColorOptionIdx - 1 + filtered.length) % Math.max(1, filtered.length);
+		} else if (e.key === "Enter") {
+			e.preventDefault();
+			if (filtered.length > 0) {
+				const selectedOpt = filtered[activeColorOptionIdx];
+				applyColorOverride(cardRow, selectedOpt);
+			} else {
+				applyColorOverride(cardRow, inlineColorVal);
+			}
+		} else if (e.key === "Escape") {
+			editingColorCardId = null;
+		}
+	}
+
+	/**
+	 * @param {any} cardRow
+	 */
+	function handleColorSubmit(cardRow) {
+		const filtered = getFilteredColorOptions(inlineColorVal);
+		if (filtered.length > 0) {
+			const match = filtered.find(opt => opt.toLowerCase() === inlineColorVal.trim().toLowerCase());
+			if (match) {
+				applyColorOverride(cardRow, match);
+			} else {
+				applyColorOverride(cardRow, filtered[0]);
+			}
+		} else {
+			editingColorCardId = null;
+		}
+	}
+
+	/**
+	 * @param {any} cardRow
+	 * @param {string} colorOpt
+	 */
+	function applyColorOverride(cardRow, colorOpt) {
+		if (cardRow.instances[0] && colorOpt) {
+			const formattedOpt = colorOpt.charAt(0).toUpperCase() + colorOpt.slice(1).toLowerCase();
+			const validOptions = ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"];
+			const matchedOpt = validOptions.find(o => o.toLowerCase() === formattedOpt.toLowerCase()) || formattedOpt;
+
+			deckStore.setCardOverride(cardRow.instances[0].id, 'colorCategory', matchedOpt);
+			/** @type {Record<string, string[]>} */
+			const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
+			if (mapColors[matchedOpt]) {
+				deckStore.setCardOverride(cardRow.instances[0].id, 'colors', mapColors[matchedOpt]);
+				deckStore.setCardOverride(cardRow.instances[0].id, 'colorIdentity', mapColors[matchedOpt]);
+			} else if (matchedOpt === "Colorless") {
+				deckStore.setCardOverride(cardRow.instances[0].id, 'colors', []);
+				deckStore.setCardOverride(cardRow.instances[0].id, 'colorIdentity', []);
+			}
+		}
+		editingColorCardId = null;
+	}
+
+	/**
+	 * @param {any} cardRow
+	 */
+	function resetColorOverride(cardRow) {
+		if (cardRow.instances[0]) {
+			deckStore.resetCardOverride(cardRow.instances[0].id, 'colorCategory');
+			deckStore.resetCardOverride(cardRow.instances[0].id, 'colors');
+			deckStore.resetCardOverride(cardRow.instances[0].id, 'colorIdentity');
+		}
+		editingColorCardId = null;
+	}
+
+	/** @param {HTMLInputElement} node */
+	function selectOnMount(node) {
+		node.focus();
+		node.select();
 	}
 
 	/** @param {HTMLInputElement} node */
@@ -712,7 +809,6 @@
 										class:is-editing={editingCardName ===
 											cardRow.name &&
 											editingCardZone === cardRow.zone}
-										data-tooltip-img={cardRow.imgUrl}
 										onmousedown={(e) => {
 											if (e.button !== 0) return;
 											if (e.target instanceof HTMLElement && (
@@ -777,7 +873,7 @@
 														)}
 													min="0"
 													max="999"
-													use:focusOnMount
+													use:selectOnMount
 													onclick={(e) =>
 														e.stopPropagation()}
 												/>
@@ -805,7 +901,7 @@
 										<!-- Card Name & Legality Warning -->
 										<td class="col-name">
 											<div class="name-container-cell">
-												<span class="card-name-label"
+												<span class="card-name-label" data-tooltip-img={cardRow.imgUrl}
 													>{cardRow.name}</span
 												>
 												{#if cardRow.isIllegal}
@@ -843,7 +939,7 @@
 											{@const hasCmcOverride = cardRow.instances[0]?.overrides?.manaValue !== undefined}
 											<td 
 												class="col-cmc"
-												ondblclick={(e) => {
+												onclick={(e) => {
 													e.stopPropagation();
 													if (cardRow.instances[0]) {
 														editingCmcCardId = cardRow.instances[0].id;
@@ -875,7 +971,7 @@
 																editingCmcCardId = null;
 															}
 														}}
-														use:focusOnMount
+														use:selectOnMount
 														onclick={(e) => e.stopPropagation()}
 													/>
 												{:else}
@@ -895,7 +991,7 @@
 											{@const hasTypeOverride = cardRow.instances[0]?.overrides?.primaryType !== undefined}
 											<td 
 												class="col-type"
-												ondblclick={(e) => {
+												onclick={(e) => {
 													e.stopPropagation();
 													if (cardRow.instances[0]) {
 														editingTypeCardId = cardRow.instances[0].id;
@@ -926,7 +1022,7 @@
 																editingTypeCardId = null;
 															}
 														}}
-														use:focusOnMount
+														use:selectOnMount
 														onclick={(e) => e.stopPropagation()}
 													/>
 												{:else}
@@ -943,7 +1039,7 @@
 										<!-- Printing (Set and Collector Number) -->
 										{#if settingsStore.visibleColumns.includes("printing")}
 											<td class="col-printing">
-												<span class="printing-text">
+												<span class="printing-text" data-tooltip-img={cardRow.imgUrl}>
 													{#if cardRow.card?.set}
 														<span class="set-code"
 															>{cardRow.card.set.toUpperCase()}</span
@@ -975,21 +1071,26 @@
 													e.stopPropagation();
 													if (cardRow.instances[0]) {
 														editingColorCardId = editingColorCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
+														if (editingColorCardId) {
+															inlineColorVal = getColorCategory(cardRow);
+															activeColorOptionIdx = 0;
+														}
 													}
 												}}
 											>
 												<div style="position: relative; cursor: pointer;">
-													<span
-														class="color-cat-text class-{getColorCategory(
-															cardRow,
-														).toLowerCase()}"
-														class:is-overridden={hasColorOverride}
-														title={hasColorOverride ? "Click to change color override (Customized)" : "Click to override"}
-													>
-														{getColorCategory(cardRow)}
-													</span>
-
 													{#if editingColorCardId && cardRow.instances[0] && editingColorCardId === cardRow.instances[0].id}
+														{@const filtered = getFilteredColorOptions(inlineColorVal)}
+														<input
+															type="text"
+															class="color-inline-input"
+															bind:value={inlineColorVal}
+															use:selectOnMount
+															onblur={() => handleColorSubmit(cardRow)}
+															onkeydown={(e) => handleColorKeyDown(e, cardRow)}
+															onclick={(e) => e.stopPropagation()}
+														/>
+
 														<!-- svelte-ignore a11y_click_events_have_key_events -->
 														<!-- svelte-ignore a11y_no_static_element_interactions -->
 														<div 
@@ -998,24 +1099,14 @@
 														>
 															<div class="dropdown-backdrop" role="presentation" onclick={() => editingColorCardId = null}></div>
 															<div class="color-picker-menu">
-																{#each ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"] as colorOpt}
+																{#each filtered as colorOpt, idx}
 																	<button
 																		type="button"
 																		class="color-opt-btn"
-																		onclick={() => {
-																			if (cardRow.instances[0]) {
-																				deckStore.setCardOverride(cardRow.instances[0].id, 'colorCategory', colorOpt);
-																				/** @type {Record<string, string[]>} */
-																				const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
-																				if (mapColors[colorOpt]) {
-																					deckStore.setCardOverride(cardRow.instances[0].id, 'colors', mapColors[colorOpt]);
-																					deckStore.setCardOverride(cardRow.instances[0].id, 'colorIdentity', mapColors[colorOpt]);
-																				} else if (colorOpt === "Colorless") {
-																					deckStore.setCardOverride(cardRow.instances[0].id, 'colors', []);
-																					deckStore.setCardOverride(cardRow.instances[0].id, 'colorIdentity', []);
-																				}
-																			}
-																			editingColorCardId = null;
+																		class:active={idx === activeColorOptionIdx}
+																		onmousedown={(e) => {
+																			e.preventDefault();
+																			applyColorOverride(cardRow, colorOpt);
 																		}}
 																	>
 																		{colorOpt}
@@ -1025,19 +1116,25 @@
 																<button
 																	type="button"
 																	class="color-opt-btn reset-btn"
-																	onclick={() => {
-																		if (cardRow.instances[0]) {
-																			deckStore.resetCardOverride(cardRow.instances[0].id, 'colorCategory');
-																			deckStore.resetCardOverride(cardRow.instances[0].id, 'colors');
-																			deckStore.resetCardOverride(cardRow.instances[0].id, 'colorIdentity');
-																		}
-																		editingColorCardId = null;
+																	onmousedown={(e) => {
+																		e.preventDefault();
+																		resetColorOverride(cardRow);
 																	}}
 																>
 																	Reset to Default
 																</button>
 															</div>
 														</div>
+													{:else}
+														<span
+															class="color-cat-text class-{getColorCategory(
+																cardRow,
+															).toLowerCase()}"
+															class:is-overridden={hasColorOverride}
+															title={hasColorOverride ? "Click to change color override (Customized)" : "Click to override"}
+														>
+															{getColorCategory(cardRow)}
+														</span>
 													{/if}
 												</div>
 											</td>
@@ -1701,6 +1798,11 @@
 		color: hsl(var(--primary));
 	}
 
+	.color-opt-btn.active {
+		background: hsl(var(--primary) / 0.25);
+		color: hsl(var(--primary-foreground));
+	}
+
 	.color-opt-btn.reset-btn {
 		color: hsl(var(--muted-foreground));
 		font-weight: 600;
@@ -1772,6 +1874,21 @@
 		outline: none;
 		box-sizing: border-box;
 		display: inline-block;
+	}
+
+	.color-inline-input {
+		background: transparent;
+		border: none;
+		color: hsl(var(--foreground));
+		font-weight: 500;
+		font-size: 0.8125rem;
+		font-family: inherit;
+		padding: 2px 4px;
+		width: 100%;
+		text-align: left;
+		outline: none;
+		box-sizing: border-box;
+		border-bottom: 1px dashed hsl(var(--primary) / 0.5);
 	}
 
 	/* Remove spin buttons */

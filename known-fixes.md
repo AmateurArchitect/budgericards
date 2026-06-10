@@ -57,6 +57,20 @@ if (e.currentTarget instanceof HTMLInputElement) {
 }
 ```
 
+### Error Signature: "Property 'isContentEditable' does not exist on type 'Element'."
+**Fix Pattern**: Narrow the type of the active element using `active instanceof HTMLElement` check before accessing the property.
+**Logic**: `document.activeElement` returns a generic `Element` type. Properties like `isContentEditable` are specific to HTML elements (`HTMLElement`). A type check narrows this safely.
+
+```javascript
+// Before
+const active = document.activeElement;
+const isEditable = active?.isContentEditable;
+
+// After
+const active = document.activeElement;
+const isEditable = active instanceof HTMLElement && active.isContentEditable;
+```
+
 ### Error Signature: "Block-scoped variable 'X' used before its declaration." or "Variable 'X' is used before being assigned."
 **Fix Pattern**: Reorder the declarations in the `<script>` tag so that dependent variables (like filtered lists or selections) are defined before they are referenced by other `$derived` or state variables.
 **Logic**: Svelte 5 `$derived` and `$state` statements are compiled into standard block-scoped JS declarations. Referencing a variable declared further down in the file triggers block-scoping errors during TypeScript/static checking.

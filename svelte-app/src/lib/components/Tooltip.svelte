@@ -11,6 +11,7 @@
 	let imgUrl = $state("");
 	let x = $state(0);
 	let y = $state(0);
+	let isEditingField = $state(false);
 	/** @type {HTMLElement | undefined} */
 	let tooltipEl = $state();
 
@@ -208,6 +209,12 @@
 		);
 	}
 
+	function updateEditingFieldState() {
+		if (typeof document === "undefined") return;
+		const active = document.activeElement;
+		isEditingField = !!(active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || (active instanceof HTMLElement && active.isContentEditable)));
+	}
+
 	onMount(() => {
 		/** @param {MouseEvent} e */
 		const handleGlobalMouseOver = (e) => {
@@ -224,11 +231,15 @@
 		document.addEventListener("mouseover", handleGlobalMouseOver);
 		document.addEventListener("mousemove", handleGlobalMouseMove);
 		document.addEventListener("mouseout", handleMouseOut);
+		document.addEventListener("focusin", updateEditingFieldState);
+		document.addEventListener("focusout", updateEditingFieldState);
 
 		return () => {
 			document.removeEventListener("mouseover", handleGlobalMouseOver);
 			document.removeEventListener("mousemove", handleGlobalMouseMove);
 			document.removeEventListener("mouseout", handleMouseOut);
+			document.removeEventListener("focusin", updateEditingFieldState);
+			document.removeEventListener("focusout", updateEditingFieldState);
 		};
 	});
 </script>
@@ -236,7 +247,7 @@
 <div
 	bind:this={tooltipEl}
 	class="card-tooltip"
-	class:visible
+	class:visible={visible && !isEditingField}
 	style="left: {x}px; top: {y}px;"
 >
 	<div class="card-tooltip-container" class:illegal={!legality.isLegal}>
