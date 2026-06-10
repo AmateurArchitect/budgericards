@@ -5,6 +5,7 @@ import { syncService } from '$lib/syncService';
 import { getCardByName } from '$lib/localSearch';
 import { db } from '$lib/db';
 import { parseDecklist } from '$lib/utils/decklistParser.js';
+import { untrack } from 'svelte';
 
 const browser = typeof window !== 'undefined';
 
@@ -439,7 +440,8 @@ function createDeck() {
 		let lastCleanText = '';
 		$effect(() => {
 			const currentClean = activeDeck.deck.id ? cleanDecklistTextFor(activeDeck) : '';
-			if (activeDeck.importText.trim() === lastCleanText || activeDeck.importText === '') {
+			const currentImport = untrack(() => activeDeck.importText);
+			if (lastCleanText === '' || currentImport.trim() === lastCleanText) {
 				activeDeck.importText = currentClean;
 			}
 			lastCleanText = currentClean;
