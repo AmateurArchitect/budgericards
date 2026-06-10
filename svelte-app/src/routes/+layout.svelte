@@ -64,6 +64,7 @@
 		x={interactionStore.menuPosition?.x ?? 0} 
 		y={interactionStore.menuPosition?.y ?? 0} 
 		items={interactionStore.menuItems}
+		cardName={interactionStore.menuCard?.name}
 		onClose={() => {}}
 	/>
 	<AnimationLayer />

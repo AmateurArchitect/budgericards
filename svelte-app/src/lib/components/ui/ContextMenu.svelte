@@ -12,18 +12,22 @@
 	 * @property {boolean} [danger]
 	 */
 
-	/** @type {{
-	 *   isOpen: boolean,
-	 *   x: number,
-	 *   y: number,
-	 *   items: MenuItem[],
-	 *   onClose: () => void
-	 * }} */
+	/** @typedef {Object} ContextMenuProps
+	 * @property {boolean} [isOpen]
+	 * @property {number} [x]
+	 * @property {number} [y]
+	 * @property {MenuItem[]} [items]
+	 * @property {string} [cardName]
+	 * @property {() => void} onClose
+	 */
+
+	/** @type {ContextMenuProps} */
 	let {
 		isOpen = $bindable(false),
 		x = $bindable(0),
 		y = $bindable(0),
 		items = [],
+		cardName = "",
 		onClose,
 	} = $props();
 
@@ -203,6 +207,12 @@
 			out:fade={{ duration: 100 }}
 		>
 			<div class="menu-items">
+				{#if cardName}
+					<div class="menu-header" title={cardName}>
+						{cardName}
+					</div>
+					<div class="divider"></div>
+				{/if}
 				{#each items as item}
 					{#if item.divider}
 						<div class="divider"></div>
@@ -379,5 +389,18 @@
 		height: 1px;
 		background: hsla(var(--border) / 0.3);
 		margin: 4px 6px;
+	}
+
+	.menu-header {
+		padding: 6px 10px;
+		font-size: 0.75rem;
+		font-weight: 700;
+		color: var(--text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		user-select: none;
 	}
 </style>
