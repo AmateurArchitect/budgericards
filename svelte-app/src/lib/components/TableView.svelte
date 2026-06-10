@@ -10,6 +10,7 @@
 	import { onMount } from "svelte";
 	import ManaSymbol from "./ui/ManaSymbol.svelte";
 	import { SvelteSet } from "svelte/reactivity";
+	import { db } from "$lib/db";
 	import {
 		MoreVertical,
 		Trash2,
@@ -136,6 +137,123 @@
 	let editingCardZone = $state(null);
 	let localQtyText = $state("");
 
+	// Name inline editing states
+	let editingNameCardId = $state(null);
+	let inlineNameVal = $state("");
+	/** @type {string[]} */
+	let nameSuggestions = $state([]);
+	let activeNameOptionIdx = $state(0);
+	let hasNameTyped = $state(false);
+	let nameError = $state(false);
+
+	/**
+	 * @param {string} query
+	 */
+	async function updateNameSuggestions(query) {
+		const q = (query || "").trim();
+		if (q.length < 2) {
+			nameSuggestions = [];
+			activeNameOptionIdx = 0;
+			return;
+		}
+		try {
+			const matches = await db.cards
+				.where("name")
+				.startsWithIgnoreCase(q)
+				.limit(10)
+				.toArray();
+			const uniqueNames = [...new Set(matches.map(m => m.name))];
+			nameSuggestions = uniqueNames;
+			activeNameOptionIdx = 0;
+		} catch (e) {
+			nameSuggestions = [];
+		}
+	}
+
+	/**
+	 * @param {any} cardRow
+	 * @param {string} newName
+	 */
+	async function handleNameSubmit(cardRow, newName) {
+		if (editingNameCardId !== cardRow.instances[0]?.id) return;
+		
+		const cleanNewName = newName.trim();
+		if (!cleanNewName) {
+			editingNameCardId = null;
+			return;
+		}
+
+		try {
+			const foundCard = await db.cards.where("name").equals(cleanNewName).first();
+			if (!foundCard) {
+				const matches = await db.cards.where("name").startsWithIgnoreCase(cleanNewName).limit(1).toArray();
+				if (matches.length > 0) {
+					const correctName = matches[0].name;
+					const priceRecord = await db.prices.get(matches[0].id);
+					const price = priceRecord ? priceRecord.price : 0;
+					
+					editingNameCardId = null;
+					deckStore.renameCard(cardRow.name, correctName, price, {
+						name: matches[0].name,
+						type_line: matches[0].type || "",
+						mana_cost: matches[0].mana || "",
+						cmc: matches[0].cmc ?? 0,
+						colors: matches[0].colors || [],
+						color_identity: matches[0].identity || [],
+						image_uris: { normal: matches[0].image }
+					});
+					return;
+				}
+				nameError = true;
+				return;
+			}
+
+			const priceRecord = await db.prices.get(foundCard.id);
+			const price = priceRecord ? priceRecord.price : 0;
+
+			editingNameCardId = null;
+			deckStore.renameCard(cardRow.name, foundCard.name, price, {
+				name: foundCard.name,
+				type_line: foundCard.type || "",
+				mana_cost: foundCard.mana || "",
+				cmc: foundCard.cmc ?? 0,
+				colors: foundCard.colors || [],
+				color_identity: foundCard.identity || [],
+				image_uris: { normal: foundCard.image }
+			});
+		} catch (e) {
+			nameError = true;
+		}
+	}
+
+	/**
+	 * @param {KeyboardEvent} e
+	 * @param {any} cardRow
+	 */
+	function handleNameKeyDown(e, cardRow) {
+		if (e.key === "ArrowDown") {
+			e.preventDefault();
+			if (nameSuggestions.length > 0) {
+				activeNameOptionIdx = (activeNameOptionIdx + 1) % nameSuggestions.length;
+			}
+		} else if (e.key === "ArrowUp") {
+			e.preventDefault();
+			if (nameSuggestions.length > 0) {
+				activeNameOptionIdx = (activeNameOptionIdx - 1 + nameSuggestions.length) % nameSuggestions.length;
+			}
+		} else if (e.key === "Enter") {
+			e.preventDefault();
+			const selected = nameSuggestions[activeNameOptionIdx];
+			if (selected) {
+				handleNameSubmit(cardRow, selected);
+			} else {
+				handleNameSubmit(cardRow, inlineNameVal);
+			}
+		} else if (e.key === "Escape") {
+			editingNameCardId = null;
+		}
+	}
+
 	/** @param {any} cardRow */
 	function handleQtySubmit(cardRow) {
 		if (
@@ -229,6 +347,9 @@
 		}
 	}
 
+	/**
+	 * @param {any} cardRow
+	 */
 	function handleColorSubmit(cardRow) {
 		if (editingColorCardId !== cardRow.instances[0]?.id) return;
 		editingColorCardId = null;
@@ -916,22 +1037,80 @@
 										</td>
 
 										<!-- Card Name & Legality Warning -->
-										<td class="col-name">
+										<!-- svelte-ignore a11y_click_events_have_key_events -->
+										<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+										<td 
+											class="col-name" 
+											data-tooltip-img={editingNameCardId === cardRow.instances[0]?.id ? null : cardRow.imgUrl}
+											onclick={(e) => {
+												e.stopPropagation();
+												if (cardRow.instances[0]) {
+													editingNameCardId = cardRow.instances[0].id;
+													inlineNameVal = cardRow.name;
+													nameSuggestions = [];
+													activeNameOptionIdx = 0;
+													hasNameTyped = false;
+													nameError = false;
+												}
+											}}
+										>
 											<div class="name-container-cell">
-												<span class="card-name-label" data-tooltip-img={cardRow.imgUrl}
-													>{cardRow.name}</span
-												>
-												{#if cardRow.isIllegal}
-													<div
-														class="legality-warning-icon"
-														title={cardRow.legalityReasons.join(
-															", ",
-														)}
-													>
-														<AlertTriangle
-															size={12}
+												{#if editingNameCardId && cardRow.instances[0] && editingNameCardId === cardRow.instances[0].id}
+													<div class="name-edit-wrapper" onclick={(e) => e.stopPropagation()}>
+														<input
+															type="text"
+															class="name-inline-input"
+															class:has-error={nameError}
+															bind:value={inlineNameVal}
+															use:selectOnMount
+															oninput={() => {
+																hasNameTyped = true;
+																nameError = false;
+																updateNameSuggestions(inlineNameVal);
+															}}
+															onblur={() => {
+																setTimeout(() => {
+																	if (editingNameCardId === cardRow.instances[0]?.id) {
+																		handleNameSubmit(cardRow, inlineNameVal);
+																	}
+																}, 150);
+															}}
+															onkeydown={(e) => handleNameKeyDown(e, cardRow)}
+															title={nameError ? "Invalid card name. Please check spelling or select from suggestions." : ""}
 														/>
+														{#if nameSuggestions.length > 0}
+															<div class="name-suggestions-dropdown">
+																{#each nameSuggestions as name, idx}
+																	<button
+																		type="button"
+																		class="name-opt-btn"
+																		class:active={idx === activeNameOptionIdx}
+																		onmousedown={(e) => {
+																			e.preventDefault();
+																			editingNameCardId = null;
+																			handleNameSubmit(cardRow, name);
+																		}}
+																	>
+																		{name}
+																	</button>
+																{/each}
+															</div>
+														{/if}
 													</div>
+												{:else}
+													<span class="card-name-label">{cardRow.name}</span>
+													{#if cardRow.isIllegal}
+														<div
+															class="legality-warning-icon"
+															title={cardRow.legalityReasons.join(
+																", ",
+															)}
+														>
+															<AlertTriangle
+																size={12}
+															/>
+														</div>
+													{/if}
 												{/if}
 											</div>
 										</td>
@@ -2319,6 +2498,76 @@
 
 	.category-group:has(.category-header-row:hover) .card-row:nth-child(even) {
 		background-color: hsla(0, 0%, 100%, 0.045) !important;
+	}
+
+	/* Card Name inline editing styles */
+	.name-edit-wrapper {
+		position: relative;
+		display: inline-block;
+		width: 100%;
+	}
+
+	.name-inline-input {
+		width: 100%;
+		background: hsl(var(--background));
+		border: 1px solid hsl(var(--primary));
+		color: hsl(var(--foreground));
+		font-size: 0.875rem;
+		padding: 2px 6px;
+		border-radius: var(--radius-sm);
+		outline: none;
+		box-sizing: border-box;
+	}
+
+	.name-inline-input.has-error {
+		border-color: hsl(var(--destructive));
+		box-shadow: 0 0 0 1px hsl(var(--destructive) / 0.3);
+		color: hsl(var(--destructive));
+	}
+
+	.name-suggestions-dropdown {
+		position: absolute;
+		top: calc(100% + 4px);
+		left: 0;
+		z-index: 1000;
+		width: 250px;
+		background: hsl(var(--popover) / 0.95);
+		backdrop-filter: blur(16px);
+		border: 1px solid hsl(var(--border) / 0.6);
+		border-radius: var(--radius-md);
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+		padding: 4px;
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+		max-height: 200px;
+		overflow-y: auto;
+	}
+
+	.name-opt-btn {
+		width: 100%;
+		text-align: left;
+		padding: 6px 8px;
+		font-size: 12px;
+		font-weight: 500;
+		color: hsl(var(--foreground));
+		background: none;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.name-opt-btn:hover {
+		background: hsl(var(--primary) / 0.15);
+		color: hsl(var(--primary));
+	}
+
+	.name-opt-btn.active {
+		background: hsl(var(--primary) / 0.25);
+		color: hsl(var(--primary-foreground));
 	}
 
 </style>

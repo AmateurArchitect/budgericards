@@ -688,6 +688,33 @@ function createDeck() {
 		},
 
 		/**
+		 * @param {string} oldName
+		 * @param {string} newName
+		 * @param {number | null} price
+		 * @param {any} cardMetadata
+		 */
+		renameCard(oldName, newName, price = 0, cardMetadata = null) {
+			saveHistory(activeDeck);
+			if (cardMetadata) {
+				activeDeck.metadata[newName.toLowerCase()] = cardMetadata;
+			}
+			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+			for (const board of boards) {
+				if (activeDeck.deck[board]) {
+					activeDeck.deck[board].forEach(c => {
+						if (c.name.toLowerCase() === oldName.toLowerCase()) {
+							c.name = newName;
+							c.price = price || 0;
+							delete c.overrides;
+						}
+					});
+				}
+			}
+			persist(activeDeck);
+			syncMetadata(activeDeck);
+		},
+
+		/**
 		 * @param {string} cardName
 		 * @param {string} zone
 		 * @param {number | null} price
