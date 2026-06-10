@@ -127,9 +127,9 @@
 	}
 
 	// Inline Overrides states
-	let editingCmcCardId = $state(null);
-	let editingTypeCardId = $state(null);
-	let editingColorCardId = $state(null);
+	let editingCmcCardId = $state(/** @type {string | null} */ (null));
+	let editingTypeCardId = $state(/** @type {string | null} */ (null));
+	let editingColorCardId = $state(/** @type {string | null} */ (null));
 
 	let inlineCmcVal = $state("");
 	let inlineTypeVal = $state("");
@@ -137,12 +137,12 @@
 	let activeColorOptionIdx = $state(0);
 	let hasTyped = $state(false);
 
-	let editingCardName = $state(null);
-	let editingCardZone = $state(null);
+	let editingCardName = $state(/** @type {string | null} */ (null));
+	let editingCardZone = $state(/** @type {string | null} */ (null));
 	let localQtyText = $state("");
 
 	// Name inline editing states
-	let editingNameCardId = $state(null);
+	let editingNameCardId = $state(/** @type {string | null} */ (null));
 	let inlineNameVal = $state("");
 	/** @type {string[]} */
 	let nameSuggestions = $state([]);
@@ -151,13 +151,13 @@
 	let nameError = $state(false);
 
 	// Tags inline editing states
-	let editingTagsCardId = $state(null);
+	let editingTagsCardId = $state(/** @type {string | null} */ (null));
 	let inlineTagsVal = $state("");
 	let activeTagsOptionIdx = $state(0);
 	let hasTagsTyped = $state(false);
 
 	// Printing inline editing states
-	let editingPrintingCardId = $state(null);
+	let editingPrintingCardId = $state(/** @type {string | null} */ (null));
 	let inlinePrintingVal = $state("");
 	/** @type {any[]} */
 	let availablePrintings = $state([]);
@@ -1254,6 +1254,15 @@
 										}}
 										onmouseleave={() =>
 											interactionStore.unregisterHover()}
+										onfocus={() => {
+											interactionStore.registerHover(
+												cardRow.instances[0] || cardRow.card,
+												cardRow.zone,
+												cardRow.price,
+											);
+										}}
+										onblur={() =>
+											interactionStore.unregisterHover()}
 									>
 										<!-- Quantity Display (Clickable/Typable inline input) -->
 										<td 
@@ -1612,6 +1621,8 @@
 															onclick={(e) => e.stopPropagation()}
 														/>
 
+														<!-- svelte-ignore a11y_click_events_have_key_events -->
+														<!-- svelte-ignore a11y_no_static_element_interactions -->
 														<div 
 															class="printing-picker-dropdown"
 															onclick={(evt) => evt.stopPropagation()}
@@ -1835,6 +1846,8 @@
 															onclick={(e) => e.stopPropagation()}
 														/>
 
+														<!-- svelte-ignore a11y_click_events_have_key_events -->
+														<!-- svelte-ignore a11y_no_static_element_interactions -->
 														<div 
 															class="tags-picker-dropdown"
 															onclick={(evt) => evt.stopPropagation()}
@@ -2332,22 +2345,7 @@
 		border-color: hsl(var(--primary));
 	}
 
-	.tag-input-box {
-		display: flex;
-		gap: 4px;
-		margin-top: 6px;
-	}
 
-	.tag-input-box input {
-		flex: 1;
-		background: hsl(var(--muted) / 0.2);
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: 4px;
-		padding: 4px 6px;
-		font-size: 11px;
-		color: hsl(var(--foreground));
-		outline: none;
-	}
 
 	.add-tag-submit-btn {
 		background: hsl(var(--primary));

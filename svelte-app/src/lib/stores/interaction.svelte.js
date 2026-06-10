@@ -63,9 +63,10 @@ function getCardCellValue(card, columnKey) {
  * @property {any | null} cardDataModal.card
  * @property {string | null} cardDataModal.zone
  * @property {number | null} cardDataModal.price
- * @property {Set<string>} selectedCardIds
- * @property {string | null} lastSelectedCardId
- * @property {string | null} selectedColumnKey
+ * @property {Set<string>} selectedCells
+ * @property {{cardId: string, columnKey: string} | null} selectionAnchor
+ * @property {{cardId: string, columnKey: string} | null} selectionFocus
+ * @property {string[]} visibleColumnsOrder
  * @property {any[]} currentVisibleCardIds
  * @property {any[]} copiedCards
  * @property {boolean} isCut
@@ -73,6 +74,7 @@ function getCardCellValue(card, columnKey) {
  * @property {number} generateTagsTrigger
  * @property {string[] | null} copiedCellValues
  * @property {string | null} copiedColumnKey
+ * @property {{cardId: string, columnKey: string, initialKey: string} | null} inlineEditTrigger
  */
 
 function createInteractionStore() {

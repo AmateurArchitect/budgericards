@@ -35,7 +35,7 @@
 			return;
 		}
 
-		if (!inSearchPanel && (isMultiSelectToggle || isRangeSelect || interactionStore.selectedCardIds.size > 0)) {
+		if (!inSearchPanel && (isMultiSelectToggle || isRangeSelect || interactionStore.selectedCells.size > 0)) {
 			e.stopPropagation();
 			e.preventDefault();
 			interactionStore.handleCardSelectClick(card.id, isRangeSelect, isMultiSelectToggle);
@@ -156,7 +156,7 @@
 	class="card-shell {className}"
 	style="{style}"
 	class:is-dragging={isDragging}
-	class:is-selected={!inSearchPanel && interactionStore.selectedCardIds.has(card.id)}
+	class:is-selected={!inSearchPanel && [...interactionStore.selectedCells].some(cell => cell.startsWith(card.id + ":"))}
 	onclick={handleLeftClick}
 	onkeydown={(e) => {
 		if (e.key === "Enter" || e.key === " ") {
