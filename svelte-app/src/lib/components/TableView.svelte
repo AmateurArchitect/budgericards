@@ -191,10 +191,13 @@
 		interactionStore.visibleColumnsOrder = order;
 	});
 
+	let isTriggeredByTyping = false;
+
 	// Handle typing-to-edit triggers
 	$effect(() => {
 		const trigger = interactionStore.inlineEditTrigger;
 		if (trigger) {
+			isTriggeredByTyping = true;
 			const { cardId, columnKey, initialKey } = trigger;
 			if (columnKey === 'cmc') {
 				editingCmcCardId = cardId;
@@ -665,7 +668,14 @@
 	/** @param {HTMLInputElement} node */
 	function selectOnMount(node) {
 		node.focus();
-		node.select();
+		if (isTriggeredByTyping) {
+			const val = node.value;
+			node.value = "";
+			node.value = val;
+			isTriggeredByTyping = false;
+		} else {
+			node.select();
+		}
 	}
 
 	/** @param {HTMLInputElement} node */
@@ -1312,7 +1322,7 @@
 											ondblclick={(e) => {
 												if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 												e.stopPropagation();
-												if (interactionStore.selectedCells.size > 1) return;
+												interactionStore.filterSelectionToColumn('qty');
 												editingCardName = cardRow.name;
 												editingCardZone = cardRow.zone;
 												localQtyText = String(cardRow.quantity);
@@ -1345,7 +1355,7 @@
 													ondblclick={(e) => {
 														if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 														e.stopPropagation();
-														if (interactionStore.selectedCells.size > 1) return;
+														interactionStore.filterSelectionToColumn('qty');
 														editingCardName =
 															cardRow.name;
 														editingCardZone =
@@ -1375,7 +1385,7 @@
 											ondblclick={(e) => {
 												if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 												e.stopPropagation();
-												if (interactionStore.selectedCells.size > 1) return;
+												interactionStore.filterSelectionToColumn('name');
 												if (cardRow.instances[0]) {
 													editingNameCardId = cardRow.instances[0].id;
 													inlineNameVal = cardRow.name;
@@ -1480,7 +1490,7 @@
 												ondblclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
-													if (interactionStore.selectedCells.size > 1) return;
+													interactionStore.filterSelectionToColumn('cmc');
 													if (cardRow.instances[0]) {
 														editingCmcCardId = cardRow.instances[0].id;
 														inlineCmcVal = String(cardRow.cmc);
@@ -1553,7 +1563,7 @@
 												ondblclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
-													if (interactionStore.selectedCells.size > 1) return;
+													interactionStore.filterSelectionToColumn('type');
 													if (cardRow.instances[0]) {
 														editingTypeCardId = cardRow.instances[0].id;
 														inlineTypeVal = String(cardRow.type);
@@ -1625,7 +1635,7 @@
 												ondblclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
-													if (interactionStore.selectedCells.size > 1) return;
+													interactionStore.filterSelectionToColumn('printing');
 													if (cardRow.instances[0]) {
 														editingPrintingCardId = editingPrintingCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
 														if (editingPrintingCardId) {
@@ -1753,7 +1763,7 @@
 												ondblclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
-													if (interactionStore.selectedCells.size > 1) return;
+													interactionStore.filterSelectionToColumn('color-cat');
 													if (cardRow.instances[0]) {
 														editingColorCardId = editingColorCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
 														if (editingColorCardId) {
@@ -1865,7 +1875,7 @@
 												ondblclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
-													if (interactionStore.selectedCells.size > 1) return;
+													interactionStore.filterSelectionToColumn('tags');
 													if (cardRow.instances[0]) {
 														editingTagsCardId = editingTagsCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
 														if (editingTagsCardId) {

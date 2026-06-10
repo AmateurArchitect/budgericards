@@ -442,12 +442,17 @@ function createInteractionStore() {
 					const focusId = state.selectionFocus.cardId;
 					const focusCol = state.selectionFocus.columnKey;
 					
-					state.selectedCells.clear();
-					state.selectedCells.add(`${focusId}:${focusCol}`);
+					const newSelection = new Set();
+					for (const cell of state.selectedCells) {
+						if (cell.endsWith(`:${focusCol}`)) {
+							newSelection.add(cell);
+						}
+					}
+					newSelection.add(`${focusId}:${focusCol}`);
+					state.selectedCells = newSelection;
 					state.selectionAnchor = { cardId: focusId, columnKey: focusCol };
 
 					state.inlineEditTrigger = { cardId: focusId, columnKey: focusCol, initialKey: e.key };
-					state.selectedCells = new Set(state.selectedCells);
 					e.preventDefault();
 					return;
 				}
@@ -548,6 +553,20 @@ function createInteractionStore() {
 			state.selectionAnchor = null;
 			state.selectionFocus = null;
 			state.selectedCells = new Set();
+		},
+
+		filterSelectionToColumn(columnKey) {
+			const newSelection = new Set();
+			for (const cell of state.selectedCells) {
+				if (cell.endsWith(`:${columnKey}`)) {
+					newSelection.add(cell);
+				}
+			}
+			state.selectedCells = newSelection;
+		},
+
+		setSelectedCells(cellsSet) {
+			state.selectedCells = cellsSet;
 		},
 
 		/**
