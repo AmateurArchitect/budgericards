@@ -469,17 +469,42 @@
 			return;
 
 		const parsed = parseInt(localQtyText, 10);
-		if (isNaN(parsed) || parsed <= 0) {
-			deckStore.removeAllCopies(cardRow.name, cardRow.zone);
-		} else {
-			deckStore.setQuantity(
-				cardRow.name,
-				cardRow.zone,
-				parsed,
-				cardRow.price,
-				cardRow.card,
-			);
+		if (isNaN(parsed)) {
+			editingCardName = null;
+			editingCardZone = null;
+			return;
 		}
+
+		const hasSelectedSelf = cardRow.instances[0] && interactionStore.selectedCells.has(`${cardRow.instances[0].id}:qty`);
+		const targets = [];
+		if (hasSelectedSelf) {
+			for (const cat of groupedCategories) {
+				for (const row of cat.cards) {
+					const firstId = row.instances[0]?.id;
+					if (firstId && interactionStore.selectedCells.has(`${firstId}:qty`)) {
+						targets.push(row);
+					}
+				}
+			}
+		} else {
+			targets.push(cardRow);
+		}
+
+		deckStore.batchUpdate(() => {
+			for (const row of targets) {
+				if (parsed <= 0) {
+					deckStore.removeAllCopies(row.name, row.zone);
+				} else {
+					deckStore.setQuantity(
+						row.name,
+						row.zone,
+						parsed,
+						row.price,
+						row.card,
+					);
+				}
+			}
+		});
 
 		editingCardName = null;
 		editingCardZone = null;
@@ -1192,6 +1217,8 @@
 													else if (targetTd.classList.contains('col-tags')) colKey = 'tags';
 													else if (targetTd.classList.contains('col-printing')) colKey = 'printing';
 													else if (targetTd.classList.contains('col-price')) colKey = 'price';
+													else if (targetTd.classList.contains('col-mana')) colKey = 'mana';
+													else if (targetTd.classList.contains('col-color-id')) colKey = 'color-id';
 												}
 
 												if (e.shiftKey || isCmdCtrl) {
@@ -1233,6 +1260,8 @@
 													else if (targetTd.classList.contains('col-tags')) colKey = 'tags';
 													else if (targetTd.classList.contains('col-printing')) colKey = 'printing';
 													else if (targetTd.classList.contains('col-price')) colKey = 'price';
+													else if (targetTd.classList.contains('col-mana')) colKey = 'mana';
+													else if (targetTd.classList.contains('col-color-id')) colKey = 'color-id';
 												}
 											}
 
@@ -1403,7 +1432,10 @@
 
 										<!-- Mana Icons (Mana Cost) -->
 										{#if settingsStore.visibleColumns.includes("mana")}
-											<td class="col-mana">
+											<td 
+												class="col-mana"
+												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:mana`)}
+											>
 												<div class="mana-icons-cell">
 													{#each cardRow.manaSymbols as sym}
 														<ManaSymbol
@@ -1769,7 +1801,10 @@
 
 										<!-- Color Identity (Mana symbols) -->
 										{#if settingsStore.visibleColumns.includes("color-id")}
-											<td class="col-color-id">
+											<td 
+												class="col-color-id"
+												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:color-id`)}
+											>
 												<div class="color-id-cell">
 													{#each cardRow.color_identity as sym}
 														<ManaSymbol
@@ -2968,8 +3003,8 @@
 
 	/* Cell-level selection styles */
 	td.is-selected {
-		background-color: rgba(239, 68, 68, 0.4) !important;
-		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+		background-color: rgba(37, 99, 235, 0.15) !important;
+		box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.8) !important;
 	}
 
 	.tags-inline-input,
