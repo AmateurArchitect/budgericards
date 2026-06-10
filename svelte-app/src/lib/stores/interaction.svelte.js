@@ -413,12 +413,12 @@ function createInteractionStore() {
 						cIdx++; moved = true;
 					} else if (e.key === 'ArrowLeft' || (e.key === 'Tab' && e.shiftKey)) {
 						cIdx--; moved = true;
-					} else if (e.key === 'ArrowDown' || (e.key === 'Enter' && !e.shiftKey)) {
+					} else if (e.key === 'ArrowDown') {
 						rIdx++; moved = true;
-					} else if (e.key === 'ArrowUp' || (e.key === 'Enter' && e.shiftKey)) {
+					} else if (e.key === 'ArrowUp') {
 						rIdx--; moved = true;
 					}
-
+ 
 					if (moved) {
 						e.preventDefault();
 						rIdx = Math.max(0, Math.min(state.currentVisibleCardIds.length - 1, rIdx));
@@ -434,6 +434,26 @@ function createInteractionStore() {
 						return;
 					}
 				}
+			}
+
+			// Enter key to edit
+			if (e.key === 'Enter' && state.selectionFocus) {
+				const focusId = state.selectionFocus.cardId;
+				const focusCol = state.selectionFocus.columnKey;
+				
+				const newSelection = new Set();
+				for (const cell of state.selectedCells) {
+					if (cell.endsWith(`:${focusCol}`)) {
+						newSelection.add(cell);
+					}
+				}
+				newSelection.add(`${focusId}:${focusCol}`);
+				state.selectedCells = newSelection;
+				state.selectionAnchor = { cardId: focusId, columnKey: focusCol };
+
+				state.inlineEditTrigger = { cardId: focusId, columnKey: focusCol, initialKey: "" };
+				e.preventDefault();
+				return;
 			}
 
 			// Typing to edit
