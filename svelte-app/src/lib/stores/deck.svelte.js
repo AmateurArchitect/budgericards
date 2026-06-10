@@ -795,19 +795,26 @@ function createDeck() {
 			const result = this.findCardById(cardId);
 			if (result) {
 				saveHistory(activeDeck);
-				if (!result.card.overrides) {
-					result.card.overrides = {};
+				const cardCopy = { ...result.card };
+				if (!cardCopy.overrides) {
+					cardCopy.overrides = {};
 				}
 				
-				const metadata = activeDeck.metadata[result.card.name.toLowerCase()];
-				if (isDefaultValue(result.card, metadata, fieldName, value)) {
-					delete result.card.overrides[fieldName];
+				const metadata = activeDeck.metadata[cardCopy.name.toLowerCase()];
+				if (isDefaultValue(cardCopy, metadata, fieldName, value)) {
+					delete cardCopy.overrides[fieldName];
 				} else {
-					result.card.overrides[fieldName] = value;
+					cardCopy.overrides[fieldName] = value;
 				}
 
-				if (Object.keys(result.card.overrides).length === 0) {
-					delete result.card.overrides;
+				if (Object.keys(cardCopy.overrides).length === 0) {
+					delete cardCopy.overrides;
+				}
+
+				const board = activeDeck.deck[result.board];
+				const idx = board.findIndex(c => c.id === cardId);
+				if (idx !== -1) {
+					board[idx] = cardCopy;
 				}
 				persist(activeDeck);
 			}
@@ -819,11 +826,19 @@ function createDeck() {
 		 */
 		resetCardOverride(cardId, fieldName) {
 			const result = this.findCardById(cardId);
-			if (result && result.card.overrides) {
+			if (result) {
 				saveHistory(activeDeck);
-				delete result.card.overrides[fieldName];
-				if (Object.keys(result.card.overrides).length === 0) {
-					delete result.card.overrides;
+				const cardCopy = { ...result.card };
+				if (cardCopy.overrides) {
+					delete cardCopy.overrides[fieldName];
+					if (Object.keys(cardCopy.overrides).length === 0) {
+						delete cardCopy.overrides;
+					}
+				}
+				const board = activeDeck.deck[result.board];
+				const idx = board.findIndex(c => c.id === cardId);
+				if (idx !== -1) {
+					board[idx] = cardCopy;
 				}
 				persist(activeDeck);
 			}
@@ -836,10 +851,16 @@ function createDeck() {
 			const result = this.findCardById(cardId);
 			if (result) {
 				saveHistory(activeDeck);
-				delete result.card.overrides;
-				delete result.card.customColumn;
-				delete result.card.tags;
-				delete result.card.primaryTag;
+				const cardCopy = { ...result.card };
+				delete cardCopy.overrides;
+				delete cardCopy.customColumn;
+				delete cardCopy.tags;
+				delete cardCopy.primaryTag;
+				const board = activeDeck.deck[result.board];
+				const idx = board.findIndex(c => c.id === cardId);
+				if (idx !== -1) {
+					board[idx] = cardCopy;
+				}
 				persist(activeDeck);
 			}
 		},
@@ -849,9 +870,11 @@ function createDeck() {
 			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
 			for (const board of boards) {
 				if (activeDeck.deck[board]) {
-					for (const card of activeDeck.deck[board]) {
-						delete card.overrides;
-					}
+					activeDeck.deck[board] = activeDeck.deck[board].map(card => {
+						const copy = { ...card };
+						delete copy.overrides;
+						return copy;
+					});
 				}
 			}
 			persist(activeDeck);
@@ -865,15 +888,21 @@ function createDeck() {
 			const result = this.findCardById(cardId);
 			if (result) {
 				saveHistory(activeDeck);
-				if (!result.card.tags) {
-					result.card.tags = [];
+				const cardCopy = { ...result.card };
+				if (!cardCopy.tags) {
+					cardCopy.tags = [];
 				}
 				const trimmed = tagName.trim();
-				if (trimmed && !result.card.tags.includes(trimmed)) {
-					result.card.tags.push(trimmed);
+				if (trimmed && !cardCopy.tags.includes(trimmed)) {
+					cardCopy.tags.push(trimmed);
 				}
-				if (!result.card.primaryTag && result.card.tags.length > 0) {
-					result.card.primaryTag = result.card.tags[0];
+				if (!cardCopy.primaryTag && cardCopy.tags.length > 0) {
+					cardCopy.primaryTag = cardCopy.tags[0];
+				}
+				const board = activeDeck.deck[result.board];
+				const idx = board.findIndex(c => c.id === cardId);
+				if (idx !== -1) {
+					board[idx] = cardCopy;
 				}
 				persist(activeDeck);
 			}
@@ -885,15 +914,23 @@ function createDeck() {
 		 */
 		removeCardTag(cardId, tagName) {
 			const result = this.findCardById(cardId);
-			if (result && result.card.tags) {
+			if (result) {
 				saveHistory(activeDeck);
-				result.card.tags = result.card.tags.filter((/** @type {string} */ t) => t !== tagName);
-				if (result.card.primaryTag === tagName) {
-					result.card.primaryTag = result.card.tags[0] || undefined;
+				const cardCopy = { ...result.card };
+				if (cardCopy.tags) {
+					cardCopy.tags = cardCopy.tags.filter((/** @type {string} */ t) => t !== tagName);
+					if (cardCopy.primaryTag === tagName) {
+						cardCopy.primaryTag = cardCopy.tags[0] || undefined;
+					}
+					if (cardCopy.tags.length === 0) {
+						delete cardCopy.tags;
+						delete cardCopy.primaryTag;
+					}
 				}
-				if (result.card.tags.length === 0) {
-					delete result.card.tags;
-					delete result.card.primaryTag;
+				const board = activeDeck.deck[result.board];
+				const idx = board.findIndex(c => c.id === cardId);
+				if (idx !== -1) {
+					board[idx] = cardCopy;
 				}
 				persist(activeDeck);
 			}
@@ -907,17 +944,23 @@ function createDeck() {
 			const result = this.findCardById(cardId);
 			if (result) {
 				saveHistory(activeDeck);
-				if (!result.card.tags) {
-					result.card.tags = [];
+				const cardCopy = { ...result.card };
+				if (!cardCopy.tags) {
+					cardCopy.tags = [];
 				}
 				const trimmed = tagName.trim();
-				if (trimmed && !result.card.tags.includes(trimmed)) {
-					result.card.tags.unshift(trimmed);
+				if (trimmed && !cardCopy.tags.includes(trimmed)) {
+					cardCopy.tags.unshift(trimmed);
 				} else if (trimmed) {
 					// Move to front/first position or explicitly assign
-					result.card.tags = [trimmed, ...result.card.tags.filter((/** @type {string} */ t) => t !== trimmed)];
+					cardCopy.tags = [trimmed, ...cardCopy.tags.filter((/** @type {string} */ t) => t !== trimmed)];
 				}
-				result.card.primaryTag = trimmed || undefined;
+				cardCopy.primaryTag = trimmed || undefined;
+				const board = activeDeck.deck[result.board];
+				const idx = board.findIndex(c => c.id === cardId);
+				if (idx !== -1) {
+					board[idx] = cardCopy;
+				}
 				persist(activeDeck);
 			}
 		},
@@ -935,20 +978,21 @@ function createDeck() {
 			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
 			for (const board of boards) {
 				if (activeDeck.deck[board]) {
-					for (const card of activeDeck.deck[board]) {
-						if (card.tags && card.tags.includes(trimmedOld)) {
-							// Filter out if newName already exists (prevent duplicate) to preserve uniqueness
-							const filtered = card.tags.filter((/** @type {string} */ t) => t !== trimmedOld);
+					activeDeck.deck[board] = activeDeck.deck[board].map(card => {
+						const copy = { ...card };
+						if (copy.tags && copy.tags.includes(trimmedOld)) {
+							const filtered = copy.tags.filter((/** @type {string} */ t) => t !== trimmedOld);
 							if (!filtered.includes(trimmedNew)) {
-								card.tags = card.tags.map((/** @type {string} */ t) => t === trimmedOld ? trimmedNew : t);
+								copy.tags = copy.tags.map((/** @type {string} */ t) => t === trimmedOld ? trimmedNew : t);
 							} else {
-								card.tags = filtered;
+								copy.tags = filtered;
 							}
 						}
-						if (card.primaryTag === trimmedOld) {
-							card.primaryTag = trimmedNew;
+						if (copy.primaryTag === trimmedOld) {
+							copy.primaryTag = trimmedNew;
 						}
-					}
+						return copy;
+					});
 				}
 			}
 			persist(activeDeck);
@@ -962,13 +1006,19 @@ function createDeck() {
 			const result = this.findCardById(cardId);
 			if (result) {
 				saveHistory(activeDeck);
+				const cardCopy = { ...result.card };
 				const uniqueTags = [...new Set(tagArray.map(t => t.trim()).filter(Boolean))];
 				if (uniqueTags.length > 0) {
-					result.card.tags = uniqueTags;
-					result.card.primaryTag = uniqueTags[0];
+					cardCopy.tags = uniqueTags;
+					cardCopy.primaryTag = uniqueTags[0];
 				} else {
-					delete result.card.tags;
-					delete result.card.primaryTag;
+					delete cardCopy.tags;
+					delete cardCopy.primaryTag;
+				}
+				const board = activeDeck.deck[result.board];
+				const idx = board.findIndex(c => c.id === cardId);
+				if (idx !== -1) {
+					board[idx] = cardCopy;
 				}
 				persist(activeDeck);
 			}

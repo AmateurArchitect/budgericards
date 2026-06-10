@@ -410,8 +410,8 @@
 				<div class="editor-form-column">
 					
 					<div class="modal-header">
-						<span class="modal-subtitle">Edit Card Data</span>
 						<h3 class="modal-title">{card?.name}</h3>
+						<span class="modal-subtitle">Edit Card Data</span>
 					</div>
 
 					<div class="modal-body">
@@ -452,18 +452,18 @@
 									type="text"
 									bind:value={typeLine}
 									class={isTypeLineChanged ? 'text-blue' : (isTypeLineCustom ? 'text-white' : 'text-muted')}
-									onfocus={(e) => {
+									onfocus={(/** @type {any} */ e) => {
 										showTypeSuggestions = true;
 										cursorPos = e.currentTarget.selectionStart || 0;
 									}}
 									onblur={() => setTimeout(() => showTypeSuggestions = false, 150)}
-									oninput={(e) => {
+									oninput={(/** @type {any} */ e) => {
 										cursorPos = e.currentTarget.selectionStart || 0;
 									}}
-									onclick={(e) => {
+									onclick={(/** @type {any} */ e) => {
 										cursorPos = e.currentTarget.selectionStart || 0;
 									}}
-									onkeyup={(e) => {
+									onkeyup={(/** @type {any} */ e) => {
 										cursorPos = e.currentTarget.selectionStart || 0;
 									}}
 									onkeydown={(/** @type {KeyboardEvent} */ e) => {
@@ -565,29 +565,31 @@
 							</div>
 							
 							<!-- Active Tags Badges -->
-							<div class="active-tags-list">
-								{#each tags as tag}
-									<div class="tag-badge-pill" class:is-primary={primaryTag === tag}>
-										<button 
-											type="button" 
-											class="primary-star-btn"
-											onclick={() => togglePrimary(tag)}
-											title={primaryTag === tag ? "Primary tag (click to demote)" : "Make primary tag"}
-										>
-											<Star size={12} fill={primaryTag === tag ? "currentColor" : "none"} />
-										</button>
-										<span class="tag-label-text">{tag}</span>
-										<button 
-											type="button" 
-											class="remove-tag-btn" 
-											onclick={() => removeTag(tag)}
-											aria-label="Remove tag"
-										>
-											<X size={12} />
-										</button>
-									</div>
-								{/each}
-							</div>
+							{#if tags.length > 0}
+								<div class="active-tags-list">
+									{#each tags as tag}
+										<div class="tag-badge-pill" class:is-primary={primaryTag === tag}>
+											<button 
+												type="button" 
+												class="primary-star-btn"
+												onclick={() => togglePrimary(tag)}
+												title={primaryTag === tag ? "Primary tag (click to demote)" : "Make primary tag"}
+											>
+												<Star size={12} fill={primaryTag === tag ? "currentColor" : "none"} />
+											</button>
+											<span class="tag-label-text">{tag}</span>
+											<button 
+												type="button" 
+												class="remove-tag-btn" 
+												onclick={() => removeTag(tag)}
+												aria-label="Remove tag"
+											>
+												<X size={12} />
+											</button>
+										</div>
+									{/each}
+								</div>
+							{/if}
 
 							<!-- Input to Add Tag -->
 							<div class="tag-input-row">
@@ -610,9 +612,11 @@
 										</span>
 									{/if}
 								</div>
-								<Button variant="outline" size="icon" onclick={addTag} aria-label="Add tag">
-									<Plus size={16} />
-								</Button>
+								{#if newTagInput.trim()}
+									<Button variant="outline" size="icon" onclick={addTag} aria-label="Add tag">
+										<Plus size={16} />
+									</Button>
+								{/if}
 							</div>
 
 							<!-- Suggestions -->
@@ -824,7 +828,7 @@
 	}
 
 	.label-blue {
-		color: #3b82f6 !important;
+		color: hsl(var(--primary-light)) !important;
 	}
 	.label-white {
 		color: #ffffff !important;
@@ -1102,7 +1106,7 @@
 	.tag-badge-pill.is-primary {
 		background: hsl(var(--primary) / 0.15);
 		border-color: hsl(var(--primary) / 0.4);
-		color: hsl(var(--primary));
+		color: hsl(var(--primary-light));
 	}
 
 	.primary-star-btn {
@@ -1116,7 +1120,11 @@
 	}
 
 	.tag-badge-pill.is-primary .primary-star-btn {
-		color: hsl(var(--primary));
+		color: hsl(var(--primary-light));
+	}
+
+	.tag-badge-pill.is-primary .remove-tag-btn {
+		color: hsl(var(--primary-light));
 	}
 
 	.tag-badge-pill:hover .primary-star-btn {
@@ -1215,5 +1223,16 @@
 	.footer-actions-right {
 		display: flex;
 		gap: 0.75rem;
+	}
+
+	/* Text color themes based on default, custom/saved override, or dirty edited state */
+	:global(.ui-input.text-blue), .text-blue {
+		color: hsl(var(--primary-light)) !important;
+	}
+	:global(.ui-input.text-white) {
+		color: #ffffff !important;
+	}
+	:global(.ui-input.text-muted) {
+		color: hsl(var(--muted-foreground)) !important;
 	}
 </style>
