@@ -1121,6 +1121,8 @@
 													else if (targetTd.classList.contains('col-color-cat')) colKey = 'color-cat';
 													else if (targetTd.classList.contains('col-qty')) colKey = 'qty';
 													else if (targetTd.classList.contains('col-name')) colKey = 'name';
+													else if (targetTd.classList.contains('col-tags')) colKey = 'tags';
+													else if (targetTd.classList.contains('col-printing')) colKey = 'printing';
 												}
 
 												if (e.shiftKey || isCmdCtrl) {
@@ -1195,6 +1197,7 @@
 													onclick={(e) => {
 														if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 														e.stopPropagation();
+														if (interactionStore.selectedCardIds.size > 1) return;
 														editingCardName =
 															cardRow.name;
 														editingCardZone =
@@ -1220,6 +1223,7 @@
 											onclick={(e) => {
 												if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 												e.stopPropagation();
+												if (interactionStore.selectedCardIds.size > 1) return;
 												if (cardRow.instances[0]) {
 													editingNameCardId = cardRow.instances[0].id;
 													inlineNameVal = cardRow.name;
@@ -1315,6 +1319,7 @@
 												onclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
+													if (interactionStore.selectedCardIds.size > 1) return;
 													if (cardRow.instances[0]) {
 														editingCmcCardId = cardRow.instances[0].id;
 														inlineCmcVal = String(cardRow.cmc);
@@ -1379,6 +1384,7 @@
 												onclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
+													if (interactionStore.selectedCardIds.size > 1) return;
 													if (cardRow.instances[0]) {
 														editingTypeCardId = cardRow.instances[0].id;
 														inlineTypeVal = String(cardRow.type);
@@ -1440,6 +1446,7 @@
 												onclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
+													if (interactionStore.selectedCardIds.size > 1) return;
 													if (cardRow.instances[0]) {
 														editingPrintingCardId = editingPrintingCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
 														if (editingPrintingCardId) {
@@ -1562,6 +1569,7 @@
 												onclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
+													if (interactionStore.selectedCardIds.size > 1) return;
 													if (cardRow.instances[0]) {
 														editingColorCardId = editingColorCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
 														if (editingColorCardId) {
@@ -1670,6 +1678,7 @@
 												onclick={(e) => {
 													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
+													if (interactionStore.selectedCardIds.size > 1) return;
 													if (cardRow.instances[0]) {
 														editingTagsCardId = editingTagsCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
 														if (editingTagsCardId) {
