@@ -65,11 +65,14 @@ function getCardCellValue(card, columnKey) {
  * @property {number | null} cardDataModal.price
  * @property {Set<string>} selectedCardIds
  * @property {string | null} lastSelectedCardId
+ * @property {string | null} selectedColumnKey
  * @property {any[]} currentVisibleCardIds
  * @property {any[]} copiedCards
  * @property {boolean} isCut
  * @property {string | null} hoveredColumnKey
  * @property {number} generateTagsTrigger
+ * @property {string[] | null} copiedCellValues
+ * @property {string | null} copiedColumnKey
  */
 
 function createInteractionStore() {

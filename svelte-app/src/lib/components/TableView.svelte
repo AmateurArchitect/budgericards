@@ -961,16 +961,17 @@
 											editingCardZone === cardRow.zone}
 										onmousedown={(e) => {
 											if (e.button !== 0) return;
-											if (e.target instanceof HTMLElement && (
-												e.target.closest('button') || 
-												e.target.closest('input') || 
-												e.target.closest('.action-buttons-cell') ||
-												e.target.closest('.col-actions')
+											const targetEl = e.target instanceof HTMLElement ? e.target : null;
+											if (targetEl && (
+												targetEl.closest('button') || 
+												targetEl.closest('input') || 
+												targetEl.closest('.action-buttons-cell') ||
+												targetEl.closest('.col-actions')
 											)) return;
 
 											if (cardRow.instances[0]) {
 												const isCmdCtrl = e.metaKey || e.ctrlKey;
-												const targetTd = e.target.closest('td');
+												const targetTd = targetEl ? targetEl.closest('td') : null;
 												let colKey = null;
 												if (targetTd) {
 													if (targetTd.classList.contains('col-cmc')) colKey = 'cmc';
