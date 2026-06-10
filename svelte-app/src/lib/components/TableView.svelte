@@ -140,6 +140,18 @@
 	let editingCardZone = $state(/** @type {string | null} */ (null));
 	let localQtyText = $state("");
 
+	const activeEditingQtyId = $derived.by(() => {
+		if (!editingCardName) return null;
+		for (const cat of groupedCategories) {
+			for (const row of cat.cards) {
+				if (row.name === editingCardName && row.zone === editingCardZone) {
+					return row.instances[0]?.id || null;
+				}
+			}
+		}
+		return null;
+	});
+
 	// Name inline editing states
 	let editingNameCardId = $state(/** @type {string | null} */ (null));
 	let inlineNameVal = $state("");
@@ -476,6 +488,7 @@
 		}
 
 		const hasSelectedSelf = cardRow.instances[0] && interactionStore.selectedCells.has(`${cardRow.instances[0].id}:qty`);
+		/** @type {any[]} */
 		const targets = [];
 		if (hasSelectedSelf) {
 			for (const cat of groupedCategories) {
@@ -1343,7 +1356,11 @@
 													}}
 													title="Double click to change quantity inline"
 												>
-													{cardRow.quantity}
+													{#if activeEditingQtyId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:qty`) && interactionStore.selectedCells.has(`${activeEditingQtyId}:qty`)}
+														{localQtyText}
+													{:else}
+														{cardRow.quantity}
+													{/if}
 												</button>
 											{/if}
 										</td>
@@ -1413,7 +1430,13 @@
 														{/if}
 													</div>
 												{:else}
-													<span class="card-name-label">{cardRow.name}</span>
+													<span class="card-name-label">
+														{#if editingNameCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:name`) && interactionStore.selectedCells.has(`${editingNameCardId}:name`)}
+															{inlineNameVal}
+														{:else}
+															{cardRow.name}
+														{/if}
+													</span>
 													{#if cardRow.isIllegal}
 														<div
 															class="legality-warning-icon"
@@ -1511,7 +1534,11 @@
 														class:is-overridden={hasCmcOverride}
 														title={hasCmcOverride ? "Double click to edit override (Customized)" : "Double click to override"}
 													>
-														{cardRow.cmc}
+														{#if editingCmcCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:cmc`) && interactionStore.selectedCells.has(`${editingCmcCardId}:cmc`)}
+															{inlineCmcVal}
+														{:else}
+															{cardRow.cmc}
+														{/if}
 													</span>
 												{/if}
 											</td>
@@ -1578,8 +1605,13 @@
 														class="type-text"
 														class:is-overridden={hasTypeOverride}
 														title={hasTypeOverride ? "Double click to edit override (Customized)" : "Double click to override"}
-														>{cardRow.type}</span
 													>
+														{#if editingTypeCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:type`) && interactionStore.selectedCells.has(`${editingTypeCardId}:type`)}
+															{inlineTypeVal}
+														{:else}
+															{cardRow.type}
+														{/if}
+													</span>
 												{/if}
 											</td>
 										{/if}
@@ -1690,7 +1722,9 @@
 														</div>
 													{:else}
 														<span class="printing-text" data-tooltip-img={cardRow.imgUrl}>
-															{#if cardRow.card?.set}
+															{#if editingPrintingCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:printing`) && interactionStore.selectedCells.has(`${editingPrintingCardId}:printing`)}
+																<span class="set-code">{inlinePrintingVal.toUpperCase()}</span>
+															{:else if cardRow.card?.set}
 																<span class="set-code"
 																	>{cardRow.card.set.toUpperCase()}</span
 																>
@@ -1785,14 +1819,13 @@
 															</div>
 														</div>
 													{:else}
+														{@const currentCategory = editingColorCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:color-cat`) && interactionStore.selectedCells.has(`${editingColorCardId}:color-cat`) ? inlineColorVal : getColorCategory(cardRow)}
 														<span
-															class="color-cat-text class-{getColorCategory(
-																cardRow,
-															).toLowerCase()}"
+															class="color-cat-text class-{currentCategory.toLowerCase()}"
 															class:is-overridden={hasColorOverride}
 															title={hasColorOverride ? "Click to change color override (Customized)" : "Click to override"}
 														>
-															{getColorCategory(cardRow)}
+															{currentCategory}
 														</span>
 													{/if}
 												</div>
@@ -1905,23 +1938,37 @@
 															</div>
 														</div>
 													{:else}
-														<div class="tags-badges-list">
-															{#each tags as tag, idx}
-																<span 
-																	class="tag-badge"
-																	style="background-color: {getTagBgColor(tag)}"
-																	draggable="true"
-																	ondragstart={(e) => handleTagDragStart(e, cardRow.instances[0].id, idx)}
-																	ondragover={(e) => e.preventDefault()}
-																	ondrop={(e) => handleTagDrop(e, cardRow.instances[0].id, idx)}
-																>
-																	{#if idx === 0}
-																		<Star size={10} class="star-icon text-yellow-400 fill-yellow-400" />
-																	{/if}
-																	<span>{tag}</span>
-																</span>
-															{/each}
-														</div>
+														{#if editingTagsCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:tags`) && interactionStore.selectedCells.has(`${editingTagsCardId}:tags`)}
+															{@const tempTags = inlineTagsVal.split(',').map(t => t.trim()).filter(Boolean)}
+															<div class="tags-badges-list">
+																{#each tempTags as tag, idx}
+																	<span class="tag-badge" style="background-color: {getTagBgColor(tag)}">
+																		{#if idx === 0}
+																			<Star size={10} class="star-icon text-yellow-400 fill-yellow-400" />
+																		{/if}
+																		<span>{tag}</span>
+																	</span>
+																{/each}
+															</div>
+														{:else}
+															<div class="tags-badges-list">
+																{#each tags as tag, idx}
+																	<span 
+																		class="tag-badge"
+																		style="background-color: {getTagBgColor(tag)}"
+																		draggable="true"
+																		ondragstart={(e) => handleTagDragStart(e, cardRow.instances[0].id, idx)}
+																		ondragover={(e) => e.preventDefault()}
+																		ondrop={(e) => handleTagDrop(e, cardRow.instances[0].id, idx)}
+																	>
+																		{#if idx === 0}
+																			<Star size={10} class="star-icon text-yellow-400 fill-yellow-400" />
+																		{/if}
+																		<span>{tag}</span>
+																	</span>
+																{/each}
+															</div>
+														{/if}
 													{/if}
 												</div>
 											</td>
