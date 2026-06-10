@@ -947,10 +947,11 @@ function createInteractionStore() {
 								const board = deckStore.activeBoard || 'mainboard';
 								for (const card of cardsToAdd) {
 									const metadata = card.metadata || (card.set ? { set: card.set.toLowerCase(), collector_number: card.collector_number } : null);
-									const newId = deckStore.addCard(card.name, board, card.price || null, metadata);
-									if (newId && card.quantity > 1) {
-										deckStore.setQuantity(card.name, board, card.quantity, card.price || null, metadata);
-									}
+									
+									const boardArray = /** @type {any[]} */ (/** @type {any} */ (deckStore)[board]) || [];
+									const existingCount = boardArray.filter(c => c.name.toLowerCase() === card.name.toLowerCase()).length;
+									
+									deckStore.setQuantity(card.name, board, existingCount + card.quantity, card.price || null, metadata);
 								}
 							});
 						}
