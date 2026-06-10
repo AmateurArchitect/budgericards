@@ -99,7 +99,7 @@
 		}
 		if (colors.length === 1) {
 			const colorNames = { W: "White", U: "Blue", B: "Black", R: "Red", G: "Green" };
-			return colorNames[colors[0]] || "Colorless";
+			return colorNames[/** @type {'W'|'U'|'B'|'R'|'G'} */ (colors[0])] || "Colorless";
 		}
 		return "Colorless";
 	});

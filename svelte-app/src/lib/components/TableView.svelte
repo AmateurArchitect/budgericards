@@ -365,7 +365,7 @@
 		const editId = interactionStore.editingCardId;
 		if (editId) {
 			for (const cat of groupedCategories) {
-				const match = cat.cards.find(row => row.instances.some(inst => inst.id === editId));
+				const match = cat.cards.find((/** @type {any} */ row) => row.instances.some((/** @type {any} */ inst) => inst.id === editId));
 				if (match) {
 					editingCardName = match.name;
 					editingCardZone = match.zone;
