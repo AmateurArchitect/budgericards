@@ -182,7 +182,7 @@
 									}}
 									onmouseenter={() =>
 										interactionStore.registerHover(
-											cardRow.card,
+											cardRow.instances[0] || cardRow.card,
 											cardRow.zone,
 											cardRow.price,
 										)}

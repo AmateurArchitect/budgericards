@@ -744,7 +744,7 @@
 										}}
 										onmouseenter={() => {
 											interactionStore.registerHover(
-												cardRow.card,
+												cardRow.instances[0] || cardRow.card,
 												cardRow.zone,
 												cardRow.price,
 											);
@@ -1223,7 +1223,7 @@
 														e.stopPropagation();
 														interactionStore.showMenu(
 															e,
-															cardRow.card,
+															cardRow.instances[0] || cardRow.card,
 															cardRow.zone,
 															cardRow.price,
 														);

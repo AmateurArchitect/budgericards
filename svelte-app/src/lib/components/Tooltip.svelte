@@ -1,6 +1,7 @@
 <script>
 	import { onMount, untrack } from "svelte";
 	import { fade } from "svelte/transition";
+	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { priceStore } from "$lib/stores/prices.svelte.js";
@@ -109,9 +110,10 @@
 	const lockedImgUrl = $derived.by(() => {
 		if (interactionStore.isMenuOpen && interactionStore.menuCard) {
 			const card = interactionStore.menuCard;
+			const meta = card.image_uris ? card : deckStore.metadata[card.name?.toLowerCase()];
 			return (
-				card.image_uris?.normal ||
-				(card.card_faces ? card.card_faces[0].image_uris?.normal : "")
+				meta?.image_uris?.normal ||
+				(meta?.card_faces ? meta.card_faces[0].image_uris?.normal : "")
 			);
 		}
 		return imgUrl;
@@ -132,9 +134,11 @@
 	});
 
 	const currentCard = $derived.by(() => {
-		return interactionStore.isMenuOpen
+		const c = interactionStore.isMenuOpen
 			? interactionStore.menuCard
 			: interactionStore.hoveredCard;
+		if (!c) return null;
+		return c.type_line ? c : deckStore.metadata[c.name?.toLowerCase()];
 	});
 
 	const legality = $derived(checkLegality(currentCard));

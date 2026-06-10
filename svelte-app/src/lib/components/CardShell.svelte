@@ -6,6 +6,8 @@
 	/** @type {{ card: any, price: number | null, zone?: string, inSearchPanel?: boolean, disableTooltip?: boolean, class?: string, style?: string, children: import('svelte').Snippet<[any]> }} */
 	let { card, price, zone, inSearchPanel = false, disableTooltip = false, class: className = "", style = "", children } = $props();
 
+	const meta = $derived(card.type_line ? card : (deckStore.metadata[card.name?.toLowerCase()] || card));
+
 	let isDragging = $state(false);
 	let isFlipped = $state(false);
 	let isRotated = $state(false);
@@ -64,9 +66,9 @@
 			let targetBoard = deckStore.activeBoard;
 
 			// Smart Landing Logic: If special slots are empty and card is a candidate, send it there
-			const typeLine = (card.type_line || "").toLowerCase();
-			const oracle = (card.oracle_text || "").toLowerCase();
-			const facesOracle = (card.card_faces || [])
+			const typeLine = (meta.type_line || "").toLowerCase();
+			const oracle = (meta.oracle_text || "").toLowerCase();
+			const facesOracle = (meta.card_faces || [])
 				.map((/** @type {any} */ f) => (f.oracle_text || "").toLowerCase())
 				.join(" ");
 
@@ -186,7 +188,7 @@
 	draggable="true"
 	role="button"
 	tabindex="0"
-	data-tooltip-img={(!inSearchPanel && !disableTooltip) ? (card.image_uris?.normal || (card.card_faces ? card.card_faces[0].image_uris?.normal : "")) : undefined}
+	data-tooltip-img={(!inSearchPanel && !disableTooltip) ? (meta.image_uris?.normal || (meta.card_faces ? meta.card_faces[0].image_uris?.normal : "")) : undefined}
 	aria-label="{inSearchPanel ? 'Add' : 'Remove'} {card.name}"
 >
 	{@render children({ isDragging, isFlipped, isRotated, toggleFlip, toggleRotate })}

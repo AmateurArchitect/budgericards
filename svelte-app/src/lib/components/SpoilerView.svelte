@@ -511,7 +511,7 @@
 				class:is-illegal={item.isIllegal}
 			>
 				<CardShell
-					card={item.card}
+					card={item.instances[0] || item.card}
 					price={item.price}
 					inSearchPanel={false}
 					zone={item.zone}
