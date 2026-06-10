@@ -376,15 +376,21 @@
 			const validOptions = ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"];
 			const matchedOpt = validOptions.find(o => o.toLowerCase() === formattedOpt.toLowerCase()) || formattedOpt;
 
-			deckStore.setCardOverride(cardRow.instances[0].id, 'colorCategory', matchedOpt);
-			/** @type {Record<string, string[]>} */
-			const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
-			if (mapColors[matchedOpt]) {
-				deckStore.setCardOverride(cardRow.instances[0].id, 'colors', mapColors[matchedOpt]);
-				deckStore.setCardOverride(cardRow.instances[0].id, 'colorIdentity', mapColors[matchedOpt]);
-			} else if (matchedOpt === "Colorless") {
-				deckStore.setCardOverride(cardRow.instances[0].id, 'colors', []);
-				deckStore.setCardOverride(cardRow.instances[0].id, 'colorIdentity', []);
+			const ids = (interactionStore.selectedColumnKey === 'color-cat' && interactionStore.selectedCardIds.has(cardRow.instances[0].id))
+				? [...interactionStore.selectedCardIds]
+				: [cardRow.instances[0].id];
+
+			for (const id of ids) {
+				deckStore.setCardOverride(id, 'colorCategory', matchedOpt);
+				/** @type {Record<string, string[]>} */
+				const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
+				if (mapColors[matchedOpt]) {
+					deckStore.setCardOverride(id, 'colors', mapColors[matchedOpt]);
+					deckStore.setCardOverride(id, 'colorIdentity', mapColors[matchedOpt]);
+				} else if (matchedOpt === "Colorless") {
+					deckStore.setCardOverride(id, 'colors', []);
+					deckStore.setCardOverride(id, 'colorIdentity', []);
+				}
 			}
 		}
 		editingColorCardId = null;
@@ -395,9 +401,15 @@
 	 */
 	function resetColorOverride(cardRow) {
 		if (cardRow.instances[0]) {
-			deckStore.resetCardOverride(cardRow.instances[0].id, 'colorCategory');
-			deckStore.resetCardOverride(cardRow.instances[0].id, 'colors');
-			deckStore.resetCardOverride(cardRow.instances[0].id, 'colorIdentity');
+			const ids = (interactionStore.selectedColumnKey === 'color-cat' && interactionStore.selectedCardIds.has(cardRow.instances[0].id))
+				? [...interactionStore.selectedCardIds]
+				: [cardRow.instances[0].id];
+
+			for (const id of ids) {
+				deckStore.resetCardOverride(id, 'colorCategory');
+				deckStore.resetCardOverride(id, 'colors');
+				deckStore.resetCardOverride(id, 'colorIdentity');
+			}
 		}
 		editingColorCardId = null;
 	}
@@ -943,7 +955,7 @@
 									<tr
 										class="card-row"
 										class:is-illegal={cardRow.isIllegal}
-										class:is-selected={isSelected}
+										class:is-selected={isSelected && !interactionStore.selectedColumnKey}
 										class:is-editing={editingCardName ===
 											cardRow.name &&
 											editingCardZone === cardRow.zone}
@@ -957,13 +969,30 @@
 											)) return;
 
 											if (cardRow.instances[0]) {
-												e.preventDefault();
-												isDraggingSelection = true;
 												const isCmdCtrl = e.metaKey || e.ctrlKey;
+												const targetTd = e.target.closest('td');
+												let colKey = null;
+												if (targetTd) {
+													if (targetTd.classList.contains('col-cmc')) colKey = 'cmc';
+													else if (targetTd.classList.contains('col-type')) colKey = 'type';
+													else if (targetTd.classList.contains('col-color-cat')) colKey = 'color-cat';
+													else if (targetTd.classList.contains('col-qty')) colKey = 'qty';
+													else if (targetTd.classList.contains('col-name')) colKey = 'name';
+												}
+
+												if (e.shiftKey || isCmdCtrl) {
+													e.preventDefault();
+												}
+												if (document.activeElement instanceof HTMLElement) {
+													document.activeElement.blur();
+												}
+
+												isDraggingSelection = true;
 												interactionStore.handleCardSelectClick(
 													cardRow.instances[0].id,
 													e.shiftKey,
-													isCmdCtrl
+													isCmdCtrl,
+													colKey
 												);
 											}
 										}}
@@ -986,7 +1015,8 @@
 												interactionStore.handleCardSelectClick(
 													cardRow.instances[0].id,
 													true,
-													false
+													false,
+													interactionStore.selectedColumnKey
 												);
 											}
 										}}
@@ -994,7 +1024,7 @@
 											interactionStore.unregisterHover()}
 									>
 										<!-- Quantity Display (Clickable/Typable inline input) -->
-										<td class="col-qty">
+										<td class="col-qty" class:is-selected={isSelected && interactionStore.selectedColumnKey === 'qty'}>
 											{#if editingCardName === cardRow.name && editingCardZone === cardRow.zone}
 												<input
 													type="number"
@@ -1020,6 +1050,7 @@
 													type="button"
 													class="qty-text-btn"
 													onclick={(e) => {
+														if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 														e.stopPropagation();
 														editingCardName =
 															cardRow.name;
@@ -1041,8 +1072,10 @@
 										<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 										<td 
 											class="col-name" 
+											class:is-selected={isSelected && interactionStore.selectedColumnKey === 'name'}
 											data-tooltip-img={editingNameCardId === cardRow.instances[0]?.id ? null : cardRow.imgUrl}
 											onclick={(e) => {
+												if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 												e.stopPropagation();
 												if (cardRow.instances[0]) {
 													editingNameCardId = cardRow.instances[0].id;
@@ -1135,7 +1168,9 @@
 											{@const hasCmcOverride = cardRow.instances[0]?.overrides?.manaValue !== undefined}
 											<td 
 												class="col-cmc"
+												class:is-selected={isSelected && interactionStore.selectedColumnKey === 'cmc'}
 												onclick={(e) => {
+													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
 													if (cardRow.instances[0]) {
 														editingCmcCardId = cardRow.instances[0].id;
@@ -1151,7 +1186,12 @@
 														onblur={() => {
 															const parsed = parseInt(inlineCmcVal, 10);
 															if (!isNaN(parsed) && cardRow.instances[0]) {
-																deckStore.setCardOverride(cardRow.instances[0].id, 'manaValue', parsed);
+																const ids = (interactionStore.selectedColumnKey === 'cmc' && interactionStore.selectedCardIds.has(cardRow.instances[0].id))
+																	? [...interactionStore.selectedCardIds]
+																	: [cardRow.instances[0].id];
+																for (const id of ids) {
+																	deckStore.setCardOverride(id, 'manaValue', parsed);
+																}
 															}
 															editingCmcCardId = null;
 														}}
@@ -1160,7 +1200,12 @@
 																e.preventDefault();
 																const parsed = parseInt(inlineCmcVal, 10);
 																if (!isNaN(parsed) && cardRow.instances[0]) {
-																	deckStore.setCardOverride(cardRow.instances[0].id, 'manaValue', parsed);
+																	const ids = (interactionStore.selectedColumnKey === 'cmc' && interactionStore.selectedCardIds.has(cardRow.instances[0].id))
+																		? [...interactionStore.selectedCardIds]
+																		: [cardRow.instances[0].id];
+																	for (const id of ids) {
+																		deckStore.setCardOverride(id, 'manaValue', parsed);
+																	}
 																}
 																editingCmcCardId = null;
 															} else if (e.key === "Escape") {
@@ -1187,7 +1232,9 @@
 											{@const hasTypeOverride = cardRow.instances[0]?.overrides?.primaryType !== undefined}
 											<td 
 												class="col-type"
+												class:is-selected={isSelected && interactionStore.selectedColumnKey === 'type'}
 												onclick={(e) => {
+													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
 													if (cardRow.instances[0]) {
 														editingTypeCardId = cardRow.instances[0].id;
@@ -1203,7 +1250,12 @@
 														bind:value={inlineTypeVal}
 														onblur={() => {
 															if (cardRow.instances[0]) {
-																deckStore.setCardOverride(cardRow.instances[0].id, 'primaryType', inlineTypeVal.trim());
+																const ids = (interactionStore.selectedColumnKey === 'type' && interactionStore.selectedCardIds.has(cardRow.instances[0].id))
+																	? [...interactionStore.selectedCardIds]
+																	: [cardRow.instances[0].id];
+																for (const id of ids) {
+																	deckStore.setCardOverride(id, 'primaryType', inlineTypeVal.trim());
+																}
 															}
 															editingTypeCardId = null;
 														}}
@@ -1211,7 +1263,12 @@
 															if (e.key === "Enter") {
 																e.preventDefault();
 																if (cardRow.instances[0]) {
-																	deckStore.setCardOverride(cardRow.instances[0].id, 'primaryType', inlineTypeVal.trim());
+																	const ids = (interactionStore.selectedColumnKey === 'type' && interactionStore.selectedCardIds.has(cardRow.instances[0].id))
+																		? [...interactionStore.selectedCardIds]
+																		: [cardRow.instances[0].id];
+																	for (const id of ids) {
+																		deckStore.setCardOverride(id, 'primaryType', inlineTypeVal.trim());
+																	}
 																}
 																editingTypeCardId = null;
 															} else if (e.key === "Escape") {
@@ -1263,7 +1320,9 @@
 											<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 											<td 
 												class="col-color-cat"
+												class:is-selected={isSelected && interactionStore.selectedColumnKey === 'color-cat'}
 												onclick={(e) => {
+													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
 													e.stopPropagation();
 													if (cardRow.instances[0]) {
 														editingColorCardId = editingColorCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
@@ -2568,6 +2627,12 @@
 	.name-opt-btn.active {
 		background: hsl(var(--primary) / 0.25);
 		color: hsl(var(--primary-foreground));
+	}
+
+	/* Cell-level selection styles */
+	td.is-selected {
+		background-color: rgba(239, 68, 68, 0.4) !important;
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 	}
 
 </style>

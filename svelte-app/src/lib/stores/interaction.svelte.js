@@ -1,6 +1,45 @@
 import { deckStore } from "./deck.svelte.js";
 
 /**
+ * @param {any} card
+ * @param {string} columnKey
+ * @returns {any}
+ */
+function getCardCellValue(card, columnKey) {
+	const name = card.name || "";
+	const meta = deckStore.metadata[name.toLowerCase()];
+
+	if (columnKey === 'cmc') {
+		return card.overrides?.manaValue !== undefined ? card.overrides.manaValue : (meta?.cmc ?? 0);
+	}
+	if (columnKey === 'type') {
+		return card.overrides?.primaryType !== undefined ? card.overrides.primaryType : (meta?.type_line || "Unknown");
+	}
+	if (columnKey === 'color-cat') {
+		if (card.overrides?.colorCategory) return card.overrides.colorCategory;
+		const type = (meta?.type_line || "").toLowerCase();
+		if (type.includes("land")) return "Lands";
+		const colors = meta?.colors || [];
+		if (colors.length === 0) return "Colorless";
+		if (colors.length > 1) return "Multicolor";
+		/** @type {Record<string, string>} */
+		const colorNames = { W: "White", U: "Blue", B: "Black", R: "Red", G: "Green" };
+		return colorNames[colors[0]] || "Colorless";
+	}
+	if (columnKey === 'qty') {
+		const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+		for (const board of boards) {
+			if (deckStore[board]) {
+				const matches = deckStore[board].filter(c => c.name.toLowerCase() === name.toLowerCase());
+				if (matches.length > 0) return matches.length;
+			}
+		}
+		return 1;
+	}
+	return "";
+}
+
+/**
  * @typedef {Object} CardInteractionState
  * @property {any | null} hoveredCard - The card object currently being hovered
  * @property {string | null} hoveredZone - The zone (board) of the hovered card
@@ -62,12 +101,17 @@ function createInteractionStore() {
 		},
 		selectedCardIds: new Set(),
 		lastSelectedCardId: null,
+		selectedColumnKey: null,
 		/** @type {any[]} */
 		currentVisibleCardIds: [],
 		copiedCards: [],
 		isCut: false,
 		hoveredColumnKey: null,
-		generateTagsTrigger: 0
+		generateTagsTrigger: 0,
+		/** @type {string[] | null} */
+		copiedCellValues: null,
+		/** @type {string | null} */
+		copiedColumnKey: null
 	});
 
 	// Global key listener
@@ -200,6 +244,8 @@ function createInteractionStore() {
 		get quantityModal() { return state.quantityModal; },
 		get cardDataModal() { return state.cardDataModal; },
 		get selectedCardIds() { return state.selectedCardIds; },
+		get selectedColumnKey() { return state.selectedColumnKey; },
+		set selectedColumnKey(val) { state.selectedColumnKey = val; },
 		get hoveredColumnKey() { return state.hoveredColumnKey; },
 		set hoveredColumnKey(val) { state.hoveredColumnKey = val; },
 		get currentVisibleCardIds() { return state.currentVisibleCardIds; },
@@ -210,14 +256,22 @@ function createInteractionStore() {
 		clearSelection() {
 			state.selectedCardIds.clear();
 			state.lastSelectedCardId = null;
+			state.selectedColumnKey = null;
 		},
 
 		/**
 		 * @param {string} cardId
 		 * @param {boolean} isShift
 		 * @param {boolean} isCmdCtrl
+		 * @param {string | null} [columnKey]
 		 */
-		handleCardSelectClick(cardId, isShift, isCmdCtrl) {
+		handleCardSelectClick(cardId, isShift, isCmdCtrl, columnKey = null) {
+			if (state.selectedColumnKey !== columnKey) {
+				state.selectedCardIds.clear();
+				state.selectedColumnKey = columnKey;
+				state.lastSelectedCardId = null;
+			}
+
 			if (isShift && state.lastSelectedCardId) {
 				const startIdx = state.currentVisibleCardIds.indexOf(state.lastSelectedCardId);
 				const endIdx = state.currentVisibleCardIds.indexOf(cardId);
@@ -257,8 +311,20 @@ function createInteractionStore() {
 					}
 				}
 			}
-			state.copiedCards = cardsToCopy;
-			state.isCut = false;
+
+			if (state.selectedColumnKey) {
+				const values = cardsToCopy.map(c => String(getCardCellValue(c, state.selectedColumnKey)));
+				if (typeof navigator !== 'undefined' && navigator.clipboard) {
+					navigator.clipboard.writeText(values.join('\n')).catch(() => {});
+				}
+				state.copiedCellValues = values;
+				state.copiedColumnKey = state.selectedColumnKey;
+			} else {
+				state.copiedCards = cardsToCopy;
+				state.isCut = false;
+				state.copiedCellValues = null;
+				state.copiedColumnKey = null;
+			}
 		},
 
 		cutSelected() {
@@ -270,14 +336,28 @@ function createInteractionStore() {
 		deleteSelected() {
 			if (state.selectedCardIds.size === 0) return;
 			const idsToDelete = [...state.selectedCardIds];
-			state.selectedCardIds.clear();
-			
-			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
-			for (const board of boards) {
-				if (deckStore[board]) {
-					const toRemove = deckStore[board].filter(c => idsToDelete.includes(c.id)) || [];
-					for (const c of toRemove) {
-						deckStore.removeCard(c.name, board, c.id);
+
+			if (state.selectedColumnKey) {
+				for (const id of idsToDelete) {
+					if (state.selectedColumnKey === 'cmc') {
+						deckStore.resetCardOverride(id, 'manaValue');
+					} else if (state.selectedColumnKey === 'type') {
+						deckStore.resetCardOverride(id, 'primaryType');
+					} else if (state.selectedColumnKey === 'color-cat') {
+						deckStore.resetCardOverride(id, 'colorCategory');
+						deckStore.resetCardOverride(id, 'colors');
+						deckStore.resetCardOverride(id, 'colorIdentity');
+					}
+				}
+			} else {
+				state.selectedCardIds.clear();
+				const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+				for (const board of boards) {
+					if (deckStore[board]) {
+						const toRemove = deckStore[board].filter(c => idsToDelete.includes(c.id)) || [];
+						for (const c of toRemove) {
+							deckStore.removeCard(c.name, board, c.id);
+						}
 					}
 				}
 			}
@@ -286,7 +366,54 @@ function createInteractionStore() {
 		/**
 		 * @param {string | null} targetColumnName
 		 */
-		pasteSelected(targetColumnName) {
+		async pasteSelected(targetColumnName) {
+			if (state.selectedColumnKey && state.selectedCardIds.size > 0) {
+				let text = "";
+				try {
+					if (typeof navigator !== 'undefined' && navigator.clipboard) {
+						text = await navigator.clipboard.readText();
+					}
+				} catch (e) {}
+
+				if (!text && state.copiedCellValues) {
+					text = state.copiedCellValues.join('\n');
+				}
+
+				if (text) {
+					const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+					const ids = [...state.selectedCardIds];
+					for (let i = 0; i < ids.length; i++) {
+						const id = ids[i];
+						const val = lines[i % lines.length];
+						if (val) {
+							if (state.selectedColumnKey === 'cmc') {
+								const num = parseInt(val, 10);
+								if (!isNaN(num)) {
+									deckStore.setCardOverride(id, 'manaValue', num);
+								}
+							} else if (state.selectedColumnKey === 'type') {
+								deckStore.setCardOverride(id, 'primaryType', val);
+							} else if (state.selectedColumnKey === 'color-cat') {
+								const formatted = val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
+								const validOptions = ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"];
+								const matched = validOptions.find(o => o.toLowerCase() === formatted.toLowerCase()) || formatted;
+								deckStore.setCardOverride(id, 'colorCategory', matched);
+								/** @type {Record<string, string[]>} */
+								const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
+								if (mapColors[matched]) {
+									deckStore.setCardOverride(id, 'colors', mapColors[matched]);
+									deckStore.setCardOverride(id, 'colorIdentity', mapColors[matched]);
+								} else if (matched === "Colorless") {
+									deckStore.setCardOverride(id, 'colors', []);
+									deckStore.setCardOverride(id, 'colorIdentity', []);
+								}
+							}
+						}
+					}
+				}
+				return;
+			}
+
 			if (!state.copiedCards || state.copiedCards.length === 0) return;
 			
 			const grouping = deckStore.grouping?.toLowerCase();
