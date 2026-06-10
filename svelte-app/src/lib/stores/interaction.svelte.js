@@ -1,4 +1,165 @@
 import { deckStore } from "./deck.svelte.js";
+import { parseDecklist } from "../utils/decklistParser.js";
+
+/**
+ * Parses a single text cell/column value into card details
+ * @param {string} str
+ * @returns {any}
+ */
+function parseCardText(str) {
+	str = str.trim();
+	if (!str) return null;
+
+	if (/^\d+$/.test(str)) {
+		return { quantity: parseInt(str, 10) };
+	}
+
+	// 1. Check Scryfall ID / URL
+	const uuidPattern = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+	const uuidMatch = str.match(uuidPattern);
+	if (uuidMatch) {
+		return { scryfallId: uuidMatch[1].toLowerCase() };
+	}
+
+	// Check Scryfall card URL with set/collector
+	const scryfallCardUrlPattern = /\/card\/([a-zA-Z0-9]{2,6})\/([a-zA-Z0-9\-]+)/i;
+	const scryfallUrlMatch = str.match(scryfallCardUrlPattern);
+	if (scryfallUrlMatch) {
+		return {
+			set: scryfallUrlMatch[1].toLowerCase(),
+			collector_number: scryfallUrlMatch[2].toLowerCase()
+		};
+	}
+
+	// 2. Check Set + Collector Number only (e.g. "2ED 123", "2ED/123", "[2ED] 123", etc.)
+	const setCollPattern = /^[([]?([A-Za-z0-9]{2,6})[)\]]?[\s\-\/]+(\d+[a-zA-Z]*)$/i;
+	const setCollMatch = str.match(setCollPattern);
+	if (setCollMatch) {
+		return {
+			set: setCollMatch[1].toLowerCase(),
+			collector_number: setCollMatch[2]
+		};
+	}
+
+	// 3. Check for Quantity + Name + optional Set/Collector
+	const qtyNamePattern = /^(?:x\s*(\d+)|(\d+)\s*x?)\s+(.+)$/i;
+	const qtyNameMatch = str.match(qtyNamePattern);
+	if (qtyNameMatch) {
+		const qty = parseInt(qtyNameMatch[1] || qtyNameMatch[2], 10);
+		const remaining = qtyNameMatch[3].trim();
+		
+		const setCollSuffixPattern = /(?:\s*[([\|]([A-Za-z0-9]{2,6})[)\]]?\s*(\d+[a-zA-Z]*)?|\s+([A-Za-z0-9]{3,4})\s+(\d+[a-zA-Z]*))$/i;
+		const suffixMatch = remaining.match(setCollSuffixPattern);
+		if (suffixMatch) {
+			const name = remaining.slice(0, suffixMatch.index).trim();
+			const set = suffixMatch[1] || suffixMatch[3];
+			const collector_number = suffixMatch[2] || suffixMatch[4];
+			return {
+				quantity: qty,
+				name,
+				set: set ? set.toLowerCase() : undefined,
+				collector_number: collector_number || undefined
+			};
+		}
+		
+		return {
+			quantity: qty,
+			name: remaining
+		};
+	}
+
+	// 4. Default: Name + optional Set/Collector
+	const setCollSuffixPattern = /(?:\s*[([\|]([A-Za-z0-9]{2,6})[)\]]?\s*(\d+[a-zA-Z]*)?|\s+([A-Za-z0-9]{3,4})\s+(\d+[a-zA-Z]*))$/i;
+	const suffixMatch = str.match(setCollSuffixPattern);
+	if (suffixMatch) {
+		const name = str.slice(0, suffixMatch.index).trim();
+		const set = suffixMatch[1] || suffixMatch[3];
+		const collector_number = suffixMatch[2] || suffixMatch[4];
+		if (name) {
+			return {
+				name,
+				set: set ? set.toLowerCase() : undefined,
+				collector_number: collector_number || undefined
+			};
+		}
+	}
+
+	return {
+		name: str
+	};
+}
+
+/**
+ * Parses tab-separated spreadsheet data or standard MTG decklists
+ * @param {string} text
+ * @returns {any[]}
+ */
+function parseSpreadsheetText(text) {
+	const lines = text.split(/\r?\n/);
+	const parsedCards = [];
+	
+	for (let line of lines) {
+		line = line.trim();
+		if (!line) continue;
+		
+		if (line.includes('\t')) {
+			const cols = line.split('\t').map(c => c.trim());
+			let qty = 1;
+			let name = "";
+			let set = "";
+			let collectorNumber = "";
+			let scryfallId = "";
+			
+			for (const col of cols) {
+				if (!col) continue;
+
+				const parsedCell = parseCardText(col);
+				if (!parsedCell) continue;
+
+				if (parsedCell.scryfallId) {
+					scryfallId = parsedCell.scryfallId;
+				}
+				if (parsedCell.quantity !== undefined) {
+					qty = parsedCell.quantity;
+				}
+				if (parsedCell.set) {
+					set = parsedCell.set;
+				}
+				if (parsedCell.collector_number) {
+					collectorNumber = parsedCell.collector_number;
+				}
+				if (parsedCell.name) {
+					name = parsedCell.name;
+				}
+			}
+			
+			if (scryfallId) {
+				parsedCards.push({
+					scryfallId,
+					quantity: qty
+				});
+				continue;
+			}
+			
+			if (name || (set && collectorNumber)) {
+				parsedCards.push({
+					name: name || undefined,
+					quantity: qty,
+					set: set || undefined,
+					collector_number: collectorNumber || undefined
+				});
+				continue;
+			}
+		} else {
+			const stdParsed = parseDecklist(line);
+			if (stdParsed && stdParsed.length > 0) {
+				parsedCards.push(...stdParsed);
+			}
+		}
+	}
+	return parsedCards;
+}
+
 
 /**
  * @param {any} card
@@ -29,8 +190,9 @@ function getCardCellValue(card, columnKey) {
 	if (columnKey === 'qty') {
 		const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
 		for (const board of boards) {
-			if (deckStore[board]) {
-				const matches = deckStore[board].filter(c => c.name.toLowerCase() === name.toLowerCase());
+			const boardArray = /** @type {any[]} */ (/** @type {any} */ (deckStore)[board]);
+			if (boardArray) {
+				const matches = boardArray.filter(c => c.name.toLowerCase() === name.toLowerCase());
 				if (matches.length > 0) return matches.length;
 			}
 		}
@@ -424,8 +586,9 @@ function createInteractionStore() {
 			const cardsToCopy = [];
 			for (const id of selectedRowIds) {
 				for (const board of boards) {
-					if (deckStore[board]) {
-						const card = deckStore[board].find(c => c.id === id);
+					const boardArray = /** @type {any[]} */ (/** @type {any} */ (deckStore)[board]);
+					if (boardArray) {
+						const card = boardArray.find(c => c.id === id);
 						if (card) {
 							cardsToCopy.push({ ...card, sourceBoard: board });
 							break;
@@ -439,8 +602,9 @@ function createInteractionStore() {
 			for (const id of selectedRowIds) {
 				let card = null;
 				for (const board of boards) {
-					if (deckStore[board]) {
-						card = deckStore[board].find(c => c.id === id);
+					const boardArray = /** @type {any[]} */ (/** @type {any} */ (deckStore)[board]);
+					if (boardArray) {
+						card = boardArray.find(c => c.id === id);
 						if (card) break;
 					}
 				}
@@ -489,8 +653,9 @@ function createInteractionStore() {
 				for (const [id, cols] of cellMap.entries()) {
 					if (forceDeleteCard || cols.has('name')) {
 						for (const board of boards) {
-							if (deckStore[board]) {
-								const card = deckStore[board].find(c => c.id === id);
+							const boardArray = /** @type {any[]} */ (/** @type {any} */ (deckStore)[board]);
+							if (boardArray) {
+								const card = boardArray.find(c => c.id === id);
 								if (card) {
 									deckStore.removeCard(card.name, board, id);
 									break;
@@ -515,7 +680,10 @@ function createInteractionStore() {
 
 			const allCardIds = new Set(
 				['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard']
-					.flatMap(b => deckStore[b] ? deckStore[b].map(c => c.id) : [])
+					.flatMap(b => {
+						const boardArray = /** @type {any[]} */ (/** @type {any} */ (deckStore)[b]);
+						return boardArray ? boardArray.map(c => c.id) : [];
+					})
 			);
 			for (const cell of [...state.selectedCells]) {
 				const [id] = cell.split(':');
@@ -542,70 +710,178 @@ function createInteractionStore() {
 
 			if (text) {
 				const rows = text.split(/\r?\n/).map(line => line.split('\t'));
-				if (rows.length > 0) {
-					const selectedRowIds = state.currentVisibleCardIds.filter(id => 
-						state.visibleColumnsOrder.some(col => state.selectedCells.has(`${id}:${col}`))
-					);
-					const selectedCols = state.visibleColumnsOrder.filter(col => 
-						state.currentVisibleCardIds.some(id => state.selectedCells.has(`${id}:${col}`))
-					);
+				const isSingleCellSelected = state.selectedCells.size === 1;
+				const isRangeSelected = state.selectedCells.size > 1;
 
-					let startCardId = state.selectionFocus?.cardId;
-					let startColKey = state.selectionFocus?.columnKey;
+				const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+				const looksLikeCardList = lines.length > 1 || /^(?:x\s*(\d+)|(\d+)\s*x?)\s+(.+)$/i.test(lines[0]) || !isRangeSelected;
 
-					if (!startCardId && selectedRowIds.length > 0) {
-						startCardId = selectedRowIds[0];
-					}
-					if (!startColKey && selectedCols.length > 0) {
-						startColKey = selectedCols[0];
-					}
+				if (isRangeSelected || (isSingleCellSelected && !looksLikeCardList)) {
+					if (rows.length > 0) {
+						const selectedRowIds = state.currentVisibleCardIds.filter(id => 
+							state.visibleColumnsOrder.some(col => state.selectedCells.has(`${id}:${col}`))
+						);
+						const selectedCols = state.visibleColumnsOrder.filter(col => 
+							state.currentVisibleCardIds.some(id => state.selectedCells.has(`${id}:${col}`))
+						);
 
-					if (startCardId && startColKey) {
-						const startRowIdx = state.currentVisibleCardIds.indexOf(startCardId);
-						const startColIdx = state.visibleColumnsOrder.indexOf(startColKey);
+						let startCardId = state.selectionFocus?.cardId;
+						let startColKey = state.selectionFocus?.columnKey;
 
-						if (startRowIdx !== -1 && startColIdx !== -1) {
-							deckStore.batchUpdate(() => {
-								for (let r = 0; r < rows.length; r++) {
-									const rowIdx = startRowIdx + r;
-									if (rowIdx >= state.currentVisibleCardIds.length) break;
-									const cardId = state.currentVisibleCardIds[rowIdx];
-									const rowData = rows[r];
+						if (!startCardId && selectedRowIds.length > 0) {
+							startCardId = selectedRowIds[0];
+						}
+						if (!startColKey && selectedCols.length > 0) {
+							startColKey = selectedCols[0];
+						}
 
-									for (let c = 0; c < rowData.length; c++) {
-										const colIdx = startColIdx + c;
-										if (colIdx >= state.visibleColumnsOrder.length) break;
-										const colKey = state.visibleColumnsOrder[colIdx];
-										const val = rowData[c]?.trim();
-										if (val !== undefined) {
-											if (colKey === 'cmc') {
-												const num = parseInt(val, 10);
-												if (!isNaN(num)) {
-													deckStore.setCardOverride(cardId, 'manaValue', num);
-												}
-											} else if (colKey === 'type') {
-												deckStore.setCardOverride(cardId, 'primaryType', val);
-											} else if (colKey === 'color-cat') {
-												const formatted = val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
-												const validOptions = ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"];
-												const matched = validOptions.find(o => o.toLowerCase() === formatted.toLowerCase()) || formatted;
-												deckStore.setCardOverride(cardId, 'colorCategory', matched);
-												/** @type {Record<string, string[]>} */
-												const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
-												if (mapColors[matched]) {
-													deckStore.setCardOverride(cardId, 'colors', mapColors[matched]);
-													deckStore.setCardOverride(cardId, 'colorIdentity', mapColors[matched]);
-												} else if (matched === "Colorless") {
-													deckStore.setCardOverride(cardId, 'colors', []);
-													deckStore.setCardOverride(cardId, 'colorIdentity', []);
+						if (startCardId && startColKey) {
+							const startRowIdx = state.currentVisibleCardIds.indexOf(startCardId);
+							const startColIdx = state.visibleColumnsOrder.indexOf(startColKey);
+
+							if (startRowIdx !== -1 && startColIdx !== -1) {
+								deckStore.batchUpdate(() => {
+									for (let r = 0; r < rows.length; r++) {
+										const rowIdx = startRowIdx + r;
+										if (rowIdx >= state.currentVisibleCardIds.length) break;
+										const cardId = state.currentVisibleCardIds[rowIdx];
+										const rowData = rows[r];
+
+										for (let c = 0; c < rowData.length; c++) {
+											const colIdx = startColIdx + c;
+											if (colIdx >= state.visibleColumnsOrder.length) break;
+											const colKey = state.visibleColumnsOrder[colIdx];
+											const val = rowData[c]?.trim();
+											if (val !== undefined) {
+												if (colKey === 'cmc') {
+													const num = parseInt(val, 10);
+													if (!isNaN(num)) {
+														deckStore.setCardOverride(cardId, 'manaValue', num);
+													}
+												} else if (colKey === 'type') {
+													deckStore.setCardOverride(cardId, 'primaryType', val);
+												} else if (colKey === 'color-cat') {
+													const formatted = val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
+													const validOptions = ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"];
+													const matched = validOptions.find(o => o.toLowerCase() === formatted.toLowerCase()) || formatted;
+													deckStore.setCardOverride(cardId, 'colorCategory', matched);
+													/** @type {Record<string, string[]>} */
+													const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
+													if (mapColors[matched]) {
+														deckStore.setCardOverride(cardId, 'colors', mapColors[matched]);
+														deckStore.setCardOverride(cardId, 'colorIdentity', mapColors[matched]);
+													} else if (matched === "Colorless") {
+														deckStore.setCardOverride(cardId, 'colors', []);
+														deckStore.setCardOverride(cardId, 'colorIdentity', []);
+													}
+												} else if (colKey === 'qty') {
+													const num = parseInt(val, 10);
+													if (!isNaN(num) && num >= 0) {
+														const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+														for (const board of boards) {
+															const boardArray = /** @type {any[]} */ (/** @type {any} */ (deckStore)[board]);
+															if (boardArray) {
+																const card = boardArray.find(c => c.id === cardId);
+																if (card) {
+																	deckStore.setQuantity(card.name, board, num, card.price, card._metadata);
+																	break;
+																}
+															}
+														}
+													}
+												} else if (colKey === 'name') {
+													const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+													for (const board of boards) {
+														const boardArray = /** @type {any[]} */ (/** @type {any} */ (deckStore)[board]);
+														if (boardArray) {
+															const card = boardArray.find(c => c.id === cardId);
+															if (card) {
+																deckStore.renameCard(card.name, val, card.price, card._metadata);
+																break;
+															}
+														}
+													}
 												}
 											}
 										}
 									}
+								});
+								return;
+							}
+						}
+					}
+				} else {
+					const parsed = parseSpreadsheetText(text);
+					if (parsed && parsed.length > 0) {
+						/** @type {any[]} */
+						const cardsToAdd = [];
+						for (const item of parsed) {
+							if (item.scryfallId) {
+								try {
+									const res = await fetch(`https://api.scryfall.com/cards/${item.scryfallId}`);
+									if (res.ok) {
+										const scryfallCard = await res.json();
+										cardsToAdd.push({
+											name: scryfallCard.name,
+											quantity: item.quantity,
+											price: parseFloat(scryfallCard.prices?.usd || scryfallCard.prices?.usd_foil) || 0,
+											metadata: scryfallCard
+										});
+									}
+								} catch (e) {
+									console.error("Failed to fetch card by Scryfall ID:", e);
+								}
+							} else if (item.set && item.collector_number) {
+								try {
+									const res = await fetch(`https://api.scryfall.com/cards/${item.set.toLowerCase()}/${item.collector_number}`);
+									if (res.ok) {
+										const scryfallCard = await res.json();
+										cardsToAdd.push({
+											name: scryfallCard.name,
+											quantity: item.quantity,
+											price: parseFloat(scryfallCard.prices?.usd || scryfallCard.prices?.usd_foil) || 0,
+											metadata: scryfallCard
+										});
+									} else if (item.name) {
+										cardsToAdd.push({
+											name: item.name,
+											quantity: item.quantity,
+											set: item.set,
+											collector_number: item.collector_number
+										});
+									}
+								} catch (e) {
+									console.error("Failed to fetch card by Set/Collector:", e);
+									if (item.name) {
+										cardsToAdd.push({
+											name: item.name,
+											quantity: item.quantity,
+											set: item.set,
+											collector_number: item.collector_number
+										});
+									}
+								}
+							} else if (item.name) {
+								cardsToAdd.push({
+									name: item.name,
+									quantity: item.quantity
+								});
+							}
+						}
+
+						if (cardsToAdd.length > 0) {
+							deckStore.batchUpdate(() => {
+								const board = deckStore.activeBoard || 'mainboard';
+								for (const card of cardsToAdd) {
+									const metadata = card.metadata || (card.set ? { set: card.set.toLowerCase(), collector_number: card.collector_number } : null);
+									const newId = deckStore.addCard(card.name, board, card.price || null, metadata);
+									if (newId && card.quantity > 1) {
+										deckStore.setQuantity(card.name, board, card.quantity, card.price || null, metadata);
+									}
 								}
 							});
-							return;
 						}
+						return;
 					}
 				}
 			}
@@ -888,7 +1164,7 @@ function createInteractionStore() {
 					action: () => {
 						if (isInCommander) {
 							// Find the actual board instance to move
-							const instance = deckStore.commander.find(c => c.id === card.id) || card;
+							const instance = deckStore.commander.find(/** @param {any} c */ c => c.id === card.id) || card;
 							deckStore.moveCard(instance.name, 'commander', 'mainboard', instance.id, instance.price);
 						} else {
 							if (deckStore.format === 'List') deckStore.format = 'Commander';

@@ -648,7 +648,7 @@ function createDeck() {
 			deckState.deck.sideboard = [];
 			deckState.deck.maybeboard = [];
 			
-			const newCardNames = new Set(parsedCards.map(c => c.name.toLowerCase()));
+			const newCardNames = new Set(parsedCards.filter(c => c.name).map(c => c.name.toLowerCase()));
 			for (const key in deckState.metadata) {
 				if (key !== 'createdBy' && key !== 'createdAt' && key !== 'updatedAt') {
 					if (!newCardNames.has(key)) {
@@ -661,15 +661,27 @@ function createDeck() {
 		saveHistory(deckState);
 		
 		for (const pc of parsedCards) {
+			if (!pc.name) continue;
 			const boardName = pc.board || deckState.deck.activeBoard;
 			const targetBoard = deckState.deck[boardName];
 			if (!targetBoard) continue;
+
+			if (pc.metadata) {
+				deckState.metadata[pc.name.toLowerCase()] = pc.metadata;
+			} else if (pc.set) {
+				deckState.metadata[pc.name.toLowerCase()] = {
+					set: pc.set.toLowerCase(),
+					collector_number: pc.collector_number
+				};
+			}
+
+			const price = pc.metadata ? (parseFloat(pc.metadata.prices?.usd || pc.metadata.prices?.usd_foil) || 0) : 0;
 
 			for (let i = 0; i < pc.quantity; i++) {
 				targetBoard.push({
 					id: generateId(),
 					name: pc.name,
-					price: 0,
+					price: price,
 					addedAt: Date.now()
 				});
 			}
@@ -1390,9 +1402,48 @@ function createDeck() {
 			settingsStore.deckViewMode = lastView;
 		},
 
-		saveImport() {
+		async saveImport() {
 			const parsedCards = parseDecklist(activeDeck.importText);
-			importCardsInternal(activeDeck, parsedCards, { replace: true });
+			
+			// Resolve any Scryfall IDs or Set/Collector numbers asynchronously
+			const resolvedCards = [];
+			for (const pc of parsedCards) {
+				if (pc.scryfallId) {
+					try {
+						const res = await fetch(`https://api.scryfall.com/cards/${pc.scryfallId}`);
+						if (res.ok) {
+							const scryfallCard = await res.json();
+							resolvedCards.push({
+								name: scryfallCard.name,
+								quantity: pc.quantity,
+								board: pc.board,
+								metadata: scryfallCard
+							});
+						}
+					} catch (e) {
+						console.error("Failed to resolve Scryfall ID during import:", e);
+					}
+				} else if (pc.set && pc.collector_number && !pc.name) {
+					try {
+						const res = await fetch(`https://api.scryfall.com/cards/${pc.set.toLowerCase()}/${pc.collector_number}`);
+						if (res.ok) {
+							const scryfallCard = await res.json();
+							resolvedCards.push({
+								name: scryfallCard.name,
+								quantity: pc.quantity,
+								board: pc.board,
+								metadata: scryfallCard
+							});
+						}
+					} catch (e) {
+						console.error("Failed to resolve Set/Collector during import:", e);
+					}
+				} else {
+					resolvedCards.push(pc);
+				}
+			}
+
+			importCardsInternal(activeDeck, resolvedCards, { replace: true });
 			activeDeck.importText = cleanDecklistTextFor(activeDeck);
 			
 			// Return back to last used view mode besides list

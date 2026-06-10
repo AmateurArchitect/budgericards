@@ -132,7 +132,7 @@
 	$effect(() => {
 		const cards = parsedCards;
 		const uniqueNames = [
-			...new Set(cards.map((c) => c.name.toLowerCase())),
+			...new Set(cards.filter(c => c.name).map((c) => /** @type {string} */ (c.name).toLowerCase())),
 		];
 
 		const resolveAll = async () => {
@@ -199,7 +199,7 @@
 
 			resolvedMetadataMap = details;
 			resolvedCards = cards.map((c) => {
-				const lowName = c.name.toLowerCase();
+				const lowName = (c.name || "").toLowerCase();
 				const meta = details[lowName];
 				return {
 					...c,
@@ -331,11 +331,12 @@
 
 		const activeLineText = lines[activeLineIndex] || "";
 		const activeCardInfo = getCardInfo(activeLineText);
-		const activeCardKey = activeCardInfo
+		const activeCardKey = activeCardInfo && activeCardInfo.name
 			? `${activeCardInfo.board || "mainboard"}:${activeCardInfo.name.toLowerCase()}`
 			: null;
 
 		for (const card of parsedCards) {
+			if (!card.name) continue;
 			const key = `${card.board || "mainboard"}:${card.name.toLowerCase()}`;
 			if (key === activeCardKey) {
 				continue;
@@ -375,6 +376,7 @@
 		};
 
 		for (const card of parsed) {
+			if (!card.name) continue;
 			const board = card.board || "mainboard";
 			if (!boards[board]) {
 				boards[board] = {};
@@ -412,6 +414,7 @@
 		const filtered = [];
 
 		for (const card of parsed) {
+			if (!card.name) continue;
 			const key = `${card.board || "mainboard"}:${card.name.toLowerCase()}`;
 			if (!seen.has(key)) {
 				seen.add(key);
@@ -430,6 +433,7 @@
 
 		for (let i = parsed.length - 1; i >= 0; i--) {
 			const card = parsed[i];
+			if (!card.name) continue;
 			const key = `${card.board || "mainboard"}:${card.name.toLowerCase()}`;
 			if (!seen.has(key)) {
 				seen.add(key);
@@ -482,7 +486,7 @@
 
 	function handleClearPrintings() {
 		const linesArr = deckStore.importText.split("\n");
-		const cleanedLines = linesArr.map((line) => {
+		const cleanedLines = linesArr.map((/** @type {string} */ line) => {
 			const trimmed = line.trim();
 			if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("#"))
 				return line;

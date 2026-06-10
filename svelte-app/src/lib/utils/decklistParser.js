@@ -1,8 +1,11 @@
 /**
  * @typedef {Object} ParsedCard
- * @property {string} name
+ * @property {string} [name]
  * @property {number} quantity
  * @property {string} [board] - 'mainboard', 'sideboard', 'maybeboard', 'commander'
+ * @property {string} [set]
+ * @property {string} [collector_number]
+ * @property {string} [scryfallId]
  */
 
 /**
@@ -88,13 +91,55 @@ export function parseDecklist(text) {
 			name = qtyMatch[3];
 		}
 
-		// 5. Clean up the card name from metadata tags
-		
-		// Remove set info and collector numbers: (SET) 123 or [SET] 123 or | SET
-		// Also handles set codes with dashes or slashes from 2 to 7 chars (e.g. 'cc2-en', 'p23/1')
-		name = name.replace(/\s*[([][A-Za-z0-9\-\/]{2,7}[)\]](\s+[A-Za-z0-9★\-]+)?/g, '');
-		name = name.replace(/\s*\|\s*[A-Za-z0-9\-\/]{2,7}(\s+[A-Za-z0-9★\-]+)?/g, '');
-		
+		// Check for UUID (Scryfall ID)
+		const uuidPattern = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+		const uuidMatch = name.match(uuidPattern);
+		if (uuidMatch) {
+			result.push({
+				scryfallId: uuidMatch[1].toLowerCase(),
+				quantity,
+				board: lineBoard
+			});
+			continue;
+		}
+
+		// Check for Scryfall URL
+		const scryfallCardUrlPattern = /\/card\/([a-zA-Z0-9]{2,6})\/([a-zA-Z0-9\-]+)/i;
+		const scryfallUrlMatch = name.match(scryfallCardUrlPattern);
+		if (scryfallUrlMatch) {
+			result.push({
+				set: scryfallUrlMatch[1].toLowerCase(),
+				collector_number: scryfallUrlMatch[2].toLowerCase(),
+				quantity,
+				board: lineBoard
+			});
+			continue;
+		}
+
+		// 5. Clean up the card name and extract metadata tags
+		let set = undefined;
+		let collector_number = undefined;
+
+		// Extract set and collector number: (SET) 123 or [SET] 123 or | SET
+		const setMatch = name.match(/\s*[([\|]([A-Za-z0-9\-\/]{2,7})[)\]]?\s*([A-Za-z0-9★\-]+)?/);
+		if (setMatch) {
+			set = setMatch[1].toLowerCase();
+			if (setMatch[2]) {
+				collector_number = setMatch[2];
+			}
+			name = name.replace(/\s*[([\|][A-Za-z0-9\-\/]{2,7}[)\]]?\s*([A-Za-z0-9★\-]+)?/, '');
+		}
+
+		// If no set was matched yet, check for space-separated set and collector number at the end
+		if (!set) {
+			const spaceCollMatch = name.match(/\s+([A-Za-z0-9]{3,4})\s+(\d+[a-zA-Z]*)$/);
+			if (spaceCollMatch) {
+				set = spaceCollMatch[1].toLowerCase();
+				collector_number = spaceCollMatch[2];
+				name = name.slice(0, spaceCollMatch.index);
+			}
+		}
+
 		// Remove foil tags, frame tags, etc. (e.g. *F*, *E*, *RE*)
 		name = name.replace(/\s+\*([^*]+)\*/gi, '');
 		
@@ -105,7 +150,7 @@ export function parseDecklist(text) {
 		name = name.replace(/\s+[\$€£]\s*\d+([.,]\d+)?/g, '');
 		name = name.replace(/\s+\d+([.,]\d+)?\s*[\$€£]/g, '');
 		
-		// 5. Normalize split card/DFCs separators
+		// 6. Normalize split card/DFCs separators
 		// Scryfall collection API prefers "Card A // Card B"
 		// If user provides "Card A / Card B", normalize it.
 		if (name.includes(' / ') && !name.includes(' // ')) {
@@ -118,7 +163,9 @@ export function parseDecklist(text) {
 			result.push({
 				name,
 				quantity,
-				board: lineBoard
+				board: lineBoard,
+				set,
+				collector_number
 			});
 		}
 	}

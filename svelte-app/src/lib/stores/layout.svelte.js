@@ -34,7 +34,7 @@ class LayoutStore {
 		if (settingsStore.curveSpacing === "compact") return true;
 		if (settingsStore.curveSpacing === "spacious") return false;
 		
-		const nonBasicCount = deckStore.currentBoardCards.filter((card) => {
+		const nonBasicCount = deckStore.currentBoardCards.filter((/** @type {any} */ card) => {
 			const details = deckStore.metadata[card.name.toLowerCase()];
 			if (!details) return true;
 			return !details.type_line?.includes("Basic Land");
