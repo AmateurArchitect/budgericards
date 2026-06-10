@@ -85,6 +85,25 @@
 
 	let card = $derived(interactionStore.cardDataModal.card);
 
+	let calculatedDefaultColorCategory = $derived.by(() => {
+		if (!card) return "Default";
+		const metadata = deckStore.metadata[card.name.toLowerCase()] || {};
+		const typeLineStr = (card.type_line || metadata.type_line || "").toLowerCase();
+		const colors = card.colors || metadata.colors || [];
+		
+		if (typeLineStr.includes("land") && !typeLineStr.includes("//")) {
+			return "Lands";
+		}
+		if (colors.length > 1) {
+			return "Multicolor";
+		}
+		if (colors.length === 1) {
+			const colorNames = { W: "White", U: "Blue", B: "Black", R: "Red", G: "Green" };
+			return colorNames[colors[0]] || "Colorless";
+		}
+		return "Colorless";
+	});
+
 	// Derived defaults from database metadata
 	let defaultCmc = $derived(card ? (deckStore.metadata[card.name.toLowerCase()]?.cmc ?? card.cmc ?? 0) : 0);
 
@@ -518,7 +537,7 @@
 									onclick={() => showColorDropdown = !showColorDropdown}
 								>
 									<span>
-										{colorCategory === "Default" ? "Default (Based on Card Colors)" : colorCategory}
+										{colorCategory === "Default" ? `${calculatedDefaultColorCategory} (Default)` : colorCategory}
 									</span>
 									<span class="select-chevron"></span>
 								</button>
@@ -542,7 +561,7 @@
 														{:else}
 															<span class="color-indicator-circle default"></span>
 														{/if}
-														<span>{opt === "Default" ? "Default (Based on Card Colors)" : opt}</span>
+														<span>{opt === "Default" ? `${calculatedDefaultColorCategory} (Default)` : opt}</span>
 													</div>
 													{#if colorCategory === opt}
 														<Check size={14} class="check-icon text-blue-500" />
@@ -778,8 +797,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
-		overflow-y: auto;
-		max-height: 480px;
 		padding-right: 4px;
 	}
 
