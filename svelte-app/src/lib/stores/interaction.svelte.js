@@ -90,6 +90,34 @@ function parseCardText(str) {
 }
 
 /**
+ * Helper to determine if a string matches MTG metadata (e.g. mana cost, type line, color category)
+ * rather than a card name, to prevent spreadsheet columns from overwriting card names during paste.
+ * @param {string} str
+ * @returns {boolean}
+ */
+function isMetadataString(str) {
+	const s = str.trim().toLowerCase();
+	if (!s) return true;
+	// Mana cost
+	if (/^(\{[a-z0-9\/]+\})+$/i.test(s)) return true;
+	// Color categories (exact match)
+	const colorCats = ["white", "blue", "black", "red", "green", "multicolor", "colorless", "lands"];
+	if (colorCats.includes(s)) return true;
+	// Color identities (exact match)
+	const colorIds = ["w", "u", "b", "r", "g", "c", "wubrg", "wubr", "wub", "wu", "ub", "br", "rg", "wg", "wb", "ur", "bg", "wr", "ug", "—", "-"];
+	if (colorIds.includes(s)) return true;
+	// Type lines containing em-dash or dash (e.g. "Creature — Zombie")
+	if (s.includes("—") || s.includes(" - ")) return true;
+	// Exact card types or ending with core type words
+	const types = ["creature", "planeswalker", "instant", "sorcery", "artifact", "enchantment", "battle", "land"];
+	if (types.includes(s)) return true;
+	if (/\b(creature|planeswalker|instant|sorcery|artifact|enchantment|battle|land)s?$/i.test(s)) return true;
+	// Prices (e.g. $0.10 or 0.10)
+	if (/^\$?\d+(\.\d{2})?$/.test(s)) return true;
+	return false;
+}
+
+/**
  * Parses tab-separated spreadsheet data or standard MTG decklists
  * @param {string} text
  * @returns {any[]}
@@ -110,7 +138,8 @@ function parseSpreadsheetText(text) {
 			let collectorNumber = "";
 			let scryfallId = "";
 			
-			for (const col of cols) {
+			for (let i = 0; i < cols.length; i++) {
+				const col = cols[i];
 				if (!col) continue;
 
 				const parsedCell = parseCardText(col);
@@ -120,7 +149,10 @@ function parseSpreadsheetText(text) {
 					scryfallId = parsedCell.scryfallId;
 				}
 				if (parsedCell.quantity !== undefined) {
-					qty = parsedCell.quantity;
+					// Only accept quantity from the first column or if it has an explicit 'x'
+					if (i === 0 || col.toLowerCase().includes('x')) {
+						qty = parsedCell.quantity;
+					}
 				}
 				if (parsedCell.set) {
 					set = parsedCell.set;
@@ -129,7 +161,9 @@ function parseSpreadsheetText(text) {
 					collectorNumber = parsedCell.collector_number;
 				}
 				if (parsedCell.name) {
-					name = parsedCell.name;
+					if (!isMetadataString(parsedCell.name)) {
+						name = parsedCell.name;
+					}
 				}
 			}
 			
