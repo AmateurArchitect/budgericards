@@ -700,14 +700,34 @@ function createDeck() {
 				activeDeck.metadata[cardName.toLowerCase()] = cardMetadata;
 			}
 
+			// Find if there is an existing instance of this card in any board to copy its overrides, tags, and customColumn
+			let existingCard = null;
+			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+			for (const b of boards) {
+				if (activeDeck.deck[b]) {
+					const found = activeDeck.deck[b].find(c => c.name.toLowerCase() === cardName.toLowerCase());
+					if (found) {
+						existingCard = found;
+						break;
+					}
+				}
+			}
+
 			saveHistory(activeDeck);
 			const newId = generateId();
-			targetZone.push({ 
+			
+			const newCardObj = { 
 				id: newId,
 				name: cardName, 
 				price: price || 0,
 				addedAt: Date.now()
-			});
+			};
+			if (existingCard?.overrides) newCardObj.overrides = JSON.parse(JSON.stringify(existingCard.overrides));
+			if (existingCard?.tags) newCardObj.tags = [...existingCard.tags];
+			if (existingCard?.primaryTag) newCardObj.primaryTag = existingCard.primaryTag;
+			if (existingCard?.customColumn) newCardObj.customColumn = existingCard.customColumn;
+
+			targetZone.push(newCardObj);
 
 			if (targetZoneName === 'commander') {
 				settingsStore.useCommanderColors = true;
@@ -760,15 +780,21 @@ function createDeck() {
 		 * @param {string} column
 		 */
 		setCustomColumn(cardId, column) {
-			const boards = ['commander', 'mainboard', 'sideboard', 'maybeboard'];
-			for (const board of boards) {
-				const card = activeDeck.deck[board].find(/** @param {any} c */ c => c.id === cardId);
-				if (card) {
-					saveHistory(activeDeck);
-					card.customColumn = column;
-					persist(activeDeck);
-					return;
+			const result = this.findCardById(cardId);
+			if (result) {
+				saveHistory(activeDeck);
+				const cardName = result.card.name;
+				const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+				for (const board of boards) {
+					if (activeDeck.deck[board]) {
+						activeDeck.deck[board].forEach(c => {
+							if (c.name.toLowerCase() === cardName.toLowerCase()) {
+								c.customColumn = column;
+							}
+						});
+					}
 				}
+				persist(activeDeck);
 			}
 		},
 
@@ -795,26 +821,28 @@ function createDeck() {
 			const result = this.findCardById(cardId);
 			if (result) {
 				saveHistory(activeDeck);
-				const cardCopy = { ...result.card };
-				if (!cardCopy.overrides) {
-					cardCopy.overrides = {};
-				}
+				const cardName = result.card.name;
+				const metadata = activeDeck.metadata[cardName.toLowerCase()];
 				
-				const metadata = activeDeck.metadata[cardCopy.name.toLowerCase()];
-				if (isDefaultValue(cardCopy, metadata, fieldName, value)) {
-					delete cardCopy.overrides[fieldName];
-				} else {
-					cardCopy.overrides[fieldName] = value;
-				}
-
-				if (Object.keys(cardCopy.overrides).length === 0) {
-					delete cardCopy.overrides;
-				}
-
-				const board = activeDeck.deck[result.board];
-				const idx = board.findIndex(c => c.id === cardId);
-				if (idx !== -1) {
-					board[idx] = cardCopy;
+				const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+				for (const board of boards) {
+					if (activeDeck.deck[board]) {
+						activeDeck.deck[board].forEach(c => {
+							if (c.name.toLowerCase() === cardName.toLowerCase()) {
+								if (!c.overrides) {
+									c.overrides = {};
+								}
+								if (isDefaultValue(c, metadata, fieldName, value)) {
+									delete c.overrides[fieldName];
+								} else {
+									c.overrides[fieldName] = value;
+								}
+								if (Object.keys(c.overrides).length === 0) {
+									delete c.overrides;
+								}
+							}
+						});
+					}
 				}
 				persist(activeDeck);
 			}
@@ -828,17 +856,21 @@ function createDeck() {
 			const result = this.findCardById(cardId);
 			if (result) {
 				saveHistory(activeDeck);
-				const cardCopy = { ...result.card };
-				if (cardCopy.overrides) {
-					delete cardCopy.overrides[fieldName];
-					if (Object.keys(cardCopy.overrides).length === 0) {
-						delete cardCopy.overrides;
+				const cardName = result.card.name;
+				const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+				for (const board of boards) {
+					if (activeDeck.deck[board]) {
+						activeDeck.deck[board].forEach(c => {
+							if (c.name.toLowerCase() === cardName.toLowerCase()) {
+								if (c.overrides) {
+									delete c.overrides[fieldName];
+									if (Object.keys(c.overrides).length === 0) {
+										delete c.overrides;
+									}
+								}
+							}
+						});
 					}
-				}
-				const board = activeDeck.deck[result.board];
-				const idx = board.findIndex(c => c.id === cardId);
-				if (idx !== -1) {
-					board[idx] = cardCopy;
 				}
 				persist(activeDeck);
 			}
@@ -851,15 +883,19 @@ function createDeck() {
 			const result = this.findCardById(cardId);
 			if (result) {
 				saveHistory(activeDeck);
-				const cardCopy = { ...result.card };
-				delete cardCopy.overrides;
-				delete cardCopy.customColumn;
-				delete cardCopy.tags;
-				delete cardCopy.primaryTag;
-				const board = activeDeck.deck[result.board];
-				const idx = board.findIndex(c => c.id === cardId);
-				if (idx !== -1) {
-					board[idx] = cardCopy;
+				const cardName = result.card.name;
+				const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+				for (const board of boards) {
+					if (activeDeck.deck[board]) {
+						activeDeck.deck[board].forEach(c => {
+							if (c.name.toLowerCase() === cardName.toLowerCase()) {
+								delete c.overrides;
+								delete c.customColumn;
+								delete c.tags;
+								delete c.primaryTag;
+							}
+						});
+					}
 				}
 				persist(activeDeck);
 			}
@@ -888,21 +924,27 @@ function createDeck() {
 			const result = this.findCardById(cardId);
 			if (result) {
 				saveHistory(activeDeck);
-				const cardCopy = { ...result.card };
-				if (!cardCopy.tags) {
-					cardCopy.tags = [];
-				}
+				const cardName = result.card.name;
 				const trimmed = tagName.trim();
-				if (trimmed && !cardCopy.tags.includes(trimmed)) {
-					cardCopy.tags.push(trimmed);
-				}
-				if (!cardCopy.primaryTag && cardCopy.tags.length > 0) {
-					cardCopy.primaryTag = cardCopy.tags[0];
-				}
-				const board = activeDeck.deck[result.board];
-				const idx = board.findIndex(c => c.id === cardId);
-				if (idx !== -1) {
-					board[idx] = cardCopy;
+				if (trimmed) {
+					const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+					for (const board of boards) {
+						if (activeDeck.deck[board]) {
+							activeDeck.deck[board].forEach(c => {
+								if (c.name.toLowerCase() === cardName.toLowerCase()) {
+									if (!c.tags) {
+										c.tags = [];
+									}
+									if (!c.tags.includes(trimmed)) {
+										c.tags.push(trimmed);
+									}
+									if (!c.primaryTag && c.tags.length > 0) {
+										c.primaryTag = c.tags[0];
+									}
+								}
+							});
+						}
+					}
 				}
 				persist(activeDeck);
 			}
@@ -916,21 +958,25 @@ function createDeck() {
 			const result = this.findCardById(cardId);
 			if (result) {
 				saveHistory(activeDeck);
-				const cardCopy = { ...result.card };
-				if (cardCopy.tags) {
-					cardCopy.tags = cardCopy.tags.filter((/** @type {string} */ t) => t !== tagName);
-					if (cardCopy.primaryTag === tagName) {
-						cardCopy.primaryTag = cardCopy.tags[0] || undefined;
+				const cardName = result.card.name;
+				const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+				for (const board of boards) {
+					if (activeDeck.deck[board]) {
+						activeDeck.deck[board].forEach(c => {
+							if (c.name.toLowerCase() === cardName.toLowerCase()) {
+								if (c.tags) {
+									c.tags = c.tags.filter((/** @type {string} */ t) => t !== tagName);
+									if (c.primaryTag === tagName) {
+										c.primaryTag = c.tags[0] || undefined;
+									}
+									if (c.tags.length === 0) {
+										delete c.tags;
+										delete c.primaryTag;
+									}
+								}
+							}
+						});
 					}
-					if (cardCopy.tags.length === 0) {
-						delete cardCopy.tags;
-						delete cardCopy.primaryTag;
-					}
-				}
-				const board = activeDeck.deck[result.board];
-				const idx = board.findIndex(c => c.id === cardId);
-				if (idx !== -1) {
-					board[idx] = cardCopy;
 				}
 				persist(activeDeck);
 			}
@@ -944,22 +990,25 @@ function createDeck() {
 			const result = this.findCardById(cardId);
 			if (result) {
 				saveHistory(activeDeck);
-				const cardCopy = { ...result.card };
-				if (!cardCopy.tags) {
-					cardCopy.tags = [];
-				}
+				const cardName = result.card.name;
 				const trimmed = tagName.trim();
-				if (trimmed && !cardCopy.tags.includes(trimmed)) {
-					cardCopy.tags.unshift(trimmed);
-				} else if (trimmed) {
-					// Move to front/first position or explicitly assign
-					cardCopy.tags = [trimmed, ...cardCopy.tags.filter((/** @type {string} */ t) => t !== trimmed)];
-				}
-				cardCopy.primaryTag = trimmed || undefined;
-				const board = activeDeck.deck[result.board];
-				const idx = board.findIndex(c => c.id === cardId);
-				if (idx !== -1) {
-					board[idx] = cardCopy;
+				const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+				for (const board of boards) {
+					if (activeDeck.deck[board]) {
+						activeDeck.deck[board].forEach(c => {
+							if (c.name.toLowerCase() === cardName.toLowerCase()) {
+								if (!c.tags) {
+									c.tags = [];
+								}
+								if (trimmed && !c.tags.includes(trimmed)) {
+									c.tags.unshift(trimmed);
+								} else if (trimmed) {
+									c.tags = [trimmed, ...c.tags.filter((/** @type {string} */ t) => t !== trimmed)];
+								}
+								c.primaryTag = trimmed || undefined;
+							}
+						});
+					}
 				}
 				persist(activeDeck);
 			}
