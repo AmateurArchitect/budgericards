@@ -62,7 +62,7 @@
 
 	/** @param {KeyboardEvent} e */
 	function handleKeydown(e) {
-		if (e.key === "Escape") {
+		if (isOpen && e.key === "Escape") {
 			e.stopPropagation();
 			close();
 		}

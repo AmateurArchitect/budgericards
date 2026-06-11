@@ -346,7 +346,6 @@ function createInteractionStore() {
 	// Global key listener
 	if (typeof window !== 'undefined') {
 		window.addEventListener('keydown', (e) => {
-			console.log("[interactionStore] Global keydown:", e.key, "target:", e.target, "selectedCells.size:", state.selectedCells?.size, "isMenuOpen:", state.isMenuOpen);
 			// Don't trigger shortcuts if typing in an input
 			const target = /** @type {HTMLElement} */ (e.target);
 			if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
