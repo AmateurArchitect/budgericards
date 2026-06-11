@@ -179,7 +179,10 @@
 							{#each category.cards as cardRow (cardRow.name)}
 								{@const rowId = cardRow.instances[0]?.id}
 								{@const isSelected = rowId && [...interactionStore.selectedCells].some(cell => cell.startsWith(rowId + ':'))}
+								<!-- svelte-ignore a11y_click_events_have_key_events -->
 								<div
+									role="row"
+									tabindex="-1"
 									class="card-row"
 									class:is-illegal={cardRow.isIllegal}
 									class:is-editing={editingCardName ===
@@ -188,7 +191,8 @@
 									class:is-selected={isSelected}
 									data-tooltip-img={cardRow.imgUrl}
 									onclick={(e) => {
-										if (rowId && !e.target?.closest('.qty-inline-input, .qty-text-btn, .list-actions, button')) {
+										const target = /** @type {HTMLElement | null} */ (e.target);
+										if (rowId && !target?.closest('.qty-inline-input, .qty-text-btn, .list-actions, button')) {
 											const isMulti = e.metaKey || e.ctrlKey;
 											const isShift = e.shiftKey;
 											if (isMulti || isShift || interactionStore.selectedCells.size > 0) {
