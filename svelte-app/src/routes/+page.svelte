@@ -10,6 +10,8 @@
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { layoutStore } from "$lib/stores/layout.svelte.js";
+	import { fade } from "svelte/transition";
+	import { Loader } from "lucide-svelte";
 
 	onMount(() => {
 		priceStore.load();
@@ -122,7 +124,15 @@
 		
 		<div class="deck-area">
 			<DeckHeader />
-			{#if settingsStore.deckViewMode === 'list'}
+			{#if deckStore.isVisualLoading}
+				<div class="deck-visual-loader" transition:fade={{ duration: 150 }}>
+					<div class="loader-content">
+						<Loader class="spinner" size={32} />
+						<h3>Preloading Deck Visuals</h3>
+						<p>Fetching card databases & preloading image cache...</p>
+					</div>
+				</div>
+			{:else if settingsStore.deckViewMode === 'list'}
 				<ImportView />
 			{:else if settingsStore.deckViewMode === 'table'}
 				<TableView />
@@ -163,6 +173,54 @@
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
+	}
+
+	.deck-visual-loader {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: hsl(var(--background));
+		color: hsl(var(--foreground));
+	}
+
+	.loader-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.75rem;
+		text-align: center;
+		background: hsla(240, 5%, 85%, 0.03);
+		border: 1px solid hsl(var(--border) / 0.4);
+		backdrop-filter: blur(16px);
+		padding: 2.5rem 3.5rem;
+		border-radius: var(--radius-lg);
+		box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+		max-width: 400px;
+	}
+
+	.loader-content h3 {
+		font-size: 1.1rem;
+		font-weight: 600;
+		margin: 0;
+		color: hsl(var(--foreground));
+	}
+
+	.loader-content p {
+		font-size: 0.85rem;
+		color: hsl(var(--muted-foreground));
+		margin: 0;
+		line-height: 1.4;
+	}
+
+	:global(.deck-visual-loader .spinner) {
+		animation: spin-loader 1s linear infinite;
+		color: hsl(var(--primary));
+	}
+
+	@keyframes spin-loader {
+		from { transform: rotate(0deg); }
+		to { transform: rotate(360deg); }
 	}
 
 	:global(.search-panel) {

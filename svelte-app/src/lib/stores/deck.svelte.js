@@ -62,6 +62,7 @@ function createDeckState(initialData = null) {
 	let autoCommanderPending = $state(false);
 	let firstPastedName = $state('');
 	let lastPastedName = $state('');
+	let isVisualLoading = $state(false);
 
 	return {
 		get deck() { return deck; },
@@ -79,7 +80,9 @@ function createDeckState(initialData = null) {
 		get firstPastedName() { return firstPastedName; },
 		set firstPastedName(val) { firstPastedName = val; },
 		get lastPastedName() { return lastPastedName; },
-		set lastPastedName(val) { lastPastedName = val; }
+		set lastPastedName(val) { lastPastedName = val; },
+		get isVisualLoading() { return isVisualLoading; },
+		set isVisualLoading(val) { isVisualLoading = val; }
 	};
 }
 
@@ -769,6 +772,70 @@ function createDeck() {
 			console.error('Metadata sync failed:', e);
 		} finally {
 			setTimeout(() => { isSyncing = false; }, 100);
+		}
+	}
+
+	/** @param {ReturnType<typeof createDeckState>} deckState */
+	async function preloadDeckImages(deckState) {
+		if (typeof window === 'undefined' || typeof Image === 'undefined') return;
+		const allCards = [
+			...deckState.deck.commander,
+			...deckState.deck.companion,
+			...deckState.deck.mainboard,
+			...deckState.deck.sideboard,
+			...deckState.deck.maybeboard
+		];
+		const imageUrls = [];
+		for (const card of allCards) {
+			const meta = deckState.metadata[card.name.toLowerCase()];
+			if (meta) {
+				const isDfc = meta.card_faces && meta.card_faces.length > 1 && meta.card_faces[0].image_uris;
+				const frontImg = isDfc ? meta.card_faces[0].image_uris.normal : (meta.image_uris?.normal || meta.image || "");
+				if (frontImg) imageUrls.push(frontImg);
+			}
+		}
+
+		if (imageUrls.length === 0) return;
+
+		const uniqueUrls = [...new Set(imageUrls)];
+		
+		const preloadPromise = Promise.all(uniqueUrls.map(url => {
+			return new Promise((resolve) => {
+				const img = new Image();
+				img.onload = () => resolve(true);
+				img.onerror = () => resolve(false);
+				img.src = url;
+			});
+		}));
+
+		const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(false), 4000));
+
+		await Promise.race([preloadPromise, timeoutPromise]);
+	}
+
+	/** @param {ReturnType<typeof createDeckState>} deckState */
+	async function waitAndPreload(deckState) {
+		deckState.isVisualLoading = true;
+		try {
+			const allCards = [
+				...deckState.deck.commander,
+				...deckState.deck.companion,
+				...deckState.deck.mainboard,
+				...deckState.deck.sideboard,
+				...deckState.deck.maybeboard
+			];
+			const missingNames = [...new Set(allCards.map(c => c.name))]
+				.filter(name => name && !deckState.metadata[name.toLowerCase()]);
+			
+			if (missingNames.length > 0) {
+				await syncMetadata(deckState);
+			}
+
+			await preloadDeckImages(deckState);
+		} catch (e) {
+			console.error("Error during waitAndPreload:", e);
+		} finally {
+			deckState.isVisualLoading = false;
 		}
 	}
 
@@ -1574,6 +1641,14 @@ function createDeck() {
 			// Return back to last used view mode besides list
 			const lastView = localStorage.getItem('budgericards_last_active_view_mode') || 'stacks';
 			settingsStore.deckViewMode = lastView;
+
+			await waitAndPreload(activeDeck);
+		},
+
+		get isVisualLoading() { return activeDeck.isVisualLoading; },
+		set isVisualLoading(val) { activeDeck.isVisualLoading = val; },
+		async preloadDeckImagesAndShow() {
+			await waitAndPreload(activeDeck);
 		}
 	};
 }

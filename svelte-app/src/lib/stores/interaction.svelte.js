@@ -1017,6 +1017,10 @@ function createInteractionStore() {
 									);
 								}
 							}
+
+							if (cardsToAdd.length > 2 || wasDeckEmpty) {
+								await deckStore.preloadDeckImagesAndShow();
+							}
 						}
 						return;
 					}
@@ -1154,9 +1158,8 @@ function createInteractionStore() {
 				const isCardSelected = [...state.selectedCells].some(cell => cell.startsWith(`${card.id}:`));
 				if (!isCardSelected) {
 					state.selectedCells.clear();
-					state.selectedCells.add(`${card.id}:name`);
-					state.selectionFocus = { cardId: card.id, columnKey: 'name' };
-					state.selectionAnchor = { cardId: card.id, columnKey: 'name' };
+					state.selectionFocus = null;
+					state.selectionAnchor = null;
 					state.selectedCells = new Set(state.selectedCells);
 				}
 			}
