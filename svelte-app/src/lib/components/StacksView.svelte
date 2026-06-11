@@ -21,21 +21,32 @@
 	function generateTagsFromCurrentStacks() {
 		const cardsToUpdate = [];
 		let hasAnyExistingTags = false;
-		
+
 		for (const row of rows) {
 			for (const col of row.columns) {
 				const colName = col.key;
-				if (colName === 'Special' || colName === 'Commanders' || colName === 'Companions') continue;
+				if (
+					colName === "Special" ||
+					colName === "Commanders" ||
+					colName === "Companions"
+				)
+					continue;
 				const tagName = colName.trim();
 				if (!tagName) continue;
-				
+
 				for (const stack of col.stacks) {
 					for (const card of stack.cards) {
-						const realCards = card.isStack && card.stackIds ? card.stackIds : [card.id];
+						const realCards =
+							card.isStack && card.stackIds
+								? card.stackIds
+								: [card.id];
 						for (const id of realCards) {
 							const cardRes = deckStore.findCardById(id);
 							if (cardRes && cardRes.card) {
-								if (cardRes.card.tags && cardRes.card.tags.length > 0) {
+								if (
+									cardRes.card.tags &&
+									cardRes.card.tags.length > 0
+								) {
 									hasAnyExistingTags = true;
 								}
 								cardsToUpdate.push({ cardId: id, tagName });
@@ -50,7 +61,9 @@
 
 		let overwrite = false;
 		if (hasAnyExistingTags) {
-			overwrite = confirm("Some cards already have tags. Do you want to overwrite existing tags? (Cancel will append the new tags instead)");
+			overwrite = confirm(
+				"Some cards already have tags. Do you want to overwrite existing tags? (Cancel will append the new tags instead)",
+			);
 		}
 
 		for (const item of cardsToUpdate) {
@@ -83,7 +96,10 @@
 	function handleWindowClick(e) {
 		if (interactionStore.editingCardId) {
 			const target = /** @type {HTMLElement} */ (e.target);
-			if (!target.closest(".stack-badge-input") && !target.closest(".spoiler-badge-input")) {
+			if (
+				!target.closest(".stack-badge-input") &&
+				!target.closest(".spoiler-badge-input")
+			) {
 				if (document.activeElement instanceof HTMLElement) {
 					document.activeElement.blur();
 				}
@@ -350,43 +366,65 @@
 				colKey !== "Companions"
 			) {
 				const grouping = deckStore.grouping?.toLowerCase();
-				if (grouping === 'cmc') {
+				if (grouping === "cmc") {
 					let val = parseInt(colKey, 10);
-					if (colKey === '0-1') val = 1;
-					if (colKey === '6+') val = 6;
+					if (colKey === "0-1") val = 1;
+					if (colKey === "6+") val = 6;
 					if (!isNaN(val)) {
-						deckStore.setCardOverride(data.id, 'manaValue', val);
+						deckStore.setCardOverride(data.id, "manaValue", val);
 					}
-				} else if (grouping === 'color') {
+				} else if (grouping === "color") {
 					const category = colKey;
 					/** @type {Record<string, string[]>} */
-					const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
-					deckStore.setCardOverride(data.id, 'colorCategory', category);
+					const mapColors = {
+						White: ["W"],
+						Blue: ["U"],
+						Black: ["B"],
+						Red: ["R"],
+						Green: ["G"],
+					};
+					deckStore.setCardOverride(
+						data.id,
+						"colorCategory",
+						category,
+					);
 					if (mapColors[category]) {
-						deckStore.setCardOverride(data.id, 'colors', mapColors[category]);
-						deckStore.setCardOverride(data.id, 'colorIdentity', mapColors[category]);
+						deckStore.setCardOverride(
+							data.id,
+							"colors",
+							mapColors[category],
+						);
+						deckStore.setCardOverride(
+							data.id,
+							"colorIdentity",
+							mapColors[category],
+						);
 					}
-				} else if (grouping === 'creature') {
-					const isCreature = colKey === 'Creatures';
-					deckStore.setCardOverride(data.id, 'creature', isCreature);
-				} else if (grouping === 'type') {
+				} else if (grouping === "creature") {
+					const isCreature = colKey === "Creatures";
+					deckStore.setCardOverride(data.id, "creature", isCreature);
+				} else if (grouping === "type") {
 					let typeVal = colKey;
-					if (colKey === 'Creatures') typeVal = 'Creature';
-					else if (colKey === 'Planeswalkers') typeVal = 'Planeswalker';
-					else if (colKey === 'Instants') typeVal = 'Instant';
-					else if (colKey === 'Sorceries') typeVal = 'Sorcery';
-					else if (colKey === 'Artifacts') typeVal = 'Artifact';
-					else if (colKey === 'Enchantments') typeVal = 'Enchantment';
-					else if (colKey === 'Battles') typeVal = 'Battle';
-					else if (colKey === 'Lands') typeVal = 'Land';
-					deckStore.setCardOverride(data.id, 'primaryType', typeVal);
-				} else if (grouping === 'primarytag') {
-					if (colKey !== 'No Tag') {
+					if (colKey === "Creatures") typeVal = "Creature";
+					else if (colKey === "Planeswalkers")
+						typeVal = "Planeswalker";
+					else if (colKey === "Instants") typeVal = "Instant";
+					else if (colKey === "Sorceries") typeVal = "Sorcery";
+					else if (colKey === "Artifacts") typeVal = "Artifact";
+					else if (colKey === "Enchantments") typeVal = "Enchantment";
+					else if (colKey === "Battles") typeVal = "Battle";
+					else if (colKey === "Lands") typeVal = "Land";
+					deckStore.setCardOverride(data.id, "primaryType", typeVal);
+				} else if (grouping === "primarytag") {
+					if (colKey !== "No Tag") {
 						deckStore.setPrimaryTag(data.id, colKey);
 					} else {
 						const cardRes = deckStore.findCardById(data.id);
 						if (cardRes?.card?.primaryTag) {
-							deckStore.removeCardTag(data.id, cardRes.card.primaryTag);
+							deckStore.removeCardTag(
+								data.id,
+								cardRes.card.primaryTag,
+							);
 						}
 					}
 				}
@@ -617,13 +655,15 @@
 					>
 						<StackHeader
 							label={column.label}
-							count={column.displayCount !== undefined ? column.displayCount : column.stacks.reduce(
-								(
-									/** @type {number} */ sum,
-									/** @type {any} */ s,
-								) => sum + getStackCount(s.cards),
-								0,
-							)}
+							count={column.displayCount !== undefined
+								? column.displayCount
+								: column.stacks.reduce(
+										(
+											/** @type {number} */ sum,
+											/** @type {any} */ s,
+										) => sum + getStackCount(s.cards),
+										0,
+									)}
 							type="column"
 							colKey={column.key}
 							{renamingColumn}
@@ -647,8 +687,13 @@
 					class="grid-cell stack-container-cell"
 					role="presentation"
 					data-column-key={column.key}
-					onmouseenter={() => { interactionStore.hoveredColumnKey = column.key; }}
-					onmouseleave={() => { if (interactionStore.hoveredColumnKey === column.key) interactionStore.hoveredColumnKey = null; }}
+					onmouseenter={() => {
+						interactionStore.hoveredColumnKey = column.key;
+					}}
+					onmouseleave={() => {
+						if (interactionStore.hoveredColumnKey === column.key)
+							interactionStore.hoveredColumnKey = null;
+					}}
 					style="grid-column: {finalColTrack}; 
 							grid-row: {typeGroups.length > 0
 						? column.key === 'Special'
@@ -669,8 +714,14 @@
 							<div class="special-slot-container">
 								{#if settingsStore.showColumnHeaders}
 									<StackHeader
-										label={getStackCount(commanderStack.cards) > 1 ? "Commanders" : "Commander"}
-										count={getStackCount(commanderStack.cards)}
+										label={getStackCount(
+											commanderStack.cards,
+										) > 1
+											? "Commanders"
+											: "Commander"}
+										count={getStackCount(
+											commanderStack.cards,
+										)}
 										type="stack"
 									/>
 								{/if}
@@ -685,7 +736,8 @@
 												class="curve-card-item"
 												class:has-badge={item.isStack}
 												class:illegal-format={item._isIllegalFormat}
-												class:is-editing={interactionStore.editingCardId === item.id}
+												class:is-editing={interactionStore.editingCardId ===
+													item.id}
 												style="z-index: {idx +
 													1}; --delay: {idx * 20}ms;"
 											>
@@ -705,27 +757,77 @@
 															<input
 																type="number"
 																class="stack-badge-input"
-																value={item.stackCount || 1}
+																value={item.stackCount ||
+																	1}
 																min="0"
 																max="999"
 																use:selectOnMount
-																onclick={(/** @type {MouseEvent} */ e) => e.stopPropagation()}
-																onmousedown={(e) => e.stopPropagation()}
-																onkeydown={(e) => {
-																	if (e.key === "Enter") {
-																		const val = parseInt(e.currentTarget.value, 10);
-																		if (!isNaN(val) && val >= 0) {
-																			deckStore.setQuantity(item.name, "commander", val, item.price, item);
+																onclick={(
+																	/** @type {MouseEvent} */ e,
+																) =>
+																	e.stopPropagation()}
+																onmousedown={(
+																	e,
+																) =>
+																	e.stopPropagation()}
+																onkeydown={(
+																	e,
+																) => {
+																	if (
+																		e.key ===
+																		"Enter"
+																	) {
+																		const val =
+																			parseInt(
+																				e
+																					.currentTarget
+																					.value,
+																				10,
+																			);
+																		if (
+																			!isNaN(
+																				val,
+																			) &&
+																			val >=
+																				0
+																		) {
+																			deckStore.setQuantity(
+																				item.name,
+																				"commander",
+																				val,
+																				item.price,
+																				item,
+																			);
 																		}
 																		interactionStore.stopEditing();
-																	} else if (e.key === "Escape") {
+																	} else if (
+																		e.key ===
+																		"Escape"
+																	) {
 																		interactionStore.stopEditing();
 																	}
 																}}
 																onblur={(e) => {
-																	const val = parseInt(e.currentTarget.value, 10);
-																	if (!isNaN(val) && val >= 0) {
-																		deckStore.setQuantity(item.name, "commander", val, item.price, item);
+																	const val =
+																		parseInt(
+																			e
+																				.currentTarget
+																				.value,
+																			10,
+																		);
+																	if (
+																		!isNaN(
+																			val,
+																		) &&
+																		val >= 0
+																	) {
+																		deckStore.setQuantity(
+																			item.name,
+																			"commander",
+																			val,
+																			item.price,
+																			item,
+																		);
 																	}
 																	interactionStore.stopEditing();
 																}}
@@ -733,13 +835,19 @@
 														{:else if item.isStack}
 															<!-- svelte-ignore a11y_click_events_have_key_events -->
 															<!-- svelte-ignore a11y_no_static_element_interactions -->
-															<button 
+															<button
 																type="button"
 																class="stack-badge"
-																onclick={(e) => {
+																onclick={(
+																	e,
+																) => {
 																	e.stopPropagation();
 																	e.preventDefault();
-																	interactionStore.startEditing(item.id, "commander", item.price);
+																	interactionStore.startEditing(
+																		item.id,
+																		"commander",
+																		item.price,
+																	);
 																}}
 															>
 																<span
@@ -749,7 +857,9 @@
 															</button>
 														{/if}
 														{#if item._isIllegalFormat}
-															<div class="illegal-badge">
+															<div
+																class="illegal-badge"
+															>
 																FORMAT MISMATCH
 															</div>
 														{/if}
@@ -783,7 +893,7 @@
 								{/if}
 							</div>
 						{/if}
-						
+
 						<!-- Companions Slot -->
 						{@const companionStack = column.stacks.find(
 							(/** @type {any} */ s) => s.id === "companions",
@@ -810,7 +920,8 @@
 												class="curve-card-item"
 												class:has-badge={item.isStack}
 												class:illegal-format={item._isIllegalFormat}
-												class:is-editing={interactionStore.editingCardId === item.id}
+												class:is-editing={interactionStore.editingCardId ===
+													item.id}
 												style="z-index: {idx +
 													1}; --delay: {idx * 20}ms;"
 											>
@@ -830,27 +941,77 @@
 															<input
 																type="number"
 																class="stack-badge-input"
-																value={item.stackCount || 1}
+																value={item.stackCount ||
+																	1}
 																min="0"
 																max="999"
 																use:selectOnMount
-																onclick={(/** @type {MouseEvent} */ e) => e.stopPropagation()}
-																onmousedown={(e) => e.stopPropagation()}
-																onkeydown={(e) => {
-																	if (e.key === "Enter") {
-																		const val = parseInt(e.currentTarget.value, 10);
-																		if (!isNaN(val) && val >= 0) {
-																			deckStore.setQuantity(item.name, "companion", val, item.price, item);
+																onclick={(
+																	/** @type {MouseEvent} */ e,
+																) =>
+																	e.stopPropagation()}
+																onmousedown={(
+																	e,
+																) =>
+																	e.stopPropagation()}
+																onkeydown={(
+																	e,
+																) => {
+																	if (
+																		e.key ===
+																		"Enter"
+																	) {
+																		const val =
+																			parseInt(
+																				e
+																					.currentTarget
+																					.value,
+																				10,
+																			);
+																		if (
+																			!isNaN(
+																				val,
+																			) &&
+																			val >=
+																				0
+																		) {
+																			deckStore.setQuantity(
+																				item.name,
+																				"companion",
+																				val,
+																				item.price,
+																				item,
+																			);
 																		}
 																		interactionStore.stopEditing();
-																	} else if (e.key === "Escape") {
+																	} else if (
+																		e.key ===
+																		"Escape"
+																	) {
 																		interactionStore.stopEditing();
 																	}
 																}}
 																onblur={(e) => {
-																	const val = parseInt(e.currentTarget.value, 10);
-																	if (!isNaN(val) && val >= 0) {
-																		deckStore.setQuantity(item.name, "companion", val, item.price, item);
+																	const val =
+																		parseInt(
+																			e
+																				.currentTarget
+																				.value,
+																			10,
+																		);
+																	if (
+																		!isNaN(
+																			val,
+																		) &&
+																		val >= 0
+																	) {
+																		deckStore.setQuantity(
+																			item.name,
+																			"companion",
+																			val,
+																			item.price,
+																			item,
+																		);
 																	}
 																	interactionStore.stopEditing();
 																}}
@@ -858,13 +1019,19 @@
 														{:else if item.isStack}
 															<!-- svelte-ignore a11y_click_events_have_key_events -->
 															<!-- svelte-ignore a11y_no_static_element_interactions -->
-															<button 
+															<button
 																type="button"
 																class="stack-badge"
-																onclick={(e) => {
+																onclick={(
+																	e,
+																) => {
 																	e.stopPropagation();
 																	e.preventDefault();
-																	interactionStore.startEditing(item.id, "companion", item.price);
+																	interactionStore.startEditing(
+																		item.id,
+																		"companion",
+																		item.price,
+																	);
 																}}
 															>
 																<span
@@ -874,7 +1041,9 @@
 															</button>
 														{/if}
 														{#if item._isIllegalFormat}
-															<div class="illegal-badge">
+															<div
+																class="illegal-badge"
+															>
 																FORMAT MISMATCH
 															</div>
 														{/if}
@@ -930,7 +1099,8 @@
 										class="curve-card-item"
 										class:has-badge={item.isStack}
 										class:illegal-format={item._isIllegalFormat}
-										class:is-editing={interactionStore.editingCardId === item.id}
+										class:is-editing={interactionStore.editingCardId ===
+											item.id}
 										style="z-index: {idx +
 											1}; --delay: {idx * 20}ms;"
 									>
@@ -945,70 +1115,117 @@
 												toggleFlip,
 												toggleRotate,
 											})}
-														{#if interactionStore.editingCardId === item.id}
-															<input
-																type="number"
-																class="stack-badge-input"
-																value={item.stackCount || 1}
-																min="0"
-																max="999"
-																use:selectOnMount
-																onclick={(/** @type {MouseEvent} */ e) => e.stopPropagation()}
-																onmousedown={(e) => e.stopPropagation()}
-																onkeydown={(e) => {
-																	if (e.key === "Enter") {
-																		const val = parseInt(e.currentTarget.value, 10);
-																		if (!isNaN(val) && val >= 0) {
-																			deckStore.setQuantity(item.name, deckStore.activeBoard, val, item.price, item);
-																		}
-																		interactionStore.stopEditing();
-																	} else if (e.key === "Escape") {
-																		interactionStore.stopEditing();
-																	}
-																}}
-																onblur={(e) => {
-																	const val = parseInt(e.currentTarget.value, 10);
-																	if (!isNaN(val) && val >= 0) {
-																		deckStore.setQuantity(item.name, deckStore.activeBoard, val, item.price, item);
-																	}
-																	interactionStore.stopEditing();
-																}}
-															/>
-														{:else if item.isStack}
-															<!-- svelte-ignore a11y_click_events_have_key_events -->
-															<!-- svelte-ignore a11y_no_static_element_interactions -->
-															<button 
-																type="button"
-																class="stack-badge"
-																onclick={(e) => {
-																	e.stopPropagation();
-																	e.preventDefault();
-																	interactionStore.startEditing(item.id, deckStore.activeBoard, item.price);
-																}}
-															>
-																<span class="multiplier"
-																	>&times;</span
-																>{item.stackCount}
-															</button>
-														{/if}
-														{#if item._isIllegalFormat}
-															<div class="illegal-badge">
-																FORMAT MISMATCH
-															</div>
-														{/if}
-														<CardArt
-															card={item}
-															price={item.price}
-															{isFlipped}
-															{isRotated}
-															{toggleFlip}
-															{toggleRotate}
-															showPrice={false}
-															loading={!item._metadata}
-															hideControlsUntilHover={true}
-														/>
-													{/snippet}
-												</CardShell>
+												{#if interactionStore.editingCardId === item.id}
+													<input
+														type="number"
+														class="stack-badge-input"
+														value={item.stackCount ||
+															1}
+														min="0"
+														max="999"
+														use:selectOnMount
+														onclick={(
+															/** @type {MouseEvent} */ e,
+														) =>
+															e.stopPropagation()}
+														onmousedown={(e) =>
+															e.stopPropagation()}
+														onkeydown={(e) => {
+															if (
+																e.key ===
+																"Enter"
+															) {
+																const val =
+																	parseInt(
+																		e
+																			.currentTarget
+																			.value,
+																		10,
+																	);
+																if (
+																	!isNaN(
+																		val,
+																	) &&
+																	val >= 0
+																) {
+																	deckStore.setQuantity(
+																		item.name,
+																		deckStore.activeBoard,
+																		val,
+																		item.price,
+																		item,
+																	);
+																}
+																interactionStore.stopEditing();
+															} else if (
+																e.key ===
+																"Escape"
+															) {
+																interactionStore.stopEditing();
+															}
+														}}
+														onblur={(e) => {
+															const val =
+																parseInt(
+																	e
+																		.currentTarget
+																		.value,
+																	10,
+																);
+															if (
+																!isNaN(val) &&
+																val >= 0
+															) {
+																deckStore.setQuantity(
+																	item.name,
+																	deckStore.activeBoard,
+																	val,
+																	item.price,
+																	item,
+																);
+															}
+															interactionStore.stopEditing();
+														}}
+													/>
+												{:else if item.isStack}
+													<!-- svelte-ignore a11y_click_events_have_key_events -->
+													<!-- svelte-ignore a11y_no_static_element_interactions -->
+													<button
+														type="button"
+														class="stack-badge"
+														onclick={(e) => {
+															e.stopPropagation();
+															e.preventDefault();
+															interactionStore.startEditing(
+																item.id,
+																deckStore.activeBoard,
+																item.price,
+															);
+														}}
+													>
+														<span class="multiplier"
+															>&times;</span
+														>{item.stackCount}
+													</button>
+												{/if}
+												{#if item._isIllegalFormat}
+													<div class="illegal-badge">
+														FORMAT MISMATCH
+													</div>
+												{/if}
+												<CardArt
+													card={item}
+													price={item.price}
+													{isFlipped}
+													{isRotated}
+													{toggleFlip}
+													{toggleRotate}
+													showPrice={false}
+													loading={!item._metadata}
+													hideControlsUntilHover={true}
+												/>
+											{/snippet}
+										</CardShell>
 									</div>
 								{/each}
 							</div>
@@ -1125,6 +1342,7 @@
 		border-radius: 4.5% / 3.2%;
 		background: transparent;
 		flex-shrink: 0;
+		transition: transform 0.2s ease;
 		cursor: pointer;
 		user-select: none;
 		overflow: visible !important;
@@ -1142,7 +1360,6 @@
 		min-height: calc(var(--card-width) * 1.4 * 0.22 + 120px) !important;
 		margin-bottom: 16px;
 	}
-
 
 	:global(.curve-card-item:hover .card-shell) {
 		transform: translateY(
@@ -1247,7 +1464,6 @@
 		-webkit-appearance: none;
 		margin: 0;
 	}
-
 
 	.ghost-card {
 		width: var(--card-width);
