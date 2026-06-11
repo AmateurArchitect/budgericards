@@ -17,6 +17,8 @@
 	const engine = createStacksEngine();
 
 	let isInitialLoad = $state(true);
+	const ENTRY_ANIM_DURATION = 200; // ms (normally 200)
+	const ENTRY_STAGGER_DELAY = 20;  // ms (normally 20)
 
 	function generateTagsFromCurrentStacks() {
 		const cardsToUpdate = [];
@@ -471,9 +473,37 @@
 		pruneEmptyFreeformColumns();
 	}
 
-	onMount(() => {
-		const timer = setTimeout(() => (isInitialLoad = false), 1200);
-		return () => clearTimeout(timer);
+	let prevCardsCount = $state(0);
+	const allCardsCount = $derived(
+		(deckStore.commander?.length || 0) +
+		(deckStore.companion?.length || 0) +
+		(deckStore.mainboard?.length || 0) +
+		(deckStore.sideboard?.length || 0) +
+		(deckStore.maybeboard?.length || 0)
+	);
+
+	let isFirstLoadSession = $state(true);
+	let lastPasteTime = $state(0);
+	/** @type {any} */
+	let animationTimeoutId = null;
+
+	$effect(() => {
+		const count = allCardsCount;
+		if (count > prevCardsCount) {
+			isInitialLoad = true;
+			lastPasteTime = Date.now();
+			if (animationTimeoutId) clearTimeout(animationTimeoutId);
+			const totalDuration = Math.max(1200, (count * ENTRY_STAGGER_DELAY) + ENTRY_ANIM_DURATION);
+			animationTimeoutId = setTimeout(() => {
+				isInitialLoad = false;
+				isFirstLoadSession = false;
+			}, totalDuration);
+		}
+		prevCardsCount = count;
+
+		return () => {
+			if (animationTimeoutId) clearTimeout(animationTimeoutId);
+		};
 	});
 
 	const layoutData = $derived(
@@ -563,7 +593,6 @@
 	onwheel={handleWheel}
 	bind:this={scrollContainer}
 	class:drag-over={isDragOver}
-	class:initial-load={isInitialLoad}
 	class:condensed={layoutStore.isCondensed}
 	class:spacious={settingsStore.curveSpacing === "spacious"}
 	ondragover={handleDragOver}
@@ -734,12 +763,13 @@
 											<div
 												animate:flip={{ duration: 200 }}
 												class="curve-card-item"
+												class:stagger-entry={isInitialLoad && (isFirstLoadSession || (item.addedAt && item.addedAt >= lastPasteTime - 1000))}
 												class:has-badge={item.isStack}
 												class:illegal-format={item._isIllegalFormat}
 												class:is-editing={interactionStore.editingCardId ===
 													item.id}
 												style="z-index: {idx +
-													1}; --delay: {idx * 200}ms;"
+													1}; --delay: {idx * ENTRY_STAGGER_DELAY}ms;"
 											>
 												<CardShell
 													card={item}
@@ -873,6 +903,7 @@
 															showPrice={false}
 															loading={!item._metadata}
 															hideControlsUntilHover={true}
+															lazy={deckStore.totalCount > 125}
 														/>
 													{/snippet}
 												</CardShell>
@@ -918,12 +949,13 @@
 											<div
 												animate:flip={{ duration: 200 }}
 												class="curve-card-item"
+												class:stagger-entry={isInitialLoad && (isFirstLoadSession || (item.addedAt && item.addedAt >= lastPasteTime - 1000))}
 												class:has-badge={item.isStack}
 												class:illegal-format={item._isIllegalFormat}
 												class:is-editing={interactionStore.editingCardId ===
 													item.id}
 												style="z-index: {idx +
-													1}; --delay: {idx * 200}ms;"
+													1}; --delay: {idx * ENTRY_STAGGER_DELAY}ms;"
 											>
 												<CardShell
 													card={item}
@@ -1057,6 +1089,7 @@
 															showPrice={false}
 															loading={!item._metadata}
 															hideControlsUntilHover={true}
+															lazy={deckStore.totalCount > 125}
 														/>
 													{/snippet}
 												</CardShell>
@@ -1097,12 +1130,13 @@
 									<div
 										animate:flip={{ duration: 200 }}
 										class="curve-card-item"
+										class:stagger-entry={isInitialLoad && (isFirstLoadSession || (item.addedAt && item.addedAt >= lastPasteTime - 1000))}
 										class:has-badge={item.isStack}
 										class:illegal-format={item._isIllegalFormat}
 										class:is-editing={interactionStore.editingCardId ===
 											item.id}
 										style="z-index: {idx +
-											1}; --delay: {idx * 200}ms;"
+											1}; --delay: {idx * ENTRY_STAGGER_DELAY}ms;"
 									>
 										<CardShell
 											card={item}
@@ -1223,6 +1257,7 @@
 													showPrice={false}
 													loading={!item._metadata}
 													hideControlsUntilHover={true}
+													lazy={deckStore.totalCount > 125}
 												/>
 											{/snippet}
 										</CardShell>
@@ -1540,15 +1575,15 @@
 	   By standardizing on the SAME animation-name ('card-bloom') for both, the browser knows 
 	   the animation is already completed and does not restart it when '.initial-load' is removed.
 	*/
-	:global(.initial-load .curve-card-item) {
+	:global(.curve-card-item.stagger-entry) {
 		animation-name: card-bloom;
-		animation-duration: 2000ms;
+		animation-duration: 200ms;
 		animation-timing-function: ease;
 		animation-delay: var(--delay);
 		animation-fill-mode: backwards;
 	}
 
 	:global(.curve-card-item) {
-		animation: card-bloom 2000ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+		animation: card-bloom 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 	}
 </style>

@@ -62,7 +62,7 @@ function createDeckState(initialData = null) {
 	let autoCommanderPending = $state(false);
 	let firstPastedName = $state('');
 	let lastPastedName = $state('');
-	let isVisualLoading = $state(false);
+	let isImagePreloading = $state(false);
 
 	return {
 		get deck() { return deck; },
@@ -81,8 +81,8 @@ function createDeckState(initialData = null) {
 		set firstPastedName(val) { firstPastedName = val; },
 		get lastPastedName() { return lastPastedName; },
 		set lastPastedName(val) { lastPastedName = val; },
-		get isVisualLoading() { return isVisualLoading; },
-		set isVisualLoading(val) { isVisualLoading = val; }
+		get isImagePreloading() { return isImagePreloading; },
+		set isImagePreloading(val) { isImagePreloading = val; }
 	};
 }
 
@@ -666,19 +666,28 @@ function createDeck() {
 	}
 
 	let isSyncing = false;
-	/** @param {ReturnType<typeof createDeckState>} deckState */
-	async function syncMetadata(deckState) {
+	/** 
+	 * @param {ReturnType<typeof createDeckState>} deckState 
+	 * @param {string[]} [customNames]
+	 */
+	async function syncMetadata(deckState, customNames = null) {
 		if (isSyncing || !browser) return;
 		
-		const allCards = [
-			...deckState.deck.commander,
-			...deckState.deck.companion,
-			...deckState.deck.mainboard,
-			...deckState.deck.sideboard,
-			...deckState.deck.maybeboard
-		];
-		const missingNames = [...new Set(allCards.map(c => c.name))]
-			.filter(name => name && !deckState.metadata[name.toLowerCase()]);
+		let missingNames;
+		if (customNames) {
+			missingNames = [...new Set(customNames)]
+				.filter(name => name && !deckState.metadata[name.toLowerCase()]);
+		} else {
+			const allCards = [
+				...deckState.deck.commander,
+				...deckState.deck.companion,
+				...deckState.deck.mainboard,
+				...deckState.deck.sideboard,
+				...deckState.deck.maybeboard
+			];
+			missingNames = [...new Set(allCards.map(c => c.name))]
+				.filter(name => name && !deckState.metadata[name.toLowerCase()]);
+		}
 
 		if (missingNames.length === 0) return;
 
@@ -701,6 +710,7 @@ function createDeck() {
 					deckState.metadata[lowName] = {
 						image_uris: {
 							normal: localCard.image,
+							small: localCard.image ? localCard.image.replace('/normal/', '/small/') : null,
 							art_crop: localCard.image ? localCard.image.replace('/normal/', '/art_crop/') : null
 						},
 						card_faces: [],
@@ -775,22 +785,19 @@ function createDeck() {
 		}
 	}
 
-	/** @param {ReturnType<typeof createDeckState>} deckState */
-	async function preloadDeckImages(deckState) {
+	/** 
+	 * @param {ReturnType<typeof createDeckState>} deckState 
+	 * @param {string[]} cardNames
+	 * @param {number} [timeout]
+	 */
+	async function preloadDeckImagesForNames(deckState, cardNames, timeout = 200) {
 		if (typeof window === 'undefined' || typeof Image === 'undefined') return;
-		const allCards = [
-			...deckState.deck.commander,
-			...deckState.deck.companion,
-			...deckState.deck.mainboard,
-			...deckState.deck.sideboard,
-			...deckState.deck.maybeboard
-		];
 		const imageUrls = [];
-		for (const card of allCards) {
-			const meta = deckState.metadata[card.name.toLowerCase()];
+		for (const name of cardNames) {
+			const meta = deckState.metadata[name.toLowerCase()];
 			if (meta) {
 				const isDfc = meta.card_faces && meta.card_faces.length > 1 && meta.card_faces[0].image_uris;
-				const frontImg = isDfc ? meta.card_faces[0].image_uris.normal : (meta.image_uris?.normal || meta.image || "");
+				const frontImg = isDfc ? (meta.card_faces[0].image_uris.small || meta.card_faces[0].image_uris.normal) : (meta.image_uris?.small || meta.image_uris?.normal || meta.image || "");
 				if (frontImg) imageUrls.push(frontImg);
 			}
 		}
@@ -808,34 +815,28 @@ function createDeck() {
 			});
 		}));
 
-		const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(false), 4000));
+		const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(false), timeout));
 
 		await Promise.race([preloadPromise, timeoutPromise]);
 	}
 
-	/** @param {ReturnType<typeof createDeckState>} deckState */
-	async function waitAndPreload(deckState) {
-		deckState.isVisualLoading = true;
+	/** 
+	 * @param {ReturnType<typeof createDeckState>} deckState 
+	 * @param {string[]} cardNames
+	 */
+	async function fetchMetadataAndPreloadImages(deckState, cardNames) {
+		const shouldPreload = cardNames.length > 5;
+		if (shouldPreload) {
+			deckState.isImagePreloading = true;
+		}
 		try {
-			const allCards = [
-				...deckState.deck.commander,
-				...deckState.deck.companion,
-				...deckState.deck.mainboard,
-				...deckState.deck.sideboard,
-				...deckState.deck.maybeboard
-			];
-			const missingNames = [...new Set(allCards.map(c => c.name))]
-				.filter(name => name && !deckState.metadata[name.toLowerCase()]);
-			
-			if (missingNames.length > 0) {
-				await syncMetadata(deckState);
-			}
-
-			await preloadDeckImages(deckState);
+			await syncMetadata(deckState, cardNames);
+			const timeout = shouldPreload ? 500 : 200;
+			await preloadDeckImagesForNames(deckState, cardNames, timeout);
 		} catch (e) {
-			console.error("Error during waitAndPreload:", e);
+			console.error("fetchMetadataAndPreloadImages failed:", e);
 		} finally {
-			deckState.isVisualLoading = false;
+			deckState.isImagePreloading = false;
 		}
 	}
 
@@ -1597,59 +1598,93 @@ function createDeck() {
 		async saveImport() {
 			const parsedCards = parseDecklist(activeDeck.importText);
 			
-			// Resolve any Scryfall IDs or Set/Collector numbers asynchronously
-			const resolvedCards = [];
-			for (const pc of parsedCards) {
+			// Resolve any Scryfall IDs or Set/Collector numbers asynchronously in batches, maintaining order
+			const toResolve = [];
+			const resolvedCards = new Array(parsedCards.length);
+
+			for (let i = 0; i < parsedCards.length; i++) {
+				const pc = parsedCards[i];
 				if (pc.scryfallId) {
-					try {
-						const res = await fetch(`https://api.scryfall.com/cards/${pc.scryfallId}`);
-						if (res.ok) {
-							const scryfallCard = await res.json();
-							resolvedCards.push({
-								name: scryfallCard.name,
-								quantity: pc.quantity,
-								board: pc.board,
-								metadata: scryfallCard
-							});
-						}
-					} catch (e) {
-						console.error("Failed to resolve Scryfall ID during import:", e);
-					}
+					toResolve.push({
+						index: i,
+						pc,
+						identifier: { id: pc.scryfallId }
+					});
 				} else if (pc.set && pc.collector_number && !pc.name) {
-					try {
-						const res = await fetch(`https://api.scryfall.com/cards/${pc.set.toLowerCase()}/${pc.collector_number}`);
-						if (res.ok) {
-							const scryfallCard = await res.json();
-							resolvedCards.push({
-								name: scryfallCard.name,
-								quantity: pc.quantity,
-								board: pc.board,
-								metadata: scryfallCard
-							});
-						}
-					} catch (e) {
-						console.error("Failed to resolve Set/Collector during import:", e);
-					}
+					toResolve.push({
+						index: i,
+						pc,
+						identifier: { set: pc.set.toLowerCase(), collector_number: pc.collector_number.toLowerCase() }
+					});
 				} else {
-					resolvedCards.push(pc);
+					resolvedCards[i] = pc;
 				}
 			}
 
-			importCardsInternal(activeDeck, resolvedCards, { replace: true });
+			if (toResolve.length > 0) {
+				try {
+					const response = await fetchCollection(toResolve.map(item => item.identifier));
+					
+					// Build lookup maps from Scryfall response data
+					const idMap = new Map();
+					const setCollectorMap = new Map();
+					
+					response.data.forEach(card => {
+						if (card.id) idMap.set(card.id.toLowerCase(), card);
+						if (card.set && card.collector_number) {
+							const key = `${card.set.toLowerCase()}/${card.collector_number.toLowerCase()}`;
+							setCollectorMap.set(key, card);
+						}
+					});
+
+					for (const item of toResolve) {
+						let foundCard = null;
+						if (item.pc.scryfallId) {
+							foundCard = idMap.get(item.pc.scryfallId.toLowerCase());
+						} else if (item.pc.set && item.pc.collector_number) {
+							const key = `${item.pc.set.toLowerCase()}/${item.pc.collector_number.toLowerCase()}`;
+							foundCard = setCollectorMap.get(key);
+						}
+
+						if (foundCard) {
+							resolvedCards[item.index] = {
+								name: foundCard.name,
+								quantity: item.pc.quantity,
+								board: item.pc.board,
+								metadata: foundCard
+							};
+						} else {
+							resolvedCards[item.index] = item.pc;
+						}
+					}
+				} catch (e) {
+					console.error("Failed to batch resolve Scryfall identifiers during import:", e);
+					// Fallback to unresolved cards
+					for (const item of toResolve) {
+						resolvedCards[item.index] = item.pc;
+					}
+				}
+			}
+
+			// Clean up any empty slots just in case
+			const finalResolvedCards = resolvedCards.filter(Boolean);
+
+			// Sync metadata and preload images before inserting the cards into the deck state
+			const cardNames = finalResolvedCards.filter(c => c.name).map(c => c.name);
+			await fetchMetadataAndPreloadImages(activeDeck, cardNames);
+
+			importCardsInternal(activeDeck, finalResolvedCards, { replace: true });
 			activeDeck.importText = cleanDecklistTextFor(activeDeck);
 			
 			// Return back to last used view mode besides list
 			const lastView = localStorage.getItem('budgericards_last_active_view_mode') || 'stacks';
 			settingsStore.deckViewMode = lastView;
-
-			await waitAndPreload(activeDeck);
 		},
 
-		get isVisualLoading() { return activeDeck.isVisualLoading; },
-		set isVisualLoading(val) { activeDeck.isVisualLoading = val; },
-		async preloadDeckImagesAndShow() {
-			await waitAndPreload(activeDeck);
+		async preloadDeckImagesAndShow(cardNames) {
+			await fetchMetadataAndPreloadImages(activeDeck, cardNames);
 		},
+		get isImagePreloading() { return activeDeck.isImagePreloading; },
 		clearMetadataAndCards() {
 			saveHistory(activeDeck);
 			activeDeck.deck.commander = [];

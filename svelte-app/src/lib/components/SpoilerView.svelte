@@ -595,6 +595,7 @@
 							showPrice={settingsStore.showPrices}
 							loading={!item.card}
 							hideControlsUntilHover={true}
+							lazy={deckStore.totalCount > 125}
 						/>
 					{/snippet}
 				</CardShell>

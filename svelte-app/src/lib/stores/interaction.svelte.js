@@ -1,5 +1,6 @@
 import { deckStore } from "./deck.svelte.js";
 import { parseDecklist } from "../utils/decklistParser.js";
+import { fetchCollection } from "../api/scryfall.js";
 
 /**
  * Parses a single text cell/column value into card details
@@ -930,72 +931,104 @@ function createInteractionStore() {
 				} else {
 					const parsed = parseSpreadsheetText(text);
 					if (parsed && parsed.length > 0) {
-						/** @type {any[]} */
-						const cardsToAdd = [];
-						for (const item of parsed) {
+						// Resolve any Scryfall IDs or Set/Collector numbers asynchronously in batches, maintaining order
+						const toResolve = [];
+						const cardsToAdd = new Array(parsed.length);
+
+						for (let i = 0; i < parsed.length; i++) {
+							const item = parsed[i];
 							if (item.scryfallId) {
-								try {
-									const res = await fetch(`https://api.scryfall.com/cards/${item.scryfallId}`);
-									if (res.ok) {
-										const scryfallCard = await res.json();
-										cardsToAdd.push({
-											name: scryfallCard.name,
-											quantity: item.quantity,
-											price: parseFloat(scryfallCard.prices?.usd || scryfallCard.prices?.usd_foil) || 0,
-											metadata: scryfallCard
-										});
-									}
-								} catch (e) {
-									console.error("Failed to fetch card by Scryfall ID:", e);
-								}
+								toResolve.push({
+									index: i,
+									item,
+									identifier: { id: item.scryfallId }
+								});
 							} else if (item.set && item.collector_number) {
-								try {
-									const res = await fetch(`https://api.scryfall.com/cards/${item.set.toLowerCase()}/${item.collector_number}`);
-									if (res.ok) {
-										const scryfallCard = await res.json();
-										cardsToAdd.push({
-											name: scryfallCard.name,
-											quantity: item.quantity,
-											price: parseFloat(scryfallCard.prices?.usd || scryfallCard.prices?.usd_foil) || 0,
-											metadata: scryfallCard
-										});
-									} else if (item.name) {
-										cardsToAdd.push({
-											name: item.name,
-											quantity: item.quantity,
-											set: item.set,
-											collector_number: item.collector_number
-										});
-									}
-								} catch (e) {
-									console.error("Failed to fetch card by Set/Collector:", e);
-									if (item.name) {
-										cardsToAdd.push({
-											name: item.name,
-											quantity: item.quantity,
-											set: item.set,
-											collector_number: item.collector_number
-										});
-									}
-								}
+								toResolve.push({
+									index: i,
+									item,
+									identifier: { set: item.set.toLowerCase(), collector_number: item.collector_number.toLowerCase() }
+								});
 							} else if (item.name) {
-								cardsToAdd.push({
+								cardsToAdd[i] = {
 									name: item.name,
 									quantity: item.quantity
-								});
+								};
 							}
 						}
 
-					if (cardsToAdd.length > 0) {
+						if (toResolve.length > 0) {
+							try {
+								const response = await fetchCollection(toResolve.map(x => x.identifier));
+								const idMap = new Map();
+								const setCollectorMap = new Map();
+
+								response.data.forEach(card => {
+									if (card.id) idMap.set(card.id.toLowerCase(), card);
+									if (card.set && card.collector_number) {
+										const key = `${card.set.toLowerCase()}/${card.collector_number.toLowerCase()}`;
+										setCollectorMap.set(key, card);
+									}
+								});
+
+								for (const x of toResolve) {
+									let foundCard = null;
+									if (x.item.scryfallId) {
+										foundCard = idMap.get(x.item.scryfallId.toLowerCase());
+									} else if (x.item.set && x.item.collector_number) {
+										const key = `${x.item.set.toLowerCase()}/${x.item.collector_number.toLowerCase()}`;
+										foundCard = setCollectorMap.get(key);
+									}
+
+									if (foundCard) {
+										cardsToAdd[x.index] = {
+											name: foundCard.name,
+											quantity: x.item.quantity,
+											price: parseFloat(foundCard.prices?.usd || foundCard.prices?.usd_foil) || 0,
+											metadata: foundCard
+										};
+									} else {
+										if (x.item.name) {
+											cardsToAdd[x.index] = {
+												name: x.item.name,
+												quantity: x.item.quantity,
+												set: x.item.set,
+												collector_number: x.item.collector_number
+											};
+										}
+									}
+								}
+							} catch (e) {
+								console.error("Failed to batch resolve pasted card collection:", e);
+								for (const x of toResolve) {
+									if (x.item.name) {
+										cardsToAdd[x.index] = {
+											name: x.item.name,
+											quantity: x.item.quantity,
+											set: x.item.set,
+											collector_number: x.item.collector_number
+										};
+									}
+								}
+							}
+						}
+
+						const finalCardsToAdd = cardsToAdd.filter(Boolean);
+
+						if (finalCardsToAdd.length > 0) {
 							const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
 							const wasDeckEmpty = boards.every(b => {
 								const arr = /** @type {any[]} */ (/** @type {any} */ (deckStore)[b]);
 								return !arr || arr.length === 0;
 							});
 
+							if (finalCardsToAdd.length > 2 || wasDeckEmpty) {
+								await deckStore.preloadDeckImagesAndShow(finalCardsToAdd.filter(c => c.name).map(c => c.name));
+							}
+
 							deckStore.batchUpdate(() => {
 								const board = deckStore.activeBoard || 'mainboard';
-								for (const card of cardsToAdd) {
+								for (const card of finalCardsToAdd) {
 									const metadata = card.metadata || (card.set ? { set: card.set.toLowerCase(), collector_number: card.collector_number } : null);
 									
 									const boardArray = /** @type {any[]} */ (/** @type {any} */ (deckStore)[board]) || [];
@@ -1012,14 +1045,10 @@ function createInteractionStore() {
 								}, 0);
 								if (totalAfter >= 98 && totalAfter <= 103) {
 									deckStore.scheduleAutoCommanderCheck(
-										cardsToAdd[0]?.name || '',
-										cardsToAdd[cardsToAdd.length - 1]?.name || ''
+										finalCardsToAdd[0]?.name || '',
+										finalCardsToAdd[finalCardsToAdd.length - 1]?.name || ''
 									);
 								}
-							}
-
-							if (cardsToAdd.length > 2 || wasDeckEmpty) {
-								await deckStore.preloadDeckImagesAndShow();
 							}
 						}
 						return;

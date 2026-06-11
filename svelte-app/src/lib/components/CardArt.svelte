@@ -37,12 +37,21 @@
 	);
 	const isFlip = $derived(card?.layout === "flip");
 
-	const frontImgUrl = $derived(
+	const frontLowResUrl = $derived(
+		isDfc
+			? (card.card_faces[0].image_uris.small || card.card_faces[0].image_uris.normal)
+			: card?.image_uris?.small || card?.image_uris?.normal || card?.image || "",
+	);
+	const frontHighResUrl = $derived(
 		isDfc
 			? card.card_faces[0].image_uris.normal
 			: card?.image_uris?.normal || card?.image || "",
 	);
-	const backImgUrl = $derived(
+
+	const backLowResUrl = $derived(
+		isDfc ? (card.card_faces[1].image_uris.small || card.card_faces[1].image_uris.normal) : "",
+	);
+	const backHighResUrl = $derived(
 		isDfc ? card.card_faces[1].image_uris.normal : "",
 	);
 
@@ -55,18 +64,148 @@
 	const legality = $derived(checkLegality(card));
 	const isIllegal = $derived(!legality.isLegal);
 
-	/** @typedef {{ src: string, card: any, loading?: boolean }} CardImageProps */
+	let frontLowResLoaded = $state(false);
+	let backLowResLoaded = $state(false);
+	let frontHighResLoaded = $state(false);
+	let backHighResLoaded = $state(false);
+
+	// Handle front image loading states and failsafe timeout
+	$effect(() => {
+		if (frontLowResUrl) {
+			if (frontHighResUrl) {
+				const img = new Image();
+				img.src = frontHighResUrl;
+				if (img.complete) {
+					frontLowResLoaded = true;
+					frontHighResLoaded = true;
+					return;
+				}
+			}
+
+			frontLowResLoaded = false;
+			frontHighResLoaded = false;
+
+			// Failsafe: start loading high-res if low-res takes longer than 2 seconds
+			const timer = setTimeout(() => {
+				frontLowResLoaded = true;
+			}, 2000);
+
+			return () => clearTimeout(timer);
+		}
+	});
+
+	// Preload front high-res image when low-res is loaded/timed out
+	$effect(() => {
+		if (frontLowResLoaded && frontHighResUrl && !frontHighResLoaded) {
+			const img = new Image();
+			img.src = frontHighResUrl;
+			img.onload = () => {
+				frontHighResLoaded = true;
+			};
+			img.onerror = () => {
+				// If high-res fails, unblur the low-res image
+				frontHighResLoaded = false;
+			};
+		}
+	});
+
+	// Handle back image loading states and failsafe timeout
+	$effect(() => {
+		if (backLowResUrl) {
+			if (backHighResUrl) {
+				const img = new Image();
+				img.src = backHighResUrl;
+				if (img.complete) {
+					backLowResLoaded = true;
+					backHighResLoaded = true;
+					return;
+				}
+			}
+
+			backLowResLoaded = false;
+			backHighResLoaded = false;
+
+			const timer = setTimeout(() => {
+				backLowResLoaded = true;
+			}, 2000);
+
+			return () => clearTimeout(timer);
+		}
+	});
+
+	// Preload back high-res image when low-res is loaded/timed out
+	$effect(() => {
+		if (backLowResLoaded && backHighResUrl && !backHighResLoaded) {
+			const img = new Image();
+			img.src = backHighResUrl;
+			img.onload = () => {
+				backHighResLoaded = true;
+			};
+			img.onerror = () => {
+				backHighResLoaded = false;
+			};
+		}
+	});
+
+	/**
+	 * Svelte action to handle image loading and prevent race conditions with cached images
+	 * @param {HTMLImageElement} node
+	 * @param {() => void} onLoadCallback
+	 */
+	function handleImageLoad(node, onLoadCallback) {
+		const check = () => {
+			if (node.complete) {
+				onLoadCallback();
+			}
+		};
+		node.addEventListener('load', onLoadCallback);
+		node.addEventListener('error', onLoadCallback);
+		
+		check();
+
+		return {
+			/** @param {() => void} newCallback */
+			update(newCallback) {
+				node.removeEventListener('load', onLoadCallback);
+				node.removeEventListener('error', onLoadCallback);
+				onLoadCallback = newCallback;
+				node.addEventListener('load', onLoadCallback);
+				node.addEventListener('error', onLoadCallback);
+				check();
+			},
+			destroy() {
+				node.removeEventListener('load', onLoadCallback);
+				node.removeEventListener('error', onLoadCallback);
+			}
+		};
+	}
+
+	/** @typedef {{ lowSrc: string, highSrc: string, isLoaded: boolean, card: any, onLowResLoad: () => void, loading?: boolean }} CardImageProps */
 </script>
 
-{#snippet CardImage(/** @type {CardImageProps} */ { src, card, loading = false })}
-	{#if src}
-		<img
-			{src}
-			class="card-image loaded"
-			alt={card.name}
-			loading={lazy ? "lazy" : "eager"}
-			draggable="false"
-		/>
+{#snippet CardImage(/** @type {CardImageProps} */ { lowSrc, highSrc, isLoaded, card, onLowResLoad, loading = false })}
+	{#if lowSrc}
+		<div class="image-wrapper" style="position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: inherit;">
+			<img
+				src={lowSrc}
+				use:handleImageLoad={onLowResLoad}
+				class="card-image low-res"
+				class:blur-placeholder={!isLoaded}
+				alt={card.name}
+				loading={lazy ? "lazy" : "eager"}
+				draggable="false"
+				style="width: 100%; height: 100%; object-fit: cover;"
+			/>
+			{#if highSrc && isLoaded}
+				<img
+					src={highSrc}
+					class="card-image high-res fade-in-art"
+					alt={card.name}
+					draggable="false"
+					style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1;"
+				/>
+			{/if}
+		</div>
 	{:else if loading}
 		<div class="image-placeholder loading">
 			<span>Metadata Loading...</span>
@@ -87,16 +226,16 @@
 	{#if isDfc || isFlip}
 		<div class="flip-container">
 			<div class="flip-front">
-				{@render CardImage({ src: frontImgUrl, card, loading })}
+				{@render CardImage({ lowSrc: frontLowResUrl, highSrc: frontHighResUrl, isLoaded: frontHighResLoaded, card, onLowResLoad: () => { frontLowResLoaded = true; }, loading })}
 			</div>
 			{#if isDfc}
 				<div class="flip-back">
-					{@render CardImage({ src: backImgUrl, card })}
+					{@render CardImage({ lowSrc: backLowResUrl, highSrc: backHighResUrl, isLoaded: backHighResLoaded, card, onLowResLoad: () => { backLowResLoaded = true; } })}
 				</div>
 			{/if}
 		</div>
 	{:else}
-		{@render CardImage({ src: frontImgUrl, card, loading })}
+		{@render CardImage({ lowSrc: frontLowResUrl, highSrc: frontHighResUrl, isLoaded: frontHighResLoaded, card, onLowResLoad: () => { frontLowResLoaded = true; }, loading })}
 	{/if}
 
 	<!-- Flip Button for DFCs -->
@@ -340,5 +479,19 @@
 		font-size: 10px;
 		text-align: center;
 		padding: 20px;
+	}
+
+	.fade-in-art {
+		animation: art-fade-in 180ms ease-out forwards;
+	}
+
+	@keyframes art-fade-in {
+		from { opacity: 0; }
+		to { opacity: 1; }
+	}
+
+	.low-res.blur-placeholder {
+		/* No artificial blur or scale to keep low-res image as clear as possible */
+		transition: opacity 0.35s ease;
 	}
 </style>
