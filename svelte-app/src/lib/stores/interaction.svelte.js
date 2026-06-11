@@ -963,7 +963,13 @@ function createInteractionStore() {
 							}
 						}
 
-						if (cardsToAdd.length > 0) {
+					if (cardsToAdd.length > 0) {
+							const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+							const wasDeckEmpty = boards.every(b => {
+								const arr = /** @type {any[]} */ (/** @type {any} */ (deckStore)[b]);
+								return !arr || arr.length === 0;
+							});
+
 							deckStore.batchUpdate(() => {
 								const board = deckStore.activeBoard || 'mainboard';
 								for (const card of cardsToAdd) {
@@ -975,6 +981,19 @@ function createInteractionStore() {
 									deckStore.setQuantity(card.name, board, existingCount + card.quantity, card.price || null, metadata);
 								}
 							});
+
+							if (wasDeckEmpty && deckStore.commander.length === 0) {
+								const totalAfter = boards.reduce((sum, b) => {
+									const arr = /** @type {any[]} */ (/** @type {any} */ (deckStore)[b]);
+									return sum + (arr?.length ?? 0);
+								}, 0);
+								if (totalAfter >= 98 && totalAfter <= 103) {
+									deckStore.scheduleAutoCommanderCheck(
+										cardsToAdd[0]?.name || '',
+										cardsToAdd[cardsToAdd.length - 1]?.name || ''
+									);
+								}
+							}
 						}
 						return;
 					}

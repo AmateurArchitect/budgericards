@@ -1509,6 +1509,18 @@ function createDeck() {
 			settingsStore.deckViewMode = 'list';
 		},
 
+		/**
+		 * Called from external paste handlers (e.g. stacks view) to kick off
+		 * commander auto-recognition after a large paste onto an empty deck.
+		 * @param {string} firstCardName
+		 * @param {string} lastCardName
+		 */
+		scheduleAutoCommanderCheck(firstCardName, lastCardName) {
+			activeDeck.firstPastedName = firstCardName;
+			activeDeck.lastPastedName = lastCardName;
+			activeDeck.autoCommanderPending = true;
+		},
+
 		cancelImport() {
 			activeDeck.importText = cleanDecklistTextFor(activeDeck);
 			const lastView = localStorage.getItem('budgericards_last_active_view_mode') || 'stacks';
