@@ -667,11 +667,13 @@
 						)}
 						{#if commanderStack}
 							<div class="special-slot-container">
-								<StackHeader
-									label="Commanders"
-									count={getStackCount(commanderStack.cards)}
-									type="stack"
-								/>
+								{#if settingsStore.showColumnHeaders}
+									<StackHeader
+										label={getStackCount(commanderStack.cards) > 1 ? "Commanders" : "Commander"}
+										count={getStackCount(commanderStack.cards)}
+										type="stack"
+									/>
+								{/if}
 								{#if commanderStack.cards.length > 0}
 									<div
 										class="curve-col-stack"
@@ -788,13 +790,15 @@
 						)}
 						{#if showCompanionGhost || (companionStack && companionStack.cards.length > 0)}
 							<div class="special-slot-container">
-								<StackHeader
-									label="Companions"
-									count={getStackCount(
-										companionStack?.cards || [],
-									)}
-									type="stack"
-								/>
+								{#if settingsStore.showColumnHeaders}
+									<StackHeader
+										label="Companions"
+										count={getStackCount(
+											companionStack?.cards || [],
+										)}
+										type="stack"
+									/>
+								{/if}
 								{#if companionStack && companionStack.cards.length > 0}
 									<div
 										class="curve-col-stack"
