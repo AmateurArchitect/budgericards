@@ -143,6 +143,35 @@
 			{/if}
 		</div>
 	</main>
+
+	{#if import.meta.env.DEV}
+		<button
+			onclick={() => {
+				deckStore.clearMetadataAndCards();
+				alert("Cache & deck cleared! You can now paste your decklist again.");
+			}}
+			style="
+				position: fixed;
+				bottom: 1.5rem;
+				right: 1.5rem;
+				z-index: 9999;
+				background: hsl(var(--destructive));
+				color: white;
+				border: none;
+				padding: 0.75rem 1.25rem;
+				border-radius: var(--radius-md);
+				font-size: 0.8rem;
+				font-weight: 600;
+				cursor: pointer;
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+				transition: all 0.2s ease;
+			"
+			onmouseover={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+			onmouseout={(e) => e.currentTarget.style.transform = 'scale(1)'}
+		>
+			🔧 Clear Cache & Deck
+		</button>
+	{/if}
 </div>
 
 <style>

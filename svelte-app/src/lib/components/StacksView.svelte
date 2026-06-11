@@ -739,7 +739,7 @@
 												class:is-editing={interactionStore.editingCardId ===
 													item.id}
 												style="z-index: {idx +
-													1}; --delay: {idx * 20}ms;"
+													1}; --delay: {idx * 200}ms;"
 											>
 												<CardShell
 													card={item}
@@ -923,7 +923,7 @@
 												class:is-editing={interactionStore.editingCardId ===
 													item.id}
 												style="z-index: {idx +
-													1}; --delay: {idx * 20}ms;"
+													1}; --delay: {idx * 200}ms;"
 											>
 												<CardShell
 													card={item}
@@ -1102,7 +1102,7 @@
 										class:is-editing={interactionStore.editingCardId ===
 											item.id}
 										style="z-index: {idx +
-											1}; --delay: {idx * 20}ms;"
+											1}; --delay: {idx * 200}ms;"
 									>
 										<CardShell
 											card={item}
@@ -1542,13 +1542,13 @@
 	*/
 	:global(.initial-load .curve-card-item) {
 		animation-name: card-bloom;
-		animation-duration: 200ms;
+		animation-duration: 2000ms;
 		animation-timing-function: ease;
 		animation-delay: var(--delay);
 		animation-fill-mode: backwards;
 	}
 
 	:global(.curve-card-item) {
-		animation: card-bloom 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+		animation: card-bloom 2000ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 	}
 </style>

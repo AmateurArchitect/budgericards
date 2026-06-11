@@ -1649,6 +1649,21 @@ function createDeck() {
 		set isVisualLoading(val) { activeDeck.isVisualLoading = val; },
 		async preloadDeckImagesAndShow() {
 			await waitAndPreload(activeDeck);
+		},
+		clearMetadataAndCards() {
+			saveHistory(activeDeck);
+			activeDeck.deck.commander = [];
+			activeDeck.deck.companion = [];
+			activeDeck.deck.mainboard = [];
+			activeDeck.deck.sideboard = [];
+			activeDeck.deck.maybeboard = [];
+			activeDeck.deck.garbage = [];
+			for (const key in activeDeck.metadata) {
+				if (key !== 'createdBy' && key !== 'createdAt' && key !== 'updatedAt') {
+					delete activeDeck.metadata[key];
+				}
+			}
+			persist(activeDeck);
 		}
 	};
 }
