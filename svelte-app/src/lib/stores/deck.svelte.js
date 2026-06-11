@@ -476,6 +476,35 @@ function createDeck() {
 		}
 	}
 
+	function moveCardInternal(cardName, fromZone, toZone, instanceId, price) {
+		if (fromZone === toZone) return;
+		
+		const source = activeDeck.deck[fromZone];
+		const target = activeDeck.deck[toZone];
+		if (!source || !target) return;
+
+		let index = -1;
+		if (instanceId) {
+			index = source.findIndex(/** @param {any} c */ c => c.id === instanceId);
+		}
+		if (index === -1) {
+			index = source.findIndex(/** @param {any} c */ c => c.name === cardName);
+		}
+
+		if (index !== -1) {
+			saveHistory(activeDeck);
+			const [card] = source.splice(index, 1);
+			target.push({
+				...card,
+				id: generateId(),
+				price: price !== null ? price : card.price,
+				addedAt: Date.now()
+			});
+			persist(activeDeck);
+			return instanceId;
+		}
+	}
+
 	function runAutoCommanderRecognition(deckState) {
 		if (deckState.deck.commander && deckState.deck.commander.length > 0) return;
 
@@ -558,7 +587,7 @@ function createDeck() {
 
 			if (sourceBoard) {
 				batchUpdate(() => {
-					moveCard(selectedCommander.name, sourceBoard, 'commander', selectedCommander.id, selectedCommander.price);
+					moveCardInternal(selectedCommander.name, sourceBoard, 'commander', selectedCommander.id, selectedCommander.price);
 					deckState.deck.format = 'Commander';
 				});
 				console.info(`🎯 Automatically set ${selectedCommander.name} as Commander based on color identity heuristics!`);
@@ -951,32 +980,7 @@ function createDeck() {
 		 * @param {number | null} price
 		 */
 		moveCard(cardName, fromZone, toZone, instanceId, price) {
-			if (fromZone === toZone) return;
-			
-			const source = activeDeck.deck[fromZone];
-			const target = activeDeck.deck[toZone];
-			if (!source || !target) return;
-
-			let index = -1;
-			if (instanceId) {
-				index = source.findIndex(/** @param {any} c */ c => c.id === instanceId);
-			}
-			if (index === -1) {
-				index = source.findIndex(/** @param {any} c */ c => c.name === cardName);
-			}
-
-			if (index !== -1) {
-				saveHistory(activeDeck);
-				const [card] = source.splice(index, 1);
-				target.push({
-					...card,
-					id: generateId(),
-					price: price !== null ? price : card.price,
-					addedAt: Date.now()
-				});
-				persist(activeDeck);
-				return instanceId;
-			}
+			return moveCardInternal(cardName, fromZone, toZone, instanceId, price);
 		},
 
 		/**
