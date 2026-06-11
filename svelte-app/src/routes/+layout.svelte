@@ -10,6 +10,7 @@
 	import AnimationLayer from '$lib/components/ui/AnimationLayer.svelte';
 	import QuantityModal from '$lib/components/ui/QuantityModal.svelte';
 	import CardDataModal from '$lib/components/ui/CardDataModal.svelte';
+	import ChangePrintingsModal from '$lib/components/ui/ChangePrintingsModal.svelte';
 	import { syncManager } from '$lib/syncManager.svelte';
 	import { loginBgStore } from '$lib/stores/loginBg.svelte.js';
 	import { page } from '$app/stores';
@@ -64,12 +65,13 @@
 		x={interactionStore.menuPosition?.x ?? 0} 
 		y={interactionStore.menuPosition?.y ?? 0} 
 		items={interactionStore.menuItems}
-		cardName={interactionStore.menuCard?.name}
+		cardName={interactionStore.menuHeader}
 		onClose={() => {}}
 	/>
 	<AnimationLayer />
 	<QuantityModal />
 	<CardDataModal />
+	<ChangePrintingsModal />
 </div>
 
 <style>

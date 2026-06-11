@@ -59,6 +59,9 @@ function createDeckState(initialData = null) {
 	let history = $state([]);
 	let redoStack = $state([]);
 	let importText = $state(initialData?.importText || '');
+	let autoCommanderPending = $state(false);
+	let firstPastedName = $state('');
+	let lastPastedName = $state('');
 
 	return {
 		get deck() { return deck; },
@@ -70,7 +73,13 @@ function createDeckState(initialData = null) {
 		get redoStack() { return redoStack; },
 		set redoStack(val) { redoStack = val; },
 		get importText() { return importText; },
-		set importText(val) { importText = val; }
+		set importText(val) { importText = val; },
+		get autoCommanderPending() { return autoCommanderPending; },
+		set autoCommanderPending(val) { autoCommanderPending = val; },
+		get firstPastedName() { return firstPastedName; },
+		set firstPastedName(val) { firstPastedName = val; },
+		get lastPastedName() { return lastPastedName; },
+		set lastPastedName(val) { lastPastedName = val; }
 	};
 }
 
@@ -467,6 +476,96 @@ function createDeck() {
 		}
 	}
 
+	function runAutoCommanderRecognition(deckState) {
+		if (deckState.deck.commander && deckState.deck.commander.length > 0) return;
+
+		const allCards = [
+			...(deckState.deck.mainboard || []),
+			...(deckState.deck.sideboard || []),
+			...(deckState.deck.maybeboard || []),
+			...(deckState.deck.companion || [])
+		];
+		const totalCount = allCards.length;
+		if (totalCount < 98 || totalCount > 103) return;
+
+		const deckColorIdentity = new Set();
+		const nonLandCards = [];
+
+		for (const card of allCards) {
+			const meta = deckState.metadata[card.name.toLowerCase()];
+			if (!meta) continue;
+			const type = (meta.type_line || "").toLowerCase();
+			if (type.includes("land")) continue;
+
+			const colors = meta.color_identity || [];
+			for (const color of colors) {
+				deckColorIdentity.add(color);
+			}
+			nonLandCards.push({ card, meta });
+		}
+
+		const isLegendaryCreature = (meta) => {
+			const type = (meta.type_line || "").toLowerCase();
+			return type.includes("legendary") && type.includes("creature");
+		};
+
+		const candidates = [];
+		for (const { card, meta } of nonLandCards) {
+			if (isLegendaryCreature(meta)) {
+				const candIdentity = new Set(meta.color_identity || []);
+				let matches = true;
+				for (const color of deckColorIdentity) {
+					if (!candIdentity.has(color)) {
+						matches = false;
+						break;
+					}
+				}
+				if (matches) {
+					if (!candidates.some(c => c.name.toLowerCase() === card.name.toLowerCase())) {
+						candidates.push(card);
+					}
+				}
+			}
+		}
+
+		if (candidates.length === 0) return;
+
+		let selectedCommander = null;
+
+		if (candidates.length === 1) {
+			selectedCommander = candidates[0];
+		} else {
+			const firstMatch = candidates.find(c => c.name.toLowerCase() === deckState.firstPastedName?.toLowerCase());
+			const lastMatch = candidates.find(c => c.name.toLowerCase() === deckState.lastPastedName?.toLowerCase());
+
+			if (firstMatch && !lastMatch) {
+				selectedCommander = firstMatch;
+			} else if (lastMatch && !firstMatch) {
+				selectedCommander = lastMatch;
+			}
+		}
+
+		if (selectedCommander) {
+			const boards = ['mainboard', 'sideboard', 'maybeboard', 'companion'];
+			let sourceBoard = '';
+			for (const board of boards) {
+				const arr = deckState.deck[board];
+				if (arr && arr.some(c => c.id === selectedCommander.id)) {
+					sourceBoard = board;
+					break;
+				}
+			}
+
+			if (sourceBoard) {
+				batchUpdate(() => {
+					moveCard(selectedCommander.name, sourceBoard, 'commander', selectedCommander.id, selectedCommander.price);
+					deckState.deck.format = 'Commander';
+				});
+				console.info(`🎯 Automatically set ${selectedCommander.name} as Commander based on color identity heuristics!`);
+			}
+		}
+	}
+
 	$effect.root(() => {
 		let lastCleanText = '';
 		$effect(() => {
@@ -490,6 +589,9 @@ function createDeck() {
 				const missingMetadata = allCards.some(c => !activeDeck.metadata[c.name.toLowerCase()]);
 				if (missingMetadata) {
 					syncMetadata(activeDeck);
+				} else if (activeDeck.autoCommanderPending) {
+					activeDeck.autoCommanderPending = false;
+					runAutoCommanderRecognition(activeDeck);
 				}
 			}
 		});
@@ -609,6 +711,9 @@ function createDeck() {
 					
 					if (card) {
 						deckState.metadata[lowName] = {
+							id: card.id,
+							set: card.set,
+							collector_number: card.collector_number,
 							image_uris: card.image_uris || null,
 							card_faces: card.card_faces || [],
 							type_line: card.type_line,
@@ -647,6 +752,10 @@ function createDeck() {
 			deckState.deck.mainboard = [];
 			deckState.deck.sideboard = [];
 			deckState.deck.maybeboard = [];
+
+			deckState.firstPastedName = parsedCards[0]?.name || '';
+			deckState.lastPastedName = parsedCards[parsedCards.length - 1]?.name || '';
+			deckState.autoCommanderPending = true;
 			
 			const newCardNames = new Set(parsedCards.filter(c => c.name).map(c => c.name.toLowerCase()));
 			for (const key in deckState.metadata) {

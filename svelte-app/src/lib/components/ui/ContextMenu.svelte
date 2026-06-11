@@ -36,6 +36,7 @@
 	let menuTop = $state(0);
 	let menuLeft = $state(0);
 	let shortcutIndex = $state(0);
+	let activeSubmenuItem = $state(/** @type {any | null} */ (null));
 
 	// Multi-shortcut toggle interval
 	/** @type {ReturnType<typeof setInterval> | undefined} */
@@ -83,6 +84,7 @@
 
 	function close() {
 		isOpen = false;
+		activeSubmenuItem = null;
 		if (onClose) onClose();
 	}
 
@@ -217,38 +219,104 @@
 					{#if item.divider}
 						<div class="divider"></div>
 					{:else}
-						<button
-							class="menu-item"
-							class:danger={item.danger}
-							onclick={() => handleAction(item)}
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<div
+							class="menu-item-container"
+							onmouseenter={() => {
+								if (item.submenu) {
+									activeSubmenuItem = item;
+								} else {
+									activeSubmenuItem = null;
+								}
+							}}
 						>
-							<span class="item-label">{item.label}</span>
-							{#if item.shortcuts && item.shortcuts.length > 0}
-								<div class="shortcut-container">
-									{#each item.shortcuts as sc, i}
-										{#if i === shortcutIndex % item.shortcuts.length}
-											<div
-												class="shortcut-wrapper"
-												in:fade={{ duration: 400 }}
-												out:fade={{ duration: 400 }}
+							<button
+								class="menu-item"
+								class:danger={item.danger}
+								onclick={() => {
+									if (!item.submenu) {
+										handleAction(item);
+									}
+								}}
+							>
+								<span class="item-label">{item.label}</span>
+								{#if item.submenu}
+									<span class="submenu-arrow">▶</span>
+								{/if}
+								{#if item.shortcuts && item.shortcuts.length > 0 && !item.submenu}
+									<div class="shortcut-container">
+										{#each item.shortcuts as sc, i}
+											{#if i === shortcutIndex % item.shortcuts.length}
+												<div
+													class="shortcut-wrapper"
+													in:fade={{ duration: 400 }}
+													out:fade={{ duration: 400 }}
+												>
+													{#each getShortcutParts(sc) as part}
+														{#if part.type === "key"}
+															<kbd class="key-cap"
+																>{part.value}</kbd
+															>
+														{:else}
+															<span class="key-text"
+																>{part.value}</span
+															>
+														{/if}
+													{/each}
+												</div>
+											{/if}
+										{/each}
+									</div>
+								{/if}
+							</button>
+
+							{#if item.submenu && activeSubmenuItem === item}
+								<div 
+									class="submenu-container" 
+									class:open-left={menuLeft + 400 > window.innerWidth}
+									in:fade={{ duration: 100 }}
+								>
+									{#each item.submenu as subItem}
+										{#if subItem.divider}
+											<div class="divider"></div>
+										{:else}
+											<button
+												class="menu-item"
+												class:danger={subItem.danger}
+												onclick={() => handleAction(subItem)}
 											>
-												{#each getShortcutParts(sc) as part}
-													{#if part.type === "key"}
-														<kbd class="key-cap"
-															>{part.value}</kbd
-														>
-													{:else}
-														<span class="key-text"
-															>{part.value}</span
-														>
-													{/if}
-												{/each}
-											</div>
+												<span class="item-label">{subItem.label}</span>
+												{#if subItem.shortcuts && subItem.shortcuts.length > 0}
+													<div class="shortcut-container">
+														{#each subItem.shortcuts as sc, i}
+															{#if i === shortcutIndex % subItem.shortcuts.length}
+																<div
+																	class="shortcut-wrapper"
+																	in:fade={{ duration: 400 }}
+																	out:fade={{ duration: 400 }}
+																>
+																	{#each getShortcutParts(sc) as part}
+																		{#if part.type === "key"}
+																			<kbd class="key-cap"
+																				>{part.value}</kbd
+																			>
+																		{:else}
+																			<span class="key-text"
+																				>{part.value}</span
+																			>
+																		{/if}
+																	{/each}
+																</div>
+															{/if}
+														{/each}
+													</div>
+												{/if}
+											</button>
 										{/if}
 									{/each}
 								</div>
 							{/if}
-						</button>
+						</div>
 					{/if}
 				{/each}
 			</div>
@@ -265,6 +333,47 @@
 		height: 100vh;
 		pointer-events: none;
 		z-index: 20000;
+	}
+
+	.menu-item-container {
+		position: relative;
+		display: block;
+		width: 100%;
+	}
+
+	.submenu-arrow {
+		font-size: 0.65rem;
+		opacity: 0.6;
+		margin-left: auto;
+	}
+
+	.menu-item:hover .submenu-arrow {
+		opacity: 1;
+	}
+
+	.submenu-container {
+		position: absolute;
+		left: 100%;
+		top: -5px;
+		min-width: 220px;
+		background: hsla(var(--popover) / 0.85);
+		backdrop-filter: blur(20px) saturate(180%);
+		-webkit-backdrop-filter: blur(20px) saturate(180%);
+		border: 1px solid hsla(var(--border) / 0.6);
+		border-radius: var(--radius);
+		padding: 5px;
+		box-shadow:
+			0 15px 35px -5px rgba(0, 0, 0, 0.5),
+			0 0 0 1px hsla(255, 100%, 100%, 0.04);
+		z-index: 20001;
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+	}
+
+	.submenu-container.open-left {
+		left: auto;
+		right: 100%;
 	}
 
 	.context-menu {

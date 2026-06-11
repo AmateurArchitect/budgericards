@@ -319,6 +319,10 @@ function createInteractionStore() {
 			price: null
 		},
 		selectedCells: new Set(),
+		changePrintingsModal: {
+			isOpen: false,
+			selectedCards: []
+		},
 		selectionAnchor: null, // { cardId, columnKey }
 		selectionFocus: null,  // { cardId, columnKey }
 		/** @type {string[]} */
@@ -551,6 +555,20 @@ function createInteractionStore() {
 			}
 		},
 		get menuPosition() { return state.menuPosition; },
+		get menuHeader() {
+			if (!state.menuCard) return "";
+			const isFromSearch = state.menuZone === 'scryfall' || state.menuZone === 'budget-edh-26.2' || state.menuZone === 'budget-staples' || state.menuZone === 'garbage';
+			if (isFromSearch) return state.menuCard.name;
+
+			const selectedIds = new Set(
+				[...state.selectedCells].map(cell => cell.split(':')[0])
+			);
+			if (selectedIds.size > 1) {
+				return `${selectedIds.size} Cards selected`;
+			}
+			return state.menuCard.name;
+		},
+		get changePrintingsModal() { return state.changePrintingsModal; },
 		get editingCardId() { return state.editingCardId; },
 		get quantityModal() { return state.quantityModal; },
 		get cardDataModal() { return state.cardDataModal; },
@@ -1049,6 +1067,18 @@ function createInteractionStore() {
 			state.cardDataModal.isOpen = false;
 		},
 
+		/** @param {any[]} selectedCards */
+		showChangePrintingsModal(selectedCards) {
+			state.changePrintingsModal.selectedCards = selectedCards;
+			state.changePrintingsModal.isOpen = true;
+			state.isMenuOpen = false;
+		},
+
+		closeChangePrintingsModal() {
+			state.changePrintingsModal.isOpen = false;
+			state.changePrintingsModal.selectedCards = [];
+		},
+
 		/**
 		 * @param {string | null} id 
 		 * @param {string} zone 
@@ -1073,6 +1103,19 @@ function createInteractionStore() {
 		showMenu(e, card, zone, price) {
 			e.preventDefault();
 			e.stopPropagation();
+
+			const isFromSearch = zone === 'scryfall' || zone === 'budget-edh-26.2' || zone === 'budget-staples' || zone === 'garbage';
+			if (card && card.id && !isFromSearch) {
+				const isCardSelected = [...state.selectedCells].some(cell => cell.startsWith(`${card.id}:`));
+				if (!isCardSelected) {
+					state.selectedCells.clear();
+					state.selectedCells.add(`${card.id}:name`);
+					state.selectionFocus = { cardId: card.id, columnKey: 'name' };
+					state.selectionAnchor = { cardId: card.id, columnKey: 'name' };
+					state.selectedCells = new Set(state.selectedCells);
+				}
+			}
+
 			state.hoveredCard = card;
 			state.hoveredZone = zone;
 			state.hoveredPrice = price;
@@ -1091,6 +1134,224 @@ function createInteractionStore() {
 			const card = state.menuCard;
 
 			const isFromSearch = zone === 'scryfall' || zone === 'budget-edh-26.2' || zone === 'budget-staples' || zone === 'garbage';
+
+			const selectedIds = new Set(
+				[...state.selectedCells].map(cell => cell.split(':')[0])
+			);
+
+			if (selectedIds.size > 1 && !isFromSearch) {
+				const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+				const selectedCards = [];
+				for (const id of selectedIds) {
+					for (const b of boards) {
+						const boardArray = /** @type {any[]} */ (/** @type {any} */ (deckStore)[b]);
+						if (boardArray) {
+							const foundCard = boardArray.find(c => c.id === id);
+							if (foundCard) {
+								selectedCards.push({ ...foundCard, board: b });
+								break;
+							}
+						}
+					}
+				}
+
+				const items = [];
+				items.push({
+					label: "Add one of each",
+					action: () => {
+						deckStore.batchUpdate(() => {
+							for (const card of selectedCards) {
+								const meta = deckStore.metadata[card.name.toLowerCase()];
+								deckStore.addCard(card.name, card.board, card.price, meta);
+							}
+						});
+					}
+				});
+				items.push({
+					label: "Delete one of each",
+					action: () => {
+						deckStore.batchUpdate(() => {
+							for (const card of selectedCards) {
+								deckStore.removeCard(card.name, card.board, card.id);
+							}
+						});
+					}
+				});
+				items.push({
+					label: "Delete all",
+					action: () => {
+						deckStore.batchUpdate(() => {
+							for (const card of selectedCards) {
+								deckStore.removeAllCopies(card.name, card.board);
+							}
+						});
+					}
+				});
+				items.push({
+					label: "Set quantity",
+					action: () => {
+						const qtyStr = prompt("Enter quantity for all selected cards:");
+						if (qtyStr !== null) {
+							const qty = parseInt(qtyStr, 10);
+							if (!isNaN(qty) && qty >= 0) {
+								deckStore.batchUpdate(() => {
+									for (const card of selectedCards) {
+										const meta = deckStore.metadata[card.name.toLowerCase()];
+										deckStore.setQuantity(card.name, card.board, qty, card.price, meta);
+									}
+								});
+							}
+						}
+					}
+				});
+
+				const anyHasOverrides = selectedCards.some(card => 
+					(card.overrides && Object.keys(card.overrides).length > 0) || 
+					(card.customColumn !== undefined && card.customColumn !== null && card.customColumn !== "") ||
+					(card.tags && card.tags.length > 0) || 
+					(card.primaryTag !== undefined && card.primaryTag !== null)
+				);
+				if (anyHasOverrides) {
+					items.push({
+						label: "Reset Card Data",
+						action: () => {
+							deckStore.batchUpdate(() => {
+								for (const card of selectedCards) {
+									deckStore.resetAllOverridesForCard(card.id);
+								}
+							});
+						}
+					});
+				}
+
+				items.push({ divider: true });
+
+				const allInSideboard = selectedCards.every(c => c.board === 'sideboard');
+				const allInMaybeboard = selectedCards.every(c => c.board === 'maybeboard');
+
+				if (!allInSideboard) {
+					items.push({
+						label: "Sideboard",
+						action: () => {
+							deckStore.batchUpdate(() => {
+								for (const card of selectedCards) {
+									deckStore.moveCard(card.name, card.board, 'sideboard', card.id, card.price);
+								}
+							});
+						}
+					});
+				} else {
+					items.push({
+						label: "Move to Mainboard",
+						action: () => {
+							deckStore.batchUpdate(() => {
+								for (const card of selectedCards) {
+									deckStore.moveCard(card.name, card.board, 'mainboard', card.id, card.price);
+								}
+							});
+						}
+					});
+				}
+
+				if (!allInMaybeboard) {
+					items.push({
+						label: "Maybeboard",
+						action: () => {
+							deckStore.batchUpdate(() => {
+								for (const card of selectedCards) {
+									deckStore.moveCard(card.name, card.board, 'maybeboard', card.id, card.price);
+								}
+							});
+						}
+					});
+				} else if (!allInSideboard) {
+					items.push({
+						label: "Move to Mainboard",
+						action: () => {
+							deckStore.batchUpdate(() => {
+								for (const card of selectedCards) {
+									deckStore.moveCard(card.name, card.board, 'mainboard', card.id, card.price);
+								}
+							});
+						}
+					});
+				}
+
+				items.push({ divider: true });
+
+				items.push({
+					label: "Change Printings",
+					action: () => {
+						this.showChangePrintingsModal(selectedCards);
+					}
+				});
+
+				items.push({
+					label: "Copy card names",
+					submenu: [
+						{
+							label: "Copy names only",
+							action: () => {
+								const val = selectedCards.map(c => c.name).join("\n");
+								navigator.clipboard.writeText(val);
+							}
+						},
+						{
+							label: "Copy with quantities",
+							action: () => {
+								const val = selectedCards.map(c => {
+									const qty = getCardCellValue(c, 'qty');
+									return `${qty} ${c.name}`;
+								}).join("\n");
+								navigator.clipboard.writeText(val);
+							}
+						},
+						{
+							label: "Copy with printings",
+							action: () => {
+								const val = selectedCards.map(c => {
+									const meta = deckStore.metadata[c.name.toLowerCase()] || {};
+									const set = c.set || meta.set;
+									const num = c.collector_number || meta.collector_number;
+									if (set) {
+										return `${c.name} (${set.toUpperCase()}) ${num || ""}`.trim();
+									}
+									return c.name;
+								}).join("\n");
+								navigator.clipboard.writeText(val);
+							}
+						},
+						{
+							label: "Copy with quantities and printings",
+							action: () => {
+								const val = selectedCards.map(c => {
+									const qty = getCardCellValue(c, 'qty');
+									const meta = deckStore.metadata[c.name.toLowerCase()] || {};
+									const set = c.set || meta.set;
+									const num = c.collector_number || meta.collector_number;
+									if (set) {
+										return `${qty} ${c.name} (${set.toUpperCase()}) ${num || ""}`.trim();
+									}
+									return `${qty} ${c.name}`;
+								}).join("\n");
+								navigator.clipboard.writeText(val);
+							}
+						},
+						{
+							label: "Copy Scryfall IDs",
+							action: () => {
+								const val = selectedCards.map(c => {
+									const meta = deckStore.metadata[c.name.toLowerCase()] || {};
+									return c.scryfallId || meta.id || "";
+								}).filter(Boolean).join("\n");
+								navigator.clipboard.writeText(val);
+							}
+						}
+					]
+				});
+
+				return items;
+			}
 
 			const meta = card.type_line ? card : deckStore.metadata[name.toLowerCase()];
 			const typeLine = meta?.type_line || "";
