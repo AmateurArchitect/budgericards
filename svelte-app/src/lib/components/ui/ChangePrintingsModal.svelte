@@ -13,6 +13,7 @@
 	let totalCards = $state(0);
 	let statusMessage = $state("");
 
+	/** @param {any} printing */
 	function getCheapestPrice(printing) {
 		const usd = parseFloat(printing.prices?.usd);
 		const usdFoil = parseFloat(printing.prices?.usd_foil);
@@ -22,6 +23,10 @@
 		return prices.length > 0 ? Math.min(...prices) : Infinity;
 	}
 
+	/**
+	 * @param {any} card
+	 * @param {string} columnKey
+	 */
 	function getCardCellValue(card, columnKey) {
 		const name = card.name || "";
 		const meta = deckStore.metadata[name.toLowerCase()];
@@ -40,12 +45,14 @@
 		return "";
 	}
 
+	/** @param {string} rule */
 	async function applyRule(rule) {
 		if (selectedCards.length === 0) return;
 		isProcessing = true;
 		totalCards = selectedCards.length;
 		currentCardIndex = 0;
 
+		/** @type {{ name: string, metadata: any }[]} */
 		const resolvedUpdates = [];
 
 		for (let i = 0; i < selectedCards.length; i++) {
@@ -92,9 +99,9 @@
 							if (rule === 'cheapest') {
 								sorted.sort((a, b) => getCheapestPrice(a) - getCheapestPrice(b));
 							} else if (rule === 'newest') {
-								sorted.sort((a, b) => new Date(b.released_at) - new Date(a.released_at));
+								sorted.sort((a, b) => new Date(b.released_at).getTime() - new Date(a.released_at).getTime());
 							} else if (rule === 'oldest') {
-								sorted.sort((a, b) => new Date(a.released_at) - new Date(b.released_at));
+								sorted.sort((a, b) => new Date(a.released_at).getTime() - new Date(b.released_at).getTime());
 							}
 							resolvedUpdates.push({ name: card.name, metadata: sorted[0] });
 						}
@@ -123,12 +130,17 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div
+		role="presentation"
 		class="modal-backdrop"
 		onclick={() => { if (!isProcessing) interactionStore.closeChangePrintingsModal(); }}
 		transition:fade={{ duration: 150 }}
 	>
 		<!-- Modal Content -->
 		<div
+			role="dialog"
+			aria-modal="true"
+			aria-label="Change Printings"
+			tabindex="-1"
 			class="modal-content"
 			onclick={(e) => e.stopPropagation()}
 			transition:fly={{ y: 15, duration: 250 }}

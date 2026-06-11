@@ -284,6 +284,9 @@ function getCardCellValue(card, columnKey) {
  * @property {any[]} currentVisibleCardIds
  * @property {any[]} copiedCards
  * @property {boolean} isCut
+ * @property {Object} changePrintingsModal
+ * @property {boolean} changePrintingsModal.isOpen
+ * @property {any[]} changePrintingsModal.selectedCards
  * @property {string | null} hoveredColumnKey
  * @property {number} generateTagsTrigger
  * @property {string[] | null} copiedCellValues

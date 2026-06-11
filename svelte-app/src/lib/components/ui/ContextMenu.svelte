@@ -10,6 +10,7 @@
 	 * @property {function} [action]
 	 * @property {boolean} [divider]
 	 * @property {boolean} [danger]
+	 * @property {MenuItem[]} [submenu]
 	 */
 
 	/** @typedef {Object} ContextMenuProps
