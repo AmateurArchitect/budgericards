@@ -359,10 +359,18 @@ function createInteractionStore() {
 			if (isCmdCtrl && key === 'a') {
 				e.preventDefault();
 				state.selectedCells.clear();
-				if (state.currentVisibleCardIds.length > 0 && state.visibleColumnsOrder.length > 0) {
-					for (const id of state.currentVisibleCardIds) {
-						for (const col of state.visibleColumnsOrder) {
-							state.selectedCells.add(`${id}:${col}`);
+				if (state.currentVisibleCardIds.length > 0) {
+					if (state.visibleColumnsOrder.length > 0) {
+						// Table view: select all cells across all visible columns
+						for (const id of state.currentVisibleCardIds) {
+							for (const col of state.visibleColumnsOrder) {
+								state.selectedCells.add(`${id}:${col}`);
+							}
+						}
+					} else {
+						// Card views (stacks, spoiler, list): select all cards
+						for (const id of state.currentVisibleCardIds) {
+							state.selectedCells.add(`${id}:name`);
 						}
 					}
 				}

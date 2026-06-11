@@ -144,6 +144,19 @@
 			}
 		}
 	});
+
+	// Sync visible card IDs for Cmd+A / Esc / multi-select shortcuts
+	$effect(() => {
+		/** @type {string[]} */
+		const ids = [];
+		for (const cat of groupedCategories) {
+			for (const row of cat.cards) {
+				const id = row.instances[0]?.id;
+				if (id) ids.push(id);
+			}
+		}
+		interactionStore.currentVisibleCardIds = ids;
+	});
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -164,15 +177,29 @@
 						</div>
 						<div class="group-cards">
 							{#each category.cards as cardRow (cardRow.name)}
+								{@const rowId = cardRow.instances[0]?.id}
+								{@const isSelected = rowId && [...interactionStore.selectedCells].some(cell => cell.startsWith(rowId + ':'))}
 								<div
 									class="card-row"
 									class:is-illegal={cardRow.isIllegal}
 									class:is-editing={editingCardName ===
 										cardRow.name &&
 										editingCardZone === cardRow.zone}
+									class:is-selected={isSelected}
 									data-tooltip-img={cardRow.imgUrl}
+									onclick={(e) => {
+										if (rowId && !e.target?.closest('.qty-inline-input, .qty-text-btn, .list-actions, button')) {
+											const isMulti = e.metaKey || e.ctrlKey;
+											const isShift = e.shiftKey;
+											if (isMulti || isShift || interactionStore.selectedCells.size > 0) {
+												e.stopPropagation();
+												interactionStore.handleCardSelectClick(rowId, isShift, isMulti);
+											}
+										}
+									}}
 									oncontextmenu={(e) => {
 										e.preventDefault();
+
 										interactionStore.showMenu(
 											e,
 											cardRow.instances[0],
@@ -432,6 +459,12 @@
 
 	.is-illegal .card-name-label {
 		color: hsl(var(--destructive));
+	}
+
+	.card-row.is-selected {
+		background: hsl(var(--primary) / 0.12);
+		outline: 1px solid hsl(var(--primary) / 0.4);
+		outline-offset: -1px;
 	}
 
 	.legality-warning-icon {

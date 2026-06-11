@@ -222,6 +222,13 @@
 		return cards;
 	});
 
+	// Sync visible card IDs for Cmd+A / Esc selection shortcuts
+	$effect(() => {
+		interactionStore.currentVisibleCardIds = allSpoilerCards
+			.map((/** @type {any} */ item) => item.instances[0]?.id)
+			.filter(/** @param {any} id */ id => !!id);
+	});
+
 	// Process category cards: sum quantities, fetch prices, parse mana, and sort internally
 	/**
 	 * @param {string} groupName
