@@ -107,6 +107,7 @@ function pickBestImage(printings) {
   }
   
   const veryFirstPrinting = sorted[0];
+  const originalIllustrationId = veryFirstPrinting.illustration_id;
   
   // Find the newest frame style available (2015 > 2003 > 1997 > 1993)
   const availableFrames = new Set(defaults.map(c => c.frame));
@@ -125,8 +126,19 @@ function pickBestImage(printings) {
     // If first printed in 2015 frame, we want the oldest printing (original art)
     return getImageUrl(bestFramePrintings[0]);
   } else {
-    // If first printed in older frame but reprinted in newer frame, or never printed in 2015,
-    // we want the newest printing of the best frame style available.
+    // If first printed in an older frame but reprinted in a newer frame:
+    if (bestFrame === '2015' && originalIllustrationId) {
+      // Find any 2015 printings matching the original artwork
+      const originalArtInNewFrame = bestFramePrintings.filter(
+        c => c.illustration_id === originalIllustrationId
+      );
+      if (originalArtInNewFrame.length > 0) {
+        // Prefer the newest 2015 printing that uses the original artwork
+        return getImageUrl(originalArtInNewFrame[originalArtInNewFrame.length - 1]);
+      }
+    }
+    
+    // Otherwise, fallback to the newest printing of the best frame style available
     return getImageUrl(bestFramePrintings[bestFramePrintings.length - 1]);
   }
 }
@@ -225,6 +237,7 @@ pipeline.on('data', data => {
     name: card.name,
     lang: card.lang,
     released_at: card.released_at,
+    illustration_id: card.illustration_id,
     layout: card.layout,
     image_uris: card.image_uris,
     card_faces: card.card_faces,
