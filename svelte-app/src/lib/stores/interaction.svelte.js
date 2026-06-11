@@ -634,20 +634,35 @@ function createInteractionStore() {
 				const cStart = state.visibleColumnsOrder.indexOf(state.selectionAnchor.columnKey);
 				const cEnd = state.visibleColumnsOrder.indexOf(col);
 
-				if (rStart !== -1 && rEnd !== -1 && cStart !== -1 && cEnd !== -1) {
-					const rMin = Math.min(rStart, rEnd);
-					const rMax = Math.max(rStart, rEnd);
-					const cMin = Math.min(cStart, cEnd);
-					const cMax = Math.max(cStart, cEnd);
+				if (rStart !== -1 && rEnd !== -1) {
+					if (cStart !== -1 && cEnd !== -1) {
+						// 2D Table grid range selection
+						const rMin = Math.min(rStart, rEnd);
+						const rMax = Math.max(rStart, rEnd);
+						const cMin = Math.min(cStart, cEnd);
+						const cMax = Math.max(cStart, cEnd);
 
-					if (!isCmdCtrl) {
-						state.selectedCells.clear();
-					}
-					for (let r = rMin; r <= rMax; r++) {
-						const rId = state.currentVisibleCardIds[r];
-						for (let c = cMin; c <= cMax; c++) {
-							const cKey = state.visibleColumnsOrder[c];
-							state.selectedCells.add(`${rId}:${cKey}`);
+						if (!isCmdCtrl) {
+							state.selectedCells.clear();
+						}
+						for (let r = rMin; r <= rMax; r++) {
+							const rId = state.currentVisibleCardIds[r];
+							for (let c = cMin; c <= cMax; c++) {
+								const cKey = state.visibleColumnsOrder[c];
+								state.selectedCells.add(`${rId}:${cKey}`);
+							}
+						}
+					} else {
+						// 1D Card list range selection
+						const rMin = Math.min(rStart, rEnd);
+						const rMax = Math.max(rStart, rEnd);
+
+						if (!isCmdCtrl) {
+							state.selectedCells.clear();
+						}
+						for (let r = rMin; r <= rMax; r++) {
+							const rId = state.currentVisibleCardIds[r];
+							state.selectedCells.add(`${rId}:name`);
 						}
 					}
 					state.selectionFocus = { cardId, columnKey: col };
