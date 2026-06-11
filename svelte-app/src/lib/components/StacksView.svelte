@@ -1125,7 +1125,6 @@
 		border-radius: 4.5% / 3.2%;
 		background: transparent;
 		flex-shrink: 0;
-		transition: transform 0.2s ease;
 		cursor: pointer;
 		user-select: none;
 		overflow: visible !important;
