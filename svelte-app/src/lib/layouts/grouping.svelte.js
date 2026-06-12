@@ -381,6 +381,35 @@ function createSortFn(sorting) {
 }
 
 /**
+ * Returns a sort weight for the primary card type, matching the canonical
+ * Magic grouping order (Creatures first, Lands last).
+ * @param {string} typeLine
+ */
+function getPrimaryTypeWeight(typeLine) {
+	const tl = (typeLine || "").toLowerCase();
+	if (tl.includes("creature")) return 0;
+	if (tl.includes("planeswalker")) return 1;
+	if (tl.includes("artifact")) return 2;
+	if (tl.includes("enchantment")) return 3;
+	if (tl.includes("battle")) return 4;
+	if (tl.includes("sorcery")) return 5;
+	if (tl.includes("instant")) return 6;
+	if (tl.includes("land")) return 7;
+	return 8; // Other / Unknown
+}
+
+/**
+ * Extracts the subtype portion of a type line (everything after "—").
+ * Returns an empty string for types without a subtype.
+ * @param {string} typeLine
+ */
+function getSubtype(typeLine) {
+	const dashIdx = (typeLine || "").indexOf("\u2014"); // em dash
+	if (dashIdx === -1) return "";
+	return (typeLine || "").slice(dashIdx + 1).trim();
+}
+
+/**
  * @param {any} a
  * @param {any} b
  * @param {string} factor
@@ -433,8 +462,12 @@ function compare(a, b, factor) {
 			getWeight(b.color_identity || b.colors)
 		);
 	}
-	if (factor === "type")
-		return (a.type || "").localeCompare(b.type || "");
+	if (factor === "type") {
+		const weightDiff = getPrimaryTypeWeight(a.type) - getPrimaryTypeWeight(b.type);
+		if (weightDiff !== 0) return weightDiff;
+		// Same primary type: sort by subtype alphabetically; no subtype sorts first
+		return getSubtype(a.type).localeCompare(getSubtype(b.type));
+	}
 	if (factor === "qty") return a.quantity - b.quantity;
 	if (factor === "printing")
 		return (a.card?.set || "").localeCompare(b.card?.set || "");
