@@ -127,6 +127,16 @@
 		insertDropZoneActive = null;
 	}
 
+	function getEffectiveTrack(colKey) {
+		if (!colKey) return 0;
+		const colTrack = columnTrackMap.get(colKey);
+		if (colTrack === undefined) return 0;
+		const isLands = colKey === "Lands";
+		return isLands && typeGroups.length === 0
+			? Math.max(colTrack, layoutStore.numCols)
+			: colTrack;
+	}
+
 	/** @param {number} i */
 	function getDropZonePosition(i) {
 		const N = freeformColumnOrder.length;
@@ -142,26 +152,31 @@
 
 		if (i === 0) {
 			const firstCol = freeformColumnOrder[0];
-			const firstTrack = columnTrackMap.get(firstCol) || (specialOffset + 1);
+			const firstTrack = getEffectiveTrack(firstCol) || (specialOffset + 1);
 			if (hasSpecial) {
-				leftStr = "calc(1 * var(--card-width) + 0 * var(--column-gap))";
+				leftStr = "calc(1 * var(--card-width) - 12px)";
 			} else {
 				leftStr = "0px";
 			}
-			widthStr = `calc((${firstTrack - 1} * (var(--card-width) + var(--column-gap))) - ${leftStr})`;
+			const rightLimit = `calc((${firstTrack - 1} * (var(--card-width) + var(--column-gap))) + 12px)`;
+			widthStr = `calc(${rightLimit} - ${leftStr})`;
 		} else if (i === N) {
 			const lastCol = freeformColumnOrder[N - 1];
-			const lastTrack = columnTrackMap.get(lastCol) || (specialOffset + N);
-			leftStr = `calc(${lastTrack} * var(--card-width) + ${lastTrack - 1} * var(--column-gap))`;
+			const lastTrack = getEffectiveTrack(lastCol) || (specialOffset + N);
+			leftStr = `calc(${lastTrack} * var(--card-width) + ${lastTrack - 1} * var(--column-gap) - 12px)`;
 			widthStr = `calc(100% - ${leftStr})`;
 		} else {
 			const colLeft = freeformColumnOrder[i - 1];
 			const colRight = freeformColumnOrder[i];
-			const trackLeft = columnTrackMap.get(colLeft) || (specialOffset + i);
-			const trackRight = columnTrackMap.get(colRight) || (specialOffset + i + 1);
-			leftStr = `calc(${trackLeft} * var(--card-width) + ${trackLeft - 1} * var(--column-gap))`;
-			const rightStr = `calc((${trackRight - 1}) * (var(--card-width) + var(--column-gap)))`;
-			widthStr = `calc(${rightStr} - ${leftStr})`;
+			const trackLeft = getEffectiveTrack(colLeft) || (specialOffset + i);
+			const trackRight = getEffectiveTrack(colRight) || (specialOffset + i + 1);
+			
+			// Shift left edge 12px to the left
+			leftStr = `calc(${trackLeft} * var(--card-width) + ${trackLeft - 1} * var(--column-gap) - 12px)`;
+			// Shift right edge 12px to the right
+			const rightLimit = `calc((${trackRight - 1}) * (var(--card-width) + var(--column-gap)) + 12px)`;
+			
+			widthStr = `calc(${rightLimit} - ${leftStr})`;
 		}
 
 		return { left: leftStr, width: widthStr };
