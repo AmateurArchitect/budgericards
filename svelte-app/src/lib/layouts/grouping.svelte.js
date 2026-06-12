@@ -222,6 +222,15 @@ export function getGroupedCategories() {
 		}
 	}
 
+	// For primary-tag grouping, always push "No Tag" to the very end
+	if (effectiveGrouping === "primarytag") {
+		const noTagIdx = orderedKeys.indexOf("No Tag");
+		if (noTagIdx !== -1) {
+			orderedKeys.splice(noTagIdx, 1);
+			orderedKeys.push("No Tag");
+		}
+	}
+
 	for (const key of orderedKeys) {
 		const cardsInGroup = groups[key] || [];
 		if (cardsInGroup.length > 0) {
