@@ -1066,7 +1066,7 @@
 		position: relative;
 		width: 100%;
 		aspect-ratio: 2.5 / 3.5;
-		border-radius: calc(var(--radius) + 0.5px);
+		border-radius: 4.75% / 3.5%;
 		overflow: hidden;
 		background: #000000;
 	}
@@ -1084,8 +1084,6 @@
 		height: 100%;
 		object-fit: cover;
 		display: block;
-		border-top-left-radius: calc(var(--radius) - 1.5px);
-		border-top-right-radius: calc(var(--radius) - 1.5px);
 		transition: opacity 0.2s;
 	}
 
