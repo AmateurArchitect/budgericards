@@ -412,11 +412,6 @@
 				<div class="control-panel">
 					<div class="pills-group">
 						<button
-							class="pill-btn badge-current"
-							onclick={() => handlePillClick("current")}
-							>Current</button
-						>
-						<button
 							class="pill-btn badge-cheapest"
 							onclick={() => handlePillClick("cheapest")}
 							>Cheapest</button
@@ -822,14 +817,6 @@
 		transform: scale(1.05);
 	}
 
-	.pill-btn.badge-current {
-		background: hsl(262 80% 50% / 0.12);
-		color: hsl(262 80% 70%);
-		border-color: hsl(262 80% 50% / 0.4);
-	}
-	.pill-btn.badge-current:hover {
-		background: hsl(262 80% 50% / 0.25);
-	}
 
 	.pill-btn.badge-cheapest {
 		background: hsl(142 60% 40% / 0.12);
