@@ -331,7 +331,9 @@ export function createStacksEngine() {
 	}
 
 	function getColumnOrder(columnMap, grouping, effectiveGrouping, freeformColumnOrder) {
-		if (grouping === 'freeform') return freeformColumnOrder;
+		if (grouping === 'freeform' && freeformColumnOrder.length > 0) return freeformColumnOrder;
+		// If freeform but not yet initialized, fall through and use effectiveGrouping order
+		// so the engine can render rows for StacksView's snapshot $effect to fire.
 
 		const special = [];
 		if (deckStore.activeBoard === 'mainboard') {
