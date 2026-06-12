@@ -246,6 +246,7 @@
 	 * @returns {string[]}
 	 */
 	function getFilteredTags(query) {
+		if (!hasTagsTyped) return deckTagsList;
 		const parts = (query || "").split(",");
 		const lastPart = (parts[parts.length - 1] || "").trim().toLowerCase();
 		if (!lastPart) return deckTagsList;
@@ -318,6 +319,7 @@
 	 * @returns {any[]}
 	 */
 	function getFilteredPrintings(query) {
+		if (!hasPrintingTyped) return availablePrintings;
 		const q = (query || "").trim().toLowerCase();
 		if (!q) return availablePrintings;
 		return availablePrintings.filter(p => {
