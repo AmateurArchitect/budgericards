@@ -114,7 +114,24 @@
 	let renameValue = $state("");
 	let insertDropZoneActive = $state(/** @type {number | null} */ (null));
 	let isDraggingCard = $state(false);
-	const insertIndices = $derived(Array.from({ length: freeformColumnOrder.length + 1 }, (_, i) => i));
+	const activeColKeys = $derived(rows[0] ? rows[0].columns.filter((c) => c.key !== "Special").map((c) => c.key) : []);
+	const activeInsertIndices = $derived(Array.from({ length: activeColKeys.length + 1 }, (_, i) => i));
+
+	/** 
+	 * @param {number} activeIndex 
+	 * @returns {number}
+	 */
+	function mapActiveToFreeformIndex(activeIndex) {
+		if (activeIndex === 0) return 0;
+		if (activeIndex === activeColKeys.length) return freeformColumnOrder.length;
+		
+		const prevColKey = activeColKeys[activeIndex - 1];
+		const freeformIdx = freeformColumnOrder.indexOf(prevColKey);
+		if (freeformIdx !== -1) {
+			return freeformIdx + 1;
+		}
+		return activeIndex;
+	}
 
 	/** @param {DragEvent} e */
 	function handleGlobalDragStart(e) {
@@ -128,6 +145,7 @@
 		insertDropZoneActive = null;
 	}
 
+	/** @param {string} colKey */
 	function getEffectiveTrack(colKey) {
 		if (!colKey) return 0;
 		const colTrack = columnTrackMap.get(colKey);
@@ -140,7 +158,7 @@
 
 	/** @param {number} i */
 	function getDropZonePosition(i) {
-		const N = freeformColumnOrder.length;
+		const N = activeColKeys.length;
 		const hasSpecial = columnTrackMap.has("Special");
 		const specialOffset = hasSpecial ? 1 : 0;
 		
@@ -152,7 +170,7 @@
 		let widthStr = "100%";
 
 		if (i === 0) {
-			const firstCol = freeformColumnOrder[0];
+			const firstCol = activeColKeys[0];
 			const firstTrack = getEffectiveTrack(firstCol) || (specialOffset + 1);
 			if (hasSpecial) {
 				leftStr = "calc(1 * var(--card-width) - 12px)";
@@ -162,13 +180,13 @@
 			const rightLimit = `calc((${firstTrack - 1} * (var(--card-width) + var(--column-gap))) + 12px)`;
 			widthStr = `calc(${rightLimit} - ${leftStr})`;
 		} else if (i === N) {
-			const lastCol = freeformColumnOrder[N - 1];
+			const lastCol = activeColKeys[N - 1];
 			const lastTrack = getEffectiveTrack(lastCol) || (specialOffset + N);
 			leftStr = `calc(${lastTrack} * var(--card-width) + ${lastTrack - 1} * var(--column-gap) - 12px)`;
 			widthStr = `calc(100% - ${leftStr})`;
 		} else {
-			const colLeft = freeformColumnOrder[i - 1];
-			const colRight = freeformColumnOrder[i];
+			const colLeft = activeColKeys[i - 1];
+			const colRight = activeColKeys[i];
 			const trackLeft = getEffectiveTrack(colLeft) || (specialOffset + i);
 			const trackRight = getEffectiveTrack(colRight) || (specialOffset + i + 1);
 			
@@ -505,9 +523,9 @@
 
 	/**
 	 * @param {DragEvent} e
-	 * @param {number} insertIndex
+	 * @param {number} activeIndex
 	 */
-	function handleInsertZoneDrop(e, insertIndex) {
+	function handleInsertZoneDrop(e, activeIndex) {
 		insertDropZoneActive = null;
 		if (!e.dataTransfer || deckStore.grouping !== "freeform") return;
 		const internalData = e.dataTransfer.getData(
@@ -517,6 +535,9 @@
 		e.preventDefault();
 		e.stopPropagation();
 		const data = JSON.parse(internalData);
+		
+		const insertIndex = mapActiveToFreeformIndex(activeIndex);
+		
 		let colNum = freeformColumnOrder.length + 1;
 		let newColKey = `Column ${colNum}`;
 		while (freeformColumnOrder.includes(newColKey)) {
@@ -1356,7 +1377,7 @@
 
 		{#if deckStore.grouping === 'freeform' && isDraggingCard}
 			<div class="freeform-drop-zones-overlay">
-				{#each insertIndices as i (i)}
+				{#each activeInsertIndices as i (i)}
 					{@const pos = getDropZonePosition(i)}
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div

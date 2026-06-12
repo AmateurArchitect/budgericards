@@ -137,7 +137,6 @@
 		font-family: inherit;
 		font-size: inherit;
 		font-weight: inherit;
-		color: inherit;
 		text-align: left;
 		cursor: text;
 		transition: color 0.15s ease;
