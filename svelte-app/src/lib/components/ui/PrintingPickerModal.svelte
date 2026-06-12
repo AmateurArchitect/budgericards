@@ -951,7 +951,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;
-		border-radius: 4.75% / 3.5%;
+		border-radius: 5% / 3.5%;
 		border: 1.5px solid hsl(var(--border) / 0.3);
 		background: hsl(var(--card) / 0.5);
 		padding: 0.5rem;
