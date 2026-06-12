@@ -944,7 +944,7 @@
 	.printing-card {
 		display: flex;
 		flex-direction: column;
-		gap: 0;
+		gap: 0.25rem;
 		border-radius: var(--radius);
 		border: 1.5px solid hsl(var(--border) / 0.3);
 		background: hsl(var(--card) / 0.5);
