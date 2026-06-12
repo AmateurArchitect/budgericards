@@ -402,6 +402,14 @@
 								title="{printing.set_name} #{printing.collector_number}"
 								in:scale={{ start: 0.92, duration: 200, delay: 0 }}
 							>
+								<!-- Diagonal sash for top priority badge -->
+								{#if badges.length > 0}
+									{@const topBadge = badges[0]}
+									<div class="sash-container">
+										<div class="sash {topBadge.cls}">{topBadge.label}</div>
+									</div>
+								{/if}
+
 								<!-- Card Image -->
 								<div class="card-image-wrap">
 									{#if printing.image_uris?.normal || printing.card_faces?.[0]?.image_uris?.normal}
@@ -431,28 +439,22 @@
 									{/if}
 								</div>
 
-								<!-- Meta row (14px font, Foreground color, same font weights, no # symbol) -->
-								<div class="card-meta">
-									<span class="set-info">
-										<span class="set-code">{printing.set.toUpperCase()}</span>
-										<span class="collector-num">{printing.collector_number}</span>
-									</span>
-									<span class="card-price">{getDisplayPrice(printing)}</span>
-								</div>
-
-								<!-- Set name (Muted Foreground, 14px font) -->
-								<div class="set-name-row">
-									<span class="set-name" title={printing.set_name}>{printing.set_name}</span>
-								</div>
-
-								<!-- Badges -->
-								{#if badges.length > 0}
-									<div class="badges-row">
-										{#each badges as badge}
-											<span class="badge {badge.cls}">{badge.label}</span>
-										{/each}
+								<!-- Card details inside a flexbox container with padding -->
+								<div class="card-details">
+									<!-- Meta row (14px font, Foreground color, same font weights, no # symbol) -->
+									<div class="card-meta">
+										<span class="set-info">
+											<span class="set-code">{printing.set.toUpperCase()}</span>
+											<span class="collector-num">{printing.collector_number}</span>
+										</span>
+										<span class="card-price">{getDisplayPrice(printing)}</span>
 									</div>
-								{/if}
+
+									<!-- Set name (Muted Foreground, 14px font) -->
+									<div class="set-name-row">
+										<span class="set-name" title={printing.set_name}>{printing.set_name}</span>
+									</div>
+								</div>
 							</div>
 						{/each}
 					</div>
@@ -747,12 +749,14 @@
 	.printing-card {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 0;
 		border-radius: var(--radius);
 		border: 1.5px solid hsl(var(--border) / 0.3);
 		background: hsl(var(--card) / 0.5);
-		padding: 8px;
+		padding: 0;
 		cursor: pointer;
+		position: relative;
+		overflow: hidden;
 		transition:
 			transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
 			border-color 0.15s,
@@ -803,14 +807,76 @@
 			0 10px 28px -8px hsl(var(--primary) / 0.5);
 	}
 
-	/* Card Image */
+	/* Diagonal Sash Badges */
+	.sash-container {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 72px;
+		height: 72px;
+		overflow: hidden;
+		pointer-events: none;
+		z-index: 10;
+	}
+
+	.sash {
+		position: absolute;
+		top: 12px;
+		left: -22px;
+		width: 88px;
+		transform: rotate(-45deg);
+		text-align: center;
+		font-size: 0.55rem;
+		font-weight: 800;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		padding: 2px 0;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+		color: white;
+	}
+
+	.sash.badge-current {
+		background: hsl(262 80% 50%);
+		color: hsl(262 80% 95%);
+	}
+
+	.sash.badge-cheapest {
+		background: hsl(142 60% 40%);
+		color: hsl(142 70% 95%);
+	}
+
+	.sash.badge-newest {
+		background: hsl(45 90% 45%);
+		color: hsl(45 90% 95%);
+	}
+
+	.sash.badge-oldest {
+		background: hsl(280 50% 50%);
+		color: hsl(280 60% 95%);
+	}
+
+	.sash.badge-default {
+		background: hsl(var(--muted-foreground));
+		color: hsl(var(--background));
+	}
+
+	/* Card Image (border-radius clipped to card top) */
 	.card-image-wrap {
 		position: relative;
 		width: 100%;
 		aspect-ratio: 2.5 / 3.5;
-		border-radius: calc(var(--radius-sm) + 2px);
+		border-top-left-radius: calc(var(--radius) - 1.5px);
+		border-top-right-radius: calc(var(--radius) - 1.5px);
 		overflow: hidden;
 		background: hsl(var(--muted) / 0.2);
+	}
+
+	/* Card Details Container with padding & flex box */
+	.card-details {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 10px 12px 12px;
 	}
 
 	.card-img {
@@ -897,53 +963,7 @@
 		flex: 1;
 	}
 
-	/* Badges */
-	.badges-row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 3px;
-		margin-top: 2px;
-	}
 
-	.badge {
-		font-size: 0.58rem;
-		font-weight: 700;
-		padding: 2px 6px;
-		border-radius: 999px;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		white-space: nowrap;
-	}
-
-	.badge-current {
-		background: hsl(262 80% 50% / 0.2);
-		color: hsl(262 80% 70%);
-		border: 1px solid hsl(262 80% 50% / 0.35);
-	}
-
-	.badge-cheapest {
-		background: hsl(142 60% 40% / 0.2);
-		color: hsl(142 70% 55%);
-		border: 1px solid hsl(142 60% 40% / 0.35);
-	}
-
-	.badge-newest {
-		background: hsl(45 90% 50% / 0.2);
-		color: hsl(45 90% 65%);
-		border: 1px solid hsl(45 90% 50% / 0.35);
-	}
-
-	.badge-oldest {
-		background: hsl(280 50% 55% / 0.2);
-		color: hsl(280 60% 72%);
-		border: 1px solid hsl(280 50% 55% / 0.35);
-	}
-
-	.badge-default {
-		background: hsl(var(--muted) / 0.4);
-		color: hsl(var(--muted-foreground));
-		border: 1px solid hsl(var(--border) / 0.5);
-	}
 
 	/* Skeleton */
 	.skeleton-grid {
