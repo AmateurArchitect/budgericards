@@ -1,25 +1,27 @@
 <script>
-	import { fade, fly, scale } from 'svelte/transition';
-	import { interactionStore } from '$lib/stores/interaction.svelte.js';
-	import { deckStore } from '$lib/stores/deck.svelte.js';
-	import { scryfallFetch } from '$lib/api/scryfall.js';
-	import { db } from '$lib/db';
-	import { priceStore } from '$lib/stores/prices.svelte.js';
-	import { onMount, tick } from 'svelte';
+	import { fade, fly, scale } from "svelte/transition";
+	import { interactionStore } from "$lib/stores/interaction.svelte.js";
+	import { deckStore } from "$lib/stores/deck.svelte.js";
+	import { scryfallFetch } from "$lib/api/scryfall.js";
+	import { db } from "$lib/db";
+	import { priceStore } from "$lib/stores/prices.svelte.js";
+	import { onMount, tick } from "svelte";
 
-	let { isOpen, card, zone, price } = $derived(interactionStore.printingPickerModal);
+	let { isOpen, card, zone, price } = $derived(
+		interactionStore.printingPickerModal,
+	);
 
 	/** @type {any[]} */
 	let printings = $state([]);
 	let isLoading = $state(false);
-	let error = $state('');
+	let error = $state("");
 
 	/** @type {string | null} */
 	let defaultPrintingId = $state(null);
 
 	// Sorting and Filtering State
-	let searchQuery = $state('');
-	let sortBy = $state('released-desc');
+	let searchQuery = $state("");
+	let sortBy = $state("released-desc");
 
 	// Draft selection state (selected via pills or in pending mode)
 	/** @type {any | null} */
@@ -36,34 +38,58 @@
 			const foil = parseFloat(p.prices?.usd_foil);
 			const best = Math.min(
 				isNaN(usd) ? Infinity : usd,
-				isNaN(foil) ? Infinity : foil
+				isNaN(foil) ? Infinity : foil,
 			);
-			if (best < cheapestPrice) { cheapestPrice = best; cheapest = p.id; }
+			if (best < cheapestPrice) {
+				cheapestPrice = best;
+				cheapest = p.id;
+			}
 		}
 		return cheapest;
 	});
 
 	const newestId = $derived.by(() => {
 		if (printings.length === 0) return null;
-		return [...printings].sort((a, b) => new Date(b.released_at).getTime() - new Date(a.released_at).getTime())[0]?.id ?? null;
+		return (
+			[...printings].sort(
+				(a, b) =>
+					new Date(b.released_at).getTime() -
+					new Date(a.released_at).getTime(),
+			)[0]?.id ?? null
+		);
 	});
 
 	const oldestId = $derived.by(() => {
 		if (printings.length === 0) return null;
-		return [...printings].sort((a, b) => new Date(a.released_at).getTime() - new Date(b.released_at).getTime())[0]?.id ?? null;
+		return (
+			[...printings].sort(
+				(a, b) =>
+					new Date(a.released_at).getTime() -
+					new Date(b.released_at).getTime(),
+			)[0]?.id ?? null
+		);
 	});
 
 	// Currently in deck: match by set + collector_number from card metadata
-	const currentMeta = $derived(card ? (card.type_line ? card : deckStore.metadata[card.name?.toLowerCase()]) : null);
+	const currentMeta = $derived(
+		card
+			? card.type_line
+				? card
+				: deckStore.metadata[card.name?.toLowerCase()]
+			: null,
+	);
 	const currentPrintingId = $derived.by(() => {
 		if (!currentMeta || printings.length === 0) return null;
-		const metaSet = (currentMeta.set || '').toLowerCase();
-		const metaNum = (currentMeta.collector_number || '').toLowerCase();
+		const metaSet = (currentMeta.set || "").toLowerCase();
+		const metaNum = (currentMeta.collector_number || "").toLowerCase();
 		if (!metaSet) return null;
-		return printings.find(p =>
-			p.set.toLowerCase() === metaSet &&
-			(p.collector_number || '').toLowerCase() === metaNum
-		)?.id ?? null;
+		return (
+			printings.find(
+				(p) =>
+					p.set.toLowerCase() === metaSet &&
+					(p.collector_number || "").toLowerCase() === metaNum,
+			)?.id ?? null
+		);
 	});
 
 	// Helper to extract Scryfall ID from our local db card's image URL
@@ -73,9 +99,9 @@
 	 */
 	function getPrintingIdFromImageUrl(url) {
 		if (!url) return null;
-		const parts = url.split('/');
+		const parts = url.split("/");
 		const filename = parts[parts.length - 1];
-		const id = filename.split('.')[0].split('?')[0];
+		const id = filename.split(".")[0].split("?")[0];
 		return id;
 	}
 
@@ -85,34 +111,45 @@
 
 		if (searchQuery.trim()) {
 			const q = searchQuery.toLowerCase().trim();
-			list = list.filter(p => {
-				const setCode = (p.set || '').toLowerCase();
-				const setName = (p.set_name || '').toLowerCase();
-				const collectorNum = (p.collector_number || '').toLowerCase();
+			list = list.filter((p) => {
+				const setCode = (p.set || "").toLowerCase();
+				const setName = (p.set_name || "").toLowerCase();
+				const collectorNum = (p.collector_number || "").toLowerCase();
 				const priceStr = getDisplayPrice(p).toLowerCase();
-				return setCode.includes(q) || setName.includes(q) || collectorNum.includes(q) || priceStr.includes(q);
+				return (
+					setCode.includes(q) ||
+					setName.includes(q) ||
+					collectorNum.includes(q) ||
+					priceStr.includes(q)
+				);
 			});
 		}
 
 		list.sort((a, b) => {
-			if (sortBy === 'released-desc') {
-				return new Date(b.released_at).getTime() - new Date(a.released_at).getTime();
+			if (sortBy === "released-desc") {
+				return (
+					new Date(b.released_at).getTime() -
+					new Date(a.released_at).getTime()
+				);
 			}
-			if (sortBy === 'released-asc') {
-				return new Date(a.released_at).getTime() - new Date(b.released_at).getTime();
+			if (sortBy === "released-asc") {
+				return (
+					new Date(a.released_at).getTime() -
+					new Date(b.released_at).getTime()
+				);
 			}
-			if (sortBy === 'price-asc') {
+			if (sortBy === "price-asc") {
 				const priceA = getPriceNumeric(a);
 				const priceB = getPriceNumeric(b);
 				return priceA - priceB;
 			}
-			if (sortBy === 'price-desc') {
+			if (sortBy === "price-desc") {
 				const priceA = getPriceNumeric(a);
 				const priceB = getPriceNumeric(b);
 				return priceB - priceA;
 			}
-			if (sortBy === 'set-asc') {
-				return (a.set || '').localeCompare(b.set || '');
+			if (sortBy === "set-asc") {
+				return (a.set || "").localeCompare(b.set || "");
 			}
 			return 0;
 		});
@@ -129,7 +166,7 @@
 		const foil = parseFloat(p.prices?.usd_foil);
 		const val = Math.min(
 			isNaN(usd) ? Infinity : usd,
-			isNaN(foil) ? Infinity : foil
+			isNaN(foil) ? Infinity : foil,
 		);
 		return val;
 	}
@@ -141,9 +178,13 @@
 	function getDisplayPrice(p) {
 		const usd = parseFloat(p.prices?.usd);
 		const foil = parseFloat(p.prices?.usd_foil);
-		
-		const formatPrice = (val, suffix = '') => {
-			if (isNaN(val) || val <= 0) return '';
+
+		/**
+		 * @param {number} val
+		 * @param {string} [suffix]
+		 */
+		const formatPrice = (val, suffix = "") => {
+			if (isNaN(val) || val <= 0) return "";
 			if (val > 9.99) {
 				return `$${Math.round(val)}${suffix}`;
 			}
@@ -151,8 +192,8 @@
 		};
 
 		if (!isNaN(usd) && usd > 0) return formatPrice(usd);
-		if (!isNaN(foil) && foil > 0) return formatPrice(foil, ' foil');
-		return '';
+		if (!isNaN(foil) && foil > 0) return formatPrice(foil, " foil");
+		return "";
 	}
 
 	/**
@@ -161,39 +202,49 @@
 	 */
 	function getBadges(p) {
 		const badges = [];
-		if (p.id === currentPrintingId) badges.push({ label: 'Current', cls: 'badge-current' });
-		if (p.id === defaultPrintingId) badges.push({ label: 'Default', cls: 'badge-default' });
-		if (p.id === cheapestId) badges.push({ label: 'Cheapest', cls: 'badge-cheapest' });
-		if (p.id === newestId) badges.push({ label: 'Newest', cls: 'badge-newest' });
-		if (p.id === oldestId) badges.push({ label: 'Oldest', cls: 'badge-oldest' });
+		if (p.id === currentPrintingId)
+			badges.push({ label: "Current", cls: "badge-current" });
+		if (p.id === defaultPrintingId)
+			badges.push({ label: "Default", cls: "badge-default" });
+		if (p.id === cheapestId)
+			badges.push({ label: "Cheapest", cls: "badge-cheapest" });
+		if (p.id === newestId)
+			badges.push({ label: "Newest", cls: "badge-newest" });
+		if (p.id === oldestId)
+			badges.push({ label: "Oldest", cls: "badge-oldest" });
 		return badges;
 	}
 
 	async function loadPrintings() {
 		if (!card?.name) return;
 		isLoading = true;
-		error = '';
+		error = "";
 		printings = [];
 		defaultPrintingId = null;
-		searchQuery = '';
-		sortBy = 'released-desc';
+		searchQuery = "";
+		sortBy = "released-desc";
 		draftSelectedCard = null;
 		showConfirm = false;
 
 		try {
 			// Fetch default from local DB for "Default" badge
-			const localCard = await db.cards.where('name').equals(card.name).first();
+			const localCard = await db.cards
+				.where("name")
+				.equals(card.name)
+				.first();
 			if (localCard) {
 				defaultPrintingId = getPrintingIdFromImageUrl(localCard.image);
 			}
 
 			const q = `!"${card.name}" unique:prints`;
-			const res = await scryfallFetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}&order=released&dir=desc`);
-			if (!res.ok) throw new Error('Failed to load printings');
+			const res = await scryfallFetch(
+				`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}&order=released&dir=desc`,
+			);
+			if (!res.ok) throw new Error("Failed to load printings");
 			const data = await res.json();
 			printings = data.data || [];
 		} catch (e) {
-			error = 'Could not load printings. Check your connection.';
+			error = "Could not load printings. Check your connection.";
 			console.error(e);
 		} finally {
 			isLoading = false;
@@ -205,7 +256,7 @@
 			loadPrintings();
 		} else if (!isOpen) {
 			printings = [];
-			error = '';
+			error = "";
 		}
 	});
 
@@ -221,22 +272,22 @@
 	 */
 	function handlePillClick(type) {
 		let targetId = null;
-		if (type === 'current') targetId = currentPrintingId;
-		else if (type === 'cheapest') targetId = cheapestId;
-		else if (type === 'newest') targetId = newestId;
-		else if (type === 'oldest') targetId = oldestId;
-		else if (type === 'default') targetId = defaultPrintingId;
+		if (type === "current") targetId = currentPrintingId;
+		else if (type === "cheapest") targetId = cheapestId;
+		else if (type === "newest") targetId = newestId;
+		else if (type === "oldest") targetId = oldestId;
+		else if (type === "default") targetId = defaultPrintingId;
 
 		if (!targetId) return;
 
-		const targetCard = printings.find(p => p.id === targetId);
+		const targetCard = printings.find((p) => p.id === targetId);
 		if (targetCard) {
 			draftSelectedCard = targetCard;
 			showConfirm = true;
 			tick().then(() => {
-				const el = document.getElementById('print-' + targetId);
+				const el = document.getElementById("print-" + targetId);
 				if (el) {
-					el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+					el.scrollIntoView({ behavior: "smooth", block: "center" });
 				}
 			});
 		}
@@ -246,14 +297,19 @@
 		if (!card?.name) return;
 		try {
 			if (defaultPrintingId) {
-				const defaultCard = printings.find(p => p.id === defaultPrintingId);
+				const defaultCard = printings.find(
+					(p) => p.id === defaultPrintingId,
+				);
 				if (defaultCard) {
 					applyPrinting(defaultCard);
 					return;
 				}
 			}
 			// Fallback to local DB card properties if printings not loaded/matching
-			const defaultCard = await db.cards.where('name').equals(card.name).first();
+			const defaultCard = await db.cards
+				.where("name")
+				.equals(card.name)
+				.first();
 			if (defaultCard) {
 				const localPrice = priceStore.getPrice(card.name);
 				const metadata = {
@@ -267,24 +323,29 @@
 					color_identity: defaultCard.identity || [],
 					image_uris: {
 						normal: defaultCard.image,
-						art_crop: defaultCard.image ? defaultCard.image.replace('/normal/', '/art_crop/') : null
+						art_crop: defaultCard.image
+							? defaultCard.image.replace(
+									"/normal/",
+									"/art_crop/",
+								)
+							: null,
 					},
 					prices: {
 						usd: localPrice !== null ? String(localPrice) : null,
-						usd_foil: null
-					}
+						usd_foil: null,
+					},
 				};
 				deckStore.setCardPrinting(card.name, metadata);
 			}
 		} catch (e) {
-			console.error('Failed to reset printing:', e);
+			console.error("Failed to reset printing:", e);
 		}
 		interactionStore.closePrintingPickerModal();
 	}
 
 	/** @param {KeyboardEvent} e */
 	function handleKeydown(e) {
-		if (e.key === 'Escape') interactionStore.closePrintingPickerModal();
+		if (e.key === "Escape") interactionStore.closePrintingPickerModal();
 	}
 </script>
 
@@ -320,11 +381,27 @@
 				</div>
 				<div class="header-actions">
 					{#if !isLoading && printings.length > 0}
-						<span class="print-count">{printings.length} printing{printings.length !== 1 ? 's' : ''}</span>
+						<span class="print-count"
+							>{printings.length} printing{printings.length !== 1
+								? "s"
+								: ""}</span
+						>
 					{/if}
-					<button class="icon-btn" onclick={() => interactionStore.closePrintingPickerModal()} aria-label="Close">
-						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-							<path d="M18 6 6 18M6 6l12 12"/>
+					<button
+						class="icon-btn"
+						onclick={() =>
+							interactionStore.closePrintingPickerModal()}
+						aria-label="Close"
+					>
+						<svg
+							width="16"
+							height="16"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2.5"
+						>
+							<path d="M18 6 6 18M6 6l12 12" />
 						</svg>
 					</button>
 				</div>
@@ -334,17 +411,50 @@
 			{#if !isLoading && printings.length > 0}
 				<div class="control-panel">
 					<div class="pills-group">
-						<button class="pill-btn badge-current" onclick={() => handlePillClick('current')}>Current</button>
-						<button class="pill-btn badge-cheapest" onclick={() => handlePillClick('cheapest')}>Cheapest</button>
-						<button class="pill-btn badge-newest" onclick={() => handlePillClick('newest')}>Newest</button>
-						<button class="pill-btn badge-oldest" onclick={() => handlePillClick('oldest')}>Oldest</button>
-						<button class="pill-btn badge-default" onclick={() => handlePillClick('default')}>Default</button>
+						<button
+							class="pill-btn badge-current"
+							onclick={() => handlePillClick("current")}
+							>Current</button
+						>
+						<button
+							class="pill-btn badge-cheapest"
+							onclick={() => handlePillClick("cheapest")}
+							>Cheapest</button
+						>
+						<button
+							class="pill-btn badge-newest"
+							onclick={() => handlePillClick("newest")}
+							>Newest</button
+						>
+						<button
+							class="pill-btn badge-oldest"
+							onclick={() => handlePillClick("oldest")}
+							>Oldest</button
+						>
+						<button
+							class="pill-btn badge-default"
+							onclick={() => handlePillClick("default")}
+							>Default</button
+						>
 					</div>
 
 					<div class="filters-group">
 						<div class="search-wrapper">
-							<svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+							<svg
+								class="search-icon"
+								width="14"
+								height="14"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<circle cx="11" cy="11" r="8" /><line
+									x1="21"
+									y1="21"
+									x2="16.65"
+									y2="16.65"
+								/>
 							</svg>
 							<input
 								type="text"
@@ -357,8 +467,11 @@
 						<select bind:value={sortBy} class="sort-select">
 							<option value="released-desc">Newest First</option>
 							<option value="released-asc">Oldest First</option>
-							<option value="price-asc">Price: Low to High</option>
-							<option value="price-desc">Price: High to Low</option>
+							<option value="price-asc">Price: Low to High</option
+							>
+							<option value="price-desc"
+								>Price: High to Low</option
+							>
 							<option value="set-asc">Set Code (A-Z)</option>
 						</select>
 					</div>
@@ -370,25 +483,47 @@
 				{#if isLoading}
 					<div class="skeleton-grid">
 						{#each Array(8) as _, i}
-							<div class="skeleton-card" style="animation-delay: {i * 40}ms"></div>
+							<div
+								class="skeleton-card"
+								style="animation-delay: {i * 40}ms"
+							></div>
 						{/each}
 					</div>
 				{:else if error}
 					<div class="error-state">
-						<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-							<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+						<svg
+							width="32"
+							height="32"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.5"
+						>
+							<circle cx="12" cy="12" r="10" /><line
+								x1="12"
+								y1="8"
+								x2="12"
+								y2="12"
+							/><line x1="12" y1="16" x2="12.01" y2="16" />
 						</svg>
 						<p>{error}</p>
-						<button class="retry-btn" onclick={loadPrintings}>Try again</button>
+						<button class="retry-btn" onclick={loadPrintings}
+							>Try again</button
+						>
 					</div>
 				{:else if filteredPrintings.length === 0}
-					<div class="empty-state">No printings matching filters.</div>
+					<div class="empty-state">
+						No printings matching filters.
+					</div>
 				{:else}
 					<div class="printings-grid">
 						{#each filteredPrintings as printing (printing.id)}
 							{@const badges = getBadges(printing)}
-							{@const isCurrentInDeck = printing.id === currentPrintingId}
-							{@const isSelected = draftSelectedCard ? (printing.id === draftSelectedCard.id) : isCurrentInDeck}
+							{@const isCurrentInDeck =
+								printing.id === currentPrintingId}
+							{@const isSelected = draftSelectedCard
+								? printing.id === draftSelectedCard.id
+								: isCurrentInDeck}
 							<!-- svelte-ignore a11y_click_events_have_key_events -->
 							<div
 								id="print-{printing.id}"
@@ -398,15 +533,23 @@
 								role="button"
 								tabindex="0"
 								onclick={() => applyPrinting(printing)}
-								onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && applyPrinting(printing)}
+								onkeydown={(e) =>
+									(e.key === "Enter" || e.key === " ") &&
+									applyPrinting(printing)}
 								title="{printing.set_name} #{printing.collector_number}"
-								in:scale={{ start: 0.92, duration: 200, delay: 0 }}
+								in:scale={{
+									start: 0.92,
+									duration: 200,
+									delay: 0,
+								}}
 							>
 								<!-- Diagonal sash for top priority badge -->
 								{#if badges.length > 0}
 									{@const topBadge = badges[0]}
 									<div class="sash-container">
-										<div class="sash {topBadge.cls}">{topBadge.label}</div>
+										<div class="sash {topBadge.cls}">
+											{topBadge.label}
+										</div>
 									</div>
 								{/if}
 
@@ -415,14 +558,33 @@
 									{#if printing.image_uris?.normal || printing.card_faces?.[0]?.image_uris?.normal}
 										<img
 											class="card-img"
-											src={printing.image_uris?.normal || printing.card_faces?.[0]?.image_uris?.normal}
+											src={printing.image_uris?.normal ||
+												printing.card_faces?.[0]
+													?.image_uris?.normal}
 											alt="{printing.name} — {printing.set_name}"
 											loading="lazy"
 										/>
 									{:else}
 										<div class="card-img-placeholder">
-											<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-												<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>
+											<svg
+												width="24"
+												height="24"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="1.5"
+											>
+												<rect
+													x="3"
+													y="3"
+													width="18"
+													height="18"
+													rx="2"
+												/><circle
+													cx="8.5"
+													cy="8.5"
+													r="1.5"
+												/><path d="m21 15-5-5L5 21" />
 											</svg>
 										</div>
 									{/if}
@@ -431,8 +593,17 @@
 									{#if isSelected}
 										<div class="selected-overlay">
 											<div class="check-ring">
-												<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-													<polyline points="20 6 9 17 4 12"/>
+												<svg
+													width="18"
+													height="18"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="3"
+												>
+													<polyline
+														points="20 6 9 17 4 12"
+													/>
 												</svg>
 											</div>
 										</div>
@@ -444,15 +615,25 @@
 									<!-- Meta row (14px font, Foreground color, same font weights, no # symbol) -->
 									<div class="card-meta">
 										<span class="set-info">
-											<span class="set-code">{printing.set.toUpperCase()}</span>
-											<span class="collector-num">{printing.collector_number}</span>
+											<span class="set-code"
+												>{printing.set.toUpperCase()}</span
+											>
+											<span class="collector-num"
+												>{printing.collector_number}</span
+											>
 										</span>
-										<span class="card-price">{getDisplayPrice(printing)}</span>
+										<span class="card-price"
+											>{getDisplayPrice(printing)}</span
+										>
 									</div>
 
 									<!-- Set name (Muted Foreground, 14px font) -->
 									<div class="set-name-row">
-										<span class="set-name" title={printing.set_name}>{printing.set_name}</span>
+										<span
+											class="set-name"
+											title={printing.set_name}
+											>{printing.set_name}</span
+										>
 									</div>
 								</div>
 							</div>
@@ -464,17 +645,31 @@
 			<!-- Footer -->
 			<div class="modal-footer">
 				<div class="footer-left">
-					<button class="reset-btn" onclick={resetToDefault} disabled={isLoading}>
+					<button
+						class="reset-btn"
+						onclick={resetToDefault}
+						disabled={isLoading}
+					>
 						Reset to Default
 					</button>
 				</div>
 				<div class="footer-right">
 					{#if showConfirm}
-						<button class="confirm-btn" onclick={() => draftSelectedCard && applyPrinting(draftSelectedCard)} transition:fade={{ duration: 150 }}>
+						<button
+							class="confirm-btn"
+							onclick={() =>
+								draftSelectedCard &&
+								applyPrinting(draftSelectedCard)}
+							transition:fade={{ duration: 150 }}
+						>
 							Save & Confirm
 						</button>
 					{/if}
-					<button class="cancel-btn" onclick={() => interactionStore.closePrintingPickerModal()}>
+					<button
+						class="cancel-btn"
+						onclick={() =>
+							interactionStore.closePrintingPickerModal()}
+					>
 						Cancel
 					</button>
 				</div>
@@ -753,7 +948,7 @@
 		border-radius: var(--radius);
 		border: 1.5px solid hsl(var(--border) / 0.3);
 		background: hsl(var(--card) / 0.5);
-		padding: 0;
+		padding: 0.5rem;
 		cursor: pointer;
 		position: relative;
 		overflow: hidden;
@@ -875,8 +1070,8 @@
 	.card-details {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		padding: 10px 12px 12px;
+		gap: 0;
+		padding: 6px;
 	}
 
 	.card-img {
@@ -963,8 +1158,6 @@
 		flex: 1;
 	}
 
-
-
 	/* Skeleton */
 	.skeleton-grid {
 		display: grid;
@@ -980,8 +1173,13 @@
 	}
 
 	@keyframes shimmer {
-		0%, 100% { opacity: 0.5; }
-		50% { opacity: 1; }
+		0%,
+		100% {
+			opacity: 0.5;
+		}
+		50% {
+			opacity: 1;
+		}
 	}
 
 	/* Error / Empty */
@@ -1085,4 +1283,3 @@
 		background: hsl(var(--muted) / 0.25);
 	}
 </style>
-
