@@ -264,6 +264,14 @@
 										<span class="card-name-label"
 											>{cardRow.name}</span
 										>
+										{#if cardRow.card?.set}
+											<span class="printing-badge">
+												<span class="set-code">{cardRow.card.set.toUpperCase()}</span>
+												{#if cardRow.card.collector_number}
+													<span class="collector-number">{cardRow.card.collector_number}</span>
+												{/if}
+											</span>
+										{/if}
 										{#if cardRow.isIllegal}
 											<div
 												class="legality-warning-icon"
@@ -463,6 +471,30 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		color: hsl(var(--foreground));
+	}
+
+	.printing-badge {
+		font-size: 0.7rem;
+		padding: 1px 4px;
+		border-radius: var(--radius-sm, 3px);
+		background-color: hsla(var(--foreground-hsl), 0.05);
+		border: 1px solid hsla(var(--foreground-hsl), 0.15);
+		display: inline-flex;
+		align-items: center;
+		gap: 2px;
+		margin-left: 0.5rem;
+		height: 1.1rem;
+		line-height: 1;
+		flex-shrink: 0;
+	}
+
+	.printing-badge .set-code {
+		font-weight: 700;
+		color: hsl(var(--foreground));
+	}
+
+	.printing-badge .collector-number {
+		color: hsl(var(--muted-foreground));
 	}
 
 	.is-illegal .card-name-label {

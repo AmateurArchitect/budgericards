@@ -12,6 +12,7 @@
 	import { layoutStore } from "$lib/stores/layout.svelte.js";
 	import { fade, slide } from "svelte/transition";
 	import { Loader } from "lucide-svelte";
+	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 
 	onMount(() => {
 		priceStore.load();
@@ -109,6 +110,24 @@
 		}
 	}
 
+	/** @param {MouseEvent} e */
+	function handleDeckAreaClick(e) {
+		const target = /** @type {HTMLElement} */ (e.target);
+		if (
+			target.closest(
+				"button, input, textarea, select, [role='button'], [role='row'], " +
+				".card-shell, .card-row, td, th, .deck-header, .modal-content, " +
+				".printing-picker-dropdown, .color-picker-dropdown, .tags-picker-dropdown, " +
+				".context-menu, .menu-container"
+			)
+		) {
+			return;
+		}
+		if (interactionStore.selectedCells.size > 0) {
+			interactionStore.clearSelection();
+		}
+	}
+
 </script>
 
 <div 
@@ -122,7 +141,7 @@
 	<main class="app-layout">
 		<SearchPanel />
 		
-		<div class="deck-area">
+		<div class="deck-area" onclick={handleDeckAreaClick}>
 			<DeckHeader />
 			{#if settingsStore.deckViewMode === 'list'}
 				<ImportView />
