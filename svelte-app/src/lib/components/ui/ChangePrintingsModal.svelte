@@ -95,15 +95,18 @@
 					if (res.ok) {
 						const result = await res.json();
 						if (result && result.data && result.data.length > 0) {
-							let sorted = [...result.data];
-							if (rule === 'cheapest') {
-								sorted.sort((a, b) => getCheapestPrice(a) - getCheapestPrice(b));
-							} else if (rule === 'newest') {
-								sorted.sort((a, b) => new Date(b.released_at).getTime() - new Date(a.released_at).getTime());
-							} else if (rule === 'oldest') {
-								sorted.sort((a, b) => new Date(a.released_at).getTime() - new Date(b.released_at).getTime());
+							const exactPrints = result.data.filter(p => p.name.toLowerCase() === card.name.toLowerCase());
+							if (exactPrints.length > 0) {
+								let sorted = [...exactPrints];
+								if (rule === 'cheapest') {
+									sorted.sort((a, b) => getCheapestPrice(a) - getCheapestPrice(b));
+								} else if (rule === 'newest') {
+									sorted.sort((a, b) => new Date(b.released_at).getTime() - new Date(a.released_at).getTime());
+								} else if (rule === 'oldest') {
+									sorted.sort((a, b) => new Date(a.released_at).getTime() - new Date(b.released_at).getTime());
+								}
+								resolvedUpdates.push({ name: card.name, metadata: sorted[0] });
 							}
-							resolvedUpdates.push({ name: card.name, metadata: sorted[0] });
 						}
 					}
 				} catch (e) {
