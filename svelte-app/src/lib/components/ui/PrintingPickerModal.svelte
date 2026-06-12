@@ -17,6 +17,15 @@
 	/** @type {string | null} */
 	let defaultPrintingId = $state(null);
 
+	// Sorting and Filtering State
+	let searchQuery = $state('');
+	let sortBy = $state('released-desc');
+
+	// Draft selection state (selected via pills or in pending mode)
+	/** @type {any | null} */
+	let draftSelectedCard = $state(null);
+	let showConfirm = $state(false);
+
 	// Derived flags
 	const cheapestId = $derived.by(() => {
 		if (printings.length === 0) return null;
@@ -44,9 +53,9 @@
 		return [...printings].sort((a, b) => new Date(a.released_at).getTime() - new Date(b.released_at).getTime())[0]?.id ?? null;
 	});
 
-	// Currently selected: match by set + collector_number from card metadata
+	// Currently in deck: match by set + collector_number from card metadata
 	const currentMeta = $derived(card ? (card.type_line ? card : deckStore.metadata[card.name?.toLowerCase()]) : null);
-	const selectedId = $derived.by(() => {
+	const currentPrintingId = $derived.by(() => {
 		if (!currentMeta || printings.length === 0) return null;
 		const metaSet = (currentMeta.set || '').toLowerCase();
 		const metaNum = (currentMeta.collector_number || '').toLowerCase();
@@ -56,6 +65,74 @@
 			(p.collector_number || '').toLowerCase() === metaNum
 		)?.id ?? null;
 	});
+
+	// Helper to extract Scryfall ID from our local db card's image URL
+	/**
+	 * @param {string} url
+	 * @returns {string | null}
+	 */
+	function getPrintingIdFromImageUrl(url) {
+		if (!url) return null;
+		const parts = url.split('/');
+		const filename = parts[parts.length - 1];
+		const id = filename.split('.')[0].split('?')[0];
+		return id;
+	}
+
+	// Filter and Sort Printings
+	const filteredPrintings = $derived.by(() => {
+		let list = [...printings];
+
+		if (searchQuery.trim()) {
+			const q = searchQuery.toLowerCase().trim();
+			list = list.filter(p => {
+				const setCode = (p.set || '').toLowerCase();
+				const setName = (p.set_name || '').toLowerCase();
+				const collectorNum = (p.collector_number || '').toLowerCase();
+				const priceStr = getDisplayPrice(p).toLowerCase();
+				return setCode.includes(q) || setName.includes(q) || collectorNum.includes(q) || priceStr.includes(q);
+			});
+		}
+
+		list.sort((a, b) => {
+			if (sortBy === 'released-desc') {
+				return new Date(b.released_at).getTime() - new Date(a.released_at).getTime();
+			}
+			if (sortBy === 'released-asc') {
+				return new Date(a.released_at).getTime() - new Date(b.released_at).getTime();
+			}
+			if (sortBy === 'price-asc') {
+				const priceA = getPriceNumeric(a);
+				const priceB = getPriceNumeric(b);
+				return priceA - priceB;
+			}
+			if (sortBy === 'price-desc') {
+				const priceA = getPriceNumeric(a);
+				const priceB = getPriceNumeric(b);
+				return priceB - priceA;
+			}
+			if (sortBy === 'set-asc') {
+				return (a.set || '').localeCompare(b.set || '');
+			}
+			return 0;
+		});
+
+		return list;
+	});
+
+	/**
+	 * @param {any} p
+	 * @returns {number}
+	 */
+	function getPriceNumeric(p) {
+		const usd = parseFloat(p.prices?.usd);
+		const foil = parseFloat(p.prices?.usd_foil);
+		const val = Math.min(
+			isNaN(usd) ? Infinity : usd,
+			isNaN(foil) ? Infinity : foil
+		);
+		return val;
+	}
 
 	/**
 	 * @param {any} p
@@ -75,7 +152,7 @@
 	 */
 	function getBadges(p) {
 		const badges = [];
-		if (p.id === selectedId) badges.push({ label: 'Selected', cls: 'badge-selected' });
+		if (p.id === currentPrintingId) badges.push({ label: 'Current', cls: 'badge-current' });
 		if (p.id === defaultPrintingId) badges.push({ label: 'Default', cls: 'badge-default' });
 		if (p.id === cheapestId) badges.push({ label: 'Cheapest', cls: 'badge-cheapest' });
 		if (p.id === newestId) badges.push({ label: 'Newest', cls: 'badge-newest' });
@@ -89,11 +166,17 @@
 		error = '';
 		printings = [];
 		defaultPrintingId = null;
+		searchQuery = '';
+		sortBy = 'released-desc';
+		draftSelectedCard = null;
+		showConfirm = false;
 
 		try {
 			// Fetch default from local DB for "Default" badge
 			const localCard = await db.cards.where('name').equals(card.name).first();
-			if (localCard) defaultPrintingId = localCard.id;
+			if (localCard) {
+				defaultPrintingId = getPrintingIdFromImageUrl(localCard.image);
+			}
 
 			const q = `!"${card.name}" unique:prints`;
 			const res = await scryfallFetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}&order=released&dir=desc`);
@@ -124,9 +207,43 @@
 		interactionStore.closePrintingPickerModal();
 	}
 
+	/**
+	 * @param {string} type
+	 */
+	function handlePillClick(type) {
+		let targetId = null;
+		if (type === 'current') targetId = currentPrintingId;
+		else if (type === 'cheapest') targetId = cheapestId;
+		else if (type === 'newest') targetId = newestId;
+		else if (type === 'oldest') targetId = oldestId;
+		else if (type === 'default') targetId = defaultPrintingId;
+
+		if (!targetId) return;
+
+		const targetCard = printings.find(p => p.id === targetId);
+		if (targetCard) {
+			draftSelectedCard = targetCard;
+			showConfirm = true;
+			tick().then(() => {
+				const el = document.getElementById('print-' + targetId);
+				if (el) {
+					el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				}
+			});
+		}
+	}
+
 	async function resetToDefault() {
 		if (!card?.name) return;
 		try {
+			if (defaultPrintingId) {
+				const defaultCard = printings.find(p => p.id === defaultPrintingId);
+				if (defaultCard) {
+					applyPrinting(defaultCard);
+					return;
+				}
+			}
+			// Fallback to local DB card properties if printings not loaded/matching
 			const defaultCard = await db.cards.where('name').equals(card.name).first();
 			if (defaultCard) {
 				const localPrice = priceStore.getPrice(card.name);
@@ -204,14 +321,38 @@
 				</div>
 			</div>
 
-			<!-- Legend -->
+			<!-- Control Panel (Pills, Filter, Sort) -->
 			{#if !isLoading && printings.length > 0}
-				<div class="legend">
-					<span class="legend-badge badge-selected">Selected</span>
-					<span class="legend-badge badge-cheapest">Cheapest</span>
-					<span class="legend-badge badge-newest">Newest</span>
-					<span class="legend-badge badge-oldest">Oldest</span>
-					<span class="legend-badge badge-default">Default</span>
+				<div class="control-panel">
+					<div class="pills-group">
+						<button class="pill-btn badge-current" onclick={() => handlePillClick('current')}>Current</button>
+						<button class="pill-btn badge-cheapest" onclick={() => handlePillClick('cheapest')}>Cheapest</button>
+						<button class="pill-btn badge-newest" onclick={() => handlePillClick('newest')}>Newest</button>
+						<button class="pill-btn badge-oldest" onclick={() => handlePillClick('oldest')}>Oldest</button>
+						<button class="pill-btn badge-default" onclick={() => handlePillClick('default')}>Default</button>
+					</div>
+
+					<div class="filters-group">
+						<div class="search-wrapper">
+							<svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+							</svg>
+							<input
+								type="text"
+								placeholder="Filter printings..."
+								bind:value={searchQuery}
+								class="filter-input"
+							/>
+						</div>
+
+						<select bind:value={sortBy} class="sort-select">
+							<option value="released-desc">Newest First</option>
+							<option value="released-asc">Oldest First</option>
+							<option value="price-asc">Price: Low to High</option>
+							<option value="price-desc">Price: High to Low</option>
+							<option value="set-asc">Set Code (A-Z)</option>
+						</select>
+					</div>
 				</div>
 			{/if}
 
@@ -231,16 +372,19 @@
 						<p>{error}</p>
 						<button class="retry-btn" onclick={loadPrintings}>Try again</button>
 					</div>
-				{:else if printings.length === 0}
-					<div class="empty-state">No printings found.</div>
+				{:else if filteredPrintings.length === 0}
+					<div class="empty-state">No printings matching filters.</div>
 				{:else}
 					<div class="printings-grid">
-						{#each printings as printing (printing.id)}
+						{#each filteredPrintings as printing (printing.id)}
 							{@const badges = getBadges(printing)}
-							{@const isSelected = printing.id === selectedId}
+							{@const isCurrentInDeck = printing.id === currentPrintingId}
+							{@const isSelected = draftSelectedCard ? (printing.id === draftSelectedCard.id) : isCurrentInDeck}
 							<!-- svelte-ignore a11y_click_events_have_key_events -->
 							<div
+								id="print-{printing.id}"
 								class="printing-card"
+								class:is-current={isCurrentInDeck}
 								class:is-selected={isSelected}
 								role="button"
 								tabindex="0"
@@ -266,7 +410,7 @@
 										</div>
 									{/if}
 
-									<!-- Selected checkmark overlay -->
+									<!-- Selected checkmark overlay (blue) -->
 									{#if isSelected}
 										<div class="selected-overlay">
 											<div class="check-ring">
@@ -278,19 +422,18 @@
 									{/if}
 								</div>
 
-								<!-- Meta row -->
+								<!-- Meta row (One simplified size, matching colors for set code and collector number) -->
 								<div class="card-meta">
-									<div class="set-info">
+									<span class="set-info">
 										<span class="set-code">{printing.set.toUpperCase()}</span>
 										<span class="collector-num">#{printing.collector_number}</span>
-									</div>
+									</span>
 									<span class="card-price">{getDisplayPrice(printing)}</span>
 								</div>
 
-								<!-- Release year -->
-								<div class="release-row">
+								<!-- Set name (No release year) -->
+								<div class="set-name-row">
 									<span class="set-name" title={printing.set_name}>{printing.set_name}</span>
-									<span class="release-year">{printing.released_at?.slice(0,4) ?? ''}</span>
 								</div>
 
 								<!-- Badges -->
@@ -309,12 +452,21 @@
 
 			<!-- Footer -->
 			<div class="modal-footer">
-				<button class="reset-btn" onclick={resetToDefault} disabled={isLoading}>
-					Reset to Default
-				</button>
-				<button class="cancel-btn" onclick={() => interactionStore.closePrintingPickerModal()}>
-					Cancel
-				</button>
+				<div class="footer-left">
+					<button class="reset-btn" onclick={resetToDefault} disabled={isLoading}>
+						Reset to Default
+					</button>
+				</div>
+				<div class="footer-right">
+					{#if showConfirm}
+						<button class="confirm-btn" onclick={() => draftSelectedCard && applyPrinting(draftSelectedCard)} transition:fade={{ duration: 150 }}>
+							Save & Confirm
+						</button>
+					{/if}
+					<button class="cancel-btn" onclick={() => interactionStore.closePrintingPickerModal()}>
+						Cancel
+					</button>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -331,7 +483,7 @@
 		align-items: center;
 		justify-content: center;
 		z-index: 30000;
-		padding: 24px;
+		padding: 40px;
 	}
 
 	.modal-content {
@@ -345,8 +497,9 @@
 			0 0 0 1px hsl(255 100% 100% / 0.04),
 			inset 0 1px 0 hsl(255 100% 100% / 0.06);
 		width: 100%;
-		max-width: 920px;
-		max-height: 88vh;
+		height: 100%;
+		max-width: none;
+		max-height: none;
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
@@ -426,23 +579,145 @@
 		border-color: hsl(var(--border) / 0.6);
 	}
 
-	/* ── Legend ── */
-	.legend {
+	/* ── Control Panel (Pills + Filters) ── */
+	.control-panel {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 6px;
-		padding: 10px 24px;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		padding: 12px 24px;
 		border-bottom: 1px solid hsl(var(--border) / 0.15);
+		background: hsl(var(--muted) / 0.1);
 		flex-shrink: 0;
 	}
 
-	.legend-badge {
-		font-size: 0.65rem;
+	.pills-group {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	.pill-btn {
+		font-size: 0.68rem;
 		font-weight: 700;
-		padding: 2px 8px;
+		padding: 4px 12px;
 		border-radius: 999px;
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
+		cursor: pointer;
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+		background: hsl(var(--muted) / 0.25);
+		border: 1px solid hsl(var(--border) / 0.4);
+		color: hsl(var(--muted-foreground));
+	}
+
+	.pill-btn:hover {
+		transform: scale(1.05);
+	}
+
+	.pill-btn.badge-current {
+		background: hsl(262 80% 50% / 0.12);
+		color: hsl(262 80% 70%);
+		border-color: hsl(262 80% 50% / 0.4);
+	}
+	.pill-btn.badge-current:hover {
+		background: hsl(262 80% 50% / 0.25);
+	}
+
+	.pill-btn.badge-cheapest {
+		background: hsl(142 60% 40% / 0.12);
+		color: hsl(142 70% 60%);
+		border-color: hsl(142 60% 40% / 0.4);
+	}
+	.pill-btn.badge-cheapest:hover {
+		background: hsl(142 60% 40% / 0.25);
+	}
+
+	.pill-btn.badge-newest {
+		background: hsl(45 90% 50% / 0.12);
+		color: hsl(45 90% 65%);
+		border-color: hsl(45 90% 50% / 0.4);
+	}
+	.pill-btn.badge-newest:hover {
+		background: hsl(45 90% 50% / 0.25);
+	}
+
+	.pill-btn.badge-oldest {
+		background: hsl(280 50% 55% / 0.12);
+		color: hsl(280 60% 75%);
+		border-color: hsl(280 50% 55% / 0.4);
+	}
+	.pill-btn.badge-oldest:hover {
+		background: hsl(280 50% 55% / 0.25);
+	}
+
+	.pill-btn.badge-default {
+		background: hsl(var(--muted) / 0.3);
+		color: hsl(var(--muted-foreground));
+		border-color: hsl(var(--border) / 0.5);
+	}
+	.pill-btn.badge-default:hover {
+		background: hsl(var(--muted) / 0.5);
+	}
+
+	.filters-group {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		flex-grow: 1;
+		justify-content: flex-end;
+		max-width: 500px;
+	}
+
+	.search-wrapper {
+		position: relative;
+		flex: 1;
+		min-width: 140px;
+	}
+
+	.search-icon {
+		position: absolute;
+		left: 10px;
+		top: 50%;
+		transform: translateY(-50%);
+		color: hsl(var(--muted-foreground) / 0.7);
+		pointer-events: none;
+	}
+
+	.filter-input {
+		width: 100%;
+		padding: 6px 10px 6px 30px;
+		background: hsl(var(--background) / 0.6);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: var(--radius-sm);
+		color: hsl(var(--foreground));
+		font-size: 0.82rem;
+		outline: none;
+		transition: all 0.15s;
+	}
+
+	.filter-input:focus {
+		border-color: hsl(var(--primary) / 0.8);
+		background: hsl(var(--background));
+		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+	}
+
+	.sort-select {
+		padding: 6px 10px;
+		background: hsl(var(--background) / 0.6);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: var(--radius-sm);
+		color: hsl(var(--foreground));
+		font-size: 0.82rem;
+		outline: none;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+
+	.sort-select:focus {
+		border-color: hsl(var(--primary) / 0.8);
+		background: hsl(var(--background));
 	}
 
 	/* ── Body / Grid ── */
@@ -491,6 +766,19 @@
 		box-shadow: 0 0 0 3px hsl(var(--primary) / 0.3);
 	}
 
+	/* Current printing in deck gets a violet/purple accent instead of blue */
+	.printing-card.is-current {
+		border-color: hsl(262 80% 50% / 0.6);
+		background: hsl(262 80% 50% / 0.04);
+		box-shadow: 0 0 0 1px hsl(262 80% 50% / 0.2);
+	}
+
+	.printing-card.is-current:hover {
+		border-color: hsl(262 80% 50% / 0.8);
+		background: hsl(262 80% 50% / 0.08);
+	}
+
+	/* Selected Card gets the main primary border + blue checkmark */
 	.printing-card.is-selected {
 		border-color: hsl(var(--primary));
 		background: hsl(var(--primary) / 0.08);
@@ -536,7 +824,7 @@
 	.selected-overlay {
 		position: absolute;
 		inset: 0;
-		background: hsl(var(--primary) / 0.18);
+		background: rgba(0, 0, 0, 0.2);
 		display: flex;
 		align-items: flex-start;
 		justify-content: flex-end;
@@ -544,8 +832,8 @@
 	}
 
 	.check-ring {
-		width: 28px;
-		height: 28px;
+		width: 24px;
+		height: 24px;
 		border-radius: 50%;
 		background: hsl(var(--primary));
 		display: flex;
@@ -556,62 +844,48 @@
 		flex-shrink: 0;
 	}
 
-	/* Meta row */
+	/* Card metadata: uniform 0.75rem size and clean colors */
 	.card-meta {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		gap: 4px;
+		font-size: 0.75rem;
 		margin-top: 2px;
 	}
 
 	.set-info {
 		display: flex;
-		align-items: baseline;
-		gap: 3px;
-	}
-
-	.set-code {
-		font-size: 0.72rem;
-		font-weight: 800;
-		color: hsl(var(--foreground));
-		letter-spacing: 0.03em;
-	}
-
-	.collector-num {
-		font-size: 0.65rem;
-		color: hsl(var(--muted-foreground) / 0.7);
+		align-items: center;
+		gap: 4px;
+		color: hsl(var(--muted-foreground));
 		font-weight: 500;
 	}
 
-	.card-price {
-		font-size: 0.72rem;
+	.set-code {
 		font-weight: 700;
-		color: hsl(142 60% 50%);
-		white-space: nowrap;
 	}
 
-	.release-row {
+	.collector-num {
+		opacity: 0.8;
+	}
+
+	.card-price {
+		font-weight: 700;
+		color: hsl(142 60% 50%);
+	}
+
+	.set-name-row {
 		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 4px;
+		font-size: 0.75rem;
+		margin-top: 1px;
 	}
 
 	.set-name {
-		font-size: 0.62rem;
-		color: hsl(var(--muted-foreground) / 0.65);
+		color: hsl(var(--muted-foreground) / 0.7);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		flex: 1;
-	}
-
-	.release-year {
-		font-size: 0.62rem;
-		color: hsl(var(--muted-foreground) / 0.45);
-		font-variant-numeric: tabular-nums;
-		flex-shrink: 0;
 	}
 
 	/* Badges */
@@ -632,36 +906,31 @@
 		white-space: nowrap;
 	}
 
-	.badge-selected,
-	.legend-badge.badge-selected {
-		background: hsl(var(--primary) / 0.2);
-		color: hsl(var(--primary));
-		border: 1px solid hsl(var(--primary) / 0.4);
+	.badge-current {
+		background: hsl(262 80% 50% / 0.2);
+		color: hsl(262 80% 70%);
+		border: 1px solid hsl(262 80% 50% / 0.35);
 	}
 
-	.badge-cheapest,
-	.legend-badge.badge-cheapest {
+	.badge-cheapest {
 		background: hsl(142 60% 40% / 0.2);
 		color: hsl(142 70% 55%);
 		border: 1px solid hsl(142 60% 40% / 0.35);
 	}
 
-	.badge-newest,
-	.legend-badge.badge-newest {
+	.badge-newest {
 		background: hsl(45 90% 50% / 0.2);
 		color: hsl(45 90% 65%);
 		border: 1px solid hsl(45 90% 50% / 0.35);
 	}
 
-	.badge-oldest,
-	.legend-badge.badge-oldest {
+	.badge-oldest {
 		background: hsl(280 50% 55% / 0.2);
 		color: hsl(280 60% 72%);
 		border: 1px solid hsl(280 50% 55% / 0.35);
 	}
 
-	.badge-default,
-	.legend-badge.badge-default {
+	.badge-default {
 		background: hsl(var(--muted) / 0.4);
 		color: hsl(var(--muted-foreground));
 		border: 1px solid hsl(var(--border) / 0.5);
@@ -727,6 +996,12 @@
 		gap: 10px;
 	}
 
+	.footer-right {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
 	.reset-btn {
 		padding: 8px 16px;
 		background: hsl(var(--muted) / 0.2);
@@ -749,6 +1024,22 @@
 		cursor: not-allowed;
 	}
 
+	.confirm-btn {
+		padding: 8px 20px;
+		background: hsl(var(--primary));
+		border: 1px solid transparent;
+		color: hsl(var(--primary-foreground));
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		font-size: 0.875rem;
+		font-weight: 600;
+		transition: all 0.15s;
+	}
+
+	.confirm-btn:hover {
+		background: hsl(var(--primary) / 0.9);
+	}
+
 	.cancel-btn {
 		padding: 8px 20px;
 		background: transparent;
@@ -765,3 +1056,4 @@
 		background: hsl(var(--muted) / 0.25);
 	}
 </style>
+
