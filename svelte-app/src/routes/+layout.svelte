@@ -11,6 +11,7 @@
 	import QuantityModal from '$lib/components/ui/QuantityModal.svelte';
 	import CardDataModal from '$lib/components/ui/CardDataModal.svelte';
 	import ChangePrintingsModal from '$lib/components/ui/ChangePrintingsModal.svelte';
+	import PrintingPickerModal from '$lib/components/ui/PrintingPickerModal.svelte';
 	import { syncManager } from '$lib/syncManager.svelte';
 	import { loginBgStore } from '$lib/stores/loginBg.svelte.js';
 	import { page } from '$app/stores';
@@ -72,6 +73,7 @@
 	<QuantityModal />
 	<CardDataModal />
 	<ChangePrintingsModal />
+	<PrintingPickerModal />
 </div>
 
 <style>

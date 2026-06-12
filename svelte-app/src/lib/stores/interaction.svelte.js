@@ -327,6 +327,12 @@ function createInteractionStore() {
 			isOpen: false,
 			selectedCards: []
 		},
+		printingPickerModal: {
+			isOpen: false,
+			card: /** @type {any} */ (null),
+			zone: /** @type {string | null} */ (null),
+			price: /** @type {number | null} */ (null)
+		},
 		selectionAnchor: null, // { cardId, columnKey }
 		selectionFocus: null,  // { cardId, columnKey }
 		/** @type {string[]} */
@@ -519,11 +525,11 @@ function createInteractionStore() {
 				case 'o':
 					window.open(`https://scryfall.com/search?q=!"${name}"`, '_blank');
 					break;
+				case 'e':
+					interactionStore.showCardDataModal(card, zone, price);
+					break;
 				case 'p':
-					import('./search.svelte.js').then(({ searchStore }) => {
-						searchStore.collection = 'scryfall';
-						searchStore.query = `!"${name}" unique:prints`;
-					});
+					interactionStore.showPrintingPickerModal(card, zone, price);
 					break;
 				case 'q':
 					if (['mainboard', 'sideboard', 'maybeboard', 'commander', 'companion'].includes(zone)) {
@@ -1158,6 +1164,22 @@ function createInteractionStore() {
 		},
 
 		/**
+		 * @param {any} card
+		 * @param {string} zone
+		 * @param {number | null} price
+		 */
+		showPrintingPickerModal(card, zone, price) {
+			state.printingPickerModal = { isOpen: true, card, zone, price };
+			state.isMenuOpen = false;
+		},
+
+		closePrintingPickerModal() {
+			state.printingPickerModal.isOpen = false;
+		},
+
+		get printingPickerModal() { return state.printingPickerModal; },
+
+		/**
 		 * @param {string | null} id 
 		 * @param {string} zone 
 		 * @param {number | null} price 
@@ -1484,12 +1506,6 @@ function createInteractionStore() {
 						}
 					}
 				});
-				items.push({
-					label: "Edit Card Data...",
-					action: () => {
-						this.showCardDataModal(card, zone, price);
-					}
-				});
 				const hasOverrides = (card.overrides && Object.keys(card.overrides).length > 0) || 
 					(card.customColumn !== undefined && card.customColumn !== null && card.customColumn !== "") ||
 					(card.tags && card.tags.length > 0) || 
@@ -1682,13 +1698,24 @@ function createInteractionStore() {
 			items.push({ divider: true });
 
 			items.push({
+				label: "Edit Card Data...",
+				shortcuts: ["E"],
+				action: () => {
+					this.showCardDataModal(card, zone, price);
+				}
+			});
+			items.push({
 				label: isFromSearch ? "See all prints" : "Change Printing",
 				shortcuts: ["P"],
 				action: () => {
-					import('./search.svelte.js').then(({ searchStore }) => {
-						searchStore.collection = 'scryfall';
-						searchStore.query = `!"${name}" unique:prints`;
-					});
+					if (isFromSearch) {
+						import('./search.svelte.js').then(({ searchStore }) => {
+							searchStore.collection = 'scryfall';
+							searchStore.query = `!"${name}" unique:prints`;
+						});
+					} else {
+						this.showPrintingPickerModal(card, zone, price);
+					}
 				}
 			});
 
