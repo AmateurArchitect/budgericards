@@ -1472,11 +1472,15 @@
 											>
 												<div class="mana-icons-cell">
 													{#each cardRow.manaSymbols as sym}
-														<ManaSymbol
-															symbol={sym}
-															size="1.1em"
-															className="ms-cost"
-														/>
+														{#if sym === "//"}
+															<span class="mana-divider">//</span>
+														{:else}
+															<ManaSymbol
+																symbol={sym}
+																size="1.1em"
+																className="ms-cost"
+															/>
+														{/if}
 													{/each}
 												</div>
 											</td>
@@ -2792,8 +2796,16 @@
 	.mana-icons-cell {
 		display: flex;
 		gap: 0.15em;
-		flex-wrap: wrap;
 		align-items: center;
+		white-space: nowrap;
+	}
+
+	.mana-divider {
+		color: hsl(var(--muted-foreground));
+		font-weight: 500;
+		font-size: 0.85em;
+		margin: 0 0.15em;
+		user-select: none;
 	}
 
 	:global(.mana-icons-cell .ms-cost),

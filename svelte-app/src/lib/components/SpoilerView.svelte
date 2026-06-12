@@ -66,13 +66,14 @@
 		}
 	}
 
-	// Parse mana symbols from Scryfall format
-	/**
-	 * @param {string} manaCostStr
-	 * @returns {string[]}
-	 */
 	function parseManaCost(manaCostStr) {
 		if (!manaCostStr) return [];
+		if (manaCostStr.includes("//")) {
+			const parts = manaCostStr.split("//");
+			const left = parseManaCost(parts[0].trim());
+			const right = parseManaCost(parts[1].trim());
+			return [...left, "//", ...right];
+		}
 		const matches = manaCostStr.match(/\{[^}]+\}/g);
 		if (!matches) return [];
 		/** @type {string[]} */

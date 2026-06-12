@@ -3,12 +3,14 @@ import { deckStore } from "$lib/stores/deck.svelte.js";
 import { settingsStore } from "$lib/stores/settings.svelte.js";
 import { checkLegality } from "$lib/utils/legality.js";
 
-/**
- * @param {string} manaCostStr
- * @returns {string[]}
- */
 export function parseManaCost(manaCostStr) {
 	if (!manaCostStr) return [];
+	if (manaCostStr.includes("//")) {
+		const parts = manaCostStr.split("//");
+		const left = parseManaCost(parts[0].trim());
+		const right = parseManaCost(parts[1].trim());
+		return [...left, "//", ...right];
+	}
 	const matches = manaCostStr.match(/\{[^}]+\}/g);
 	if (!matches) return [];
 	/** @type {string[]} */

@@ -759,7 +759,9 @@ function createDeck() {
 							image_uris: card.image_uris || null,
 							card_faces: card.card_faces || [],
 							type_line: card.type_line,
-							mana_cost: card.mana_cost || card.card_faces?.[0]?.mana_cost || "",
+							mana_cost: card.mana_cost || (card.card_faces && card.card_faces.length > 0
+								? card.card_faces.map(f => f.mana_cost || "").filter(Boolean).join(" // ")
+								: ""),
 							cmc: card.cmc,
 							colors: card.colors || card.card_faces?.[0]?.colors || [],
 							color_identity: card.color_identity || [],
