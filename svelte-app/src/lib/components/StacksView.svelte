@@ -764,6 +764,7 @@
 			{/if}
 
 			{#each row.columns as column, colIdx (column.key)}
+				{@const activeColIdx = activeColKeys.indexOf(column.key)}
 				<!-- Column Header -->
 				{#if settingsStore.showColumnHeaders && column.label && column.key !== "Special"}
 					{@const isLands = column.key === "Lands"}
@@ -774,6 +775,7 @@
 							: colTrack}
 					<div
 						class="grid-cell column-header-cell"
+						class:shifted-right={insertDropZoneActive !== null && activeColIdx !== -1 && activeColIdx >= insertDropZoneActive}
 						data-column-key={column.key}
 						style="grid-column: {finalColTrack}; grid-row: {typeGroups.length >
 						0
@@ -814,6 +816,7 @@
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
 					class="grid-cell stack-container-cell"
+					class:shifted-right={insertDropZoneActive !== null && activeColIdx !== -1 && activeColIdx >= insertDropZoneActive}
 					role="presentation"
 					data-column-key={column.key}
 					onmouseenter={() => {
@@ -1479,6 +1482,13 @@
 
 	.grid-cell {
 		width: var(--card-width);
+		transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+		will-change: transform;
+	}
+
+	.grid-cell.shifted-right {
+		transform: translateX(48px);
+		transition-delay: 150ms;
 	}
 
 	.row-header-cell {
