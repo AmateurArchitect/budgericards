@@ -141,9 +141,18 @@
 	function getDisplayPrice(p) {
 		const usd = parseFloat(p.prices?.usd);
 		const foil = parseFloat(p.prices?.usd_foil);
-		if (!isNaN(usd) && usd > 0) return `$${usd.toFixed(2)}`;
-		if (!isNaN(foil) && foil > 0) return `$${foil.toFixed(2)} foil`;
-		return '—';
+		
+		const formatPrice = (val, suffix = '') => {
+			if (isNaN(val) || val <= 0) return '';
+			if (val > 9.99) {
+				return `$${Math.round(val)}${suffix}`;
+			}
+			return `$${val.toFixed(2)}${suffix}`;
+		};
+
+		if (!isNaN(usd) && usd > 0) return formatPrice(usd);
+		if (!isNaN(foil) && foil > 0) return formatPrice(foil, ' foil');
+		return '';
 	}
 
 	/**
@@ -422,16 +431,16 @@
 									{/if}
 								</div>
 
-								<!-- Meta row (One simplified size, matching colors for set code and collector number) -->
+								<!-- Meta row (14px font, Foreground color, same font weights, no # symbol) -->
 								<div class="card-meta">
 									<span class="set-info">
 										<span class="set-code">{printing.set.toUpperCase()}</span>
-										<span class="collector-num">#{printing.collector_number}</span>
+										<span class="collector-num">{printing.collector_number}</span>
 									</span>
 									<span class="card-price">{getDisplayPrice(printing)}</span>
 								</div>
 
-								<!-- Set name (No release year) -->
+								<!-- Set name (Muted Foreground, 14px font) -->
 								<div class="set-name-row">
 									<span class="set-name" title={printing.set_name}>{printing.set_name}</span>
 								</div>
@@ -730,7 +739,7 @@
 
 	.printings-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
 		gap: 14px;
 	}
 
@@ -844,29 +853,29 @@
 		flex-shrink: 0;
 	}
 
-	/* Card metadata: uniform 0.75rem size and clean colors */
+	/* Card metadata: uniform 14px size and foreground colors */
 	.card-meta {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		font-size: 0.75rem;
+		font-size: 0.875rem;
 		margin-top: 2px;
 	}
 
 	.set-info {
 		display: flex;
 		align-items: center;
-		gap: 4px;
-		color: hsl(var(--muted-foreground));
+		gap: 6px;
+		color: hsl(var(--foreground));
 		font-weight: 500;
 	}
 
 	.set-code {
-		font-weight: 700;
+		font-weight: 500;
 	}
 
 	.collector-num {
-		opacity: 0.8;
+		font-weight: 500;
 	}
 
 	.card-price {
@@ -876,12 +885,12 @@
 
 	.set-name-row {
 		display: flex;
-		font-size: 0.75rem;
+		font-size: 0.875rem;
 		margin-top: 1px;
 	}
 
 	.set-name {
-		color: hsl(var(--muted-foreground) / 0.7);
+		color: hsl(var(--muted-foreground));
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -939,7 +948,7 @@
 	/* Skeleton */
 	.skeleton-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
 		gap: 14px;
 	}
 
