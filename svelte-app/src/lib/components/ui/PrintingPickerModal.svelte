@@ -910,8 +910,14 @@
 	}
 
 	.sort-select {
-		padding: 6px 10px;
+		appearance: none;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		padding: 6px 32px 6px 12px;
 		background: hsl(var(--background) / 0.6);
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		background-position: right 10px center;
 		border: 1px solid hsl(var(--border) / 0.5);
 		border-radius: var(--radius-sm);
 		color: hsl(var(--foreground));
@@ -923,7 +929,7 @@
 
 	.sort-select:focus {
 		border-color: hsl(var(--primary) / 0.8);
-		background: hsl(var(--background));
+		background-color: hsl(var(--background));
 	}
 
 	/* ── Body / Grid ── */
@@ -1063,15 +1069,15 @@
 		border-top-left-radius: calc(var(--radius) - 1.5px);
 		border-top-right-radius: calc(var(--radius) - 1.5px);
 		overflow: hidden;
-		background: hsl(var(--muted) / 0.2);
+		background: #000000;
 	}
 
 	/* Card Details Container with padding & flex box */
 	.card-details {
 		display: flex;
 		flex-direction: column;
-		gap: 0;
-		padding: 6px;
+		gap: 4px;
+		padding: 10px 12px 12px;
 	}
 
 	.card-img {
@@ -1079,6 +1085,8 @@
 		height: 100%;
 		object-fit: cover;
 		display: block;
+		border-top-left-radius: calc(var(--radius) - 1.5px);
+		border-top-right-radius: calc(var(--radius) - 1.5px);
 		transition: opacity 0.2s;
 	}
 
