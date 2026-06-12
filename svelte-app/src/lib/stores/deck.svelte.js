@@ -658,7 +658,12 @@ function createDeck() {
 			const sortedNames = Object.keys(counts).sort((a, b) => a.localeCompare(b));
 			for (const name of sortedNames) {
 				const qty = counts[name];
-				text += `${qty} ${name}\n`;
+				const meta = deckState.metadata[name.toLowerCase()];
+				let printingSuffix = "";
+				if (meta && meta.set) {
+					printingSuffix = ` (${meta.set.toUpperCase()}) ${meta.collector_number || ""}`.trimEnd();
+				}
+				text += `${qty} ${name}${printingSuffix}\n`;
 			}
 			text += '\n';
 		}

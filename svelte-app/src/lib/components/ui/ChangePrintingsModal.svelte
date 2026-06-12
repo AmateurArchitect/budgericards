@@ -95,7 +95,7 @@
 					if (res.ok) {
 						const result = await res.json();
 						if (result && result.data && result.data.length > 0) {
-							const exactPrints = result.data.filter(p => p.name.toLowerCase() === card.name.toLowerCase());
+							const exactPrints = result.data.filter((/** @type {any} */ p) => p.name.toLowerCase() === card.name.toLowerCase());
 							if (exactPrints.length > 0) {
 								let sorted = [...exactPrints];
 								if (rule === 'cheapest') {
