@@ -114,6 +114,7 @@
 	let renameValue = $state("");
 	let insertDropZoneActive = $state(/** @type {number | null} */ (null));
 	let isDraggingCard = $state(false);
+	const insertIndices = $derived(Array.from({ length: freeformColumnOrder.length + 1 }, (_, i) => i));
 
 	/** @param {DragEvent} e */
 	function handleGlobalDragStart(e) {
@@ -516,7 +517,12 @@
 		e.preventDefault();
 		e.stopPropagation();
 		const data = JSON.parse(internalData);
-		const newColKey = `Column ${freeformColumnOrder.length + 1}`;
+		let colNum = freeformColumnOrder.length + 1;
+		let newColKey = `Column ${colNum}`;
+		while (freeformColumnOrder.includes(newColKey)) {
+			colNum++;
+			newColKey = `Column ${colNum}`;
+		}
 		const newOrder = [...freeformColumnOrder];
 		newOrder.splice(insertIndex, 0, newColKey);
 		freeformColumnOrder = newOrder;
@@ -1350,7 +1356,7 @@
 
 		{#if deckStore.grouping === 'freeform' && isDraggingCard}
 			<div class="freeform-drop-zones-overlay">
-				{#each Array(freeformColumnOrder.length + 1) as _, i}
+				{#each insertIndices as i (i)}
 					{@const pos = getDropZonePosition(i)}
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
@@ -1431,7 +1437,7 @@
 		height: 80%;
 		background: hsl(var(--primary) / 0.15);
 		border-radius: 2px;
-		transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+		transition: opacity 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 	}
 
 	.freeform-insert-zone.active {
@@ -1440,9 +1446,7 @@
 	}
 
 	.freeform-insert-zone.active .insert-zone-line {
-		background: hsl(var(--primary));
-		box-shadow: 0 0 10px hsl(var(--primary));
-		transform: scaleX(1.5);
+		opacity: 0;
 	}
 
 	.grid-cell.group-header-cell {

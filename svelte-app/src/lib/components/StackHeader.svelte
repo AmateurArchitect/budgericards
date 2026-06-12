@@ -134,7 +134,9 @@
 		border: none;
 		padding: 0;
 		margin: 0;
-		font: inherit;
+		font-family: inherit;
+		font-size: inherit;
+		font-weight: inherit;
 		color: inherit;
 		text-align: left;
 		cursor: text;
