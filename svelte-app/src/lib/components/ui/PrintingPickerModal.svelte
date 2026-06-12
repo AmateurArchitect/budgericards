@@ -1066,7 +1066,7 @@
 		position: relative;
 		width: 100%;
 		aspect-ratio: 2.5 / 3.5;
-		border-radius: var(--radius);
+		border-radius: calc(var(--radius) + 0.5px);
 		overflow: hidden;
 		background: #000000;
 	}
