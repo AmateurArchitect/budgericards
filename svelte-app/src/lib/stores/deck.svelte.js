@@ -886,6 +886,8 @@ function createDeck() {
 					set: pc.set.toLowerCase(),
 					collector_number: pc.collector_number
 				};
+			} else {
+				delete deckState.metadata[pc.name.toLowerCase()];
 			}
 
 			const price = pc.metadata ? (parseFloat(pc.metadata.prices?.usd || pc.metadata.prices?.usd_foil) || 0) : 0;
