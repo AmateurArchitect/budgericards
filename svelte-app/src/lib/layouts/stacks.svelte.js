@@ -29,7 +29,7 @@ export function createStacksEngine() {
 		const grouping = deckStore.grouping?.toLowerCase() || "cmc";
 		const effectiveGrouping = grouping === 'freeform' ? (deckStore.lastNaturalGrouping || 'cmc') : grouping;
 		const sorting = deckStore.sorting;
-		const splitView = deckStore.splitView;
+		const splitView = grouping === 'freeform' ? false : deckStore.splitView;
 
 		let cards = deckStore.currentBoardCards;
 		const commanderFormats = ["Commander", "Brawl", "Oathbreaker"];
@@ -230,7 +230,7 @@ export function createStacksEngine() {
 			}
 
 			let displayCount = undefined;
-			if (effectiveGrouping === "type") {
+			if (grouping !== "freeform" && effectiveGrouping === "type") {
 				const primaryCount = data.top.length + data.bottom.length;
 				let secondaryCount = 0;
 				for (const card of cards) {

@@ -113,6 +113,59 @@
 	let renamingColumn = $state(/** @type {string | null} */ (null));
 	let renameValue = $state("");
 	let insertDropZoneActive = $state(/** @type {number | null} */ (null));
+	let isDraggingCard = $state(false);
+
+	/** @param {DragEvent} e */
+	function handleGlobalDragStart(e) {
+		if (e.dataTransfer && e.dataTransfer.types.includes("application/x-budgericard")) {
+			isDraggingCard = true;
+		}
+	}
+
+	function handleGlobalDragEnd() {
+		isDraggingCard = false;
+		insertDropZoneActive = null;
+	}
+
+	/** @param {number} i */
+	function getDropZonePosition(i) {
+		const N = freeformColumnOrder.length;
+		const hasSpecial = columnTrackMap.has("Special");
+		const specialOffset = hasSpecial ? 1 : 0;
+		
+		if (N === 0) {
+			return { left: "0px", width: "100%" };
+		}
+
+		let leftStr = "0px";
+		let widthStr = "100%";
+
+		if (i === 0) {
+			const firstCol = freeformColumnOrder[0];
+			const firstTrack = columnTrackMap.get(firstCol) || (specialOffset + 1);
+			if (hasSpecial) {
+				leftStr = "calc(1 * var(--card-width) + 0 * var(--column-gap))";
+			} else {
+				leftStr = "0px";
+			}
+			widthStr = `calc((${firstTrack - 1} * (var(--card-width) + var(--column-gap))) - ${leftStr})`;
+		} else if (i === N) {
+			const lastCol = freeformColumnOrder[N - 1];
+			const lastTrack = columnTrackMap.get(lastCol) || (specialOffset + N);
+			leftStr = `calc(${lastTrack} * var(--card-width) + ${lastTrack - 1} * var(--column-gap))`;
+			widthStr = `calc(100% - ${leftStr})`;
+		} else {
+			const colLeft = freeformColumnOrder[i - 1];
+			const colRight = freeformColumnOrder[i];
+			const trackLeft = columnTrackMap.get(colLeft) || (specialOffset + i);
+			const trackRight = columnTrackMap.get(colRight) || (specialOffset + i + 1);
+			leftStr = `calc(${trackLeft} * var(--card-width) + ${trackLeft - 1} * var(--column-gap))`;
+			const rightStr = `calc((${trackRight - 1}) * (var(--card-width) + var(--column-gap)))`;
+			widthStr = `calc(${rightStr} - ${leftStr})`;
+		}
+
+		return { left: leftStr, width: widthStr };
+	}
 
 	// The Layout Brain (Now derived below to handle grouping)
 	let scrollContainer = $state(/** @type {HTMLElement | null} */ (null));
@@ -586,7 +639,12 @@
 	});
 </script>
 
-<svelte:window onclickcapture={handleWindowClick} />
+<svelte:window 
+	onclickcapture={handleWindowClick} 
+	ondragstart={handleGlobalDragStart} 
+	ondragend={handleGlobalDragEnd}
+	ondrop={handleGlobalDragEnd}
+/>
 
 <div
 	class="deck-curve-container"
@@ -1274,6 +1332,30 @@
 				</div>
 			{/each}
 		{/each}
+
+		{#if deckStore.grouping === 'freeform' && isDraggingCard}
+			<div class="freeform-drop-zones-overlay">
+				{#each Array(freeformColumnOrder.length + 1) as _, i}
+					{@const pos = getDropZonePosition(i)}
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="freeform-insert-zone"
+						class:active={insertDropZoneActive === i}
+						style="left: {pos.left}; width: {pos.width};"
+						ondragover={(e) => {
+							e.preventDefault();
+							insertDropZoneActive = i;
+						}}
+						ondragleave={() => {
+							if (insertDropZoneActive === i) insertDropZoneActive = null;
+						}}
+						ondrop={(e) => handleInsertZoneDrop(e, i)}
+					>
+						<div class="insert-zone-line"></div>
+					</div>
+				{/each}
+			</div>
+		{/if}
 	</div>
 
 	<div class="scroll-spacer-right"></div>
@@ -1301,6 +1383,51 @@
 		align-content: start;
 		/* Enforce header rows to stay compact while allowing stacks to grow */
 		grid-template-rows: repeat(2, min-content) 1fr;
+		position: relative;
+	}
+
+	.freeform-drop-zones-overlay {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		pointer-events: none;
+		z-index: 50;
+	}
+
+	.freeform-insert-zone {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		pointer-events: auto;
+		cursor: cell;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		box-sizing: border-box;
+		border: 2px dashed transparent;
+		border-radius: var(--radius-md);
+		transition: background-color 0.15s ease, border-color 0.15s ease;
+	}
+
+	.insert-zone-line {
+		width: 4px;
+		height: 80%;
+		background: hsl(var(--primary) / 0.15);
+		border-radius: 2px;
+		transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+	}
+
+	.freeform-insert-zone.active {
+		border-color: hsl(var(--primary) / 0.4);
+		background-color: hsl(var(--primary) / 0.04);
+	}
+
+	.freeform-insert-zone.active .insert-zone-line {
+		background: hsl(var(--primary));
+		box-shadow: 0 0 10px hsl(var(--primary));
+		transform: scaleX(1.5);
 	}
 
 	.grid-cell.group-header-cell {

@@ -168,6 +168,15 @@
 		flex: 1;
 	}
 
+	.type-column .col-rename-input {
+		font-size: 0.75rem;
+		color: hsl(var(--foreground));
+		letter-spacing: -0.01em;
+		text-transform: none;
+		height: auto;
+		padding: 0px 4px;
+	}
+
 	.col-rename-input:focus {
 		border-color: hsl(var(--primary));
 		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);

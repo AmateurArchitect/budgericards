@@ -713,7 +713,7 @@
 					</div>
 				{/if}
 
-				{#if settingsStore.deckViewMode === "stacks" || settingsStore.deckViewMode === "spoiler"}
+				{#if (settingsStore.deckViewMode === "stacks" && deckStore.grouping !== "freeform") || settingsStore.deckViewMode === "spoiler"}
 					<div
 						class="header-select-group"
 						style="position: relative;"
