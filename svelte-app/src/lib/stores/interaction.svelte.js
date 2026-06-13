@@ -872,6 +872,80 @@ function createInteractionStore() {
 
 				if (isRangeSelected || (isSingleCellSelected && !looksLikeCardList)) {
 					if (rows.length > 0) {
+						/**
+						 * @param {string} cardId
+						 * @param {string} colKey
+						 * @param {string} val
+						 */
+						const applyValueToCell = (cardId, colKey, val) => {
+							if (colKey === 'cmc') {
+								const num = parseInt(val, 10);
+								if (!isNaN(num)) {
+									deckStore.setCardOverride(cardId, 'manaValue', num);
+								}
+							} else if (colKey === 'type') {
+								deckStore.setCardOverride(cardId, 'primaryType', val);
+							} else if (colKey === 'color-cat') {
+								const formatted = val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
+								const validOptions = ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"];
+								const matched = validOptions.find(o => o.toLowerCase() === formatted.toLowerCase()) || formatted;
+								deckStore.setCardOverride(cardId, 'colorCategory', matched);
+								/** @type {Record<string, string[]>} */
+								const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
+								if (mapColors[matched]) {
+									deckStore.setCardOverride(cardId, 'colors', mapColors[matched]);
+									deckStore.setCardOverride(cardId, 'colorIdentity', mapColors[matched]);
+								} else if (matched === "Colorless") {
+									deckStore.setCardOverride(cardId, 'colors', []);
+									deckStore.setCardOverride(cardId, 'colorIdentity', []);
+								}
+							} else if (colKey === 'qty') {
+								const num = parseInt(val, 10);
+								if (!isNaN(num) && num >= 0) {
+									const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+									for (const board of boards) {
+										const boardArray = /** @type {any[]} */ (/** @type {any} */ (deckStore)[board]);
+										if (boardArray) {
+											const card = boardArray.find(c => c.id === cardId);
+											if (card) {
+												deckStore.setQuantity(card.name, board, num, card.price, card._metadata);
+												break;
+											}
+										}
+									}
+								}
+							} else if (colKey === 'name') {
+								const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+								for (const board of boards) {
+									const boardArray = /** @type {any[]} */ (/** @type {any} */ (deckStore)[board]);
+									if (boardArray) {
+										const card = boardArray.find(c => c.id === cardId);
+										if (card) {
+											deckStore.renameCard(card.name, val, card.price, card._metadata);
+											break;
+										}
+									}
+								}
+							} else if (colKey === 'tags') {
+								const tagList = val.split(',').map(t => t.trim()).filter(Boolean);
+								deckStore.reorderCardTags(cardId, tagList);
+							}
+						};
+
+						// If a range is selected and we pasted a single cell value, apply it to all selected cells
+						if (isRangeSelected && rows.length === 1 && rows[0].length === 1) {
+							const val = rows[0][0]?.trim();
+							if (val !== undefined) {
+								deckStore.batchUpdate(() => {
+									for (const cell of state.selectedCells) {
+										const [cardId, colKey] = cell.split(':');
+										applyValueToCell(cardId, colKey, val);
+									}
+								});
+							}
+							return;
+						}
+
 						const selectedRowIds = state.currentVisibleCardIds.filter(id => 
 							state.visibleColumnsOrder.some(col => state.selectedCells.has(`${id}:${col}`))
 						);
@@ -907,58 +981,7 @@ function createInteractionStore() {
 											const colKey = state.visibleColumnsOrder[colIdx];
 											const val = rowData[c]?.trim();
 											if (val !== undefined) {
-												if (colKey === 'cmc') {
-													const num = parseInt(val, 10);
-													if (!isNaN(num)) {
-														deckStore.setCardOverride(cardId, 'manaValue', num);
-													}
-												} else if (colKey === 'type') {
-													deckStore.setCardOverride(cardId, 'primaryType', val);
-												} else if (colKey === 'color-cat') {
-													const formatted = val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
-													const validOptions = ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"];
-													const matched = validOptions.find(o => o.toLowerCase() === formatted.toLowerCase()) || formatted;
-													deckStore.setCardOverride(cardId, 'colorCategory', matched);
-													/** @type {Record<string, string[]>} */
-													const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
-													if (mapColors[matched]) {
-														deckStore.setCardOverride(cardId, 'colors', mapColors[matched]);
-														deckStore.setCardOverride(cardId, 'colorIdentity', mapColors[matched]);
-													} else if (matched === "Colorless") {
-														deckStore.setCardOverride(cardId, 'colors', []);
-														deckStore.setCardOverride(cardId, 'colorIdentity', []);
-													}
-												} else if (colKey === 'qty') {
-													const num = parseInt(val, 10);
-													if (!isNaN(num) && num >= 0) {
-														const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
-														for (const board of boards) {
-															const boardArray = /** @type {any[]} */ (/** @type {any} */ (deckStore)[board]);
-															if (boardArray) {
-																const card = boardArray.find(c => c.id === cardId);
-																if (card) {
-																	deckStore.setQuantity(card.name, board, num, card.price, card._metadata);
-																	break;
-																}
-															}
-														}
-													}
-												} else if (colKey === 'name') {
-													const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
-													for (const board of boards) {
-														const boardArray = /** @type {any[]} */ (/** @type {any} */ (deckStore)[board]);
-														if (boardArray) {
-															const card = boardArray.find(c => c.id === cardId);
-															if (card) {
-																deckStore.renameCard(card.name, val, card.price, card._metadata);
-																break;
-															}
-														}
-													}
-												} else if (colKey === 'tags') {
-													const tagList = val.split(',').map(t => t.trim()).filter(Boolean);
-													deckStore.reorderCardTags(cardId, tagList);
-												}
+												applyValueToCell(cardId, colKey, val);
 											}
 										}
 									}
