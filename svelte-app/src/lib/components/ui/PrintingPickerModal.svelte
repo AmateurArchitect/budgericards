@@ -107,6 +107,7 @@
 
 	/**
 	 * @typedef {Object} SearchTerm
+	 * @property {boolean} negated
 	 * @property {string | null} key
 	 * @property {string} op
 	 * @property {string} val
@@ -118,14 +119,16 @@
 	 */
 	function parseSearchQuery(query) {
 		const terms = [];
-		const regex = /(?:(\b\w+)([:=><]+))?(?:"([^"]+)"|'([^']+)'|([^\s]+))/g;
+		const regex = /(-)?(?:(\b\w+)([:=><]+))?(?:"([^"]+)"|'([^']+)'|([^\s]+))/g;
 		let match;
 		while ((match = regex.exec(query)) !== null) {
-			const key = match[1];
-			const op = match[2] || ':';
-			const val = match[3] || match[4] || match[5];
+			const negated = !!match[1];
+			const key = match[2];
+			const op = match[3] || ':';
+			const val = match[4] || match[5] || match[6];
 			if (val) {
 				terms.push({
+					negated,
 					key: key ? key.toLowerCase() : null,
 					op,
 					val: val.toLowerCase()
@@ -239,7 +242,10 @@
 			const terms = parseSearchQuery(searchQuery);
 			if (terms.length > 0) {
 				list = list.filter((p) => {
-					return terms.every((term) => matchTerm(p, term));
+					return terms.every((term) => {
+						const matches = matchTerm(p, term);
+						return term.negated ? !matches : matches;
+					});
 				});
 			}
 		}
