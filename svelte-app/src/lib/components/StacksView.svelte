@@ -844,7 +844,7 @@
 							type="column"
 							colKey={column.key}
 							{renamingColumn}
-							{renameValue}
+							bind:renameValue
 							onRename={startRename}
 							onCommit={commitRename}
 							onCancel={() => (renamingColumn = null)}
