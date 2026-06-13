@@ -1522,11 +1522,11 @@
 	}
 
 	.insert-zone-visual.shifted {
-		transform: translateX(48px);
+		transform: translateX(24px);
 	}
 
 	.insert-zone-visual.widened {
-		width: calc(100% + 48px);
+		width: calc(100% + 24px);
 	}
 
 	.insert-zone-line {
@@ -1567,7 +1567,7 @@
 	}
 
 	.grid-cell.shifted-right {
-		transform: translateX(48px);
+		transform: translateX(24px);
 		transition-delay: 50ms;
 	}
 
