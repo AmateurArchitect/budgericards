@@ -1693,7 +1693,7 @@
 	}
 
 	:global(.curve-card-item:hover .card-shell.is-selected) {
-		box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.7), 0 0 0 3px hsl(var(--primary));
+		box-shadow: 0 0 0 3px hsl(var(--primary)), 0 12px 30px -10px rgba(0, 0, 0, 0.7);
 	}
 
 	:global(.curve-card-item:hover ~ .curve-card-item .card-shell) {

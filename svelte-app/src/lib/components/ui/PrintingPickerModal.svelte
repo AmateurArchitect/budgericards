@@ -349,11 +349,13 @@
 		if (e.key === "Escape") interactionStore.closePrintingPickerModal();
 	}
 
-	let badgeCycleIndex = $state(0);
+	let now = $state(Date.now());
+	let mountTime = $state(Date.now());
 	onMount(() => {
+		mountTime = Date.now();
 		const interval = setInterval(() => {
-			badgeCycleIndex++;
-		}, 2500);
+			now = Date.now();
+		}, 300);
 		return () => clearInterval(interval);
 	});
 </script>
@@ -549,7 +551,12 @@
 							>
 								<!-- Diagonal sash for top priority badge -->
 								{#if badges.length > 0}
-									{@const topBadge = badges[badgeCycleIndex % badges.length]}
+									{@const duration = 3500 + (parseInt(printing.id.slice(4, 8), 16) % 1000)}
+									{@const offset = parseInt(printing.id.slice(0, 4), 16) % duration}
+									{@const elapsed = Math.max(0, now - mountTime)}
+									{@const timeToCycle = Math.max(0, elapsed - 4000 + offset)}
+									{@const cycleIndex = Math.floor(timeToCycle / duration)}
+									{@const topBadge = badges[cycleIndex % badges.length]}
 									<div class="sash-container">
 										{#key topBadge.label}
 											<div class="sash {topBadge.cls}" in:fade={{ duration: 200 }}>

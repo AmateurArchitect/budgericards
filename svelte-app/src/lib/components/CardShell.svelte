@@ -196,7 +196,7 @@
 
 <style>
 	.card-shell.is-selected {
-		box-shadow: 0 0 0 3px hsl(var(--primary));
+		box-shadow: 0 0 0 3px hsl(var(--primary)), 0 12px 30px -10px rgba(0, 0, 0, 0);
 		border-radius: var(--radius-md);
 		transform: scale(0.98);
 		z-index: 10;
