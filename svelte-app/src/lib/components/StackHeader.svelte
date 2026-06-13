@@ -135,8 +135,11 @@
 		padding: 0;
 		margin: 0;
 		font-family: inherit;
-		font-size: inherit;
-		font-weight: inherit;
+		font-size: 0.75rem;
+		font-weight: 700;
+		color: hsl(var(--muted-foreground));
+		letter-spacing: -0.01em;
+		text-transform: none;
 		text-align: left;
 		cursor: text;
 		transition: color 0.15s ease;
