@@ -116,6 +116,7 @@
 	let isDraggingCard = $state(false);
 	const activeColKeys = $derived(rows[0] ? rows[0].columns.filter((c) => c.key !== "Special").map((c) => c.key) : []);
 	const activeInsertIndices = $derived(Array.from({ length: activeColKeys.length + 1 }, (_, i) => i));
+	const shouldShift = $derived(insertDropZoneActive !== null && !isBigGap(insertDropZoneActive));
 
 	/** 
 	 * @param {number} activeIndex 
@@ -156,8 +157,26 @@
 			: colTrack;
 	}
 
-	/** @param {number} i */
-	function getDropZonePosition(i) {
+	/**
+	 * @param {number} i
+	 * @returns {boolean}
+	 */
+	function isBigGap(i) {
+		const N = activeColKeys.length;
+		if (i <= 0 || i >= N) return false;
+		const colLeft = activeColKeys[i - 1];
+		const colRight = activeColKeys[i];
+		const trackLeft = getEffectiveTrack(colLeft);
+		const trackRight = getEffectiveTrack(colRight);
+		return (trackRight - trackLeft) > 1;
+	}
+
+	/** 
+	 * @param {number} i 
+	 * @param {number | null} activeZoneIdx
+	 * @returns {{ left: string, width: string }}
+	 */
+	function getDropZonePosition(i, activeZoneIdx) {
 		const N = activeColKeys.length;
 		const hasSpecial = columnTrackMap.has("Special");
 		const specialOffset = hasSpecial ? 1 : 0;
@@ -196,6 +215,15 @@
 			const rightLimit = `calc((${trackRight - 1}) * (var(--card-width) + var(--column-gap)) + 12px)`;
 			
 			widthStr = `calc(${rightLimit} - ${leftStr})`;
+		}
+
+		// Apply shifting if activeZoneIdx is set and it's a standard (not big) gap
+		if (activeZoneIdx !== null && !isBigGap(activeZoneIdx)) {
+			if (i > activeZoneIdx) {
+				leftStr = `calc(${leftStr} + 48px)`;
+			} else if (i === activeZoneIdx) {
+				widthStr = `calc(${widthStr} + 48px)`;
+			}
 		}
 
 		return { left: leftStr, width: widthStr };
@@ -775,7 +803,7 @@
 							: colTrack}
 					<div
 						class="grid-cell column-header-cell"
-						class:shifted-right={insertDropZoneActive !== null && activeColIdx !== -1 && activeColIdx >= insertDropZoneActive}
+						class:shifted-right={shouldShift && activeColIdx !== -1 && activeColIdx >= insertDropZoneActive}
 						data-column-key={column.key}
 						style="grid-column: {finalColTrack}; grid-row: {typeGroups.length >
 						0
@@ -816,7 +844,7 @@
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
 					class="grid-cell stack-container-cell"
-					class:shifted-right={insertDropZoneActive !== null && activeColIdx !== -1 && activeColIdx >= insertDropZoneActive}
+					class:shifted-right={shouldShift && activeColIdx !== -1 && activeColIdx >= insertDropZoneActive}
 					role="presentation"
 					data-column-key={column.key}
 					onmouseenter={() => {
@@ -1381,7 +1409,7 @@
 		{#if deckStore.grouping === 'freeform' && isDraggingCard}
 			<div class="freeform-drop-zones-overlay">
 				{#each activeInsertIndices as i (i)}
-					{@const pos = getDropZonePosition(i)}
+					{@const pos = getDropZonePosition(i, insertDropZoneActive)}
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
 						class="freeform-insert-zone"
@@ -1396,7 +1424,7 @@
 						}}
 						ondrop={(e) => handleInsertZoneDrop(e, i)}
 					>
-						<div class="insert-zone-line"></div>
+						<div class="insert-zone-line" class:big-gap={isBigGap(i)}></div>
 					</div>
 				{/each}
 			</div>
@@ -1453,7 +1481,8 @@
 		box-sizing: border-box;
 		border: 2px dashed transparent;
 		border-radius: var(--radius-md);
-		transition: background-color 0.15s ease, border-color 0.15s ease;
+		transition: left 0.25s cubic-bezier(0.25, 1, 0.5, 1), width 0.25s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.15s ease, border-color 0.15s ease;
+		transition-delay: 50ms, 50ms, 0s, 0s;
 	}
 
 	.insert-zone-line {
@@ -1462,6 +1491,13 @@
 		background: hsl(var(--primary) / 0.15);
 		border-radius: 2px;
 		transition: opacity 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+	}
+
+	.insert-zone-line.big-gap {
+		width: calc(100% - 24px);
+		border-radius: var(--radius-md);
+		background: hsl(var(--primary) / 0.04);
+		border: 1px dashed hsl(var(--primary) / 0.12);
 	}
 
 	.freeform-insert-zone.active {
@@ -1488,7 +1524,7 @@
 
 	.grid-cell.shifted-right {
 		transform: translateX(48px);
-		transition-delay: 150ms;
+		transition-delay: 50ms;
 	}
 
 	.row-header-cell {
