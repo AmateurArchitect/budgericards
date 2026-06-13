@@ -113,6 +113,35 @@
 	function handleDragStart(e) {
 		if (!e.dataTransfer) return;
 		e.dataTransfer.effectAllowed = "copyMove";
+
+		const isSelected = !inSearchPanel && [...interactionStore.selectedCells].some(cell => cell.startsWith(card.id + ":"));
+		let selectedCards = [];
+		if (isSelected) {
+			const selectedIds = new Set(
+				[...interactionStore.selectedCells].map(cell => cell.split(':')[0])
+			);
+			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+			for (const id of selectedIds) {
+				for (const board of boards) {
+					const boardArray = deckStore[board];
+					if (boardArray) {
+						const found = boardArray.find(c => c.id === id);
+						if (found) {
+							selectedCards.push({
+								name: found.name,
+								price: found.price,
+								id: found.id,
+								fromDeck: true,
+								sourceBoard: board,
+								card: found
+							});
+							break;
+						}
+					}
+				}
+			}
+		}
+
 		const data = {
 			name: card.name,
 			price: price,
@@ -124,6 +153,7 @@
 					: searchStore.collection
 				: deckStore.activeBoard),
 			card: card,
+			selectedCards: selectedCards.length > 0 ? selectedCards : null
 		};
 		e.dataTransfer.setData(
 			"application/x-budgericard",

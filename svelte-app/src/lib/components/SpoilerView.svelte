@@ -106,37 +106,40 @@
 		if (internalData) {
 			e.preventDefault();
 			e.stopPropagation();
-			const data = JSON.parse(internalData);
+			const cardsToProcess = data.selectedCards || [data];
+			deckStore.batchUpdate(() => {
+				for (const item of cardsToProcess) {
+					if (!item.fromDeck || item.sourceBoard !== deckStore.activeBoard) {
+						const isLocalSource = [
+							"sideboard",
+							"maybeboard",
+							"garbage",
+							"commander",
+							"companion",
+							"mainboard",
+						].includes(item.sourceBoard);
 
-			if (!data.fromDeck || data.sourceBoard !== deckStore.activeBoard) {
-				const isLocalSource = [
-					"sideboard",
-					"maybeboard",
-					"garbage",
-					"commander",
-					"companion",
-					"mainboard",
-				].includes(data.sourceBoard);
-
-				if (data.sourceBoard !== deckStore.activeBoard) {
-					if (isLocalSource) {
-						deckStore.moveCard(
-							data.name,
-							data.sourceBoard,
-							deckStore.activeBoard,
-							data.id,
-							data.price,
-						);
-					} else {
-						deckStore.addCard(
-							data.name,
-							deckStore.activeBoard,
-							data.price,
-							data.card,
-						);
+						if (item.sourceBoard !== deckStore.activeBoard) {
+							if (isLocalSource) {
+								deckStore.moveCard(
+									item.name,
+									item.sourceBoard,
+									deckStore.activeBoard,
+									item.id,
+									item.price,
+								);
+							} else {
+								deckStore.addCard(
+									item.name,
+									deckStore.activeBoard,
+									item.price,
+									item.card,
+								);
+							}
+						}
 					}
 				}
-			}
+			});
 		}
 	}
 

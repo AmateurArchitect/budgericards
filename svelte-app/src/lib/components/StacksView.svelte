@@ -395,162 +395,195 @@
 				}
 			}
 
-			let addedId = null;
-			if (
-				!data.fromDeck ||
-				colKey === "Special" ||
-				data.sourceBoard !== targetBoard
-			) {
-				const isLocalSource = [
-					"sideboard",
-					"maybeboard",
-					"garbage",
-					"commander",
-					"companion",
-					"mainboard",
-				].includes(data.sourceBoard);
+			const cardsToProcess = data.selectedCards || [data];
+			deckStore.batchUpdate(() => {
+				const newFreeformLayout = new Map(freeformLayout);
+				for (const item of cardsToProcess) {
+					let itemTargetBoard = targetBoard;
+					if (colKey === "Special") {
+						const meta = item.card.type_line ? item.card : (deckStore.metadata[item.name.toLowerCase()] || item.card);
+						const typeLine = (meta.type_line || "").toLowerCase();
+						const oracle = (meta.oracle_text || "").toLowerCase();
+						const facesOracle = (meta.card_faces || [])
+							.map((/** @type {any} */ f) =>
+								(f.oracle_text || "").toLowerCase(),
+							)
+							.join(" ");
 
-				// If it's a move to a special board, or from a different board
-				if (data.sourceBoard !== targetBoard) {
-					// Swap logic for special boards: if targeting commander/companion and it's full, move existing back
-					if (
-						targetBoard === "commander" ||
-						targetBoard === "companion"
-					) {
-						const storeAny = /** @type {any} */ (deckStore);
-						const currentCards = storeAny[targetBoard];
-						if (currentCards.length > 0) {
-							// For commander, check if we should swap (non-partner case)
-							const isCommander = targetBoard === "commander";
-							const existingCommander = currentCards[0];
+						const isLegendaryCreature =
+							typeLine.includes("legendary") &&
+							typeLine.includes("creature");
+						const isPlaneswalker = typeLine.includes("planeswalker");
+						const isCompanion =
+							oracle.includes("companion —") ||
+							facesOracle.includes("companion —");
 
-							// Simple swap logic: if it's already occupied, move the first one back
-							// (Future: support partner logic here too, but for now swap is safer)
-							[...currentCards].forEach((c) => {
-								deckStore.moveCard(
-									c.name,
-									targetBoard,
-									"mainboard",
-									c.id,
-									c.price,
-								);
-							});
+						if (stackId === "companions") {
+							if (!isCompanion) continue;
+							itemTargetBoard = "companion";
+						} else {
+							const canBeCommander =
+								isLegendaryCreature ||
+								(["Brawl", "Oathbreaker"].includes(deckStore.format) &&
+									isPlaneswalker);
+							if (!canBeCommander) continue;
+							itemTargetBoard = "commander";
 						}
 					}
 
-					addedId = isLocalSource
-						? deckStore.moveCard(
-								data.name,
-								data.sourceBoard,
-								targetBoard,
-								data.id,
-								data.price,
-							)
-						: deckStore.addCard(
-								data.name,
-								targetBoard,
-								data.price,
-								data.card,
-							);
-				}
+					let addedId = null;
+					if (
+						!item.fromDeck ||
+						colKey === "Special" ||
+						item.sourceBoard !== itemTargetBoard
+					) {
+						const isLocalSource = [
+							"sideboard",
+							"maybeboard",
+							"garbage",
+							"commander",
+							"companion",
+							"mainboard",
+						].includes(item.sourceBoard);
 
-				if (
-					deckStore.grouping === "freeform" &&
-					addedId &&
-					targetBoard === deckStore.activeBoard
-				) {
-					const targetKey =
+						// If it's a move to a special board, or from a different board
+						if (item.sourceBoard !== itemTargetBoard) {
+							// Swap logic for special boards: if targeting commander/companion and it's full, move existing back
+							if (
+								itemTargetBoard === "commander" ||
+								itemTargetBoard === "companion"
+							) {
+								const storeAny = /** @type {any} */ (deckStore);
+								const currentCards = storeAny[itemTargetBoard];
+								if (currentCards.length > 0) {
+									[...currentCards].forEach((c) => {
+										deckStore.moveCard(
+											c.name,
+											itemTargetBoard,
+											"mainboard",
+											c.id,
+											c.price,
+										);
+									});
+								}
+							}
+
+							addedId = isLocalSource
+								? deckStore.moveCard(
+										item.name,
+										item.sourceBoard,
+										itemTargetBoard,
+										item.id,
+										item.price,
+									)
+								: deckStore.addCard(
+										item.name,
+										itemTargetBoard,
+										item.price,
+										item.card,
+									);
+						} else {
+							addedId = item.id;
+						}
+
+						if (
+							deckStore.grouping === "freeform" &&
+							addedId &&
+							itemTargetBoard === deckStore.activeBoard
+						) {
+							const targetKey =
+								colKey &&
+								colKey !== "special" &&
+								colKey !== "Commanders" &&
+								colKey !== "Companions"
+									? colKey
+									: freeformColumnOrder[0];
+							newFreeformLayout.set(String(addedId), targetKey);
+						}
+					} else if (
+						deckStore.grouping === "freeform" &&
 						colKey &&
 						colKey !== "special" &&
 						colKey !== "Commanders" &&
 						colKey !== "Companions"
-							? colKey
-							: freeformColumnOrder[0];
-					const newMap = new Map(freeformLayout);
-					newMap.set(String(addedId), targetKey);
-					freeformLayout = newMap;
-				}
-			} else if (
-				deckStore.grouping === "freeform" &&
-				colKey &&
-				colKey !== "special" &&
-				colKey !== "Commanders" &&
-				colKey !== "Companions"
-			) {
-				const newMap = new Map(freeformLayout);
-				newMap.set(data.id, colKey);
-				freeformLayout = newMap;
-				pruneEmptyFreeformColumns();
-			} else if (
-				colKey &&
-				colKey !== "Special" &&
-				colKey !== "Commanders" &&
-				colKey !== "Companions"
-			) {
-				const grouping = deckStore.grouping?.toLowerCase();
-				if (grouping === "cmc") {
-					let val = parseInt(colKey, 10);
-					if (colKey === "0-1") val = 1;
-					if (colKey === "6+") val = 6;
-					if (!isNaN(val)) {
-						deckStore.setCardOverride(data.id, "manaValue", val);
-					}
-				} else if (grouping === "color") {
-					const category = colKey;
-					/** @type {Record<string, string[]>} */
-					const mapColors = {
-						White: ["W"],
-						Blue: ["U"],
-						Black: ["B"],
-						Red: ["R"],
-						Green: ["G"],
-					};
-					deckStore.setCardOverride(
-						data.id,
-						"colorCategory",
-						category,
-					);
-					if (mapColors[category]) {
-						deckStore.setCardOverride(
-							data.id,
-							"colors",
-							mapColors[category],
-						);
-						deckStore.setCardOverride(
-							data.id,
-							"colorIdentity",
-							mapColors[category],
-						);
-					}
-				} else if (grouping === "creature") {
-					const isCreature = colKey === "Creatures";
-					deckStore.setCardOverride(data.id, "creature", isCreature);
-				} else if (grouping === "type") {
-					let typeVal = colKey;
-					if (colKey === "Creatures") typeVal = "Creature";
-					else if (colKey === "Planeswalkers")
-						typeVal = "Planeswalker";
-					else if (colKey === "Instants") typeVal = "Instant";
-					else if (colKey === "Sorceries") typeVal = "Sorcery";
-					else if (colKey === "Artifacts") typeVal = "Artifact";
-					else if (colKey === "Enchantments") typeVal = "Enchantment";
-					else if (colKey === "Battles") typeVal = "Battle";
-					else if (colKey === "Lands") typeVal = "Land";
-					deckStore.setCardOverride(data.id, "primaryType", typeVal);
-				} else if (grouping === "primarytag") {
-					if (colKey !== "No Tag") {
-						deckStore.setPrimaryTag(data.id, colKey);
-					} else {
-						const cardRes = deckStore.findCardById(data.id);
-						if (cardRes?.card?.primaryTag) {
-							deckStore.removeCardTag(
-								data.id,
-								cardRes.card.primaryTag,
+					) {
+						newFreeformLayout.set(item.id, colKey);
+					} else if (
+						colKey &&
+						colKey !== "Special" &&
+						colKey !== "Commanders" &&
+						colKey !== "Companions"
+					) {
+						const grouping = deckStore.grouping?.toLowerCase();
+						if (grouping === "cmc") {
+							let val = parseInt(colKey, 10);
+							if (colKey === "0-1") val = 1;
+							if (colKey === "6+") val = 6;
+							if (!isNaN(val)) {
+								deckStore.setCardOverride(item.id, "manaValue", val);
+							}
+						} else if (grouping === "color") {
+							const category = colKey;
+							/** @type {Record<string, string[]>} */
+							const mapColors = {
+								White: ["W"],
+								Blue: ["U"],
+								Black: ["B"],
+								Red: ["R"],
+								Green: ["G"],
+							};
+							deckStore.setCardOverride(
+								item.id,
+								"colorCategory",
+								category,
 							);
+							if (mapColors[category]) {
+								deckStore.setCardOverride(
+									item.id,
+									"colors",
+									mapColors[category],
+								);
+								deckStore.setCardOverride(
+									item.id,
+									"colorIdentity",
+									mapColors[category],
+								);
+							}
+						} else if (grouping === "creature") {
+							const isCreature = colKey === "Creatures";
+							deckStore.setCardOverride(item.id, "creature", isCreature);
+						} else if (grouping === "type") {
+							let typeVal = colKey;
+							if (colKey === "Creatures") typeVal = "Creature";
+							else if (colKey === "Planeswalkers")
+								typeVal = "Planeswalker";
+							else if (colKey === "Instants") typeVal = "Instant";
+							else if (colKey === "Sorceries") typeVal = "Sorcery";
+							else if (colKey === "Artifacts") typeVal = "Artifact";
+							else if (colKey === "Enchantments") typeVal = "Enchantment";
+							else if (colKey === "Battles") typeVal = "Battle";
+							else if (colKey === "Lands") typeVal = "Land";
+							deckStore.setCardOverride(item.id, "primaryType", typeVal);
+						} else if (grouping === "primarytag") {
+							if (colKey !== "No Tag") {
+								deckStore.setPrimaryTag(item.id, colKey);
+							} else {
+								const cardRes = deckStore.findCardById(item.id);
+								if (cardRes?.card?.primaryTag) {
+									deckStore.removeCardTag(
+										item.id,
+										cardRes.card.primaryTag,
+									);
+								}
+							}
 						}
 					}
 				}
-			}
+				if (deckStore.grouping === "freeform") {
+					freeformLayout = newFreeformLayout;
+					pruneEmptyFreeformColumns();
+				}
+			});
 		}
 	}
 
@@ -582,23 +615,26 @@
 		newOrder.splice(insertIndex, 0, newColKey);
 		freeformColumnOrder = newOrder;
 
-		if (data.fromDeck) {
+		const cardsToProcess = data.selectedCards || [data];
+		deckStore.batchUpdate(() => {
 			const newMap = new Map(freeformLayout);
-			newMap.set(data.id, newColKey);
-			freeformLayout = newMap;
-		} else {
-			const addedId = deckStore.addCard(
-				data.name,
-				deckStore.activeBoard,
-				data.price,
-				data.card,
-			);
-			if (addedId) {
-				const newMap = new Map(freeformLayout);
-				newMap.set(String(addedId), newColKey);
-				freeformLayout = newMap;
+			for (const item of cardsToProcess) {
+				if (item.fromDeck) {
+					newMap.set(item.id, newColKey);
+				} else {
+					const addedId = deckStore.addCard(
+						item.name,
+						deckStore.activeBoard,
+						item.price,
+						item.card,
+					);
+					if (addedId) {
+						newMap.set(String(addedId), newColKey);
+					}
+				}
 			}
-		}
+			freeformLayout = newMap;
+		});
 		pruneEmptyFreeformColumns();
 	}
 

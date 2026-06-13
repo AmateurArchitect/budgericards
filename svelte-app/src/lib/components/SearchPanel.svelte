@@ -71,23 +71,28 @@
 				const targetBoard =
 					collection === "deleted" ? "garbage" : collection;
 
-				if (collection === "sideboard" || collection === "maybeboard") {
-					// Move from Main Deck to the current open board
-					deckStore.moveCard(
-						data.name,
-						deckStore.activeBoard,
-						targetBoard,
-						data.id,
-						data.price,
-					);
-				} else {
-					// Delete (move to garbage)
-					deckStore.removeCard(
-						data.name,
-						deckStore.activeBoard,
-						data.id,
-					);
-				}
+				const cardsToProcess = data.selectedCards || [data];
+				deckStore.batchUpdate(() => {
+					for (const item of cardsToProcess) {
+						if (collection === "sideboard" || collection === "maybeboard") {
+							// Move from Main Deck to the current open board
+							deckStore.moveCard(
+								item.name,
+								item.sourceBoard,
+								targetBoard,
+								item.id,
+								item.price,
+							);
+						} else {
+							// Delete (move to garbage)
+							deckStore.removeCard(
+								item.name,
+								item.sourceBoard,
+								item.id,
+							);
+						}
+					}
+				});
 			}
 		}
 	}
