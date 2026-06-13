@@ -116,7 +116,7 @@
 		if (
 			target.closest(
 				"button, input, textarea, select, [role='button'], [role='row'], " +
-				".card-shell, .card-row, td, th, .deck-header, .modal-content, " +
+				".card-shell, .card-row, td, th, table, tbody, thead, .deck-header, .modal-content, " +
 				".printing-picker-dropdown, .color-picker-dropdown, .tags-picker-dropdown, " +
 				".context-menu, .menu-container"
 			)
