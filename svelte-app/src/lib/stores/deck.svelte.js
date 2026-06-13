@@ -216,6 +216,48 @@ function createDeck() {
 	}
 
 	/** @param {ReturnType<typeof createDeckState>} deckState */
+	function getPrintingsSnapshot(deckState) {
+		const printingsSnapshot = {};
+		for (const cardName in deckState.metadata) {
+			const meta = deckState.metadata[cardName];
+			if (meta && (meta.id || meta.set)) {
+				printingsSnapshot[cardName] = {
+					id: meta.id,
+					set: meta.set,
+					collector_number: meta.collector_number
+				};
+			}
+		}
+		return printingsSnapshot;
+	}
+
+	/**
+	 * @param {ReturnType<typeof createDeckState>} deckState
+	 * @param {{ name: string, id?: string, set?: string, collector_number?: string }[]} toFetch
+	 */
+	async function resolveAndApplyPrintings(deckState, toFetch) {
+		try {
+			const identifiers = toFetch.map(item => {
+				if (item.id) return { id: item.id };
+				return { set: item.set?.toLowerCase(), collector_number: item.collector_number?.toLowerCase() };
+			});
+
+			const response = await fetchCollection(identifiers);
+			if (response && response.data) {
+				response.data.forEach(card => {
+					if (card.name) {
+						deckState.metadata[card.name.toLowerCase()] = card;
+					}
+				});
+				deckState.metadata.updatedAt = Date.now();
+				persist(deckState);
+			}
+		} catch (e) {
+			console.error("resolveAndApplyPrintings failed:", e);
+		}
+	}
+
+	/** @param {ReturnType<typeof createDeckState>} deckState */
 	function saveHistory(deckState) {
 		if (isBatching) {
 			batchNeedsPersist = true;
@@ -231,7 +273,8 @@ function createDeck() {
 			name: deckState.deck.name,
 			coverArt: deckState.deck.coverArt,
 			format: deckState.deck.format,
-			lastNaturalGrouping: deckState.deck.lastNaturalGrouping
+			lastNaturalGrouping: deckState.deck.lastNaturalGrouping,
+			printings: getPrintingsSnapshot(deckState)
 		}));
 		if (deckState.history.length === 0 || deckState.history[deckState.history.length - 1] !== snapshot) {
 			deckState.history.push(snapshot);
@@ -1340,19 +1383,24 @@ function createDeck() {
 			const result = this.findCardById(cardId);
 			if (result) {
 				saveHistory(activeDeck);
-				const cardCopy = { ...result.card };
+				const cardName = result.card.name;
 				const uniqueTags = [...new Set(tagArray.map(t => t.trim()).filter(Boolean))];
-				if (uniqueTags.length > 0) {
-					cardCopy.tags = uniqueTags;
-					cardCopy.primaryTag = uniqueTags[0];
-				} else {
-					delete cardCopy.tags;
-					delete cardCopy.primaryTag;
-				}
-				const board = activeDeck.deck[result.board];
-				const idx = board.findIndex(c => c.id === cardId);
-				if (idx !== -1) {
-					board[idx] = cardCopy;
+
+				const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+				for (const board of boards) {
+					if (activeDeck.deck[board]) {
+						activeDeck.deck[board].forEach(c => {
+							if (c.name.toLowerCase() === cardName.toLowerCase()) {
+								if (uniqueTags.length > 0) {
+									c.tags = [...uniqueTags];
+									c.primaryTag = uniqueTags[0];
+								} else {
+									delete c.tags;
+									delete c.primaryTag;
+								}
+							}
+						});
+					}
 				}
 				persist(activeDeck);
 			}
@@ -1414,13 +1462,15 @@ function createDeck() {
 			
 			const currentState = JSON.stringify({
 				commander: activeDeck.deck.commander,
+				companion: activeDeck.deck.companion,
 				mainboard: activeDeck.deck.mainboard,
 				sideboard: activeDeck.deck.sideboard,
 				maybeboard: activeDeck.deck.maybeboard,
 				garbage: activeDeck.deck.garbage,
 				name: activeDeck.deck.name,
 				coverArt: activeDeck.deck.coverArt,
-				lastNaturalGrouping: activeDeck.deck.lastNaturalGrouping
+				lastNaturalGrouping: activeDeck.deck.lastNaturalGrouping,
+				printings: getPrintingsSnapshot(activeDeck)
 			});
 			activeDeck.redoStack.push(currentState);
 			const lastHistory = activeDeck.history.pop();
@@ -1428,6 +1478,7 @@ function createDeck() {
 
 			const previous = JSON.parse(lastHistory);
 			activeDeck.deck.commander = previous.commander;
+			activeDeck.deck.companion = previous.companion || [];
 			activeDeck.deck.mainboard = previous.mainboard;
 			activeDeck.deck.sideboard = previous.sideboard;
 			activeDeck.deck.maybeboard = previous.maybeboard;
@@ -1435,6 +1486,30 @@ function createDeck() {
 			activeDeck.deck.name = previous.name;
 			activeDeck.deck.coverArt = previous.coverArt || null;
 			activeDeck.deck.lastNaturalGrouping = previous.lastNaturalGrouping || 'cmc';
+
+			if (previous.printings) {
+				const toFetch = [];
+				for (const cardName in previous.printings) {
+					const prevPrint = previous.printings[cardName];
+					const currPrint = activeDeck.metadata[cardName];
+					const isDifferent = !currPrint ||
+						currPrint.id !== prevPrint.id ||
+						currPrint.set !== prevPrint.set ||
+						currPrint.collector_number !== prevPrint.collector_number;
+					if (isDifferent) {
+						toFetch.push({
+							name: cardName,
+							id: prevPrint.id,
+							set: prevPrint.set,
+							collector_number: prevPrint.collector_number
+						});
+					}
+				}
+				if (toFetch.length > 0) {
+					resolveAndApplyPrintings(activeDeck, toFetch);
+				}
+			}
+			persist(activeDeck);
 		},
 
 		redo() {
@@ -1442,13 +1517,15 @@ function createDeck() {
 
 			const currentState = JSON.stringify({
 				commander: activeDeck.deck.commander,
+				companion: activeDeck.deck.companion,
 				mainboard: activeDeck.deck.mainboard,
 				sideboard: activeDeck.deck.sideboard,
 				maybeboard: activeDeck.deck.maybeboard,
 				garbage: activeDeck.deck.garbage,
 				name: activeDeck.deck.name,
 				coverArt: activeDeck.deck.coverArt,
-				lastNaturalGrouping: activeDeck.deck.lastNaturalGrouping
+				lastNaturalGrouping: activeDeck.deck.lastNaturalGrouping,
+				printings: getPrintingsSnapshot(activeDeck)
 			});
 			activeDeck.history.push(currentState);
 			const lastRedo = activeDeck.redoStack.pop();
@@ -1456,6 +1533,7 @@ function createDeck() {
 
 			const next = JSON.parse(lastRedo);
 			activeDeck.deck.commander = next.commander;
+			activeDeck.deck.companion = next.companion || [];
 			activeDeck.deck.mainboard = next.mainboard;
 			activeDeck.deck.sideboard = next.sideboard;
 			activeDeck.deck.maybeboard = next.maybeboard;
@@ -1463,6 +1541,30 @@ function createDeck() {
 			activeDeck.deck.name = next.name;
 			activeDeck.deck.coverArt = next.coverArt || null;
 			activeDeck.deck.lastNaturalGrouping = next.lastNaturalGrouping || 'cmc';
+
+			if (next.printings) {
+				const toFetch = [];
+				for (const cardName in next.printings) {
+					const nextPrint = next.printings[cardName];
+					const currPrint = activeDeck.metadata[cardName];
+					const isDifferent = !currPrint ||
+						currPrint.id !== nextPrint.id ||
+						currPrint.set !== nextPrint.set ||
+						currPrint.collector_number !== nextPrint.collector_number;
+					if (isDifferent) {
+						toFetch.push({
+							name: cardName,
+							id: nextPrint.id,
+							set: nextPrint.set,
+							collector_number: nextPrint.collector_number
+						});
+					}
+				}
+				if (toFetch.length > 0) {
+					resolveAndApplyPrintings(activeDeck, toFetch);
+				}
+			}
+			persist(activeDeck);
 		},
 
 		get canUndo() { return activeDeck.history.length > 0; },

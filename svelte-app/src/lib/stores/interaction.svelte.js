@@ -715,10 +715,11 @@ function createInteractionStore() {
 		copySelected() {
 			if (state.selectedCells.size === 0) return;
 
+			const colsToUse = state.visibleColumnsOrder.length > 0 ? state.visibleColumnsOrder : ['name'];
 			const selectedRowIds = state.currentVisibleCardIds.filter(id => 
-				state.visibleColumnsOrder.some(col => state.selectedCells.has(`${id}:${col}`))
+				colsToUse.some(col => state.selectedCells.has(`${id}:${col}`))
 			);
-			const selectedCols = state.visibleColumnsOrder.filter(col => 
+			const selectedCols = colsToUse.filter(col => 
 				state.currentVisibleCardIds.some(id => state.selectedCells.has(`${id}:${col}`))
 			);
 
