@@ -391,7 +391,7 @@
 			0 0 0 1px hsla(255, 100%, 100%, 0.04);
 		pointer-events: auto;
 		outline: none;
-		overflow: hidden;
+		overflow: visible;
 	}
 
 	.menu-items {

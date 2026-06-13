@@ -264,6 +264,8 @@ function getCardCellValue(card, columnKey) {
  * @property {number | null} menuPrice - The price of the menu card
  * @property {boolean} isMenuOpen - Whether the context menu is currently visible
  * @property {{x: number, y: number} | null} menuPosition
+ * @property {any[] | null} menuCustomItems
+ * @property {string} menuHeaderTitle
  * @property {any[]} activeAnimations - Array of active card move animations
  * @property {string | null} editingCardId - The ID of the card currently being edited inline
  * @property {Object} quantityModal
@@ -311,6 +313,8 @@ function createInteractionStore() {
 		menuPrice: null,
 		isMenuOpen: false,
 		menuPosition: null,
+		menuCustomItems: null,
+		menuHeaderTitle: "",
 		activeAnimations: [],
 		editingCardId: null,
 		quantityModal: {
@@ -354,6 +358,15 @@ function createInteractionStore() {
 		copiedColumnKey: null,
 		inlineEditTrigger: null // { cardId, columnKey, initialKey }
 	});
+
+	function closeMenu() {
+		state.isMenuOpen = false;
+		state.menuCard = null;
+		state.menuZone = null;
+		state.menuPrice = null;
+		state.menuCustomItems = null;
+		state.menuHeaderTitle = "";
+	}
 
 	// Global key listener
 	if (typeof window !== 'undefined') {
@@ -570,15 +583,17 @@ function createInteractionStore() {
 		get menuPrice() { return state.menuPrice; },
 		get isMenuOpen() { return state.isMenuOpen; },
 		set isMenuOpen(val) {
-			state.isMenuOpen = val;
 			if (!val) {
-				state.menuCard = null;
-				state.menuZone = null;
-				state.menuPrice = null;
+				closeMenu();
+			} else {
+				state.isMenuOpen = true;
 			}
 		},
 		get menuPosition() { return state.menuPosition; },
 		get menuHeader() {
+			if (state.menuCustomItems) {
+				return state.menuHeaderTitle;
+			}
 			if (!state.menuCard) return "";
 			const isFromSearch = state.menuZone === 'scryfall' || state.menuZone === 'budget-edh-26.2' || state.menuZone === 'budget-staples' || state.menuZone === 'garbage';
 			if (isFromSearch) return state.menuCard.name;
@@ -1160,7 +1175,7 @@ function createInteractionStore() {
 		showChangePrintingsModal(selectedCards) {
 			state.changePrintingsModal.selectedCards = selectedCards;
 			state.changePrintingsModal.isOpen = true;
-			state.isMenuOpen = false;
+			closeMenu();
 		},
 
 		closeChangePrintingsModal() {
@@ -1175,7 +1190,7 @@ function createInteractionStore() {
 		 */
 		showPrintingPickerModal(card, zone, price) {
 			state.printingPickerModal = { isOpen: true, card, zone, price };
-			state.isMenuOpen = false;
+			closeMenu();
 		},
 
 		closePrintingPickerModal() {
@@ -1192,7 +1207,7 @@ function createInteractionStore() {
 		startEditing(id, zone, price) {
 			state.editingCardId = id;
 			state.hoveredCard = null; // Prevent tooltip while editing
-			state.isMenuOpen = false;
+			closeMenu();
 		},
 
 		stopEditing() {
@@ -1230,7 +1245,120 @@ function createInteractionStore() {
 			state.isMenuOpen = true;
 		},
 
+		/**
+		 * @param {MouseEvent} e
+		 * @param {string} columnLabel
+		 * @param {any[]} columnCards
+		 */
+		showColumnMenu(e, columnLabel, columnCards) {
+			e.preventDefault();
+			e.stopPropagation();
+
+			if (!columnCards || columnCards.length === 0) return;
+
+			const selectedCards = columnCards.map(c => ({ ...c, board: deckStore.activeBoard }));
+
+			const items = [
+				{
+					label: "Select cards in stack",
+					action: () => {
+						const cellsSet = new Set();
+						for (const card of columnCards) {
+							cellsSet.add(`${card.id}:name`);
+						}
+						this.setSelectedCells(cellsSet);
+					}
+				},
+				{
+					label: "Delete cards in stack",
+					danger: true,
+					action: () => {
+						deckStore.batchUpdate(() => {
+							for (const card of columnCards) {
+								deckStore.removeAllCopies(card.name, deckStore.activeBoard);
+							}
+						});
+					}
+				},
+				{
+					label: "Change Printings",
+					action: () => {
+						this.showChangePrintingsModal(selectedCards);
+					}
+				},
+				{
+					label: "Copy card names",
+					submenu: [
+						{
+							label: "Copy names only",
+							action: () => {
+								const val = selectedCards.map(c => c.name).join("\n");
+								navigator.clipboard.writeText(val);
+							}
+						},
+						{
+							label: "Copy with quantities",
+							action: () => {
+								const val = selectedCards.map(c => {
+									const qty = getCardCellValue(c, 'qty');
+									return `${qty} ${c.name}`;
+								}).join("\n");
+								navigator.clipboard.writeText(val);
+							}
+						},
+						{
+							label: "Copy with printings",
+							action: () => {
+								const val = selectedCards.map(c => {
+									const meta = deckStore.metadata[c.name.toLowerCase()] || {};
+									const set = c.set || meta.set;
+									const num = c.collector_number || meta.collector_number;
+									if (set) {
+										return `${c.name} (${set.toUpperCase()}) ${num || ""}`.trim();
+									}
+									return c.name;
+								}).join("\n");
+								navigator.clipboard.writeText(val);
+							}
+						},
+						{
+							label: "Copy with quantities and printings",
+							action: () => {
+								const val = selectedCards.map(c => {
+									const qty = getCardCellValue(c, 'qty');
+									const meta = deckStore.metadata[c.name.toLowerCase()] || {};
+									const set = c.set || meta.set;
+									const num = c.collector_number || meta.collector_number;
+									if (set) {
+										return `${qty} ${c.name} (${set.toUpperCase()}) ${num || ""}`.trim();
+									}
+									return `${qty} ${c.name}`;
+								}).join("\n");
+								navigator.clipboard.writeText(val);
+							}
+						},
+						{
+							label: "Copy Scryfall IDs",
+							action: () => {
+								const val = selectedCards.map(c => {
+									const meta = deckStore.metadata[c.name.toLowerCase()] || {};
+									return c.scryfallId || meta.id || "";
+								}).filter(Boolean).join("\n");
+								navigator.clipboard.writeText(val);
+							}
+						}
+					]
+				}
+			];
+
+			state.menuHeaderTitle = columnLabel;
+			state.menuCustomItems = items;
+			state.menuPosition = { x: e.clientX, y: e.clientY };
+			state.isMenuOpen = true;
+		},
+
 		get menuItems() {
+			if (state.menuCustomItems) return state.menuCustomItems;
 			if (!state.menuCard) return [];
 			const name = /** @type {string} */ (state.menuCard.name);
 			const zone = /** @type {string} */ (state.menuZone);

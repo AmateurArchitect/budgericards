@@ -792,6 +792,8 @@
 						isLands && typeGroups.length === 0
 							? Math.max(colTrack, layoutStore.numCols)
 							: colTrack}
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
 						class="grid-cell column-header-cell"
 						class:shifted-right={shouldShift && insertDropZoneActive !== null && activeColIdx !== -1 && activeColIdx >= insertDropZoneActive}
@@ -802,6 +804,29 @@
 							: isLands
 								? 2
 								: rowIdx * 3 + 2};"
+						onclick={(e) => {
+							if (renamingColumn === column.key) return;
+							const target = /** @type {HTMLElement} */ (e.target);
+							if (target.closest('.freeform-renameable') || target.closest('.col-rename-input')) return;
+							
+							const columnCards = [];
+							for (const s of column.stacks) {
+								for (const c of s.cards) {
+									columnCards.push(c);
+								}
+							}
+							interactionStore.showColumnMenu(e, column.label || column.key, columnCards);
+						}}
+						oncontextmenu={(e) => {
+							if (renamingColumn === column.key) return;
+							const columnCards = [];
+							for (const s of column.stacks) {
+								for (const c of s.cards) {
+									columnCards.push(c);
+								}
+							}
+							interactionStore.showColumnMenu(e, column.label || column.key, columnCards);
+						}}
 					>
 						<StackHeader
 							label={column.label}
@@ -1558,6 +1583,11 @@
 		width: 100%;
 		padding: 0;
 		margin-bottom: 0;
+	}
+
+	.column-header-cell {
+		cursor: pointer;
+		user-select: none;
 	}
 
 	.grid-cell {
