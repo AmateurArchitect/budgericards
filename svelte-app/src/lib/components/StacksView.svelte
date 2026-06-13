@@ -77,7 +77,7 @@
 		}
 	}
 
-	let lastTriggerVal = $state(0);
+	let lastTriggerVal = $state(interactionStore.generateTagsTrigger);
 	$effect(() => {
 		if (interactionStore.generateTagsTrigger > lastTriggerVal) {
 			lastTriggerVal = interactionStore.generateTagsTrigger;

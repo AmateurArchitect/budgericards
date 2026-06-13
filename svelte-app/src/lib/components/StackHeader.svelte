@@ -49,9 +49,9 @@
 		<button
 			class="title freeform-renameable"
 			type="button"
-			ondblclick={() => onRename(colKey)}
+			onclick={() => onRename(colKey)}
 			onkeydown={(e) => { if (e.key === 'Enter' || e.key === 'F2') onRename(colKey); }}
-			title="Double-click or press Enter to rename"
+			title="Click or press Enter to rename"
 		>
 			{label}
 		</button>

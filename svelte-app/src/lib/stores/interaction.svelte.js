@@ -812,10 +812,12 @@ function createInteractionStore() {
 								deckStore.resetCardOverride(id, 'manaValue');
 							} else if (col === 'type') {
 								deckStore.resetCardOverride(id, 'primaryType');
-							} else if (col === 'color-cat') {
+							} else if (col === 'color-cat' || col === 'color-id') {
 								deckStore.resetCardOverride(id, 'colorCategory');
 								deckStore.resetCardOverride(id, 'colors');
 								deckStore.resetCardOverride(id, 'colorIdentity');
+							} else if (col === 'tags') {
+								deckStore.reorderCardTags(id, []);
 							}
 						}
 					}
