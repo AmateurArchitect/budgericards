@@ -861,7 +861,14 @@ function createInteractionStore() {
 				const isRangeSelected = state.selectedCells.size > 1;
 
 				const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-				const looksLikeCardList = lines.length > 1 || /^(?:x\s*(\d+)|(\d+)\s*x?)\s+(.+)$/i.test(lines[0]) || !isRangeSelected;
+				
+				let startColKey = state.selectionFocus?.columnKey;
+				if (!startColKey && state.selectedCells.size === 1) {
+					const cellArray = [...state.selectedCells];
+					startColKey = cellArray[0].split(':')[1];
+				}
+				const isPastingToNonNameColumn = startColKey && startColKey !== 'name';
+				const looksLikeCardList = !isPastingToNonNameColumn && (lines.length > 1 || /^(?:x\s*(\d+)|(\d+)\s*x?)\s+(.+)$/i.test(lines[0]) || !isRangeSelected);
 
 				if (isRangeSelected || (isSingleCellSelected && !looksLikeCardList)) {
 					if (rows.length > 0) {
@@ -948,6 +955,9 @@ function createInteractionStore() {
 															}
 														}
 													}
+												} else if (colKey === 'tags') {
+													const tagList = val.split(',').map(t => t.trim()).filter(Boolean);
+													deckStore.reorderCardTags(cardId, tagList);
 												}
 											}
 										}
