@@ -357,9 +357,7 @@
 		left: 100%;
 		top: -5px;
 		min-width: 220px;
-		background: hsla(var(--popover) / 0.85);
-		backdrop-filter: blur(20px) saturate(180%);
-		-webkit-backdrop-filter: blur(20px) saturate(180%);
+		background: hsl(var(--popover));
 		border: 1px solid hsla(var(--border) / 0.6);
 		border-radius: var(--radius);
 		padding: 5px;
@@ -380,9 +378,7 @@
 	.context-menu {
 		position: absolute;
 		min-width: 200px;
-		background: hsla(var(--popover) / 0.85);
-		backdrop-filter: blur(20px) saturate(180%);
-		-webkit-backdrop-filter: blur(20px) saturate(180%);
+		background: hsl(var(--popover));
 		border: 1px solid hsla(var(--border) / 0.6);
 		border-radius: var(--radius);
 		padding: 5px;

@@ -345,6 +345,7 @@
 		if (internalData) {
 			e.preventDefault();
 			e.stopPropagation();
+			handleGlobalDragEnd();
 			const data = JSON.parse(internalData);
 			const targetCol =
 				e.target instanceof HTMLElement
@@ -566,6 +567,7 @@
 		if (!internalData) return;
 		e.preventDefault();
 		e.stopPropagation();
+		handleGlobalDragEnd();
 		const data = JSON.parse(internalData);
 		
 		const insertIndex = mapActiveToFreeformIndex(activeIndex);

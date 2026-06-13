@@ -1297,7 +1297,7 @@ function createInteractionStore() {
 							}
 						},
 						{
-							label: "Copy with quantities",
+							label: "Copy with qty",
 							action: () => {
 								const val = selectedCards.map(c => {
 									const qty = getCardCellValue(c, 'qty');
@@ -1307,7 +1307,7 @@ function createInteractionStore() {
 							}
 						},
 						{
-							label: "Copy with printings",
+							label: "Copy with prints",
 							action: () => {
 								const val = selectedCards.map(c => {
 									const meta = deckStore.metadata[c.name.toLowerCase()] || {};
@@ -1322,7 +1322,7 @@ function createInteractionStore() {
 							}
 						},
 						{
-							label: "Copy with quantities and printings",
+							label: "Copy with qty and prints",
 							action: () => {
 								const val = selectedCards.map(c => {
 									const qty = getCardCellValue(c, 'qty');
@@ -1529,7 +1529,7 @@ function createInteractionStore() {
 							}
 						},
 						{
-							label: "Copy with quantities",
+							label: "Copy with qty",
 							action: () => {
 								const val = selectedCards.map(c => {
 									const qty = getCardCellValue(c, 'qty');
@@ -1539,7 +1539,7 @@ function createInteractionStore() {
 							}
 						},
 						{
-							label: "Copy with printings",
+							label: "Copy with prints",
 							action: () => {
 								const val = selectedCards.map(c => {
 									const meta = deckStore.metadata[c.name.toLowerCase()] || {};
@@ -1554,7 +1554,7 @@ function createInteractionStore() {
 							}
 						},
 						{
-							label: "Copy with quantities and printings",
+							label: "Copy with qty and prints",
 							action: () => {
 								const val = selectedCards.map(c => {
 									const qty = getCardCellValue(c, 'qty');
