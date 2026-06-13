@@ -123,9 +123,9 @@
 			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
 			for (const id of selectedIds) {
 				for (const board of boards) {
-					const boardArray = deckStore[board];
+					const boardArray = (/** @type {any} */ (deckStore))[board];
 					if (boardArray) {
-						const found = boardArray.find(c => c.id === id);
+						const found = boardArray.find((/** @type {any} */ c) => c.id === id);
 						if (found) {
 							selectedCards.push({
 								name: found.name,

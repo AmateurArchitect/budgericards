@@ -1310,38 +1310,7 @@
 		font-size: 0.6875rem;
 	}
 
-	.large-search-warning {
-		flex: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 1rem 2rem;
-		width: 100%;
-	}
 
-	.warning-box {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		background: hsl(var(--muted) / 0.2);
-		border: 1px solid hsl(var(--border));
-		padding: 0.75rem 1.25rem;
-		border-radius: var(--radius);
-		max-width: 600px;
-		line-height: 1.4;
-		color: hsl(var(--muted-foreground));
-		font-size: 0.8125rem;
-	}
-
-	:global(.warning-box .warning-icon) {
-		color: hsl(var(--primary));
-		flex-shrink: 0;
-	}
-
-	.matches-count-bold {
-		color: hsl(var(--foreground));
-		font-weight: 700;
-	}
 
 	.override-link-btn {
 		background: none;

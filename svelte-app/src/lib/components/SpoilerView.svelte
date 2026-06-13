@@ -106,6 +106,7 @@
 		if (internalData) {
 			e.preventDefault();
 			e.stopPropagation();
+			const data = JSON.parse(internalData);
 			const cardsToProcess = data.selectedCards || [data];
 			deckStore.batchUpdate(() => {
 				for (const item of cardsToProcess) {
