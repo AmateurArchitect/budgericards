@@ -44,11 +44,14 @@
 	let showViewOptionsModal = $state(false);
 	let showAboutModal = $state(false);
 
+	let hasInitializedView = $state(false);
+
 	$effect(() => {
-		if (authStore.isAuthenticated && authStore.user && !authStore.isLoading) {
+		if (authStore.isAuthenticated && authStore.user && !authStore.isLoading && !hasInitializedView) {
 			const defaultView = authStore.user.user_metadata?.default_view;
-			if (defaultView && settingsStore.deckViewMode !== defaultView) {
+			if (defaultView) {
 				settingsStore.deckViewMode = defaultView;
+				hasInitializedView = true;
 			}
 		}
 	});
