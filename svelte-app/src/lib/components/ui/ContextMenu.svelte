@@ -271,7 +271,7 @@
 								{/if}
 							</button>
 
-							{#if item.submenu && activeSubmenuItem === item}
+							{#if item.submenu && activeSubmenuItem?.label === item.label}
 								<div 
 									class="submenu-container" 
 									class:open-left={menuLeft + 400 > window.innerWidth}
