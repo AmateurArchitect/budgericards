@@ -297,11 +297,13 @@
 	}
 
 	.page-header h1 {
-		font-size: 1.5rem;
-		font-weight: 600;
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+		font-size: 1.85rem;
+		font-weight: 500;
+		font-style: italic;
 		color: hsl(var(--foreground));
 		margin: 0;
-		letter-spacing: -0.015em;
+		letter-spacing: -0.01em;
 	}
 
 	.subtitle {
@@ -320,17 +322,15 @@
 		gap: 2.75rem;
 	}
 
-	/* Minimal Section Divider Layout */
+	/* Minimal Section Layout */
 	.settings-section {
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
-		border-bottom: 1px solid hsl(var(--border) / 0.4);
 		padding-bottom: 2.25rem;
 	}
 
 	.settings-section:last-of-type {
-		border-bottom: none;
 		padding-bottom: 0.5rem;
 	}
 
@@ -341,9 +341,11 @@
 	}
 
 	.section-header h2 {
-		font-size: 0.9375rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+		font-size: 1.125rem;
+		font-style: italic;
+		font-weight: 500;
+		color: hsl(var(--primary));
 		margin: 0;
 	}
 
