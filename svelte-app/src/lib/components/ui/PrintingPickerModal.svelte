@@ -348,6 +348,14 @@
 	function handleKeydown(e) {
 		if (e.key === "Escape") interactionStore.closePrintingPickerModal();
 	}
+
+	let badgeCycleIndex = $state(0);
+	onMount(() => {
+		const interval = setInterval(() => {
+			badgeCycleIndex++;
+		}, 2500);
+		return () => clearInterval(interval);
+	});
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -541,11 +549,13 @@
 							>
 								<!-- Diagonal sash for top priority badge -->
 								{#if badges.length > 0}
-									{@const topBadge = badges[0]}
+									{@const topBadge = badges[badgeCycleIndex % badges.length]}
 									<div class="sash-container">
-										<div class="sash {topBadge.cls}">
-											{topBadge.label}
-										</div>
+										{#key topBadge.label}
+											<div class="sash {topBadge.cls}" in:fade={{ duration: 200 }}>
+												{topBadge.label}
+											</div>
+										{/key}
 									</div>
 								{/if}
 
