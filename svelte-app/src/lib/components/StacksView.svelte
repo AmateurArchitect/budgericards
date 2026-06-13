@@ -110,11 +110,25 @@
 	}
 	/** @type {string[]} */
 	let freeformColumnOrder = $state([]);
+
+	const layoutData = $derived(
+		engine.calculateLayout({
+			freeformLayout,
+			freeformColumnOrder,
+		}),
+	);
+	/** @type {any[]} */
+	const rows = $derived(layoutData.rows || layoutData); // Handle both old and new return types
+	/** @type {any[]} */
+	const typeGroups = $derived(layoutData.typeGroups || []);
+	const columnTrackMap = $derived(layoutData.columnTrackMap || new Map());
+	const masterColCount = $derived(layoutData.masterColCount || 0);
+
 	let renamingColumn = $state(/** @type {string | null} */ (null));
 	let renameValue = $state("");
 	let insertDropZoneActive = $state(/** @type {number | null} */ (null));
 	let isDraggingCard = $state(false);
-	const activeColKeys = $derived(rows[0] ? rows[0].columns.filter((c) => c.key !== "Special").map((c) => c.key) : []);
+	const activeColKeys = $derived(rows[0] ? rows[0].columns.filter((/** @type {any} */ c) => c.key !== "Special").map((/** @type {any} */ c) => c.key) : []);
 	const activeInsertIndices = $derived(Array.from({ length: activeColKeys.length + 1 }, (_, i) => i));
 	const shouldShift = $derived(insertDropZoneActive !== null && !isBigGap(insertDropZoneActive));
 
@@ -173,10 +187,9 @@
 
 	/** 
 	 * @param {number} i 
-	 * @param {number | null} activeZoneIdx
 	 * @returns {{ left: string, width: string }}
 	 */
-	function getDropZonePosition(i, activeZoneIdx) {
+	function getDropZonePosition(i) {
 		const N = activeColKeys.length;
 		const hasSpecial = columnTrackMap.has("Special");
 		const specialOffset = hasSpecial ? 1 : 0;
@@ -215,15 +228,6 @@
 			const rightLimit = `calc((${trackRight - 1}) * (var(--card-width) + var(--column-gap)) + 12px)`;
 			
 			widthStr = `calc(${rightLimit} - ${leftStr})`;
-		}
-
-		// Apply shifting if activeZoneIdx is set and it's a standard (not big) gap
-		if (activeZoneIdx !== null && !isBigGap(activeZoneIdx)) {
-			if (i > activeZoneIdx) {
-				leftStr = `calc(${leftStr} + 48px)`;
-			} else if (i === activeZoneIdx) {
-				widthStr = `calc(${widthStr} + 48px)`;
-			}
 		}
 
 		return { left: leftStr, width: widthStr };
@@ -629,15 +633,6 @@
 		};
 	});
 
-	const layoutData = $derived(
-		engine.calculateLayout({
-			freeformLayout,
-			freeformColumnOrder,
-		}),
-	);
-	/** @type {any[]} */
-	const rows = $derived(layoutData.rows || layoutData); // Handle both old and new return types
-
 	$effect(() => {
 		/** @type {string[]} */
 		const visibleIds = [];
@@ -656,10 +651,6 @@
 		}
 		interactionStore.currentVisibleCardIds = visibleIds;
 	});
-	/** @type {any[]} */
-	const typeGroups = $derived(layoutData.typeGroups || []);
-	const columnTrackMap = $derived(layoutData.columnTrackMap || new Map());
-	const masterColCount = $derived(layoutData.masterColCount || 0);
 
 	const gridTemplateColumns = $derived.by(() => {
 		const baseCount = Math.max(masterColCount, layoutStore.numCols);
@@ -803,7 +794,7 @@
 							: colTrack}
 					<div
 						class="grid-cell column-header-cell"
-						class:shifted-right={shouldShift && activeColIdx !== -1 && activeColIdx >= insertDropZoneActive}
+						class:shifted-right={shouldShift && insertDropZoneActive !== null && activeColIdx !== -1 && activeColIdx >= insertDropZoneActive}
 						data-column-key={column.key}
 						style="grid-column: {finalColTrack}; grid-row: {typeGroups.length >
 						0
@@ -844,7 +835,7 @@
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
 					class="grid-cell stack-container-cell"
-					class:shifted-right={shouldShift && activeColIdx !== -1 && activeColIdx >= insertDropZoneActive}
+					class:shifted-right={shouldShift && insertDropZoneActive !== null && activeColIdx !== -1 && activeColIdx >= insertDropZoneActive}
 					role="presentation"
 					data-column-key={column.key}
 					onmouseenter={() => {
@@ -1409,11 +1400,10 @@
 		{#if deckStore.grouping === 'freeform' && isDraggingCard}
 			<div class="freeform-drop-zones-overlay">
 				{#each activeInsertIndices as i (i)}
-					{@const pos = getDropZonePosition(i, insertDropZoneActive)}
+					{@const pos = getDropZonePosition(i)}
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
 						class="freeform-insert-zone"
-						class:active={insertDropZoneActive === i}
 						style="left: {pos.left}; width: {pos.width};"
 						ondragover={(e) => {
 							e.preventDefault();
@@ -1424,7 +1414,14 @@
 						}}
 						ondrop={(e) => handleInsertZoneDrop(e, i)}
 					>
-						<div class="insert-zone-line" class:big-gap={isBigGap(i)}></div>
+						<div
+							class="insert-zone-visual"
+							class:active={insertDropZoneActive === i}
+							class:shifted={shouldShift && insertDropZoneActive !== null && i > insertDropZoneActive}
+							class:widened={shouldShift && insertDropZoneActive === i}
+						>
+							<div class="insert-zone-line" class:big-gap={isBigGap(i)}></div>
+						</div>
 					</div>
 				{/each}
 			</div>
@@ -1475,14 +1472,33 @@
 		bottom: 0;
 		pointer-events: auto;
 		cursor: cell;
+	}
+
+	.insert-zone-visual {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		pointer-events: none;
 		display: flex;
 		justify-content: center;
 		align-items: center;
 		box-sizing: border-box;
 		border: 2px dashed transparent;
 		border-radius: var(--radius-md);
-		transition: left 0.25s cubic-bezier(0.25, 1, 0.5, 1), width 0.25s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.15s ease, border-color 0.15s ease;
+		transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), width 0.25s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.15s ease, border-color 0.15s ease;
 		transition-delay: 50ms, 50ms, 0s, 0s;
+		transform-origin: left center;
+		width: 100%;
+	}
+
+	.insert-zone-visual.shifted {
+		transform: translateX(48px);
+	}
+
+	.insert-zone-visual.widened {
+		width: calc(100% + 48px);
 	}
 
 	.insert-zone-line {
@@ -1500,12 +1516,12 @@
 		border: 1px dashed hsl(var(--primary) / 0.12);
 	}
 
-	.freeform-insert-zone.active {
+	.insert-zone-visual.active {
 		border-color: hsl(var(--primary) / 0.4);
 		background-color: hsl(var(--primary) / 0.04);
 	}
 
-	.freeform-insert-zone.active .insert-zone-line {
+	.insert-zone-visual.active .insert-zone-line {
 		opacity: 0;
 	}
 
