@@ -1402,13 +1402,17 @@
 				{#each activeInsertIndices as i (i)}
 					{@const pos = getDropZonePosition(i)}
 					<div
-						class="insert-zone-visual"
-						class:active={insertDropZoneActive === i}
-						class:shifted={shouldShift && insertDropZoneActive !== null && i > insertDropZoneActive}
-						class:widened={shouldShift && insertDropZoneActive === i}
+						class="insert-zone-visual-container"
 						style="left: {pos.left}; width: {pos.width};"
 					>
-						<div class="insert-zone-line" class:big-gap={isBigGap(i)}></div>
+						<div
+							class="insert-zone-visual"
+							class:active={insertDropZoneActive === i}
+							class:shifted={shouldShift && insertDropZoneActive !== null && i > insertDropZoneActive}
+							class:widened={shouldShift && insertDropZoneActive === i}
+						>
+							<div class="insert-zone-line" class:big-gap={isBigGap(i)}></div>
+						</div>
 					</div>
 				{/each}
 			</div>
@@ -1460,6 +1464,7 @@
 		/* Enforce header rows to stay compact while allowing stacks to grow */
 		grid-template-rows: repeat(2, min-content) 1fr;
 		position: relative;
+		isolation: isolate;
 	}
 
 	.freeform-drop-zones-visual-overlay {
@@ -1469,7 +1474,7 @@
 		right: 0;
 		bottom: 0;
 		pointer-events: none;
-		z-index: 0;
+		z-index: -1;
 	}
 
 	.freeform-drop-zones-hitbox-overlay {
@@ -1490,9 +1495,18 @@
 		cursor: cell;
 	}
 
+	.insert-zone-visual-container {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		pointer-events: none;
+	}
+
 	.insert-zone-visual {
 		position: absolute;
 		top: 0;
+		left: 0;
+		right: 0;
 		bottom: 0;
 		pointer-events: none;
 		display: flex;
@@ -1504,6 +1518,7 @@
 		transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), width 0.25s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.15s ease, border-color 0.15s ease;
 		transition-delay: 50ms, 50ms, 0s, 0s;
 		transform-origin: left center;
+		width: 100%;
 	}
 
 	.insert-zone-visual.shifted {
