@@ -196,6 +196,26 @@
 					{/each}
 				</div>
 
+				<!-- Section: Privacy & Performance -->
+				<div class="section-title">Privacy & Performance</div>
+				<div class="form-group toggle-group-row">
+					<div class="toggle-text-block">
+						<label for="enable-clipboard-preload" class="toggle-label-main">Speculative Clipboard Preloading</label>
+						<p class="toggle-description">
+							Scans your clipboard for valid MTG decklists when returning to the tab. Cards and images are preloaded locally in the background for instant imports. Clipboard data is never stored or sent to any server.
+						</p>
+					</div>
+					<label class="switch">
+						<input
+							type="checkbox"
+							id="enable-clipboard-preload"
+							bind:checked={settingsStore.enableClipboardPreload}
+							disabled={isSubmitting}
+						/>
+						<span class="slider"></span>
+					</label>
+				</div>
+
 				<div class="actions-row">
 					<a href="/" class="cancel-link">Cancel</a>
 					<Button type="submit" variant="default" class="submit-btn" disabled={isSubmitting}>
@@ -489,5 +509,85 @@
 	@keyframes spin {
 		from { transform: rotate(0deg); }
 		to { transform: rotate(360deg); }
+	}
+
+	/* Toggle group row layout */
+	.toggle-group-row {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1.5rem;
+		padding: 0.5rem 0;
+	}
+
+	.toggle-text-block {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		flex: 1;
+	}
+
+	.toggle-label-main {
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+	}
+
+	.toggle-description {
+		font-size: 0.8125rem;
+		color: hsl(var(--muted-foreground));
+		line-height: 1.4;
+		margin: 0;
+	}
+
+	/* Switch component */
+	.switch {
+		position: relative;
+		display: inline-block;
+		width: 32px;
+		height: 18px;
+		flex-shrink: 0;
+		margin-top: 2px;
+	}
+
+	.switch input {
+		opacity: 0;
+		width: 0;
+		height: 0;
+	}
+
+	.slider {
+		position: absolute;
+		cursor: pointer;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: hsl(var(--muted));
+		transition: 0.2s;
+		border-radius: var(--radius-lg);
+		border: 1px solid hsl(var(--border));
+	}
+
+	.slider:before {
+		position: absolute;
+		content: "";
+		height: 12px;
+		width: 12px;
+		left: 2px;
+		bottom: 2px;
+		background-color: hsl(var(--muted-foreground));
+		transition: 0.2s;
+		border-radius: 50%;
+	}
+
+	input:checked + .slider {
+		background-color: hsl(var(--primary) / 0.2);
+		border-color: hsl(var(--primary) / 0.5);
+	}
+
+	input:checked + .slider:before {
+		transform: translateX(14px);
+		background-color: hsl(var(--primary));
 	}
 </style>

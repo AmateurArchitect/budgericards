@@ -19,6 +19,7 @@ function createSettings() {
 	let visibleColumns = $state(['mana', 'cmc', 'type', 'printing', 'color-cat', 'color-id', 'tags', 'price']);
 	let showTotalPrice = $state(false);
 	let spoilerCardSize = $state(0.50);
+	let enableClipboardPreload = $state(false);
 
 	if (browser) {
 		const isMac = navigator.userAgent.includes('Mac');
@@ -53,6 +54,7 @@ function createSettings() {
 		showTotalPrice = localStorage.getItem('budgericards_show_total_price') === 'true';
 		const savedSize = localStorage.getItem('budgericards_spoiler_card_size');
 		spoilerCardSize = savedSize ? parseFloat(savedSize) : 0.50;
+		enableClipboardPreload = localStorage.getItem('budgericards_enable_clipboard_preload') === 'true';
 	}
 
 	return {
@@ -156,6 +158,11 @@ function createSettings() {
 			const snappedVal = Math.round(numVal * 20) / 20;
 			spoilerCardSize = snappedVal;
 			if (browser) localStorage.setItem('budgericards_spoiler_card_size', String(snappedVal));
+		},
+		get enableClipboardPreload() { return enableClipboardPreload; },
+		set enableClipboardPreload(val) {
+			enableClipboardPreload = val;
+			if (browser) localStorage.setItem('budgericards_enable_clipboard_preload', String(val));
 		}
 	};
 }
