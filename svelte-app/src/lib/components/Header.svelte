@@ -957,13 +957,6 @@
 		text-align: right;
 	}
 
-	.logo-link {
-		text-decoration: none;
-		display: flex;
-		align-items: center;
-		padding: 0.375rem 0.75rem;
-	}
-
 	.nav-links {
 		display: flex;
 		align-items: center;
@@ -986,32 +979,5 @@
 	.nav-item:hover,
 	.nav-item.active {
 		color: hsl(var(--foreground));
-	}
-
-	.nav-username {
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
-		opacity: 0.8;
-	}
-
-	.nav-divider {
-		width: 1px;
-		height: 14px;
-		background-color: hsl(var(--border) / 0.5);
-	}
-
-	.flex-align-center {
-		display: flex;
-		align-items: center;
-		gap: 0.375rem;
-	}
-
-	.destructive-text {
-		color: #f87171 !important;
-	}
-
-	.destructive-text:hover {
-		color: #ef4444 !important;
 	}
 </style>

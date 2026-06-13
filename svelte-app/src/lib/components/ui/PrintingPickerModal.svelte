@@ -105,24 +105,143 @@
 		return id;
 	}
 
+	/**
+	 * @typedef {Object} SearchTerm
+	 * @property {string | null} key
+	 * @property {string} op
+	 * @property {string} val
+	 */
+
+	/**
+	 * @param {string} query
+	 * @returns {SearchTerm[]}
+	 */
+	function parseSearchQuery(query) {
+		const terms = [];
+		const regex = /(?:(\b\w+)([:=><]+))?(?:"([^"]+)"|'([^']+)'|([^\s]+))/g;
+		let match;
+		while ((match = regex.exec(query)) !== null) {
+			const key = match[1];
+			const op = match[2] || ':';
+			const val = match[3] || match[4] || match[5];
+			if (val) {
+				terms.push({
+					key: key ? key.toLowerCase() : null,
+					op,
+					val: val.toLowerCase()
+				});
+			}
+		}
+		return terms;
+	}
+
+	/**
+	 * @param {any} p
+	 * @param {SearchTerm} term
+	 * @returns {boolean}
+	 */
+	function matchTerm(p, term) {
+		const val = term.val;
+		const op = term.op;
+
+		if (!term.key) {
+			// Generic text search
+			const setCode = (p.set || "").toLowerCase();
+			const setName = (p.set_name || "").toLowerCase();
+			const collectorNum = (p.collector_number || "").toLowerCase();
+			const artist = (p.artist || "").toLowerCase();
+			const priceStr = getDisplayPrice(p).toLowerCase();
+			return (
+				setCode.includes(val) ||
+				setName.includes(val) ||
+				collectorNum.includes(val) ||
+				artist.includes(val) ||
+				priceStr.includes(val)
+			);
+		}
+
+		switch (term.key) {
+			case 'artist':
+			case 'a':
+				return (p.artist || "").toLowerCase().includes(val);
+			case 'set':
+			case 's':
+				return (
+					(p.set || "").toLowerCase() === val ||
+					(p.set_name || "").toLowerCase().includes(val)
+				);
+			case 'cn':
+			case 'number':
+			case 'n':
+				return (p.collector_number || "").toLowerCase() === val;
+			case 'rarity':
+			case 'r':
+				return (p.rarity || "").toLowerCase().startsWith(val);
+			case 'frame':
+				return (p.frame || "").toLowerCase() === val;
+			case 'border':
+				return (p.border_color || "").toLowerCase().includes(val);
+			case 'is':
+			case 'not': {
+				let matched = false;
+				if (val === 'foil') {
+					matched = p.finishes?.includes('foil') || !!p.prices?.usd_foil;
+				} else if (val === 'nonfoil') {
+					matched = p.finishes?.includes('nonfoil') || !!p.prices?.usd;
+				} else if (val === 'etched') {
+					matched = p.finishes?.includes('etched') || !!p.prices?.usd_etched;
+				} else if (val === 'promo') {
+					matched = p.promo === true;
+				} else if (val === 'booster') {
+					matched = p.booster === true;
+				} else if (val === 'digital') {
+					matched = p.digital === true;
+				} else if (val === 'textless') {
+					matched = p.textless === true;
+				} else if (val === 'fullart' || val === 'full' || val === 'fa') {
+					matched = p.full_art === true;
+				}
+				return term.key === 'not' ? !matched : matched;
+			}
+			case 'price':
+			case 'usd':
+			case 'usd_foil': {
+				let pPrice = NaN;
+				if (term.key === 'usd') {
+					pPrice = parseFloat(p.prices?.usd);
+				} else if (term.key === 'usd_foil') {
+					pPrice = parseFloat(p.prices?.usd_foil);
+				} else {
+					pPrice = getPriceNumeric(p);
+				}
+				const targetPrice = parseFloat(val);
+				if (isNaN(pPrice) || isNaN(targetPrice)) return false;
+				switch (op) {
+					case '>': return pPrice > targetPrice;
+					case '<': return pPrice < targetPrice;
+					case '>=': return pPrice >= targetPrice;
+					case '<=': return pPrice <= targetPrice;
+					case '=':
+					case ':': return pPrice === targetPrice;
+					default: return pPrice === targetPrice;
+				}
+			}
+			default:
+				return true;
+		}
+	}
+
 	// Filter and Sort Printings
 	const filteredPrintings = $derived.by(() => {
 		let list = [...printings];
 
 		if (searchQuery.trim()) {
-			const q = searchQuery.toLowerCase().trim();
-			list = list.filter((p) => {
-				const setCode = (p.set || "").toLowerCase();
-				const setName = (p.set_name || "").toLowerCase();
-				const collectorNum = (p.collector_number || "").toLowerCase();
-				const priceStr = getDisplayPrice(p).toLowerCase();
-				return (
-					setCode.includes(q) ||
-					setName.includes(q) ||
-					collectorNum.includes(q) ||
-					priceStr.includes(q)
-				);
-			});
+			const terms = parseSearchQuery(searchQuery);
+			if (terms.length > 0) {
+				list = list.filter((p) => {
+					return terms.every((term) => matchTerm(p, term));
+				});
+			}
 		}
 
 		list.sort((a, b) => {
