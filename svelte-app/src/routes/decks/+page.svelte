@@ -304,9 +304,7 @@
 	}
 
 	function handleNewDeckLink() {
-		if (typeof window !== "undefined") {
-			window.open("/?new_deck=true", "_blank");
-		}
+		goto("/?new_deck=true");
 	}
 </script>
 
