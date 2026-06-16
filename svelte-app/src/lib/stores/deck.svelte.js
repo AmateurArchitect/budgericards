@@ -652,6 +652,15 @@ function createDeck() {
 			lastCleanText = currentClean;
 		});
 
+		let lastViewMode = '';
+		$effect(() => {
+			const currentView = settingsStore.deckViewMode;
+			if (currentView === 'list' && lastViewMode !== 'list') {
+				activeDeck.importText = cleanDecklistTextFor(activeDeck);
+			}
+			lastViewMode = currentView;
+		});
+
 		$effect(() => {
 			if (browser && activeDeck.deck.id) {
 				const allCards = [
@@ -941,12 +950,12 @@ function createDeck() {
 			if (pc.metadata) {
 				deckState.metadata[pc.name.toLowerCase()] = pc.metadata;
 			} else if (pc.set) {
-				deckState.metadata[pc.name.toLowerCase()] = {
-					set: pc.set.toLowerCase(),
-					collector_number: pc.collector_number
-				};
-			} else {
-				delete deckState.metadata[pc.name.toLowerCase()];
+				if (!deckState.metadata[pc.name.toLowerCase()]) {
+					deckState.metadata[pc.name.toLowerCase()] = {
+						set: pc.set.toLowerCase(),
+						collector_number: pc.collector_number
+					};
+				}
 			}
 
 			const price = pc.metadata ? (parseFloat(pc.metadata.prices?.usd || pc.metadata.prices?.usd_foil) || 0) : 0;
