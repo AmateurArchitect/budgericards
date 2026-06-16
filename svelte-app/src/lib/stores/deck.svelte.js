@@ -52,7 +52,7 @@ function createDeckState(initialData = null) {
 	let metadata = $state({
 		createdBy: initialData?.metadata?.createdBy || 'Anonymous',
 		createdAt: initialData?.metadata?.createdAt || Date.now(),
-		updatedAt: initialData?.metadata?.updatedAt || Date.now(),
+		updatedAt: initialData?.metadata?.updatedAt || (initialData?.id ? 0 : Date.now()),
 		...(initialData?.metadata || {})
 	});
 
