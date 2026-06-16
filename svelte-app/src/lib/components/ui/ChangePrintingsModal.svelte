@@ -99,8 +99,8 @@
 								const pName = p.name.toLowerCase();
 								const cName = card.name.toLowerCase();
 								return pName === cName || 
-									(pName.includes(" // ") && pName.split(" // ").map(f => f.trim()).includes(cName)) ||
-									(cName.includes(" // ") && cName.split(" // ").map(f => f.trim()).includes(pName));
+									(pName.includes(" // ") && pName.split(" // ")[0].trim() === cName) ||
+									(cName.includes(" // ") && cName.split(" // ")[0].trim() === pName);
 							});
 							if (exactPrints.length > 0) {
 								let sorted = [...exactPrints];

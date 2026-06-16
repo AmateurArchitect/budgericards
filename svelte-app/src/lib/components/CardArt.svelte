@@ -30,29 +30,31 @@
 		class: className = "",
 	} = $props();
 
+	const actualCard = $derived(card?._metadata || card);
+
 	const isDfc = $derived(
-		card?.card_faces &&
-			card.card_faces.length > 1 &&
-			card.card_faces[0].image_uris,
+		actualCard?.card_faces &&
+			actualCard.card_faces.length > 1 &&
+			actualCard.card_faces[0].image_uris,
 	);
-	const isFlip = $derived(card?.layout === "flip");
+	const isFlip = $derived(actualCard?.layout === "flip");
 
 	const frontLowResUrl = $derived(
 		isDfc
-			? (card.card_faces[0].image_uris.small || card.card_faces[0].image_uris.normal)
-			: card?.image_uris?.small || card?.image_uris?.normal || card?.image || "",
+			? (actualCard.card_faces[0].image_uris.small || actualCard.card_faces[0].image_uris.normal)
+			: actualCard?.image_uris?.small || actualCard?.image_uris?.normal || actualCard?.image || "",
 	);
 	const frontHighResUrl = $derived(
 		isDfc
-			? card.card_faces[0].image_uris.normal
-			: card?.image_uris?.normal || card?.image || "",
+			? actualCard.card_faces[0].image_uris.normal
+			: actualCard?.image_uris?.normal || actualCard?.image || "",
 	);
 
 	const backLowResUrl = $derived(
-		isDfc ? (card.card_faces[1].image_uris.small || card.card_faces[1].image_uris.normal) : "",
+		isDfc ? (actualCard.card_faces[1].image_uris.small || actualCard.card_faces[1].image_uris.normal) : "",
 	);
 	const backHighResUrl = $derived(
-		isDfc ? card.card_faces[1].image_uris.normal : "",
+		isDfc ? actualCard.card_faces[1].image_uris.normal : "",
 	);
 
 	import { checkLegality } from "$lib/utils/legality.js";
@@ -61,7 +63,7 @@
 		price !== null ? `$${Number(price).toFixed(2)}` : "Illegal",
 	);
 
-	const legality = $derived(checkLegality(card));
+	const legality = $derived(checkLegality(actualCard));
 	const isIllegal = $derived(!legality.isLegal);
 
 	let frontLowResLoaded = $state(false);
@@ -226,16 +228,16 @@
 	{#if isDfc || isFlip}
 		<div class="flip-container">
 			<div class="flip-front">
-				{@render CardImage({ lowSrc: frontLowResUrl, highSrc: frontHighResUrl, isLoaded: frontHighResLoaded, card, onLowResLoad: () => { frontLowResLoaded = true; }, loading })}
+				{@render CardImage({ lowSrc: frontLowResUrl, highSrc: frontHighResUrl, isLoaded: frontHighResLoaded, card: actualCard, onLowResLoad: () => { frontLowResLoaded = true; }, loading })}
 			</div>
 			{#if isDfc}
 				<div class="flip-back">
-					{@render CardImage({ lowSrc: backLowResUrl, highSrc: backHighResUrl, isLoaded: backHighResLoaded, card, onLowResLoad: () => { backLowResLoaded = true; } })}
+					{@render CardImage({ lowSrc: backLowResUrl, highSrc: backHighResUrl, isLoaded: backHighResLoaded, card: actualCard, onLowResLoad: () => { backLowResLoaded = true; } })}
 				</div>
 			{/if}
 		</div>
 	{:else}
-		{@render CardImage({ lowSrc: frontLowResUrl, highSrc: frontHighResUrl, isLoaded: frontHighResLoaded, card, onLowResLoad: () => { frontLowResLoaded = true; }, loading })}
+		{@render CardImage({ lowSrc: frontLowResUrl, highSrc: frontHighResUrl, isLoaded: frontHighResLoaded, card: actualCard, onLowResLoad: () => { frontLowResLoaded = true; }, loading })}
 	{/if}
 
 	<!-- Flip Button for DFCs -->

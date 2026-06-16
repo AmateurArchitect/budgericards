@@ -895,10 +895,10 @@
 					isLands && typeGroups.length === 0
 						? Math.max(colTrack, layoutStore.numCols)
 						: colTrack}
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
 					class="grid-cell stack-container-cell"
 					class:shifted-right={shouldShift && insertDropZoneActive !== null && activeColIdx !== -1 && activeColIdx >= insertDropZoneActive}
+					class:row-spacer={!settingsStore.showColumnHeaders && rowIdx > 0}
 					role="presentation"
 					data-column-key={column.key}
 					onmouseenter={() => {
@@ -1645,6 +1645,10 @@
 	}
 	.row-header-cell:first-child {
 		margin-top: 0;
+	}
+
+	.stack-container-cell.row-spacer {
+		margin-top: 2.5rem;
 	}
 
 	.curve-col-stack {
