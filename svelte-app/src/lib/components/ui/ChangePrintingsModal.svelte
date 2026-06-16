@@ -95,7 +95,13 @@
 					if (res.ok) {
 						const result = await res.json();
 						if (result && result.data && result.data.length > 0) {
-							const exactPrints = result.data.filter((/** @type {any} */ p) => p.name.toLowerCase() === card.name.toLowerCase());
+							const exactPrints = result.data.filter((/** @type {any} */ p) => {
+								const pName = p.name.toLowerCase();
+								const cName = card.name.toLowerCase();
+								return pName === cName || 
+									(pName.includes(" // ") && pName.split(" // ").map(f => f.trim()).includes(cName)) ||
+									(cName.includes(" // ") && cName.split(" // ").map(f => f.trim()).includes(pName));
+							});
 							if (exactPrints.length > 0) {
 								let sorted = [...exactPrints];
 								if (rule === 'cheapest') {

@@ -368,7 +368,13 @@
 			if (!res.ok) throw new Error("Failed to load printings");
 			const data = await res.json();
 			const fetchedData = data.data || [];
-			printings = fetchedData.filter((/** @type {any} */ p) => p.name.toLowerCase() === card.name.toLowerCase());
+			printings = fetchedData.filter((/** @type {any} */ p) => {
+				const pName = p.name.toLowerCase();
+				const cName = card.name.toLowerCase();
+				return pName === cName || 
+					(pName.includes(" // ") && pName.split(" // ").map(f => f.trim()).includes(cName)) ||
+					(cName.includes(" // ") && cName.split(" // ").map(f => f.trim()).includes(pName));
+			});
 		} catch (e) {
 			error = "Could not load printings. Check your connection.";
 			console.error(e);

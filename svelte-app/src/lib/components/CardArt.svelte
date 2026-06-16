@@ -376,7 +376,7 @@
 		border: 1px solid rgba(255, 255, 255, 0.2);
 	}
 
-	.card-image-container:hover .hover-legality-label {
+	.card-art:hover .hover-legality-label {
 		opacity: 1;
 		transform: translate(-50%, -50%) scale(1);
 	}
@@ -458,12 +458,12 @@
 		transform: scale(0.8);
 	}
 
-	.card-image-container:hover .flip-btn.hover-only {
+	.card-art:hover .flip-btn.hover-only {
 		opacity: 0.7;
 		transform: scale(1);
 	}
 
-	.card-image-container:hover .flip-btn.hover-only:hover {
+	.card-art:hover .flip-btn.hover-only:hover {
 		opacity: 1;
 		transform: scale(1.15) rotate(45deg);
 	}

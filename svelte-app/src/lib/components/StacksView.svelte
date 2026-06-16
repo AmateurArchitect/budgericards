@@ -765,7 +765,7 @@
 		class="curve-layout"
 		style="grid-template-columns: {gridTemplateColumns}; column-gap: {gridGap};"
 	>
-		{#if typeGroups.length > 0}
+		{#if settingsStore.showColumnHeaders && typeGroups.length > 0}
 			{#each typeGroups as group}
 				<div
 					class="grid-cell group-header-cell"
@@ -782,7 +782,7 @@
 
 		{#each rows as row, rowIdx (row.id)}
 			<!-- Row Headers -->
-			{#if row.label}
+			{#if settingsStore.showColumnHeaders && row.label}
 				{@const totalCols = Math.max(
 					masterColCount,
 					layoutStore.numCols,
