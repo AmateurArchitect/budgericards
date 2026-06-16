@@ -290,6 +290,8 @@
 							</div>
 						{/if}
 
+						{@const spoilerMeta = item.card?._metadata || item.card}
+						{@const spoilerIsDfc = spoilerMeta?.card_faces && spoilerMeta.card_faces.length > 1 && spoilerMeta.card_faces[0]?.image_uris}
 						<CardArt
 							card={item.card}
 							price={item.price}
@@ -299,7 +301,8 @@
 							{toggleRotate}
 							showPrice={settingsStore.showPrices}
 							loading={!item.card}
-							hideControlsUntilHover={true}
+							hideControlsUntilHover={!spoilerIsDfc}
+							flipBelowNameBar={true}
 							lazy={deckStore.totalCount > 125}
 						/>
 					{/snippet}

@@ -12,6 +12,7 @@
 	 * toggleRotate?: (e: MouseEvent) => void,
 	 * showLegalityLabel?: boolean,
 	 * hideControlsUntilHover?: boolean,
+	 * flipBelowNameBar?: boolean,
 	 * lazy?: boolean,
 	 * class?: string
 	 * }} */
@@ -26,6 +27,7 @@
 		toggleRotate,
 		showLegalityLabel = false,
 		hideControlsUntilHover = false,
+		flipBelowNameBar = false,
 		lazy = true,
 		class: className = "",
 	} = $props();
@@ -242,7 +244,7 @@
 
 	<!-- Flip Button for DFCs -->
 		{#if isDfc && toggleFlip}
-			<button class="flip-btn" class:hover-only={hideControlsUntilHover} onclick={toggleFlip} title="Flip Card">
+			<button class="flip-btn" class:hover-only={hideControlsUntilHover} class:below-name-bar={flipBelowNameBar} onclick={toggleFlip} title="Flip Card">
 				<RefreshCw size={14} />
 			</button>
 		{/if}
@@ -445,6 +447,10 @@
 		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 		opacity: 0.7;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+	}
+
+	.flip-btn.below-name-bar {
+		top: 11.2%;
 	}
 
 	.flip-btn:hover {

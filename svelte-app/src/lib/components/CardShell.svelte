@@ -218,7 +218,7 @@
 	draggable="true"
 	role="button"
 	tabindex="0"
-	data-tooltip-img={(!inSearchPanel && !disableTooltip) ? (meta.image_uris?.normal || (meta.card_faces ? meta.card_faces[0].image_uris?.normal : "")) : undefined}
+	data-tooltip-img={(!inSearchPanel && !disableTooltip) ? (meta.card_faces && meta.card_faces.length > 1 && meta.card_faces[0].image_uris ? (isFlipped ? meta.card_faces[1].image_uris?.normal : meta.card_faces[0].image_uris?.normal) : (meta.image_uris?.normal || "")) : undefined}
 	aria-label="{inSearchPanel ? 'Add' : 'Remove'} {card.name}"
 >
 	{@render children({ isDragging, isFlipped, isRotated, toggleFlip, toggleRotate })}
