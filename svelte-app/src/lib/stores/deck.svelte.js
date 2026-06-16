@@ -40,8 +40,8 @@ function createDeckState(initialData = null) {
 		maybeboard: initialData?.maybeboard || [],
 		garbage: initialData?.garbage || [],
 		activeBoard: initialData?.activeBoard || 'mainboard',
-		grouping: initialData?.grouping || 'cmc', 
-		sorting: initialData?.sorting || 'color', 
+		grouping: initialData?.grouping || 'cmc',
+		sorting: initialData?.sorting || 'color',
 		sortAscending: initialData?.sortAscending !== false,
 		splitView: !!initialData?.splitView,
 		coverArt: initialData?.coverArt || null,
@@ -124,7 +124,7 @@ function isDefaultValue(card, metadata, fieldName, value) {
 	}
 
 	if (fieldName === 'colors' || fieldName === 'colorIdentity') {
-		const defaultArr = fieldName === 'colors' 
+		const defaultArr = fieldName === 'colors'
 			? (metadata?.colors || card.colors || [])
 			: (metadata?.color_identity || card.color_identity || []);
 		if (!Array.isArray(value) || !Array.isArray(defaultArr)) return false;
@@ -203,7 +203,7 @@ function createDeck() {
 		saveHistory(activeDeck);
 		isBatching = true;
 		batchNeedsPersist = false;
-		
+
 		try {
 			fn();
 		} finally {
@@ -338,7 +338,7 @@ function createDeck() {
 			if (updatedId) {
 				const oldId = deckState.deck.id;
 				deckState.deck.id = updatedId;
-				
+
 				if (sessionStorage.getItem('budgericards_active_deck_id') === oldId) {
 					sessionStorage.setItem('budgericards_active_deck_id', updatedId);
 				}
@@ -382,10 +382,10 @@ function createDeck() {
 		targetState.deck.coverArt = cloudDeck.cards.coverArt || null;
 		targetState.deck.format = cloudDeck.cards.format || 'Commander';
 		targetState.deck.lastNaturalGrouping = cloudDeck.cards.lastNaturalGrouping || 'cmc';
-		
+
 		Object.assign(targetState.metadata, cloudDeck.cards.metadata || {});
 		targetState.metadata.updatedAt = new Date(cloudDeck.updated_at).getTime();
-		
+
 		persist(targetState);
 	}
 
@@ -471,10 +471,10 @@ function createDeck() {
 			const isUnnamed = !dataToSave.name || dataToSave.name.trim() === '' || dataToSave.name === 'Untitled Deck';
 			if (isUnnamed) {
 				const totalCards = (dataToSave.commander?.length || 0) +
-								   (dataToSave.companion?.length || 0) +
-								   (dataToSave.mainboard?.length || 0) +
-								   (dataToSave.sideboard?.length || 0) +
-								   (dataToSave.maybeboard?.length || 0);
+					(dataToSave.companion?.length || 0) +
+					(dataToSave.mainboard?.length || 0) +
+					(dataToSave.sideboard?.length || 0) +
+					(dataToSave.maybeboard?.length || 0);
 				const isEmpty = totalCards === 0;
 
 				let drafts = JSON.parse(localStorage.getItem('budgericards_local_drafts') || '[]');
@@ -524,7 +524,7 @@ function createDeck() {
 
 	function moveCardInternal(cardName, fromZone, toZone, instanceId, price) {
 		if (fromZone === toZone) return;
-		
+
 		const source = activeDeck.deck[fromZone];
 		const target = activeDeck.deck[toZone];
 		if (!source || !target) return;
@@ -661,7 +661,7 @@ function createDeck() {
 					...activeDeck.deck.sideboard,
 					...activeDeck.deck.maybeboard
 				];
-				const missingMetadata = allCards.some(c => !activeDeck.metadata[c.name.toLowerCase()]);
+				const missingMetadata = allCards.some(c => needsMetadataSync(activeDeck, c.name));
 				if (missingMetadata) {
 					syncMetadata(activeDeck);
 				} else if (activeDeck.autoCommanderPending) {
@@ -678,6 +678,22 @@ function createDeck() {
 		});
 	});
 
+	/**
+	 * @param {any} deckState
+	 * @param {string} name
+	 */
+	function needsMetadataSync(deckState, name) {
+		const meta = deckState.metadata[name.toLowerCase()];
+		if (!meta) return true;
+		if ((meta.card_faces?.length === 0 || !meta.card_faces) && 
+			((meta.type_line && meta.type_line.includes(" // ")) || 
+			 (meta.name && meta.name.includes(" // ")) || 
+			 name.includes(" // "))) {
+			return true;
+		}
+		return false;
+	}
+
 	/** @param {ReturnType<typeof createDeckState>} deckState */
 	function cleanDecklistTextFor(deckState) {
 		let text = '';
@@ -691,7 +707,7 @@ function createDeck() {
 		for (const board of boardsList) {
 			const cards = deckState.deck[board.name] || [];
 			if (cards.length === 0) continue;
-			
+
 			text += `// ${board.label}\n`;
 			/** @type {Record<string, number>} */
 			const counts = {};
@@ -720,11 +736,11 @@ function createDeck() {
 	 */
 	async function syncMetadata(deckState, customNames = null) {
 		if (isSyncing || !browser) return;
-		
+
 		let missingNames;
 		if (customNames) {
 			missingNames = [...new Set(customNames)]
-				.filter(name => name && !deckState.metadata[name.toLowerCase()]);
+				.filter(name => name && needsMetadataSync(deckState, name));
 		} else {
 			const allCards = [
 				...deckState.deck.commander,
@@ -734,7 +750,7 @@ function createDeck() {
 				...deckState.deck.maybeboard
 			];
 			missingNames = [...new Set(allCards.map(c => c.name))]
-				.filter(name => name && !deckState.metadata[name.toLowerCase()]);
+				.filter(name => name && needsMetadataSync(deckState, name));
 		}
 
 		if (missingNames.length === 0) return;
@@ -743,17 +759,17 @@ function createDeck() {
 		try {
 			/** @type {string[]} */
 			const scryfallNames = [];
-			
+
 			for (const requestedName of missingNames) {
 				const lowName = requestedName.toLowerCase();
 				const normalizedName = lowName.replace(/\s+\/\s+/g, ' // ');
-				
+
 				let localCard = await getCardByName(lowName);
 				if (!localCard && normalizedName !== lowName) {
 					localCard = await getCardByName(normalizedName);
 				}
-				
-				if (localCard) {
+
+				if (localCard && !localCard.name.includes(" // ")) {
 					const priceRecord = await db.prices.get(localCard.id);
 					deckState.metadata[lowName] = {
 						image_uris: {
@@ -780,7 +796,7 @@ function createDeck() {
 			if (scryfallNames.length > 0) {
 				console.info(`🔄 Local lookup missed ${scryfallNames.length} cards. Syncing via Scryfall:`, scryfallNames);
 				const results = await fetchCollection(scryfallNames.map(name => ({ name })));
-				
+
 				/** @type {Map<string, any>} */
 				const resultMap = new Map();
 				results.data.forEach(card => {
@@ -798,7 +814,7 @@ function createDeck() {
 					const lowName = requestedName.toLowerCase();
 					const normalizedName = lowName.replace(/\s+\/\s+/g, ' // ');
 					const card = resultMap.get(lowName) || resultMap.get(normalizedName);
-					
+
 					if (card) {
 						deckState.metadata[lowName] = {
 							id: card.id,
@@ -817,7 +833,7 @@ function createDeck() {
 							prices: card.prices
 						};
 					} else {
-						deckState.metadata[lowName] = { 
+						deckState.metadata[lowName] = {
 							notFound: true,
 							name: requestedName,
 							type_line: 'Unknown',
@@ -855,7 +871,7 @@ function createDeck() {
 		if (imageUrls.length === 0) return;
 
 		const uniqueUrls = [...new Set(imageUrls)];
-		
+
 		const preloadPromise = Promise.all(uniqueUrls.map(url => {
 			return new Promise((resolve) => {
 				const img = new Image();
@@ -903,7 +919,7 @@ function createDeck() {
 			deckState.firstPastedName = parsedCards[0]?.name || '';
 			deckState.lastPastedName = parsedCards[parsedCards.length - 1]?.name || '';
 			deckState.autoCommanderPending = true;
-			
+
 			const newCardNames = new Set(parsedCards.filter(c => c.name).map(c => c.name.toLowerCase()));
 			for (const key in deckState.metadata) {
 				if (key !== 'createdBy' && key !== 'createdAt' && key !== 'updatedAt') {
@@ -915,7 +931,7 @@ function createDeck() {
 		}
 
 		saveHistory(deckState);
-		
+
 		for (const pc of parsedCards) {
 			if (!pc.name) continue;
 			const boardName = pc.board || deckState.deck.activeBoard;
@@ -972,14 +988,14 @@ function createDeck() {
 		set format(val) { saveHistory(activeDeck); activeDeck.deck.format = val; persist(activeDeck); },
 		get lastNaturalGrouping() { return activeDeck.deck.lastNaturalGrouping || 'cmc'; },
 		set lastNaturalGrouping(val) { activeDeck.deck.lastNaturalGrouping = val; persist(activeDeck); },
-		
+
 		get commander() { return activeDeck.deck.commander; },
 		get companion() { return activeDeck.deck.companion; },
 		get mainboard() { return activeDeck.deck.mainboard; },
 		get sideboard() { return activeDeck.deck.sideboard; },
 		get maybeboard() { return activeDeck.deck.maybeboard; },
 		get garbage() { return activeDeck.deck.garbage; },
-		
+
 		get metadata() { return activeDeck.metadata; },
 		updateMetadata(/** @type {Record<string, any>} */ newMetadata) {
 			Object.assign(activeDeck.metadata, newMetadata);
@@ -1068,10 +1084,10 @@ function createDeck() {
 
 			saveHistory(activeDeck);
 			const newId = generateId();
-			
-			const newCardObj = { 
+
+			const newCardObj = {
 				id: newId,
-				name: cardName, 
+				name: cardName,
 				price: price || 0,
 				addedAt: Date.now()
 			};
@@ -1151,7 +1167,7 @@ function createDeck() {
 				saveHistory(activeDeck);
 				const cardName = result.card.name;
 				const metadata = activeDeck.metadata[cardName.toLowerCase()];
-				
+
 				const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
 				for (const board of boards) {
 					if (activeDeck.deck[board]) {
@@ -1420,15 +1436,15 @@ function createDeck() {
 			let index = -1;
 			if (instanceId) {
 				index = targetZone.findIndex(/** @param {any} c */ c => c.id === instanceId);
-			} 
-			
+			}
+
 			if (index === -1) {
 				const sameCards = targetZone
-					.map(/** @param {any} c, @param {number} i */ (c, i) => ({ ...c, originalIndex: i }))
+					.map(/** @param {any} c, @param {number} i */(c, i) => ({ ...c, originalIndex: i }))
 					.filter(/** @param {any} c */ c => c.name === cardName);
-				
+
 				if (sameCards.length > 0) {
-					sameCards.sort(/** @param {any} a, @param {any} b */ (a, b) => b.addedAt - a.addedAt);
+					sameCards.sort(/** @param {any} a, @param {any} b */(a, b) => b.addedAt - a.addedAt);
 					index = sameCards[0].originalIndex;
 				}
 			}
@@ -1436,7 +1452,7 @@ function createDeck() {
 			if (index !== -1) {
 				saveHistory(activeDeck);
 				const removed = targetZone.splice(index, 1)[0];
-				
+
 				if (targetZoneName !== 'garbage') {
 					activeDeck.deck.garbage.unshift({
 						...removed,
@@ -1459,7 +1475,7 @@ function createDeck() {
 
 		undo() {
 			if (activeDeck.history.length === 0) return;
-			
+
 			const currentState = JSON.stringify({
 				commander: activeDeck.deck.commander,
 				companion: activeDeck.deck.companion,
@@ -1583,11 +1599,11 @@ function createDeck() {
 		},
 
 		get totalCost() {
-			const cCost = activeDeck.deck.commander.reduce(/** @param {number} sum, @param {DeckCard} c */ (sum, c) => sum + (c.price || 0), 0);
-			const cpCost = activeDeck.deck.companion.reduce(/** @param {number} sum, @param {DeckCard} c */ (sum, c) => sum + (c.price || 0), 0);
-			const mCost = activeDeck.deck.mainboard.reduce(/** @param {number} sum, @param {DeckCard} c */ (sum, c) => sum + (c.price || 0), 0);
-			const sCost = activeDeck.deck.sideboard.reduce(/** @param {number} sum, @param {DeckCard} c */ (sum, c) => sum + (c.price || 0), 0);
-			const yCost = activeDeck.deck.maybeboard.reduce(/** @param {number} sum, @param {DeckCard} c */ (sum, c) => sum + (c.price || 0), 0);
+			const cCost = activeDeck.deck.commander.reduce(/** @param {number} sum, @param {DeckCard} c */(sum, c) => sum + (c.price || 0), 0);
+			const cpCost = activeDeck.deck.companion.reduce(/** @param {number} sum, @param {DeckCard} c */(sum, c) => sum + (c.price || 0), 0);
+			const mCost = activeDeck.deck.mainboard.reduce(/** @param {number} sum, @param {DeckCard} c */(sum, c) => sum + (c.price || 0), 0);
+			const sCost = activeDeck.deck.sideboard.reduce(/** @param {number} sum, @param {DeckCard} c */(sum, c) => sum + (c.price || 0), 0);
+			const yCost = activeDeck.deck.maybeboard.reduce(/** @param {number} sum, @param {DeckCard} c */(sum, c) => sum + (c.price || 0), 0);
 			return cCost + cpCost + mCost + sCost + yCost;
 		},
 
@@ -1614,7 +1630,7 @@ function createDeck() {
 
 			saveHistory(activeDeck);
 			const initialLength = targetZone.length;
-			
+
 			const remaining = targetZone.filter(/** @param {any} c */ c => c.name !== cardName);
 			const removedCount = initialLength - remaining.length;
 
@@ -1651,7 +1667,7 @@ function createDeck() {
 			}
 
 			saveHistory(activeDeck);
-			
+
 			const otherCards = targetZone.filter(/** @param {any} c */ c => c.name !== cardName);
 			const existingCard = targetZone.find(/** @param {any} c */ c => c.name === cardName);
 			const finalPrice = price !== null ? price : (existingCard?.price || 0);
@@ -1708,7 +1724,7 @@ function createDeck() {
 
 		async saveImport() {
 			const parsedCards = parseDecklist(activeDeck.importText);
-			
+
 			// Resolve any Scryfall IDs or Set/Collector numbers asynchronously in batches, maintaining order
 			const toResolve = [];
 			const resolvedCards = new Array(parsedCards.length);
@@ -1735,11 +1751,11 @@ function createDeck() {
 			if (toResolve.length > 0) {
 				try {
 					const response = await fetchCollection(toResolve.map(item => item.identifier));
-					
+
 					// Build lookup maps from Scryfall response data
 					const idMap = new Map();
 					const setCollectorMap = new Map();
-					
+
 					response.data.forEach(card => {
 						if (card.id) idMap.set(card.id.toLowerCase(), card);
 						if (card.set && card.collector_number) {
@@ -1786,7 +1802,7 @@ function createDeck() {
 
 			importCardsInternal(activeDeck, finalResolvedCards, { replace: true });
 			activeDeck.importText = cleanDecklistTextFor(activeDeck);
-			
+
 			// Return back to last used view mode besides list
 			const lastView = localStorage.getItem('budgericards_last_active_view_mode') || 'stacks';
 			settingsStore.deckViewMode = lastView;
