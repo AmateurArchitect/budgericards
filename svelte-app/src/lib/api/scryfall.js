@@ -11,17 +11,155 @@ const inFlightRequests = new Map(); // URL -> Promise
 const cacheKey = 'scryfall_cache_v1';
 /** @type {Record<string, any>} */
 let scryfallCache = {};
-if (typeof localStorage !== 'undefined') {
+
+function pruneScryfallCard(card) {
+	if (!card || typeof card !== 'object') return card;
+	
+	// If it's a Scryfall card object
+	if (card.object === 'card') {
+		return {
+			object: 'card',
+			id: card.id,
+			name: card.name,
+			mana_cost: card.mana_cost,
+			type_line: card.type_line,
+			cmc: card.cmc,
+			color_identity: card.color_identity,
+			power: card.power,
+			toughness: card.toughness,
+			oracle_text: card.oracle_text,
+			image_uris: card.image_uris ? { normal: card.image_uris.normal } : null,
+			card_faces: card.card_faces?.map(face => ({
+				name: face.name,
+				mana_cost: face.mana_cost,
+				type_line: face.type_line,
+				image_uris: face.image_uris ? { normal: face.image_uris.normal } : null
+			})),
+			set: card.set,
+			set_name: card.set_name,
+			collector_number: card.collector_number,
+			prices: card.prices ? {
+				usd: card.prices.usd,
+				usd_foil: card.prices.usd_foil,
+				tix: card.prices.tix
+			} : null
+		};
+	}
+	
+	// If it is a list of cards
+	if (card.object === 'list' && Array.isArray(card.data)) {
+		return {
+			object: 'list',
+			data: card.data.map(c => pruneScryfallCard(c)),
+			has_more: card.has_more,
+			next_page: card.next_page,
+			total_cards: card.total_cards
+		};
+	}
+	return card;
+}
+
+let dbPromise = null;
+function getDB() {
+	if (typeof window === 'undefined') return null;
+	if (dbPromise) return dbPromise;
+	
+	dbPromise = new Promise((resolve, reject) => {
+		const request = indexedDB.open('BudgericardsScryfallCache', 1);
+		request.onupgradeneeded = (e) => {
+			const db = request.result;
+			if (!db.objectStoreNames.contains('cache')) {
+				db.createObjectStore('cache');
+			}
+		};
+		request.onsuccess = () => resolve(request.result);
+		request.onerror = () => reject(request.error);
+	});
+	return dbPromise;
+}
+
+let cacheInitialized = false;
+let initPromise = null;
+
+async function initCache() {
+	if (cacheInitialized) return;
+	if (initPromise) return initPromise;
+	
+	initPromise = (async () => {
+		try {
+			const db = await getDB();
+			if (!db) return;
+			
+			await new Promise((resolve) => {
+				const tx = db.transaction('cache', 'readonly');
+				const store = tx.objectStore('cache');
+				const req = store.openCursor();
+				req.onsuccess = (e) => {
+					const cursor = e.target.result;
+					if (cursor) {
+						scryfallCache[cursor.key] = cursor.value;
+						cursor.continue();
+					} else {
+						resolve();
+					}
+				};
+				req.onerror = () => resolve();
+			});
+			
+			// Migrate from localStorage if present
+			if (typeof localStorage !== 'undefined') {
+				const oldCacheRaw = localStorage.getItem(cacheKey);
+				if (oldCacheRaw) {
+					try {
+						const oldCache = JSON.parse(oldCacheRaw);
+						const tx = db.transaction('cache', 'readwrite');
+						const store = tx.objectStore('cache');
+						for (const [k, v] of Object.entries(oldCache)) {
+							const pruned = pruneScryfallCard(v);
+							scryfallCache[k] = pruned;
+							store.put(pruned, k);
+						}
+						localStorage.removeItem(cacheKey);
+						console.info('Successfully migrated Scryfall cache from localStorage to IndexedDB.');
+					} catch (e) {
+						console.error('Failed to parse or migrate localStorage cache:', e);
+					}
+				}
+			}
+			cacheInitialized = true;
+		} catch (err) {
+			console.error('Failed to initialize Scryfall IndexedDB cache:', err);
+		}
+	})();
+	
+	return initPromise;
+}
+
+async function saveCache(key, value) {
+	const pruned = pruneScryfallCard(value);
+	scryfallCache[key] = pruned;
+	
 	try {
-		scryfallCache = JSON.parse(localStorage.getItem(cacheKey) || '{}');
+		const db = await getDB();
+		if (!db) return;
+		const tx = db.transaction('cache', 'readwrite');
+		const store = tx.objectStore('cache');
+		store.put(pruned, key);
 	} catch (e) {
-		scryfallCache = {};
+		console.error('Failed to write to Scryfall IndexedDB cache:', e);
 	}
 }
 
-function saveCache() {
-	if (typeof localStorage !== 'undefined') {
-		localStorage.setItem(cacheKey, JSON.stringify(scryfallCache));
+async function clearDBCache() {
+	scryfallCache = {};
+	try {
+		const db = await getDB();
+		if (!db) return;
+		const tx = db.transaction('cache', 'readwrite');
+		const store = tx.objectStore('cache');
+		store.clear();
+	} catch (e) {
+		console.error('Failed to clear Scryfall IndexedDB cache:', e);
 	}
 }
 
@@ -41,8 +179,7 @@ if (typeof window !== 'undefined') {
 	};
 
 	win['BUDGIE_CLEAR_CACHE'] = () => {
-		scryfallCache = {};
-		localStorage.removeItem(cacheKey);
+		clearDBCache();
 		
 		// Also wipe the metadata from the saved deck to force a full re-fetch
 		const deckData = localStorage.getItem('deck_v1');
@@ -54,12 +191,14 @@ if (typeof window !== 'undefined') {
 			} catch (e) {}
 		}
 
-		console.info('🧹 Scryfall cache and deck metadata cleared. Refresh to see the full re-fetch!');
+		console.info('🧹 Scryfall IndexedDB cache and deck metadata cleared. Refresh to see the full re-fetch!');
 	};
 
 	win['BUDGIE_RESET_DECK'] = () => {
 		localStorage.clear();
-		location.reload();
+		clearDBCache().then(() => {
+			location.reload();
+		});
 	};
 
 	win['BUDGIE_MOCK'] = (on = true) => {
@@ -87,6 +226,8 @@ export async function scryfallFetch(url, options = {}) {
 	if (EMERGENCY_STOP) {
 		throw new Error('Scryfall request blocked: EMERGENCY_STOP is active.');
 	}
+
+	await initCache();
 
 	// 1. Check Cache first (for GET requests)
 	const isCacheable = !options.method || options.method === 'GET';
@@ -156,8 +297,7 @@ export async function scryfallFetch(url, options = {}) {
 				if (response.ok && isCacheable) {
 					const clonedResponse = response.clone();
 					clonedResponse.json().then(data => {
-						scryfallCache[requestKey] = data;
-						saveCache();
+						saveCache(requestKey, data);
 					}).catch(() => {});
 				}
 
