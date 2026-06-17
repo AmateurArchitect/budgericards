@@ -95,7 +95,6 @@
 			var(--inner-glow),
 			inset 0 0 0 1px hsl(var(--border) / 0.5);
 		transform: translateY(-4px);
-		transform: scale(1.01);
 	}
 
 	.card-item.in-search:hover {
