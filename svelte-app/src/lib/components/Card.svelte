@@ -12,32 +12,42 @@
 </script>
 
 <CardShell {card} {price} {inSearchPanel}>
-	{#snippet children({ isDragging, isFlipped, isRotated, toggleFlip, toggleRotate })}
+	{#snippet children({
+		isDragging,
+		isFlipped,
+		isRotated,
+		toggleFlip,
+		toggleRotate,
+	})}
 		<div class="card-container">
 			<div
 				class="card-item"
 				class:in-search={inSearchPanel}
 				class:dragging={isDragging}
 			>
-				<CardArt 
-					{card} 
-					{price} 
-					{isFlipped} 
-					{isRotated} 
-					{toggleFlip} 
+				<CardArt
+					{card}
+					{price}
+					{isFlipped}
+					{isRotated}
+					{toggleFlip}
 					{toggleRotate}
 					showPrice={inSearchPanel && settingsStore.showPrices}
 					showLegalityLabel={inSearchPanel}
 					hideControlsUntilHover={!inSearchPanel}
 					flipBelowNameBar={inSearchPanel}
-					lazy={inSearchPanel ? (index >= 12) : true}
+					lazy={inSearchPanel ? index >= 12 : true}
 				/>
 
 				{#if !inSearchPanel}
 					<div class="card-details">
 						<div class="card-header">
-							<span class="card-name" title={card.name}>{card.name}</span>
-							<span class="card-price" class:illegal={price === null}
+							<span class="card-name" title={card.name}
+								>{card.name}</span
+							>
+							<span
+								class="card-price"
+								class:illegal={price === null}
 								>{priceDisplay}</span
 							>
 						</div>
@@ -85,6 +95,7 @@
 			var(--inner-glow),
 			inset 0 0 0 1px hsl(var(--border) / 0.5);
 		transform: translateY(-4px);
+		transform: scale(1.01);
 	}
 
 	.card-item.in-search:hover {
