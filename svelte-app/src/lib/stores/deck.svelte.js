@@ -1353,12 +1353,44 @@ function createDeck() {
 								if (!c.tags) {
 									c.tags = [];
 								}
-								if (trimmed && !c.tags.includes(trimmed)) {
-									c.tags.unshift(trimmed);
-								} else if (trimmed) {
-									c.tags = [trimmed, ...c.tags.filter((/** @type {string} */ t) => t !== trimmed)];
+								if (trimmed) {
+									const oldPrimary = c.primaryTag;
+									const newTagIdx = c.tags.indexOf(trimmed);
+									
+									if (newTagIdx !== -1) {
+										// Case: The new primary tag is already a non-primary tag on the card
+										// We swap which of the existing tags is primary and which is not.
+										if (oldPrimary) {
+											const oldPrimaryIdx = c.tags.indexOf(oldPrimary);
+											if (oldPrimaryIdx !== -1) {
+												// Swap their positions
+												c.tags[newTagIdx] = oldPrimary;
+												c.tags[oldPrimaryIdx] = trimmed;
+											} else {
+												c.tags = [trimmed, ...c.tags.filter(t => t !== trimmed)];
+											}
+										} else {
+											c.tags = [trimmed, ...c.tags.filter(t => t !== trimmed)];
+										}
+									} else {
+										// Case: The new primary tag is not in the tags list.
+										// We swap/replace the old primary tag with the new one.
+										if (oldPrimary) {
+											const oldPrimaryIdx = c.tags.indexOf(oldPrimary);
+											if (oldPrimaryIdx !== -1) {
+												// Replace old primary with new tag
+												c.tags[oldPrimaryIdx] = trimmed;
+											} else {
+												c.tags.unshift(trimmed);
+											}
+										} else {
+											c.tags.unshift(trimmed);
+										}
+									}
+									c.primaryTag = trimmed;
+								} else {
+									c.primaryTag = undefined;
 								}
-								c.primaryTag = trimmed || undefined;
 							}
 						});
 					}

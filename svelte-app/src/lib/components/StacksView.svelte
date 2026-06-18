@@ -276,14 +276,18 @@
 			renamingColumn = null;
 			return;
 		}
-		freeformColumnOrder = freeformColumnOrder.map((k) =>
-			k === oldKey ? newKey : k,
-		);
-		const newMap = new Map(freeformLayout);
-		for (const [id, col] of freeformLayout) {
-			if (col === oldKey) newMap.set(id, newKey);
+		if (deckStore.grouping === "freeform") {
+			freeformColumnOrder = freeformColumnOrder.map((k) =>
+				k === oldKey ? newKey : k,
+			);
+			const newMap = new Map(freeformLayout);
+			for (const [id, col] of freeformLayout) {
+				if (col === oldKey) newMap.set(id, newKey);
+			}
+			freeformLayout = newMap;
+		} else if (deckStore.grouping === "primarytag") {
+			deckStore.renameDeckTag(oldKey, newKey);
 		}
-		freeformLayout = newMap;
 		renamingColumn = null;
 	}
 
@@ -593,7 +597,7 @@
 	 */
 	function handleInsertZoneDrop(e, activeIndex) {
 		insertDropZoneActive = null;
-		if (!e.dataTransfer || deckStore.grouping !== "freeform") return;
+		if (!e.dataTransfer || (deckStore.grouping !== "freeform" && deckStore.grouping !== "primarytag")) return;
 		const internalData = e.dataTransfer.getData(
 			"application/x-budgericard",
 		);
@@ -603,39 +607,68 @@
 		handleGlobalDragEnd();
 		const data = JSON.parse(internalData);
 		
-		const insertIndex = mapActiveToFreeformIndex(activeIndex);
-		
-		let colNum = freeformColumnOrder.length + 1;
-		let newColKey = `Column ${colNum}`;
-		while (freeformColumnOrder.includes(newColKey)) {
-			colNum++;
-			newColKey = `Column ${colNum}`;
-		}
-		const newOrder = [...freeformColumnOrder];
-		newOrder.splice(insertIndex, 0, newColKey);
-		freeformColumnOrder = newOrder;
+		if (deckStore.grouping === "freeform") {
+			const insertIndex = mapActiveToFreeformIndex(activeIndex);
+			
+			let colNum = freeformColumnOrder.length + 1;
+			let newColKey = `Column ${colNum}`;
+			while (freeformColumnOrder.includes(newColKey)) {
+				colNum++;
+				newColKey = `Column ${colNum}`;
+			}
+			const newOrder = [...freeformColumnOrder];
+			newOrder.splice(insertIndex, 0, newColKey);
+			freeformColumnOrder = newOrder;
 
-		const cardsToProcess = data.selectedCards || [data];
-		deckStore.batchUpdate(() => {
-			const newMap = new Map(freeformLayout);
-			for (const item of cardsToProcess) {
-				if (item.fromDeck) {
-					newMap.set(item.id, newColKey);
-				} else {
-					const addedId = deckStore.addCard(
-						item.name,
-						deckStore.activeBoard,
-						item.price,
-						item.card,
-					);
-					if (addedId) {
-						newMap.set(String(addedId), newColKey);
+			const cardsToProcess = data.selectedCards || [data];
+			deckStore.batchUpdate(() => {
+				const newMap = new Map(freeformLayout);
+				for (const item of cardsToProcess) {
+					if (item.fromDeck) {
+						newMap.set(item.id, newColKey);
+					} else {
+						const addedId = deckStore.addCard(
+							item.name,
+							deckStore.activeBoard,
+							item.price,
+							item.card,
+						);
+						if (addedId) {
+							newMap.set(String(addedId), newColKey);
+						}
 					}
 				}
+				freeformLayout = newMap;
+			});
+			pruneEmptyFreeformColumns();
+		} else if (deckStore.grouping === "primarytag") {
+			// Find unique new tag name
+			let tagNum = 1;
+			let newTag = `new tag ${tagNum}`;
+			while (activeColKeys.includes(newTag)) {
+				tagNum++;
+				newTag = `new tag ${tagNum}`;
 			}
-			freeformLayout = newMap;
-		});
-		pruneEmptyFreeformColumns();
+			
+			const cardsToProcess = data.selectedCards || [data];
+			deckStore.batchUpdate(() => {
+				for (const item of cardsToProcess) {
+					if (item.fromDeck) {
+						deckStore.setPrimaryTag(item.id, newTag);
+					} else {
+						const addedId = deckStore.addCard(
+							item.name,
+							deckStore.activeBoard,
+							item.price,
+							item.card,
+						);
+						if (addedId) {
+							deckStore.setPrimaryTag(String(addedId), newTag);
+						}
+					}
+				}
+			});
+		}
 	}
 
 	let prevCardsCount = $state(0);
@@ -1460,7 +1493,7 @@
 			{/each}
 		{/each}
 
-		{#if deckStore.grouping === 'freeform' && isDraggingCard}
+		{#if (deckStore.grouping === 'freeform' || deckStore.grouping === 'primarytag') && isDraggingCard}
 			<div class="freeform-drop-zones-visual-overlay">
 				{#each activeInsertIndices as i (i)}
 					{@const pos = getDropZonePosition(i)}

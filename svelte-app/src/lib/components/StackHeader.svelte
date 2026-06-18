@@ -37,7 +37,7 @@
 </script>
 
 <div class="header-container" class:type-row={type === 'row'} class:type-column={type === 'column'} class:type-stack={type === 'stack'}>
-	{#if type === 'column' && deckStore.grouping === 'freeform' && renamingColumn === colKey}
+	{#if type === 'column' && (deckStore.grouping === 'freeform' || (deckStore.grouping === 'primarytag' && colKey !== 'No Tag' && colKey !== 'Unknown' && colKey !== 'Special')) && renamingColumn === colKey}
 		<input
 			class="col-rename-input"
 			bind:value={renameValue}
@@ -45,7 +45,7 @@
 			onkeydown={handleKeydown}
 			use:focusOnMount
 		/>
-	{:else if type === 'column' && deckStore.grouping === 'freeform'}
+	{:else if type === 'column' && (deckStore.grouping === 'freeform' || (deckStore.grouping === 'primarytag' && colKey !== 'No Tag' && colKey !== 'Unknown' && colKey !== 'Special'))}
 		<button
 			class="title freeform-renameable"
 			type="button"
