@@ -30,8 +30,30 @@ export const generateId = () => {
 };
 
 function createDeckState(initialData = null) {
+	const deckId = initialData?.id || generateId();
+	
+	let cachedActiveBoard = null;
+	let cachedGrouping = null;
+	let cachedSorting = null;
+	let cachedSortAscending = null;
+	let cachedSplitView = null;
+	
+	if (typeof sessionStorage !== 'undefined' && initialData?.id) {
+		cachedActiveBoard = sessionStorage.getItem(`budgericards_activeboard_${initialData.id}`);
+		cachedGrouping = sessionStorage.getItem(`budgericards_grouping_${initialData.id}`);
+		cachedSorting = sessionStorage.getItem(`budgericards_sorting_${initialData.id}`);
+		const sortAscVal = sessionStorage.getItem(`budgericards_sortascending_${initialData.id}`);
+		if (sortAscVal !== null) {
+			cachedSortAscending = sortAscVal === 'true';
+		}
+		const splitViewVal = sessionStorage.getItem(`budgericards_splitview_${initialData.id}`);
+		if (splitViewVal !== null) {
+			cachedSplitView = splitViewVal === 'true';
+		}
+	}
+
 	let deck = $state({
-		id: initialData?.id || generateId(),
+		id: deckId,
 		name: initialData?.name || '',
 		commander: initialData?.commander || [],
 		companion: initialData?.companion || [],
@@ -39,11 +61,11 @@ function createDeckState(initialData = null) {
 		sideboard: initialData?.sideboard || [],
 		maybeboard: initialData?.maybeboard || [],
 		garbage: initialData?.garbage || [],
-		activeBoard: initialData?.activeBoard || 'mainboard',
-		grouping: initialData?.grouping || 'cmc',
-		sorting: initialData?.sorting || 'color',
-		sortAscending: initialData?.sortAscending !== false,
-		splitView: !!initialData?.splitView,
+		activeBoard: cachedActiveBoard || initialData?.activeBoard || 'mainboard',
+		grouping: cachedGrouping || initialData?.grouping || 'cmc',
+		sorting: cachedSorting || initialData?.sorting || 'color',
+		sortAscending: cachedSortAscending !== null ? cachedSortAscending : (initialData?.sortAscending !== false),
+		splitView: cachedSplitView !== null ? cachedSplitView : !!initialData?.splitView,
 		coverArt: initialData?.coverArt || null,
 		format: initialData?.format || 'List',
 		lastNaturalGrouping: initialData?.lastNaturalGrouping || 'cmc'
@@ -982,15 +1004,40 @@ function createDeck() {
 		get name() { return activeDeck.deck.name; },
 		set name(val) { saveHistory(activeDeck); activeDeck.deck.name = val; persist(activeDeck); },
 		get activeBoard() { return activeDeck.deck.activeBoard; },
-		set activeBoard(val) { activeDeck.deck.activeBoard = val; },
+		set activeBoard(val) { 
+			activeDeck.deck.activeBoard = val; 
+			if (typeof sessionStorage !== 'undefined' && activeDeck.deck.id) {
+				sessionStorage.setItem(`budgericards_activeboard_${activeDeck.deck.id}`, val);
+			}
+		},
 		get grouping() { return activeDeck.deck.grouping; },
-		set grouping(val) { activeDeck.deck.grouping = val; },
+		set grouping(val) { 
+			activeDeck.deck.grouping = val; 
+			if (typeof sessionStorage !== 'undefined' && activeDeck.deck.id) {
+				sessionStorage.setItem(`budgericards_grouping_${activeDeck.deck.id}`, val);
+			}
+		},
 		get sorting() { return activeDeck.deck.sorting; },
-		set sorting(val) { activeDeck.deck.sorting = val; },
+		set sorting(val) { 
+			activeDeck.deck.sorting = val; 
+			if (typeof sessionStorage !== 'undefined' && activeDeck.deck.id) {
+				sessionStorage.setItem(`budgericards_sorting_${activeDeck.deck.id}`, val);
+			}
+		},
 		get sortAscending() { return activeDeck.deck.sortAscending ?? true; },
-		set sortAscending(val) { saveHistory(activeDeck); activeDeck.deck.sortAscending = val; persist(activeDeck); },
+		set sortAscending(val) { 
+			activeDeck.deck.sortAscending = val; 
+			if (typeof sessionStorage !== 'undefined' && activeDeck.deck.id) {
+				sessionStorage.setItem(`budgericards_sortascending_${activeDeck.deck.id}`, String(val));
+			}
+		},
 		get splitView() { return activeDeck.deck.splitView; },
-		set splitView(val) { activeDeck.deck.splitView = val; },
+		set splitView(val) { 
+			activeDeck.deck.splitView = val; 
+			if (typeof sessionStorage !== 'undefined' && activeDeck.deck.id) {
+				sessionStorage.setItem(`budgericards_splitview_${activeDeck.deck.id}`, String(val));
+			}
+		},
 		get coverArt() { return activeDeck.deck.coverArt; },
 		set coverArt(val) { saveHistory(activeDeck); activeDeck.deck.coverArt = val; persist(activeDeck); },
 		get format() { return activeDeck.deck.format; },
