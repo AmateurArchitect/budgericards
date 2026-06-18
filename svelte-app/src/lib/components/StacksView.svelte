@@ -1534,22 +1534,20 @@
 			</div>
 		{/if}
 
-		{#if deckStore.grouping === 'primarytag' && activeTagColsCount < 4}
-			<div 
-				class="tag-empty-state-cell"
-				style="grid-column: {masterColCount + 1} / span 2; grid-row: 3;"
-			>
-				<div class="tag-empty-state-card">
-					<svg class="tag-empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="M12 20h9"/>
-						<path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
-					</svg>
-					<h3>Organize with Tags</h3>
-					<p>Drag and drop cards into the empty space on the right to create a new tag column, or move cards between columns to change their tags.</p>
-				</div>
-			</div>
-		{/if}
 	</div>
+
+	{#if deckStore.grouping === 'primarytag' && activeTagColsCount < 4 && !isDraggingCard}
+		<div class="tag-empty-state-container">
+			<div class="tag-empty-state-card">
+				<svg class="tag-empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M12 20h9"/>
+					<path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+				</svg>
+				<h3>Organize with Tags</h3>
+				<p>Drag and drop cards into the empty space on the right to create a new tag column, or move cards between columns to change their tags.</p>
+			</div>
+		</div>
+	{/if}
 
 	<div class="scroll-spacer-right"></div>
 </div>
@@ -1970,22 +1968,29 @@
 		animation: card-bloom 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 	}
 
-	.tag-empty-state-cell {
-		width: calc(var(--card-width) * 2 + var(--column-gap));
-		padding-top: 1.5rem;
-		pointer-events: none;
+	.tag-empty-state-container {
+		flex: 1;
+		align-self: stretch;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 280px;
+		padding: 2rem;
+		box-sizing: border-box;
 	}
 
 	.tag-empty-state-card {
 		background: hsla(var(--muted) / 0.15);
 		border: 1px dashed hsla(var(--border) / 0.6);
 		border-radius: var(--radius-lg);
-		padding: 1.5rem;
+		padding: 2rem;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		text-align: center;
 		gap: 0.75rem;
+		max-width: 320px;
+		width: 100%;
 	}
 
 	.tag-empty-icon {
@@ -2007,5 +2012,6 @@
 		line-height: 1.4;
 		color: hsl(var(--muted-foreground));
 		margin: 0;
+		text-wrap: balance;
 	}
 </style>
