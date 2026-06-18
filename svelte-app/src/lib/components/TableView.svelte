@@ -22,7 +22,7 @@
 		Plus,
 		X,
 		Star,
-		Undo
+		Undo,
 	} from "lucide-svelte";
 
 	let isDragOver = $state(false);
@@ -61,7 +61,13 @@
 
 	const deckTagsList = $derived.by(() => {
 		const tags = new Set();
-		const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+		const boards = [
+			"commander",
+			"companion",
+			"mainboard",
+			"sideboard",
+			"maybeboard",
+		];
 		const storeAny = /** @type {any} */ (deckStore);
 		for (const board of boards) {
 			if (storeAny[board]) {
@@ -114,7 +120,7 @@
 	function handleTagDrop(e, cardId, targetIdx) {
 		e.preventDefault();
 		if (draggedTagCardId !== cardId || draggedTagIdx === null) return;
-		
+
 		const cardRes = deckStore.findCardById(cardId);
 		if (cardRes && cardRes.card && cardRes.card.tags) {
 			const tags = [...cardRes.card.tags];
@@ -145,7 +151,10 @@
 		if (!editingCardName) return null;
 		for (const cat of groupedCategories) {
 			for (const row of cat.cards) {
-				if (row.name === editingCardName && row.zone === editingCardZone) {
+				if (
+					row.name === editingCardName &&
+					row.zone === editingCardZone
+				) {
 					return row.instances[0]?.id || null;
 				}
 			}
@@ -179,16 +188,16 @@
 
 	// Visible columns order sync
 	$effect(() => {
-		const order = ['qty', 'name'];
+		const order = ["qty", "name"];
 		const cols = settingsStore.visibleColumns;
-		if (cols.includes('mana')) order.push('mana');
-		if (cols.includes('cmc')) order.push('cmc');
-		if (cols.includes('type')) order.push('type');
-		if (cols.includes('printing')) order.push('printing');
-		if (cols.includes('color-cat')) order.push('color-cat');
-		if (cols.includes('color-id')) order.push('color-id');
-		if (cols.includes('tags')) order.push('tags');
-		if (cols.includes('price')) order.push('price');
+		if (cols.includes("mana")) order.push("mana");
+		if (cols.includes("cmc")) order.push("cmc");
+		if (cols.includes("type")) order.push("type");
+		if (cols.includes("printing")) order.push("printing");
+		if (cols.includes("color-cat")) order.push("color-cat");
+		if (cols.includes("color-id")) order.push("color-id");
+		if (cols.includes("tags")) order.push("tags");
+		if (cols.includes("price")) order.push("price");
 		interactionStore.visibleColumnsOrder = order;
 	});
 
@@ -200,22 +209,22 @@
 		if (trigger) {
 			isTriggeredByTyping = true;
 			const { cardId, columnKey, initialKey } = trigger;
-			if (columnKey === 'cmc') {
+			if (columnKey === "cmc") {
 				editingCmcCardId = cardId;
 				inlineCmcVal = initialKey;
-			} else if (columnKey === 'type') {
+			} else if (columnKey === "type") {
 				editingTypeCardId = cardId;
 				inlineTypeVal = initialKey;
-			} else if (columnKey === 'color-cat') {
+			} else if (columnKey === "color-cat") {
 				editingColorCardId = cardId;
 				inlineColorVal = initialKey;
 				hasTyped = true;
-			} else if (columnKey === 'name') {
+			} else if (columnKey === "name") {
 				editingNameCardId = cardId;
 				inlineNameVal = initialKey;
 				hasNameTyped = true;
 				nameSuggestions = [];
-			} else if (columnKey === 'qty') {
+			} else if (columnKey === "qty") {
 				for (const cat of groupedCategories) {
 					for (const row of cat.cards) {
 						if (row.instances[0]?.id === cardId) {
@@ -226,11 +235,11 @@
 						}
 					}
 				}
-			} else if (columnKey === 'tags') {
+			} else if (columnKey === "tags") {
 				editingTagsCardId = cardId;
 				inlineTagsVal = initialKey;
 				hasTagsTyped = true;
-			} else if (columnKey === 'printing') {
+			} else if (columnKey === "printing") {
 				editingPrintingCardId = cardId;
 				inlinePrintingVal = initialKey;
 				hasPrintingTyped = true;
@@ -250,7 +259,7 @@
 		const parts = (query || "").split(",");
 		const lastPart = (parts[parts.length - 1] || "").trim().toLowerCase();
 		if (!lastPart) return deckTagsList;
-		return deckTagsList.filter(t => t.toLowerCase().includes(lastPart));
+		return deckTagsList.filter((t) => t.toLowerCase().includes(lastPart));
 	}
 
 	/**
@@ -258,7 +267,7 @@
 	 * @param {string} tag
 	 */
 	function selectTagSuggestion(cardRow, tag) {
-		const parts = inlineTagsVal.split(",").map(p => p.trim());
+		const parts = inlineTagsVal.split(",").map((p) => p.trim());
 		if (parts.length > 0) {
 			parts[parts.length - 1] = tag;
 		} else {
@@ -277,14 +286,16 @@
 
 		const cleanTags = inlineTagsVal
 			.split(",")
-			.map(t => t.trim())
+			.map((t) => t.trim())
 			.filter(Boolean);
 
 		const uniqueTags = [...new Set(cleanTags)];
-		const ids = interactionStore.selectedCells.has(`${cardRow.instances[0].id}:tags`)
+		const ids = interactionStore.selectedCells.has(
+			`${cardRow.instances[0].id}:tags`,
+		)
 			? [...interactionStore.selectedCells]
-				.filter(k => k.endsWith(':tags'))
-				.map(k => k.split(':')[0])
+					.filter((k) => k.endsWith(":tags"))
+					.map((k) => k.split(":")[0])
 			: [cardRow.instances[0].id];
 
 		for (const id of ids) {
@@ -300,7 +311,9 @@
 		availablePrintings = [];
 		try {
 			const q = `!"${cardName}" unique:prints`;
-			const response = await scryfallFetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}`);
+			const response = await scryfallFetch(
+				`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}`,
+			);
 			if (response.ok) {
 				const data = await response.json();
 				if (data && data.data) {
@@ -322,11 +335,16 @@
 		if (!hasPrintingTyped) return availablePrintings;
 		const q = (query || "").trim().toLowerCase();
 		if (!q) return availablePrintings;
-		return availablePrintings.filter(p => {
+		return availablePrintings.filter((p) => {
 			const setCode = (p.set || "").toLowerCase();
 			const setName = (p.set_name || "").toLowerCase();
 			const collectorNumber = (p.collector_number || "").toLowerCase();
-			return setCode.includes(q) || setName.includes(q) || collectorNumber.includes(q) || `${setCode} ${collectorNumber}`.includes(q);
+			return (
+				setCode.includes(q) ||
+				setName.includes(q) ||
+				collectorNumber.includes(q) ||
+				`${setCode} ${collectorNumber}`.includes(q)
+			);
 		});
 	}
 
@@ -339,7 +357,10 @@
 			deckStore.setCardPrinting(cardRow.name, printingCard);
 		} else {
 			try {
-				const defaultCard = await db.cards.where("name").equals(cardRow.name).first();
+				const defaultCard = await db.cards
+					.where("name")
+					.equals(cardRow.name)
+					.first();
 				if (defaultCard) {
 					const localPrice = priceStore.getPrice(cardRow.name);
 					const metadata = {
@@ -353,12 +374,18 @@
 						color_identity: defaultCard.identity || [],
 						image_uris: {
 							normal: defaultCard.image,
-							art_crop: defaultCard.image ? defaultCard.image.replace('/normal/', '/art_crop/') : null
+							art_crop: defaultCard.image
+								? defaultCard.image.replace(
+										"/normal/",
+										"/art_crop/",
+									)
+								: null,
 						},
 						prices: {
-							usd: localPrice !== null ? String(localPrice) : null,
-							usd_foil: null
-						}
+							usd:
+								localPrice !== null ? String(localPrice) : null,
+							usd_foil: null,
+						},
 					};
 					deckStore.setCardPrinting(cardRow.name, metadata);
 				}
@@ -368,7 +395,6 @@
 		}
 		editingPrintingCardId = null;
 	}
-
 
 	/**
 	 * @param {string} query
@@ -386,7 +412,7 @@
 				.startsWithIgnoreCase(q)
 				.limit(10)
 				.toArray();
-			const uniqueNames = [...new Set(matches.map(m => m.name))];
+			const uniqueNames = [...new Set(matches.map((m) => m.name))];
 			nameSuggestions = uniqueNames;
 			activeNameOptionIdx = 0;
 		} catch (e) {
@@ -400,7 +426,7 @@
 	 */
 	async function handleNameSubmit(cardRow, newName) {
 		if (editingNameCardId !== cardRow.instances[0]?.id) return;
-		
+
 		const cleanNewName = newName.trim();
 		if (!cleanNewName) {
 			editingNameCardId = null;
@@ -408,14 +434,21 @@
 		}
 
 		try {
-			const foundCard = await db.cards.where("name").equals(cleanNewName).first();
+			const foundCard = await db.cards
+				.where("name")
+				.equals(cleanNewName)
+				.first();
 			if (!foundCard) {
-				const matches = await db.cards.where("name").startsWithIgnoreCase(cleanNewName).limit(1).toArray();
+				const matches = await db.cards
+					.where("name")
+					.startsWithIgnoreCase(cleanNewName)
+					.limit(1)
+					.toArray();
 				if (matches.length > 0) {
 					const correctName = matches[0].name;
 					const priceRecord = await db.prices.get(matches[0].id);
 					const price = priceRecord ? priceRecord.price : 0;
-					
+
 					editingNameCardId = null;
 					deckStore.renameCard(cardRow.name, correctName, price, {
 						name: matches[0].name,
@@ -424,7 +457,7 @@
 						cmc: matches[0].cmc ?? 0,
 						colors: matches[0].colors || [],
 						color_identity: matches[0].identity || [],
-						image_uris: { normal: matches[0].image }
+						image_uris: { normal: matches[0].image },
 					});
 					return;
 				}
@@ -443,7 +476,7 @@
 				cmc: foundCard.cmc ?? 0,
 				colors: foundCard.colors || [],
 				color_identity: foundCard.identity || [],
-				image_uris: { normal: foundCard.image }
+				image_uris: { normal: foundCard.image },
 			});
 		} catch (e) {
 			nameError = true;
@@ -458,12 +491,15 @@
 		if (e.key === "ArrowDown") {
 			e.preventDefault();
 			if (nameSuggestions.length > 0) {
-				activeNameOptionIdx = (activeNameOptionIdx + 1) % nameSuggestions.length;
+				activeNameOptionIdx =
+					(activeNameOptionIdx + 1) % nameSuggestions.length;
 			}
 		} else if (e.key === "ArrowUp") {
 			e.preventDefault();
 			if (nameSuggestions.length > 0) {
-				activeNameOptionIdx = (activeNameOptionIdx - 1 + nameSuggestions.length) % nameSuggestions.length;
+				activeNameOptionIdx =
+					(activeNameOptionIdx - 1 + nameSuggestions.length) %
+					nameSuggestions.length;
 			}
 		} else if (e.key === "Enter") {
 			e.preventDefault();
@@ -493,14 +529,21 @@
 			return;
 		}
 
-		const hasSelectedSelf = cardRow.instances[0] && interactionStore.selectedCells.has(`${cardRow.instances[0].id}:qty`);
+		const hasSelectedSelf =
+			cardRow.instances[0] &&
+			interactionStore.selectedCells.has(
+				`${cardRow.instances[0].id}:qty`,
+			);
 		/** @type {any[]} */
 		const targets = [];
 		if (hasSelectedSelf) {
 			for (const cat of groupedCategories) {
 				for (const row of cat.cards) {
 					const firstId = row.instances[0]?.id;
-					if (firstId && interactionStore.selectedCells.has(`${firstId}:qty`)) {
+					if (
+						firstId &&
+						interactionStore.selectedCells.has(`${firstId}:qty`)
+					) {
 						targets.push(row);
 					}
 				}
@@ -544,7 +587,16 @@
 		}
 	}
 
-	const allColorOptions = ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"];
+	const allColorOptions = [
+		"White",
+		"Blue",
+		"Black",
+		"Red",
+		"Green",
+		"Multicolor",
+		"Colorless",
+		"Lands",
+	];
 
 	/**
 	 * @param {string} query
@@ -554,14 +606,18 @@
 	function getColorOptionsState(query, typed) {
 		const q = (query || "").trim().toLowerCase();
 		if (!typed) {
-			return allColorOptions.map(opt => ({ option: opt, matches: true, visible: true }));
+			return allColorOptions.map((opt) => ({
+				option: opt,
+				matches: true,
+				visible: true,
+			}));
 		}
-		return allColorOptions.map(opt => {
+		return allColorOptions.map((opt) => {
 			const matches = opt.toLowerCase().includes(q);
 			return {
 				option: opt,
 				matches,
-				visible: allColorOptions.length < 10 ? true : matches
+				visible: allColorOptions.length < 10 ? true : matches,
 			};
 		});
 	}
@@ -572,17 +628,22 @@
 	 */
 	function handleColorKeyDown(e, cardRow) {
 		const optionsState = getColorOptionsState(inlineColorVal, hasTyped);
-		const activeOptions = optionsState.filter(item => item.visible && item.matches);
-		
+		const activeOptions = optionsState.filter(
+			(item) => item.visible && item.matches,
+		);
+
 		if (e.key === "ArrowDown") {
 			e.preventDefault();
 			if (activeOptions.length > 0) {
-				activeColorOptionIdx = (activeColorOptionIdx + 1) % activeOptions.length;
+				activeColorOptionIdx =
+					(activeColorOptionIdx + 1) % activeOptions.length;
 			}
 		} else if (e.key === "ArrowUp") {
 			e.preventDefault();
 			if (activeOptions.length > 0) {
-				activeColorOptionIdx = (activeColorOptionIdx - 1 + activeOptions.length) % activeOptions.length;
+				activeColorOptionIdx =
+					(activeColorOptionIdx - 1 + activeOptions.length) %
+					activeOptions.length;
 			}
 		} else if (e.key === "Enter") {
 			e.preventDefault();
@@ -605,9 +666,15 @@
 		editingColorCardId = null;
 
 		const optionsState = getColorOptionsState(inlineColorVal, hasTyped);
-		const activeOptions = optionsState.filter(item => item.visible && item.matches);
+		const activeOptions = optionsState.filter(
+			(item) => item.visible && item.matches,
+		);
 		if (activeOptions.length > 0) {
-			const match = activeOptions.find(opt => opt.option.toLowerCase() === inlineColorVal.trim().toLowerCase());
+			const match = activeOptions.find(
+				(opt) =>
+					opt.option.toLowerCase() ===
+					inlineColorVal.trim().toLowerCase(),
+			);
 			if (match) {
 				applyColorOverride(cardRow, match.option);
 			} else {
@@ -622,26 +689,56 @@
 	 */
 	function applyColorOverride(cardRow, colorOpt) {
 		if (cardRow.instances[0] && colorOpt) {
-			const formattedOpt = colorOpt.charAt(0).toUpperCase() + colorOpt.slice(1).toLowerCase();
-			const validOptions = ["White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Lands"];
-			const matchedOpt = validOptions.find(o => o.toLowerCase() === formattedOpt.toLowerCase()) || formattedOpt;
+			const formattedOpt =
+				colorOpt.charAt(0).toUpperCase() +
+				colorOpt.slice(1).toLowerCase();
+			const validOptions = [
+				"White",
+				"Blue",
+				"Black",
+				"Red",
+				"Green",
+				"Multicolor",
+				"Colorless",
+				"Lands",
+			];
+			const matchedOpt =
+				validOptions.find(
+					(o) => o.toLowerCase() === formattedOpt.toLowerCase(),
+				) || formattedOpt;
 
-			const ids = interactionStore.selectedCells.has(`${cardRow.instances[0].id}:color-cat`)
+			const ids = interactionStore.selectedCells.has(
+				`${cardRow.instances[0].id}:color-cat`,
+			)
 				? [...interactionStore.selectedCells]
-					.filter(k => k.endsWith(':color-cat'))
-					.map(k => k.split(':')[0])
+						.filter((k) => k.endsWith(":color-cat"))
+						.map((k) => k.split(":")[0])
 				: [cardRow.instances[0].id];
 
 			for (const id of ids) {
-				deckStore.setCardOverride(id, 'colorCategory', matchedOpt);
+				deckStore.setCardOverride(id, "colorCategory", matchedOpt);
 				/** @type {Record<string, string[]>} */
-				const mapColors = { "White": ["W"], "Blue": ["U"], "Black": ["B"], "Red": ["R"], "Green": ["G"] };
+				const mapColors = {
+					White: ["W"],
+					Blue: ["U"],
+					Black: ["B"],
+					Red: ["R"],
+					Green: ["G"],
+				};
 				if (mapColors[matchedOpt]) {
-					deckStore.setCardOverride(id, 'colors', mapColors[matchedOpt]);
-					deckStore.setCardOverride(id, 'colorIdentity', mapColors[matchedOpt]);
+					deckStore.setCardOverride(
+						id,
+						"colors",
+						mapColors[matchedOpt],
+					);
+					deckStore.setCardOverride(
+						id,
+						"colorIdentity",
+						mapColors[matchedOpt],
+					);
 				} else if (matchedOpt === "Colorless") {
-					deckStore.setCardOverride(id, 'colors', []);
-					deckStore.setCardOverride(id, 'colorIdentity', []);
+					deckStore.setCardOverride(id, "colors", []);
+					deckStore.setCardOverride(id, "colorIdentity", []);
 				}
 			}
 		}
@@ -653,16 +750,18 @@
 	 */
 	function resetColorOverride(cardRow) {
 		if (cardRow.instances[0]) {
-			const ids = interactionStore.selectedCells.has(`${cardRow.instances[0].id}:color-cat`)
+			const ids = interactionStore.selectedCells.has(
+				`${cardRow.instances[0].id}:color-cat`,
+			)
 				? [...interactionStore.selectedCells]
-					.filter(k => k.endsWith(':color-cat'))
-					.map(k => k.split(':')[0])
+						.filter((k) => k.endsWith(":color-cat"))
+						.map((k) => k.split(":")[0])
 				: [cardRow.instances[0].id];
 
 			for (const id of ids) {
-				deckStore.resetCardOverride(id, 'colorCategory');
-				deckStore.resetCardOverride(id, 'colors');
-				deckStore.resetCardOverride(id, 'colorIdentity');
+				deckStore.resetCardOverride(id, "colorCategory");
+				deckStore.resetCardOverride(id, "colors");
+				deckStore.resetCardOverride(id, "colorIdentity");
 			}
 		}
 		editingColorCardId = null;
@@ -805,7 +904,10 @@
 			const cardsToProcess = data.selectedCards || [data];
 			deckStore.batchUpdate(() => {
 				for (const item of cardsToProcess) {
-					if (!item.fromDeck || item.sourceBoard !== deckStore.activeBoard) {
+					if (
+						!item.fromDeck ||
+						item.sourceBoard !== deckStore.activeBoard
+					) {
 						const isLocalSource = [
 							"sideboard",
 							"maybeboard",
@@ -877,7 +979,11 @@
 		const editId = interactionStore.editingCardId;
 		if (editId) {
 			for (const cat of groupedCategories) {
-				const match = cat.cards.find((/** @type {any} */ row) => row.instances.some((/** @type {any} */ inst) => inst.id === editId));
+				const match = cat.cards.find((/** @type {any} */ row) =>
+					row.instances.some(
+						(/** @type {any} */ inst) => inst.id === editId,
+					),
+				);
 				if (match) {
 					editingCardName = match.name;
 					editingCardZone = match.zone;
@@ -1150,8 +1256,15 @@
 														? 'collapsed'
 														: ''}"
 												/>
-												<span class="category-title">{category.name}</span>
-												<span class="category-count">({(/** @type {any} */ (category)).totalQtyText || category.totalQty})</span>
+												<span class="category-title"
+													>{category.name}</span
+												>
+												<span class="category-count"
+													>({/** @type {any} */ (
+														category
+													).totalQtyText ||
+														category.totalQty})</span
+												>
 											</div>
 										</div>
 									</td>
@@ -1172,8 +1285,15 @@
 														? 'collapsed'
 														: ''}"
 												/>
-												<span class="category-title">{category.name}</span>
-												<span class="category-count">({(/** @type {any} */ (category)).totalQtyText || category.totalQty})</span>
+												<span class="category-title"
+													>{category.name}</span
+												>
+												<span class="category-count"
+													>({/** @type {any} */ (
+														category
+													).totalQtyText ||
+														category.totalQty})</span
+												>
 											</div>
 										</div>
 									</td>
@@ -1216,7 +1336,15 @@
 							<!-- Individual Card Rows -->
 							{#if !collapsedCategories.has(category.name)}
 								{#each category.cards as cardRow (cardRow.name)}
-									{@const isSelected = cardRow.instances[0] && [...interactionStore.selectedCells].some(cell => cell.startsWith(`${cardRow.instances[0].id}:`))}
+									{@const isSelected =
+										cardRow.instances[0] &&
+										[
+											...interactionStore.selectedCells,
+										].some((cell) =>
+											cell.startsWith(
+												`${cardRow.instances[0].id}:`,
+											),
+										)}
 									<tr
 										class="card-row"
 										class:is-illegal={cardRow.isIllegal}
@@ -1226,35 +1354,100 @@
 											editingCardZone === cardRow.zone}
 										onmousedown={(e) => {
 											if (e.button !== 0) return;
-											const targetEl = e.target instanceof HTMLElement ? e.target : null;
-											if (targetEl && (
-												targetEl.closest('button') || 
-												targetEl.closest('input') || 
-												targetEl.closest('.action-buttons-cell') ||
-												targetEl.closest('.col-actions')
-											)) return;
+											const targetEl =
+												e.target instanceof HTMLElement
+													? e.target
+													: null;
+											if (
+												targetEl &&
+												(targetEl.closest("button") ||
+													targetEl.closest("input") ||
+													targetEl.closest(
+														".action-buttons-cell",
+													) ||
+													targetEl.closest(
+														".col-actions",
+													))
+											)
+												return;
 
 											if (cardRow.instances[0]) {
-												const isCmdCtrl = e.metaKey || e.ctrlKey;
-												const targetTd = targetEl ? targetEl.closest('td') : null;
+												const isCmdCtrl =
+													e.metaKey || e.ctrlKey;
+												const targetTd = targetEl
+													? targetEl.closest("td")
+													: null;
 												let colKey = null;
 												if (targetTd) {
-													if (targetTd.classList.contains('col-cmc')) colKey = 'cmc';
-													else if (targetTd.classList.contains('col-type')) colKey = 'type';
-													else if (targetTd.classList.contains('col-color-cat')) colKey = 'color-cat';
-													else if (targetTd.classList.contains('col-qty')) colKey = 'qty';
-													else if (targetTd.classList.contains('col-name')) colKey = 'name';
-													else if (targetTd.classList.contains('col-tags')) colKey = 'tags';
-													else if (targetTd.classList.contains('col-printing')) colKey = 'printing';
-													else if (targetTd.classList.contains('col-price')) colKey = 'price';
-													else if (targetTd.classList.contains('col-mana')) colKey = 'mana';
-													else if (targetTd.classList.contains('col-color-id')) colKey = 'color-id';
+													if (
+														targetTd.classList.contains(
+															"col-cmc",
+														)
+													)
+														colKey = "cmc";
+													else if (
+														targetTd.classList.contains(
+															"col-type",
+														)
+													)
+														colKey = "type";
+													else if (
+														targetTd.classList.contains(
+															"col-color-cat",
+														)
+													)
+														colKey = "color-cat";
+													else if (
+														targetTd.classList.contains(
+															"col-qty",
+														)
+													)
+														colKey = "qty";
+													else if (
+														targetTd.classList.contains(
+															"col-name",
+														)
+													)
+														colKey = "name";
+													else if (
+														targetTd.classList.contains(
+															"col-tags",
+														)
+													)
+														colKey = "tags";
+													else if (
+														targetTd.classList.contains(
+															"col-printing",
+														)
+													)
+														colKey = "printing";
+													else if (
+														targetTd.classList.contains(
+															"col-price",
+														)
+													)
+														colKey = "price";
+													else if (
+														targetTd.classList.contains(
+															"col-mana",
+														)
+													)
+														colKey = "mana";
+													else if (
+														targetTd.classList.contains(
+															"col-color-id",
+														)
+													)
+														colKey = "color-id";
 												}
 
 												if (e.shiftKey || isCmdCtrl) {
 													e.preventDefault();
 												}
-												if (document.activeElement instanceof HTMLElement) {
+												if (
+													document.activeElement instanceof
+													HTMLElement
+												) {
 													document.activeElement.blur();
 												}
 
@@ -1263,7 +1456,7 @@
 													cardRow.instances[0].id,
 													e.shiftKey,
 													isCmdCtrl,
-													colKey
+													colKey,
 												);
 											}
 										}}
@@ -1277,36 +1470,95 @@
 											);
 										}}
 										onmouseover={(e) => {
-											const targetEl = e.target instanceof HTMLElement ? e.target : null;
+											const targetEl =
+												e.target instanceof HTMLElement
+													? e.target
+													: null;
 											let colKey = null;
 											if (targetEl) {
-												const targetTd = targetEl.closest('td');
+												const targetTd =
+													targetEl.closest("td");
 												if (targetTd) {
-													if (targetTd.classList.contains('col-cmc')) colKey = 'cmc';
-													else if (targetTd.classList.contains('col-type')) colKey = 'type';
-													else if (targetTd.classList.contains('col-color-cat')) colKey = 'color-cat';
-													else if (targetTd.classList.contains('col-qty')) colKey = 'qty';
-													else if (targetTd.classList.contains('col-name')) colKey = 'name';
-													else if (targetTd.classList.contains('col-tags')) colKey = 'tags';
-													else if (targetTd.classList.contains('col-printing')) colKey = 'printing';
-													else if (targetTd.classList.contains('col-price')) colKey = 'price';
-													else if (targetTd.classList.contains('col-mana')) colKey = 'mana';
-													else if (targetTd.classList.contains('col-color-id')) colKey = 'color-id';
+													if (
+														targetTd.classList.contains(
+															"col-cmc",
+														)
+													)
+														colKey = "cmc";
+													else if (
+														targetTd.classList.contains(
+															"col-type",
+														)
+													)
+														colKey = "type";
+													else if (
+														targetTd.classList.contains(
+															"col-color-cat",
+														)
+													)
+														colKey = "color-cat";
+													else if (
+														targetTd.classList.contains(
+															"col-qty",
+														)
+													)
+														colKey = "qty";
+													else if (
+														targetTd.classList.contains(
+															"col-name",
+														)
+													)
+														colKey = "name";
+													else if (
+														targetTd.classList.contains(
+															"col-tags",
+														)
+													)
+														colKey = "tags";
+													else if (
+														targetTd.classList.contains(
+															"col-printing",
+														)
+													)
+														colKey = "printing";
+													else if (
+														targetTd.classList.contains(
+															"col-price",
+														)
+													)
+														colKey = "price";
+													else if (
+														targetTd.classList.contains(
+															"col-mana",
+														)
+													)
+														colKey = "mana";
+													else if (
+														targetTd.classList.contains(
+															"col-color-id",
+														)
+													)
+														colKey = "color-id";
 												}
 											}
 
 											interactionStore.registerHover(
-												cardRow.instances[0] || cardRow.card,
+												cardRow.instances[0] ||
+													cardRow.card,
 												cardRow.zone,
 												cardRow.price,
 											);
-											
-											if (isDraggingSelection && cardRow.instances[0] && colKey) {
+
+											if (
+												isDraggingSelection &&
+												cardRow.instances[0] &&
+												colKey
+											) {
 												interactionStore.handleCardSelectClick(
 													cardRow.instances[0].id,
 													true,
 													false,
-													colKey
+													colKey,
 												);
 											}
 										}}
@@ -1314,7 +1566,8 @@
 											interactionStore.unregisterHover()}
 										onfocus={() => {
 											interactionStore.registerHover(
-												cardRow.instances[0] || cardRow.card,
+												cardRow.instances[0] ||
+													cardRow.card,
 												cardRow.zone,
 												cardRow.price,
 											);
@@ -1323,16 +1576,27 @@
 											interactionStore.unregisterHover()}
 									>
 										<!-- Quantity Display (Clickable/Typable inline input) -->
-										<td 
-											class="col-qty" 
-											class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:qty`)}
+										<td
+											class="col-qty"
+											class:is-selected={interactionStore.selectedCells.has(
+												`${cardRow.instances[0]?.id}:qty`,
+											)}
 											ondblclick={(e) => {
-												if (e.shiftKey || e.metaKey || e.ctrlKey) return;
+												if (
+													e.shiftKey ||
+													e.metaKey ||
+													e.ctrlKey
+												)
+													return;
 												e.stopPropagation();
-												interactionStore.filterSelectionToColumn('qty');
+												interactionStore.filterSelectionToColumn(
+													"qty",
+												);
 												editingCardName = cardRow.name;
 												editingCardZone = cardRow.zone;
-												localQtyText = String(cardRow.quantity);
+												localQtyText = String(
+													cardRow.quantity,
+												);
 											}}
 										>
 											{#if editingCardName === cardRow.name && editingCardZone === cardRow.zone}
@@ -1360,9 +1624,16 @@
 													type="button"
 													class="qty-text-btn"
 													ondblclick={(e) => {
-														if (e.shiftKey || e.metaKey || e.ctrlKey) return;
+														if (
+															e.shiftKey ||
+															e.metaKey ||
+															e.ctrlKey
+														)
+															return;
 														e.stopPropagation();
-														interactionStore.filterSelectionToColumn('qty');
+														interactionStore.filterSelectionToColumn(
+															"qty",
+														);
 														editingCardName =
 															cardRow.name;
 														editingCardZone =
@@ -1385,17 +1656,31 @@
 										<!-- Card Name & Legality Warning -->
 										<!-- svelte-ignore a11y_click_events_have_key_events -->
 										<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-										<td 
-											class="col-name" 
-											class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:name`)}
-											data-tooltip-img={editingNameCardId === cardRow.instances[0]?.id ? null : cardRow.imgUrl}
+										<td
+											class="col-name"
+											class:is-selected={interactionStore.selectedCells.has(
+												`${cardRow.instances[0]?.id}:name`,
+											)}
+											data-tooltip-img={editingNameCardId ===
+											cardRow.instances[0]?.id
+												? null
+												: cardRow.imgUrl}
 											ondblclick={(e) => {
-												if (e.shiftKey || e.metaKey || e.ctrlKey) return;
+												if (
+													e.shiftKey ||
+													e.metaKey ||
+													e.ctrlKey
+												)
+													return;
 												e.stopPropagation();
-												interactionStore.filterSelectionToColumn('name');
+												interactionStore.filterSelectionToColumn(
+													"name",
+												);
 												if (cardRow.instances[0]) {
-													editingNameCardId = cardRow.instances[0].id;
-													inlineNameVal = cardRow.name;
+													editingNameCardId =
+														cardRow.instances[0].id;
+													inlineNameVal =
+														cardRow.name;
 													nameSuggestions = [];
 													activeNameOptionIdx = 0;
 													hasNameTyped = false;
@@ -1405,39 +1690,73 @@
 										>
 											<div class="name-container-cell">
 												{#if editingNameCardId && cardRow.instances[0] && editingNameCardId === cardRow.instances[0].id}
-													<div class="name-edit-wrapper" onclick={(e) => e.stopPropagation()}>
+													<div
+														class="name-edit-wrapper"
+														onclick={(e) =>
+															e.stopPropagation()}
+													>
 														<input
 															type="text"
 															class="name-inline-input"
 															class:has-error={nameError}
-															bind:value={inlineNameVal}
+															bind:value={
+																inlineNameVal
+															}
 															use:selectOnMount
 															oninput={() => {
 																hasNameTyped = true;
 																nameError = false;
-																updateNameSuggestions(inlineNameVal);
+																updateNameSuggestions(
+																	inlineNameVal,
+																);
 															}}
 															onblur={() => {
-																setTimeout(() => {
-																	if (editingNameCardId === cardRow.instances[0]?.id) {
-																		handleNameSubmit(cardRow, inlineNameVal);
-																	}
-																}, 150);
+																setTimeout(
+																	() => {
+																		if (
+																			editingNameCardId ===
+																			cardRow
+																				.instances[0]
+																				?.id
+																		) {
+																			handleNameSubmit(
+																				cardRow,
+																				inlineNameVal,
+																			);
+																		}
+																	},
+																	150,
+																);
 															}}
-															onkeydown={(e) => handleNameKeyDown(e, cardRow)}
-															title={nameError ? "Invalid card name. Please check spelling or select from suggestions." : ""}
+															onkeydown={(e) =>
+																handleNameKeyDown(
+																	e,
+																	cardRow,
+																)}
+															title={nameError
+																? "Invalid card name. Please check spelling or select from suggestions."
+																: ""}
 														/>
 														{#if nameSuggestions.length > 0}
-															<div class="name-suggestions-dropdown">
+															<div
+																class="name-suggestions-dropdown"
+															>
 																{#each nameSuggestions as name, idx}
 																	<button
 																		type="button"
 																		class="name-opt-btn"
-																		class:active={idx === activeNameOptionIdx}
-																		onmousedown={(e) => {
+																		class:active={idx ===
+																			activeNameOptionIdx}
+																		onmousedown={(
+																			e,
+																		) => {
 																			e.preventDefault();
-																			editingNameCardId = null;
-																			handleNameSubmit(cardRow, name);
+																			editingNameCardId =
+																				null;
+																			handleNameSubmit(
+																				cardRow,
+																				name,
+																			);
 																		}}
 																	>
 																		{name}
@@ -1447,7 +1766,9 @@
 														{/if}
 													</div>
 												{:else}
-													<span class="card-name-label">
+													<span
+														class="card-name-label"
+													>
 														{#if editingNameCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:name`) && interactionStore.selectedCells.has(`${editingNameCardId}:name`)}
 															{inlineNameVal}
 														{:else}
@@ -1472,14 +1793,19 @@
 
 										<!-- Mana Icons (Mana Cost) -->
 										{#if settingsStore.visibleColumns.includes("mana")}
-											<td 
+											<td
 												class="col-mana"
-												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:mana`)}
+												class:is-selected={interactionStore.selectedCells.has(
+													`${cardRow.instances[0]?.id}:mana`,
+												)}
 											>
 												<div class="mana-icons-cell">
 													{#each cardRow.manaSymbols as sym}
 														{#if sym === "//"}
-															<span class="mana-divider">//</span>
+															<span
+																class="mana-divider"
+																>//</span
+															>
 														{:else}
 															<ManaSymbol
 																symbol={sym}
@@ -1494,17 +1820,32 @@
 
 										<!-- Mana Value (Numerical CMC) -->
 										{#if settingsStore.visibleColumns.includes("cmc")}
-											{@const hasCmcOverride = cardRow.instances[0]?.overrides?.manaValue !== undefined}
-											<td 
+											{@const hasCmcOverride =
+												cardRow.instances[0]?.overrides
+													?.manaValue !== undefined}
+											<td
 												class="col-cmc"
-												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:cmc`)}
+												class:is-selected={interactionStore.selectedCells.has(
+													`${cardRow.instances[0]?.id}:cmc`,
+												)}
 												ondblclick={(e) => {
-													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
+													if (
+														e.shiftKey ||
+														e.metaKey ||
+														e.ctrlKey
+													)
+														return;
 													e.stopPropagation();
-													interactionStore.filterSelectionToColumn('cmc');
+													interactionStore.filterSelectionToColumn(
+														"cmc",
+													);
 													if (cardRow.instances[0]) {
-														editingCmcCardId = cardRow.instances[0].id;
-														inlineCmcVal = String(cardRow.cmc);
+														editingCmcCardId =
+															cardRow.instances[0]
+																.id;
+														inlineCmcVal = String(
+															cardRow.cmc,
+														);
 													}
 												}}
 											>
@@ -1512,49 +1853,139 @@
 													<input
 														type="number"
 														class="qty-inline-input"
-														bind:value={inlineCmcVal}
+														bind:value={
+															inlineCmcVal
+														}
 														onblur={() => {
-															const parsed = parseInt(inlineCmcVal, 10);
-															if (!isNaN(parsed) && cardRow.instances[0]) {
-																const ids = interactionStore.selectedCells.has(`${cardRow.instances[0].id}:cmc`)
-																	? [...interactionStore.selectedCells]
-																		.filter(k => k.endsWith(':cmc'))
-																		.map(k => k.split(':')[0])
-																	: [cardRow.instances[0].id];
+															const parsed =
+																parseInt(
+																	inlineCmcVal,
+																	10,
+																);
+															if (
+																!isNaN(
+																	parsed,
+																) &&
+																cardRow
+																	.instances[0]
+															) {
+																const ids =
+																	interactionStore.selectedCells.has(
+																		`${cardRow.instances[0].id}:cmc`,
+																	)
+																		? [
+																				...interactionStore.selectedCells,
+																			]
+																				.filter(
+																					(
+																						k,
+																					) =>
+																						k.endsWith(
+																							":cmc",
+																						),
+																				)
+																				.map(
+																					(
+																						k,
+																					) =>
+																						k.split(
+																							":",
+																						)[0],
+																				)
+																		: [
+																				cardRow
+																					.instances[0]
+																					.id,
+																			];
 																for (const id of ids) {
-																	deckStore.setCardOverride(id, 'manaValue', parsed);
+																	deckStore.setCardOverride(
+																		id,
+																		"manaValue",
+																		parsed,
+																	);
 																}
 															}
-															editingCmcCardId = null;
+															editingCmcCardId =
+																null;
 														}}
 														onkeydown={(e) => {
-															if (e.key === "Enter") {
+															if (
+																e.key ===
+																"Enter"
+															) {
 																e.preventDefault();
-																const parsed = parseInt(inlineCmcVal, 10);
-																if (!isNaN(parsed) && cardRow.instances[0]) {
-																	const ids = interactionStore.selectedCells.has(`${cardRow.instances[0].id}:cmc`)
-																		? [...interactionStore.selectedCells]
-																			.filter(k => k.endsWith(':cmc'))
-																			.map(k => k.split(':')[0])
-																		: [cardRow.instances[0].id];
+																const parsed =
+																	parseInt(
+																		inlineCmcVal,
+																		10,
+																	);
+																if (
+																	!isNaN(
+																		parsed,
+																	) &&
+																	cardRow
+																		.instances[0]
+																) {
+																	const ids =
+																		interactionStore.selectedCells.has(
+																			`${cardRow.instances[0].id}:cmc`,
+																		)
+																			? [
+																					...interactionStore.selectedCells,
+																				]
+																					.filter(
+																						(
+																							k,
+																						) =>
+																							k.endsWith(
+																								":cmc",
+																							),
+																					)
+																					.map(
+																						(
+																							k,
+																						) =>
+																							k.split(
+																								":",
+																							)[0],
+																					)
+																			: [
+																					cardRow
+																						.instances[0]
+																						.id,
+																				];
 																	for (const id of ids) {
-																		deckStore.setCardOverride(id, 'manaValue', parsed);
+																		deckStore.setCardOverride(
+																			id,
+																			"manaValue",
+																			parsed,
+																		);
 																	}
 																}
-																editingCmcCardId = null;
-															} else if (e.key === "Escape") {
-																editingCmcCardId = null;
+																editingCmcCardId =
+																	null;
+															} else if (
+																e.key ===
+																"Escape"
+															) {
+																editingCmcCardId =
+																	null;
 															}
 														}}
 														use:selectOnMount
-														onclick={(e) => e.stopPropagation()}
+														onclick={(e) =>
+															e.stopPropagation()}
 													/>
 												{:else}
-													<div class="cell-display-wrapper">
-														<span 
+													<div
+														class="cell-display-wrapper"
+													>
+														<span
 															class="cmc-badge"
 															class:is-overridden={hasCmcOverride}
-															title={hasCmcOverride ? "Double click to edit override (Customized)" : "Double click to override"}
+															title={hasCmcOverride
+																? "Double click to edit override (Customized)"
+																: "Double click to override"}
 														>
 															{#if editingCmcCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:cmc`) && interactionStore.selectedCells.has(`${editingCmcCardId}:cmc`)}
 																{inlineCmcVal}
@@ -1566,15 +1997,27 @@
 															<button
 																type="button"
 																class="reset-override-btn"
-																onclick={(e) => {
+																onclick={(
+																	e,
+																) => {
 																	e.stopPropagation();
-																	if (cardRow.instances[0]) {
-																		deckStore.resetCardOverride(cardRow.instances[0].id, 'manaValue');
+																	if (
+																		cardRow
+																			.instances[0]
+																	) {
+																		deckStore.resetCardOverride(
+																			cardRow
+																				.instances[0]
+																				.id,
+																			"manaValue",
+																		);
 																	}
 																}}
 																title="Reset to default CMC"
 															>
-																<Undo size={12} />
+																<Undo
+																	size={12}
+																/>
 															</button>
 														{/if}
 													</div>
@@ -1584,17 +2027,32 @@
 
 										<!-- Type Line -->
 										{#if settingsStore.visibleColumns.includes("type")}
-											{@const hasTypeOverride = cardRow.instances[0]?.overrides?.primaryType !== undefined}
-											<td 
+											{@const hasTypeOverride =
+												cardRow.instances[0]?.overrides
+													?.primaryType !== undefined}
+											<td
 												class="col-type"
-												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:type`)}
+												class:is-selected={interactionStore.selectedCells.has(
+													`${cardRow.instances[0]?.id}:type`,
+												)}
 												ondblclick={(e) => {
-													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
+													if (
+														e.shiftKey ||
+														e.metaKey ||
+														e.ctrlKey
+													)
+														return;
 													e.stopPropagation();
-													interactionStore.filterSelectionToColumn('type');
+													interactionStore.filterSelectionToColumn(
+														"type",
+													);
 													if (cardRow.instances[0]) {
-														editingTypeCardId = cardRow.instances[0].id;
-														inlineTypeVal = String(cardRow.type);
+														editingTypeCardId =
+															cardRow.instances[0]
+																.id;
+														inlineTypeVal = String(
+															cardRow.type,
+														);
 													}
 												}}
 											>
@@ -1603,47 +2061,123 @@
 														type="text"
 														class="qty-inline-input text-left"
 														style="text-align: left;"
-														bind:value={inlineTypeVal}
+														bind:value={
+															inlineTypeVal
+														}
 														onblur={() => {
-															if (cardRow.instances[0]) {
-																const ids = interactionStore.selectedCells.has(`${cardRow.instances[0].id}:type`)
-																	? [...interactionStore.selectedCells]
-																		.filter(k => k.endsWith(':type'))
-																		.map(k => k.split(':')[0])
-																	: [cardRow.instances[0].id];
+															if (
+																cardRow
+																	.instances[0]
+															) {
+																const ids =
+																	interactionStore.selectedCells.has(
+																		`${cardRow.instances[0].id}:type`,
+																	)
+																		? [
+																				...interactionStore.selectedCells,
+																			]
+																				.filter(
+																					(
+																						k,
+																					) =>
+																						k.endsWith(
+																							":type",
+																						),
+																				)
+																				.map(
+																					(
+																						k,
+																					) =>
+																						k.split(
+																							":",
+																						)[0],
+																				)
+																		: [
+																				cardRow
+																					.instances[0]
+																					.id,
+																			];
 																for (const id of ids) {
-																	deckStore.setCardOverride(id, 'primaryType', inlineTypeVal.trim());
+																	deckStore.setCardOverride(
+																		id,
+																		"primaryType",
+																		inlineTypeVal.trim(),
+																	);
 																}
 															}
-															editingTypeCardId = null;
+															editingTypeCardId =
+																null;
 														}}
 														onkeydown={(e) => {
-															if (e.key === "Enter") {
+															if (
+																e.key ===
+																"Enter"
+															) {
 																e.preventDefault();
-																if (cardRow.instances[0]) {
-																	const ids = interactionStore.selectedCells.has(`${cardRow.instances[0].id}:type`)
-																		? [...interactionStore.selectedCells]
-																			.filter(k => k.endsWith(':type'))
-																			.map(k => k.split(':')[0])
-																		: [cardRow.instances[0].id];
+																if (
+																	cardRow
+																		.instances[0]
+																) {
+																	const ids =
+																		interactionStore.selectedCells.has(
+																			`${cardRow.instances[0].id}:type`,
+																		)
+																			? [
+																					...interactionStore.selectedCells,
+																				]
+																					.filter(
+																						(
+																							k,
+																						) =>
+																							k.endsWith(
+																								":type",
+																							),
+																					)
+																					.map(
+																						(
+																							k,
+																						) =>
+																							k.split(
+																								":",
+																							)[0],
+																					)
+																			: [
+																					cardRow
+																						.instances[0]
+																						.id,
+																				];
 																	for (const id of ids) {
-																		deckStore.setCardOverride(id, 'primaryType', inlineTypeVal.trim());
+																		deckStore.setCardOverride(
+																			id,
+																			"primaryType",
+																			inlineTypeVal.trim(),
+																		);
 																	}
 																}
-																editingTypeCardId = null;
-															} else if (e.key === "Escape") {
-																editingTypeCardId = null;
+																editingTypeCardId =
+																	null;
+															} else if (
+																e.key ===
+																"Escape"
+															) {
+																editingTypeCardId =
+																	null;
 															}
 														}}
 														use:selectOnMount
-														onclick={(e) => e.stopPropagation()}
+														onclick={(e) =>
+															e.stopPropagation()}
 													/>
 												{:else}
-													<div class="cell-display-wrapper">
+													<div
+														class="cell-display-wrapper"
+													>
 														<span
 															class="type-text"
 															class:is-overridden={hasTypeOverride}
-															title={hasTypeOverride ? "Double click to edit override (Customized)" : "Double click to override"}
+															title={hasTypeOverride
+																? "Double click to edit override (Customized)"
+																: "Double click to override"}
 														>
 															{#if editingTypeCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:type`) && interactionStore.selectedCells.has(`${editingTypeCardId}:type`)}
 																{inlineTypeVal}
@@ -1655,15 +2189,27 @@
 															<button
 																type="button"
 																class="reset-override-btn"
-																onclick={(e) => {
+																onclick={(
+																	e,
+																) => {
 																	e.stopPropagation();
-																	if (cardRow.instances[0]) {
-																		deckStore.resetCardOverride(cardRow.instances[0].id, 'primaryType');
+																	if (
+																		cardRow
+																			.instances[0]
+																	) {
+																		deckStore.resetCardOverride(
+																			cardRow
+																				.instances[0]
+																				.id,
+																			"primaryType",
+																		);
 																	}
 																}}
 																title="Reset to default Type"
 															>
-																<Undo size={12} />
+																<Undo
+																	size={12}
+																/>
 															</button>
 														{/if}
 													</div>
@@ -1673,119 +2219,264 @@
 
 										<!-- Printing (Set and Collector Number) -->
 										{#if settingsStore.visibleColumns.includes("printing")}
-											<td 
+											<td
 												class="col-printing"
-												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:printing`)}
-												class:is-editing={editingPrintingCardId && cardRow.instances[0] && editingPrintingCardId === cardRow.instances[0].id}
+												class:is-selected={interactionStore.selectedCells.has(
+													`${cardRow.instances[0]?.id}:printing`,
+												)}
+												class:is-editing={editingPrintingCardId &&
+													cardRow.instances[0] &&
+													editingPrintingCardId ===
+														cardRow.instances[0].id}
 												ondblclick={(e) => {
-													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
+													if (
+														e.shiftKey ||
+														e.metaKey ||
+														e.ctrlKey
+													)
+														return;
 													e.stopPropagation();
-													interactionStore.filterSelectionToColumn('printing');
+													interactionStore.filterSelectionToColumn(
+														"printing",
+													);
 													if (cardRow.instances[0]) {
-														editingPrintingCardId = editingPrintingCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
-														if (editingPrintingCardId) {
-															inlinePrintingVal = cardRow.card?.set 
-																? `${cardRow.card.set.toUpperCase()} ${cardRow.card.collector_number || ""}`.trim()
-																: "";
+														editingPrintingCardId =
+															editingPrintingCardId ===
+															cardRow.instances[0]
+																.id
+																? null
+																: cardRow
+																		.instances[0]
+																		.id;
+														if (
+															editingPrintingCardId
+														) {
+															inlinePrintingVal =
+																cardRow.card
+																	?.set
+																	? `${cardRow.card.set.toUpperCase()} ${cardRow.card.collector_number || ""}`.trim()
+																	: "";
 															activePrintingOptionIdx = 0;
 															hasPrintingTyped = false;
-															fetchCardPrintings(cardRow.name);
+															fetchCardPrintings(
+																cardRow.name,
+															);
 														}
 													}
 												}}
 											>
-												<div style="position: relative; cursor: pointer;">
+												<div
+													style="position: relative; cursor: pointer;"
+												>
 													{#if editingPrintingCardId && cardRow.instances[0] && editingPrintingCardId === cardRow.instances[0].id}
-														{@const filteredPrintings = getFilteredPrintings(inlinePrintingVal)}
+														{@const filteredPrintings =
+															getFilteredPrintings(
+																inlinePrintingVal,
+															)}
 														<input
 															type="text"
 															class="printing-inline-input"
-															bind:value={inlinePrintingVal}
+															bind:value={
+																inlinePrintingVal
+															}
 															use:selectOnMount
-															oninput={() => hasPrintingTyped = true}
+															oninput={() =>
+																(hasPrintingTyped = true)}
 															onblur={() => {
-																const matches = filteredPrintings;
-																const bestMatch = matches[activePrintingOptionIdx] || matches[0];
-																if (inlinePrintingVal.trim() === "") {
-																	applyPrinting(cardRow, null);
+																const matches =
+																	filteredPrintings;
+																const bestMatch =
+																	matches[
+																		activePrintingOptionIdx
+																	] ||
+																	matches[0];
+																if (
+																	inlinePrintingVal.trim() ===
+																	""
+																) {
+																	applyPrinting(
+																		cardRow,
+																		null,
+																	);
 																} else {
-																	applyPrinting(cardRow, bestMatch);
+																	applyPrinting(
+																		cardRow,
+																		bestMatch,
+																	);
 																}
 															}}
 															onkeydown={(e) => {
-																const matches = filteredPrintings;
-																if (e.key === "ArrowDown") {
+																const matches =
+																	filteredPrintings;
+																if (
+																	e.key ===
+																	"ArrowDown"
+																) {
 																	e.preventDefault();
-																	if (matches.length > 0) {
-																		activePrintingOptionIdx = (activePrintingOptionIdx + 1) % matches.length;
+																	if (
+																		matches.length >
+																		0
+																	) {
+																		activePrintingOptionIdx =
+																			(activePrintingOptionIdx +
+																				1) %
+																			matches.length;
 																	}
-																} else if (e.key === "ArrowUp") {
+																} else if (
+																	e.key ===
+																	"ArrowUp"
+																) {
 																	e.preventDefault();
-																	if (matches.length > 0) {
-																		activePrintingOptionIdx = (activePrintingOptionIdx - 1 + matches.length) % matches.length;
+																	if (
+																		matches.length >
+																		0
+																	) {
+																		activePrintingOptionIdx =
+																			(activePrintingOptionIdx -
+																				1 +
+																				matches.length) %
+																			matches.length;
 																	}
-																} else if (e.key === "Enter") {
+																} else if (
+																	e.key ===
+																	"Enter"
+																) {
 																	e.preventDefault();
-																	const selected = matches[activePrintingOptionIdx] || matches[0];
-																	if (inlinePrintingVal.trim() === "") {
-																		applyPrinting(cardRow, null);
+																	const selected =
+																		matches[
+																			activePrintingOptionIdx
+																		] ||
+																		matches[0];
+																	if (
+																		inlinePrintingVal.trim() ===
+																		""
+																	) {
+																		applyPrinting(
+																			cardRow,
+																			null,
+																		);
 																	} else {
-																		applyPrinting(cardRow, selected);
+																		applyPrinting(
+																			cardRow,
+																			selected,
+																		);
 																	}
-																} else if (e.key === "Escape") {
-																	editingPrintingCardId = null;
+																} else if (
+																	e.key ===
+																	"Escape"
+																) {
+																	editingPrintingCardId =
+																		null;
 																}
 															}}
-															onclick={(e) => e.stopPropagation()}
+															onclick={(e) =>
+																e.stopPropagation()}
 														/>
 
 														<!-- svelte-ignore a11y_click_events_have_key_events -->
 														<!-- svelte-ignore a11y_no_static_element_interactions -->
-														<div 
+														<div
 															class="printing-picker-dropdown"
-															onclick={(evt) => evt.stopPropagation()}
+															onclick={(evt) =>
+																evt.stopPropagation()}
 														>
-															<div class="dropdown-backdrop" role="presentation" onclick={() => editingPrintingCardId = null}></div>
-															<div class="printing-picker-menu">
+															<div
+																class="dropdown-backdrop"
+																role="presentation"
+																onclick={() =>
+																	(editingPrintingCardId =
+																		null)}
+															></div>
+															<div
+																class="printing-picker-menu"
+															>
 																{#if isLoadingPrintings}
-																	<div class="printing-loading-text">Loading prints...</div>
+																	<div
+																		class="printing-loading-text"
+																	>
+																		Loading
+																		prints...
+																	</div>
 																{:else}
 																	{#each filteredPrintings as item, idx}
-																		{@const isActive = idx === activePrintingOptionIdx}
+																		{@const isActive =
+																			idx ===
+																			activePrintingOptionIdx}
 																		<button
 																			type="button"
 																			class="printing-opt-btn"
 																			class:active={isActive}
-																			data-tooltip-img={item.image_uris?.normal || item.card_faces?.[0]?.image_uris?.normal || ""}
-																			onmousedown={(e) => {
+																			data-tooltip-img={item
+																				.image_uris
+																				?.normal ||
+																				item
+																					.card_faces?.[0]
+																					?.image_uris
+																					?.normal ||
+																				""}
+																			onmousedown={(
+																				e,
+																			) => {
 																				e.preventDefault();
-																				applyPrinting(cardRow, item);
+																				applyPrinting(
+																					cardRow,
+																					item,
+																				);
 																			}}
 																		>
-																			<span class="set-code">{item.set.toUpperCase()}</span>
-																			<span class="collector-number">{item.collector_number}</span>
-																			<span class="set-name">- {item.set_name}</span>
+																			<span
+																				class="set-code"
+																				>{item.set.toUpperCase()}</span
+																			>
+																			<span
+																				class="collector-number"
+																				>{item.collector_number}</span
+																			>
+																			<span
+																				class="set-name"
+																				>-
+																				{item.set_name}</span
+																			>
 																			{#if item.prices?.usd}
-																				<span class="price-span">${item.prices.usd}</span>
+																				<span
+																					class="price-span"
+																					>${item
+																						.prices
+																						.usd}</span
+																				>
 																			{/if}
 																		</button>
 																	{:else}
-																		<div class="printing-no-results">No prints found</div>
+																		<div
+																			class="printing-no-results"
+																		>
+																			No
+																			prints
+																			found
+																		</div>
 																	{/each}
 																{/if}
 															</div>
 														</div>
 													{:else}
-														<span class="printing-text" data-tooltip-img={cardRow.imgUrl}>
+														<span
+															class="printing-text"
+															data-tooltip-img={cardRow.imgUrl}
+														>
 															{#if editingPrintingCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:printing`) && interactionStore.selectedCells.has(`${editingPrintingCardId}:printing`)}
-																<span class="set-code">{inlinePrintingVal.toUpperCase()}</span>
+																<span
+																	class="set-code"
+																	>{inlinePrintingVal.toUpperCase()}</span
+																>
 															{:else if cardRow.card?.set}
-																<span class="set-code"
+																<span
+																	class="set-code"
 																	>{cardRow.card.set.toUpperCase()}</span
 																>
 																<span
 																	class="collector-number"
-																	>{cardRow.card
+																	>{cardRow
+																		.card
 																		.collector_number ||
 																		""}</span
 																>
@@ -1796,90 +2487,182 @@
 											</td>
 										{/if}
 
-
 										<!-- Color Category -->
 										{#if settingsStore.visibleColumns.includes("color-cat")}
-											{@const hasColorOverride = cardRow.instances[0]?.overrides?.colorCategory !== undefined}
+											{@const hasColorOverride =
+												cardRow.instances[0]?.overrides
+													?.colorCategory !==
+												undefined}
 											<!-- svelte-ignore a11y_click_events_have_key_events -->
 											<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-											<td 
+											<td
 												class="col-color-cat"
-												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:color-cat`)}
+												class:is-selected={interactionStore.selectedCells.has(
+													`${cardRow.instances[0]?.id}:color-cat`,
+												)}
 												ondblclick={(e) => {
-													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
+													if (
+														e.shiftKey ||
+														e.metaKey ||
+														e.ctrlKey
+													)
+														return;
 													e.stopPropagation();
-													interactionStore.filterSelectionToColumn('color-cat');
+													interactionStore.filterSelectionToColumn(
+														"color-cat",
+													);
 													if (cardRow.instances[0]) {
-														editingColorCardId = editingColorCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
-														if (editingColorCardId) {
-															inlineColorVal = getColorCategory(cardRow);
+														editingColorCardId =
+															editingColorCardId ===
+															cardRow.instances[0]
+																.id
+																? null
+																: cardRow
+																		.instances[0]
+																		.id;
+														if (
+															editingColorCardId
+														) {
+															inlineColorVal =
+																getColorCategory(
+																	cardRow,
+																);
 															activeColorOptionIdx = 0;
 															hasTyped = false;
 														}
 													}
 												}}
 											>
-												<div style="position: relative; cursor: pointer;">
+												<div
+													style="position: relative; cursor: pointer;"
+												>
 													{#if editingColorCardId && cardRow.instances[0] && editingColorCardId === cardRow.instances[0].id}
-														{@const optionsState = getColorOptionsState(inlineColorVal, hasTyped)}
-														{@const visibleOptions = optionsState.filter(o => o.visible)}
-														{@const activeOptions = optionsState.filter(o => o.visible && o.matches)}
+														{@const optionsState =
+															getColorOptionsState(
+																inlineColorVal,
+																hasTyped,
+															)}
+														{@const visibleOptions =
+															optionsState.filter(
+																(o) =>
+																	o.visible,
+															)}
+														{@const activeOptions =
+															optionsState.filter(
+																(o) =>
+																	o.visible &&
+																	o.matches,
+															)}
 														<input
 															type="text"
 															class="color-inline-input"
-															bind:value={inlineColorVal}
+															bind:value={
+																inlineColorVal
+															}
 															use:selectOnMount
-															oninput={() => hasTyped = true}
-															onblur={() => handleColorSubmit(cardRow)}
-															onkeydown={(e) => handleColorKeyDown(e, cardRow)}
-															onclick={(e) => e.stopPropagation()}
+															oninput={() =>
+																(hasTyped = true)}
+															onblur={() =>
+																handleColorSubmit(
+																	cardRow,
+																)}
+															onkeydown={(e) =>
+																handleColorKeyDown(
+																	e,
+																	cardRow,
+																)}
+															onclick={(e) =>
+																e.stopPropagation()}
 														/>
 
 														<!-- svelte-ignore a11y_click_events_have_key_events -->
 														<!-- svelte-ignore a11y_no_static_element_interactions -->
-														<div 
+														<div
 															class="color-picker-dropdown"
-															onclick={(evt) => evt.stopPropagation()}
+															onclick={(evt) =>
+																evt.stopPropagation()}
 														>
-															<div class="dropdown-backdrop" role="presentation" onclick={() => editingColorCardId = null}></div>
-															<div class="color-picker-menu">
+															<div
+																class="dropdown-backdrop"
+																role="presentation"
+																onclick={() =>
+																	(editingColorCardId =
+																		null)}
+															></div>
+															<div
+																class="color-picker-menu"
+															>
 																{#each visibleOptions as item, idx}
-																	{@const isActive = activeOptions[activeColorOptionIdx]?.option === item.option}
+																	{@const isActive =
+																		activeOptions[
+																			activeColorOptionIdx
+																		]
+																			?.option ===
+																		item.option}
 																	<button
 																		type="button"
 																		class="color-opt-btn"
 																		class:active={isActive}
 																		class:dimmed={!item.matches}
-																		onmousedown={(e) => {
+																		onmousedown={(
+																			e,
+																		) => {
 																			e.preventDefault();
-																			editingColorCardId = null;
-																			applyColorOverride(cardRow, item.option);
+																			editingColorCardId =
+																				null;
+																			applyColorOverride(
+																				cardRow,
+																				item.option,
+																			);
 																		}}
 																	>
 																		{item.option}
 																	</button>
 																{/each}
-																<div class="menu-divider"></div>
+																<div
+																	class="menu-divider"
+																></div>
 																<button
 																	type="button"
 																	class="color-opt-btn reset-btn"
-																	onmousedown={(e) => {
+																	onmousedown={(
+																		e,
+																	) => {
 																		e.preventDefault();
-																		editingColorCardId = null;
-																		resetColorOverride(cardRow);
+																		editingColorCardId =
+																			null;
+																		resetColorOverride(
+																			cardRow,
+																		);
 																	}}
 																>
-																	Reset to Default
+																	Reset to
+																	Default
 																</button>
 															</div>
 														</div>
 													{:else}
-														{@const currentCategory = editingColorCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:color-cat`) && interactionStore.selectedCells.has(`${editingColorCardId}:color-cat`) ? inlineColorVal : getColorCategory(cardRow)}
-														<div class="cell-display-wrapper">
+														{@const currentCategory =
+															editingColorCardId &&
+															interactionStore.selectedCells.has(
+																`${cardRow.instances[0]?.id}:color-cat`,
+															) &&
+															interactionStore.selectedCells.has(
+																`${editingColorCardId}:color-cat`,
+															)
+																? inlineColorVal
+																: getColorCategory(
+																		cardRow,
+																	)}
+														<div
+															class="cell-display-wrapper"
+														>
 															<span
 																class="color-cat-text class-{currentCategory.toLowerCase()}"
 																class:is-overridden={hasColorOverride}
-																title={hasColorOverride ? "Click to change color override (Customized)" : "Click to override"}
+																title={hasColorOverride
+																	? "Click to change color override (Customized)"
+																	: "Click to override"}
 															>
 																{currentCategory}
 															</span>
@@ -1887,17 +2670,39 @@
 																<button
 																	type="button"
 																	class="reset-override-btn"
-																	onclick={(e) => {
+																	onclick={(
+																		e,
+																	) => {
 																		e.stopPropagation();
-																		if (cardRow.instances[0]) {
-																			deckStore.resetCardOverride(cardRow.instances[0].id, 'colorCategory');
-																			deckStore.resetCardOverride(cardRow.instances[0].id, 'colors');
-																			deckStore.resetCardOverride(cardRow.instances[0].id, 'colorIdentity');
+																		if (
+																			cardRow
+																				.instances[0]
+																		) {
+																			deckStore.resetCardOverride(
+																				cardRow
+																					.instances[0]
+																					.id,
+																				"colorCategory",
+																			);
+																			deckStore.resetCardOverride(
+																				cardRow
+																					.instances[0]
+																					.id,
+																				"colors",
+																			);
+																			deckStore.resetCardOverride(
+																				cardRow
+																					.instances[0]
+																					.id,
+																				"colorIdentity",
+																			);
 																		}
 																	}}
 																	title="Reset to default Color Category"
 																>
-																	<Undo size={12} />
+																	<Undo
+																		size={12}
+																	/>
 																</button>
 															{/if}
 														</div>
@@ -1908,9 +2713,11 @@
 
 										<!-- Color Identity (Mana symbols) -->
 										{#if settingsStore.visibleColumns.includes("color-id")}
-											<td 
+											<td
 												class="col-color-id"
-												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:color-id`)}
+												class:is-selected={interactionStore.selectedCells.has(
+													`${cardRow.instances[0]?.id}:color-id`,
+												)}
 											>
 												<div class="color-id-cell">
 													{#each cardRow.color_identity as sym}
@@ -1931,79 +2738,166 @@
 
 										<!-- Tags (Inline Tag Input with Autocomplete) -->
 										{#if settingsStore.visibleColumns.includes("tags")}
-											{@const tags = cardRow.instances[0]?.tags || []}
-											<td 
+											{@const tags =
+												cardRow.instances[0]?.tags ||
+												[]}
+											<td
 												class="col-tags"
-												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:tags`)}
-												class:is-editing={editingTagsCardId && cardRow.instances[0] && editingTagsCardId === cardRow.instances[0].id}
+												class:is-selected={interactionStore.selectedCells.has(
+													`${cardRow.instances[0]?.id}:tags`,
+												)}
+												class:is-editing={editingTagsCardId &&
+													cardRow.instances[0] &&
+													editingTagsCardId ===
+														cardRow.instances[0].id}
 												ondblclick={(e) => {
-													if (e.shiftKey || e.metaKey || e.ctrlKey) return;
+													if (
+														e.shiftKey ||
+														e.metaKey ||
+														e.ctrlKey
+													)
+														return;
 													e.stopPropagation();
-													interactionStore.filterSelectionToColumn('tags');
+													interactionStore.filterSelectionToColumn(
+														"tags",
+													);
 													if (cardRow.instances[0]) {
-														editingTagsCardId = editingTagsCardId === cardRow.instances[0].id ? null : cardRow.instances[0].id;
+														editingTagsCardId =
+															editingTagsCardId ===
+															cardRow.instances[0]
+																.id
+																? null
+																: cardRow
+																		.instances[0]
+																		.id;
 														if (editingTagsCardId) {
-															inlineTagsVal = tags.join(", ");
+															inlineTagsVal =
+																tags.join(", ");
 															activeTagsOptionIdx = 0;
 															hasTagsTyped = false;
 														}
 													}
 												}}
 											>
-												<div style="position: relative; cursor: pointer;">
+												<div
+													style="position: relative; cursor: pointer;"
+												>
 													{#if editingTagsCardId && cardRow.instances[0] && editingTagsCardId === cardRow.instances[0].id}
-														{@const filteredSuggestions = getFilteredTags(inlineTagsVal)}
+														{@const filteredSuggestions =
+															getFilteredTags(
+																inlineTagsVal,
+															)}
 														<input
 															type="text"
 															class="tags-inline-input"
-															bind:value={inlineTagsVal}
+															bind:value={
+																inlineTagsVal
+															}
 															use:selectOnMount
-															oninput={() => hasTagsTyped = true}
-															onblur={() => handleTagsSubmit(cardRow)}
+															oninput={() =>
+																(hasTagsTyped = true)}
+															onblur={() =>
+																handleTagsSubmit(
+																	cardRow,
+																)}
 															onkeydown={(e) => {
-																const matches = filteredSuggestions;
-																if (e.key === "ArrowDown") {
+																const matches =
+																	filteredSuggestions;
+																if (
+																	e.key ===
+																	"ArrowDown"
+																) {
 																	e.preventDefault();
-																	if (matches.length > 0) {
-																		activeTagsOptionIdx = (activeTagsOptionIdx + 1) % matches.length;
+																	if (
+																		matches.length >
+																		0
+																	) {
+																		activeTagsOptionIdx =
+																			(activeTagsOptionIdx +
+																				1) %
+																			matches.length;
 																	}
-																} else if (e.key === "ArrowUp") {
+																} else if (
+																	e.key ===
+																	"ArrowUp"
+																) {
 																	e.preventDefault();
-																	if (matches.length > 0) {
-																		activeTagsOptionIdx = (activeTagsOptionIdx - 1 + matches.length) % matches.length;
+																	if (
+																		matches.length >
+																		0
+																	) {
+																		activeTagsOptionIdx =
+																			(activeTagsOptionIdx -
+																				1 +
+																				matches.length) %
+																			matches.length;
 																	}
-																} else if (e.key === "Enter") {
+																} else if (
+																	e.key ===
+																	"Enter"
+																) {
 																	e.preventDefault();
-																	const selected = matches[activeTagsOptionIdx];
-																	if (selected) {
-																		selectTagSuggestion(cardRow, selected);
+																	const selected =
+																		matches[
+																			activeTagsOptionIdx
+																		];
+																	if (
+																		selected
+																	) {
+																		selectTagSuggestion(
+																			cardRow,
+																			selected,
+																		);
 																	} else {
-																		handleTagsSubmit(cardRow);
+																		handleTagsSubmit(
+																			cardRow,
+																		);
 																	}
-																} else if (e.key === "Escape") {
-																	editingTagsCardId = null;
+																} else if (
+																	e.key ===
+																	"Escape"
+																) {
+																	editingTagsCardId =
+																		null;
 																}
 															}}
-															onclick={(e) => e.stopPropagation()}
+															onclick={(e) =>
+																e.stopPropagation()}
 														/>
 
 														<!-- svelte-ignore a11y_click_events_have_key_events -->
 														<!-- svelte-ignore a11y_no_static_element_interactions -->
-														<div 
+														<div
 															class="tags-picker-dropdown"
-															onclick={(evt) => evt.stopPropagation()}
+															onclick={(evt) =>
+																evt.stopPropagation()}
 														>
-															<div class="dropdown-backdrop" role="presentation" onclick={() => editingTagsCardId = null}></div>
-															<div class="tags-picker-menu">
+															<div
+																class="dropdown-backdrop"
+																role="presentation"
+																onclick={() =>
+																	(editingTagsCardId =
+																		null)}
+															></div>
+															<div
+																class="tags-picker-menu"
+															>
 																{#each filteredSuggestions as item, idx}
-																	{@const isActive = idx === activeTagsOptionIdx}
+																	{@const isActive =
+																		idx ===
+																		activeTagsOptionIdx}
 																	<button
 																		type="button"
 																		class="tag-opt-btn"
 																		class:active={isActive}
-																		onmousedown={(e) => {
+																		onmousedown={(
+																			e,
+																		) => {
 																			e.preventDefault();
-																			selectTagSuggestion(cardRow, item);
+																			selectTagSuggestion(
+																				cardRow,
+																				item,
+																			);
 																		}}
 																	>
 																		{item}
@@ -2011,38 +2905,86 @@
 																{/each}
 															</div>
 														</div>
-													{:else}
-														{#if editingTagsCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:tags`) && interactionStore.selectedCells.has(`${editingTagsCardId}:tags`)}
-															{@const tempTags = inlineTagsVal.split(',').map(t => t.trim()).filter(Boolean)}
-															<div class="tags-badges-list">
-																{#each tempTags as tag, idx}
-																	<span class="tag-badge" style="background-color: {getTagBgColor(tag)}">
-																		{#if idx === 0}
-																			<Star size={10} class="star-icon text-yellow-400 fill-yellow-400" />
-																		{/if}
-																		<span>{tag}</span>
-																	</span>
-																{/each}
-															</div>
-														{:else}
-															<div class="tags-badges-list">
-																{#each tags as tag, idx}
-																	<span 
-																		class="tag-badge"
-																		style="background-color: {getTagBgColor(tag)}"
-																		draggable="true"
-																		ondragstart={(e) => handleTagDragStart(e, cardRow.instances[0].id, idx)}
-																		ondragover={(e) => e.preventDefault()}
-																		ondrop={(e) => handleTagDrop(e, cardRow.instances[0].id, idx)}
+													{:else if editingTagsCardId && interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:tags`) && interactionStore.selectedCells.has(`${editingTagsCardId}:tags`)}
+														{@const tempTags =
+															inlineTagsVal
+																.split(",")
+																.map((t) =>
+																	t.trim(),
+																)
+																.filter(
+																	Boolean,
+																)}
+														<div
+															class="tags-badges-list"
+														>
+															{#each tempTags as tag, idx}
+																<span
+																	class="tag-badge"
+																	style="background-color: {getTagBgColor(
+																		tag,
+																	)}"
+																>
+																	{#if idx === 0}
+																		<Star
+																			size={10}
+																			class="star-icon text-yellow-400 fill-yellow-400"
+																		/>
+																	{/if}
+																	<span
+																		>{tag}</span
 																	>
-																		{#if idx === 0}
-																			<Star size={10} class="star-icon text-yellow-400 fill-yellow-400" />
-																		{/if}
-																		<span>{tag}</span>
-																	</span>
-																{/each}
-															</div>
-														{/if}
+																</span>
+															{/each}
+														</div>
+													{:else}
+														<div
+															class="tags-badges-list"
+														>
+															{#each tags as tag, idx}
+																<span
+																	class="tag-badge"
+																	style="background-color: {getTagBgColor(
+																		tag,
+																	)}"
+																	draggable="true"
+																	ondragstart={(
+																		e,
+																	) =>
+																		handleTagDragStart(
+																			e,
+																			cardRow
+																				.instances[0]
+																				.id,
+																			idx,
+																		)}
+																	ondragover={(
+																		e,
+																	) =>
+																		e.preventDefault()}
+																	ondrop={(
+																		e,
+																	) =>
+																		handleTagDrop(
+																			e,
+																			cardRow
+																				.instances[0]
+																				.id,
+																			idx,
+																		)}
+																>
+																	{#if idx === 0}
+																		<Star
+																			size={10}
+																			class="star-icon text-yellow-400 fill-yellow-400"
+																		/>
+																	{/if}
+																	<span
+																		>{tag}</span
+																	>
+																</span>
+															{/each}
+														</div>
 													{/if}
 												</div>
 											</td>
@@ -2050,9 +2992,11 @@
 
 										<!-- Price (Optional) -->
 										{#if settingsStore.visibleColumns.includes("price")}
-											<td 
+											<td
 												class="col-price"
-												class:is-selected={interactionStore.selectedCells.has(`${cardRow.instances[0]?.id}:price`)}
+												class:is-selected={interactionStore.selectedCells.has(
+													`${cardRow.instances[0]?.id}:price`,
+												)}
 											>
 												<span class="price-span">
 													{cardRow.price > 0
@@ -2083,7 +3027,9 @@
 														e.stopPropagation();
 														interactionStore.showMenu(
 															e,
-															cardRow.instances[0] || cardRow.card,
+															cardRow
+																.instances[0] ||
+																cardRow.card,
 															cardRow.zone,
 															cardRow.price,
 														);
@@ -2183,7 +3129,11 @@
 		top: 0;
 		z-index: 10;
 		height: 38px;
-		background: linear-gradient(hsla(0, 0%, 100%, 0.06), hsla(0, 0%, 100%, 0.06)), hsl(var(--background));
+		background: linear-gradient(
+				hsla(0, 0%, 100%, 0.06),
+				hsla(0, 0%, 100%, 0.06)
+			),
+			hsl(var(--background));
 		padding: 0 14px;
 		font-size: 0.6875rem;
 		font-weight: 700;
@@ -2500,8 +3450,6 @@
 		border-color: hsl(var(--primary));
 	}
 
-
-
 	.add-tag-submit-btn {
 		background: hsl(var(--primary));
 		color: white;
@@ -2730,6 +3678,8 @@
 		display: flex;
 		align-items: center;
 		gap: 4px;
+		font-size: var(--font-xs);
+		font-weight: 500;
 	}
 
 	.set-code {
@@ -2753,32 +3703,32 @@
 	}
 
 	.color-cat-text.class-white {
-		color: #F8F6D8;
+		color: #f8f6d8;
 		border-color: rgba(248, 246, 216, 0.2);
 		background: rgba(248, 246, 216, 0.03);
 	}
 	.color-cat-text.class-blue {
-		color: #C1D7E9;
+		color: #c1d7e9;
 		border-color: rgba(193, 215, 233, 0.2);
 		background: rgba(193, 215, 233, 0.03);
 	}
 	.color-cat-text.class-black {
-		color: #CAC5C0;
+		color: #cac5c0;
 		border-color: rgba(202, 197, 192, 0.2);
 		background: rgba(202, 197, 192, 0.03);
 	}
 	.color-cat-text.class-red {
-		color: #E49977;
+		color: #e49977;
 		border-color: rgba(228, 153, 119, 0.2);
 		background: rgba(228, 153, 119, 0.03);
 	}
 	.color-cat-text.class-green {
-		color: #A3C095;
+		color: #a3c095;
 		border-color: rgba(163, 192, 149, 0.2);
 		background: rgba(163, 192, 149, 0.03);
 	}
 	.color-cat-text.class-colorless {
-		color: #CCC2C0;
+		color: #ccc2c0;
 		border-color: rgba(204, 194, 192, 0.2);
 		background: rgba(204, 194, 192, 0.03);
 	}
@@ -2890,7 +3840,11 @@
 		position: sticky;
 		top: 37px;
 		z-index: 5;
-		background: linear-gradient(hsla(0, 0%, 100%, 0.015), hsla(0, 0%, 100%, 0.015)), hsl(var(--background));
+		background: linear-gradient(
+				hsla(0, 0%, 100%, 0.015),
+				hsla(0, 0%, 100%, 0.015)
+			),
+			hsl(var(--background));
 		border-bottom: 1px solid hsl(var(--border) / 0.5);
 		border-top: none;
 		border-right: none !important;
@@ -2901,7 +3855,11 @@
 	}
 
 	.category-header-row:hover td {
-		background: linear-gradient(hsla(0, 0%, 100%, 0.045), hsla(0, 0%, 100%, 0.045)), hsl(var(--background)) !important;
+		background: linear-gradient(
+				hsla(0, 0%, 100%, 0.045),
+				hsla(0, 0%, 100%, 0.045)
+			),
+			hsl(var(--background)) !important;
 	}
 
 	.category-header-row td.col-actions {
@@ -3259,12 +4217,13 @@
 		align-items: center;
 		justify-content: center;
 		border-radius: 4px;
-		transition: background-color 0.2s, color 0.2s;
+		transition:
+			background-color 0.2s,
+			color 0.2s;
 	}
 
 	.reset-override-btn:hover {
 		background: hsla(0, 0%, 100%, 0.1);
 		color: hsl(var(--foreground));
 	}
-
 </style>
