@@ -31,7 +31,7 @@
 
 <span
 	class="mana-symbol {className}"
-	style="width: {size}; height: {size}; background-image: url('/mana/{filename}.svg');"
+	style="width: {size}; height: calc({size} * 1.05); background-image: url('/mana/{filename}.svg');"
 	role="img"
 	aria-label={symbol.toUpperCase()}
 ></span>
@@ -44,7 +44,7 @@
 		vertical-align: middle;
 		border-radius: 50%;
 		flex-shrink: 0;
-		background-size: contain;
+		background-size: 100% 100%;
 		background-repeat: no-repeat;
 		background-position: center;
 		box-shadow:
