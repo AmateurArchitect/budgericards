@@ -31,7 +31,7 @@
 
 <span
 	class="mana-symbol {className}"
-	style="width: {size}; height: calc({size} * 1.015); background-image: url('/mana/{filename}.svg');"
+	style="width: {size}; height: calc({size} * 1.01); background-image: url('/mana/{filename}.svg');"
 	role="img"
 	aria-label={symbol.toUpperCase()}
 ></span>
