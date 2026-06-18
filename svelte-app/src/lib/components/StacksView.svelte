@@ -131,6 +131,14 @@
 	const activeColKeys = $derived(rows[0] ? rows[0].columns.filter((/** @type {any} */ c) => c.key !== "Special").map((/** @type {any} */ c) => c.key) : []);
 	const activeInsertIndices = $derived(Array.from({ length: activeColKeys.length + 1 }, (_, i) => i));
 	const activeTagColsCount = $derived(activeColKeys.filter(k => k !== "No Tag" && k !== "Loading" && k !== "Unknown").length);
+	const emptyStateStartTrack = $derived(
+		(columnTrackMap.has("Special") ? 1 : 0) + activeTagColsCount + 1
+	);
+	const emptyStateEndTrack = $derived(
+		columnTrackMap.has("No Tag")
+			? Math.max(columnTrackMap.get("No Tag") || 0, layoutStore.numCols)
+			: -1
+	);
 	const shouldShift = $derived(insertDropZoneActive !== null && !isBigGap(insertDropZoneActive));
 
 	/** 
@@ -166,7 +174,7 @@
 		if (!colKey) return 0;
 		const colTrack = columnTrackMap.get(colKey);
 		if (colTrack === undefined) return 0;
-		const isLands = colKey === "Lands";
+		const isLands = colKey === "Lands" || colKey === "No Tag";
 		return isLands && typeGroups.length === 0
 			? Math.max(colTrack, layoutStore.numCols)
 			: colTrack;
@@ -858,7 +866,7 @@
 				{@const activeColIdx = activeColKeys.indexOf(column.key)}
 				<!-- Column Header -->
 				{#if settingsStore.showColumnHeaders && column.label && column.key !== "Special"}
-					{@const isLands = column.key === "Lands"}
+					{@const isLands = column.key === "Lands" || column.key === "No Tag"}
 					{@const colTrack = columnTrackMap.get(column.key)}
 					{@const finalColTrack =
 						isLands && typeGroups.length === 0
@@ -923,7 +931,7 @@
 				{/if}
 
 				<!-- Stacks -->
-				{@const isLands = column.key === "Lands"}
+				{@const isLands = column.key === "Lands" || column.key === "No Tag"}
 				{@const colTrack = columnTrackMap.get(column.key)}
 				{@const finalColTrack =
 					isLands && typeGroups.length === 0
@@ -1537,7 +1545,7 @@
 		{#if deckStore.grouping === 'primarytag' && activeTagColsCount < 4 && !isDraggingCard}
 			<div 
 				class="tag-empty-state-cell"
-				style="grid-column: {masterColCount + 1} / -1;"
+				style="grid-column: {emptyStateStartTrack} / {emptyStateEndTrack};"
 			>
 				<div class="tag-empty-state-card">
 					<svg class="tag-empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1994,6 +2002,8 @@
 		max-width: 400px;
 		width: 100%;
 		pointer-events: auto;
+		position: sticky;
+		top: calc(50vh - 200px);
 	}
 
 	.tag-empty-icon {
