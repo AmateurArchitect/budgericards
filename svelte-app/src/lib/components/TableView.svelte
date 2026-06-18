@@ -2753,29 +2753,34 @@
 	}
 
 	.color-cat-text.class-white {
-		color: #fef08a;
-		border-color: rgba(254, 240, 138, 0.2);
-		background: rgba(254, 240, 138, 0.03);
+		color: #F8F6D8;
+		border-color: rgba(248, 246, 216, 0.2);
+		background: rgba(248, 246, 216, 0.03);
 	}
 	.color-cat-text.class-blue {
-		color: #60a5fa;
-		border-color: rgba(96, 165, 250, 0.2);
-		background: rgba(96, 165, 250, 0.03);
+		color: #C1D7E9;
+		border-color: rgba(193, 215, 233, 0.2);
+		background: rgba(193, 215, 233, 0.03);
 	}
 	.color-cat-text.class-black {
-		color: #c084fc;
-		border-color: rgba(192, 132, 252, 0.2);
-		background: rgba(192, 132, 252, 0.03);
+		color: #CAC5C0;
+		border-color: rgba(202, 197, 192, 0.2);
+		background: rgba(202, 197, 192, 0.03);
 	}
 	.color-cat-text.class-red {
-		color: #f87171;
-		border-color: rgba(248, 113, 113, 0.2);
-		background: rgba(248, 113, 113, 0.03);
+		color: #E49977;
+		border-color: rgba(228, 153, 119, 0.2);
+		background: rgba(228, 153, 119, 0.03);
 	}
 	.color-cat-text.class-green {
-		color: #34d399;
-		border-color: rgba(52, 211, 153, 0.2);
-		background: rgba(52, 211, 153, 0.03);
+		color: #A3C095;
+		border-color: rgba(163, 192, 149, 0.2);
+		background: rgba(163, 192, 149, 0.03);
+	}
+	.color-cat-text.class-colorless {
+		color: #CCC2C0;
+		border-color: rgba(204, 194, 192, 0.2);
+		background: rgba(204, 194, 192, 0.03);
 	}
 	.color-cat-text.class-multicolor {
 		color: #fb923c;
@@ -2783,9 +2788,9 @@
 		background: rgba(251, 146, 60, 0.03);
 	}
 	.color-cat-text.class-land {
-		color: #a7f3d0;
-		border-color: rgba(167, 243, 208, 0.2);
-		background: rgba(167, 243, 208, 0.03);
+		color: #d2b48c;
+		border-color: rgba(210, 180, 140, 0.2);
+		background: rgba(210, 180, 140, 0.03);
 	}
 
 	/* Color Identity Cell */
