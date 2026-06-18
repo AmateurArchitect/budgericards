@@ -130,6 +130,7 @@
 	let isDraggingCard = $state(false);
 	const activeColKeys = $derived(rows[0] ? rows[0].columns.filter((/** @type {any} */ c) => c.key !== "Special").map((/** @type {any} */ c) => c.key) : []);
 	const activeInsertIndices = $derived(Array.from({ length: activeColKeys.length + 1 }, (_, i) => i));
+	const activeTagColsCount = $derived(activeColKeys.filter(k => k !== "No Tag" && k !== "Loading" && k !== "Unknown").length);
 	const shouldShift = $derived(insertDropZoneActive !== null && !isBigGap(insertDropZoneActive));
 
 	/** 
@@ -1532,6 +1533,22 @@
 				{/each}
 			</div>
 		{/if}
+
+		{#if deckStore.grouping === 'primarytag' && activeTagColsCount < 4}
+			<div 
+				class="tag-empty-state-cell"
+				style="grid-column: {masterColCount + 1} / span 2; grid-row: 3;"
+			>
+				<div class="tag-empty-state-card">
+					<svg class="tag-empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M12 20h9"/>
+						<path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+					</svg>
+					<h3>Organize with Tags</h3>
+					<p>Drag and drop cards into the empty space on the right to create a new tag column, or move cards between columns to change their tags.</p>
+				</div>
+			</div>
+		{/if}
 	</div>
 
 	<div class="scroll-spacer-right"></div>
@@ -1951,5 +1968,44 @@
 
 	:global(.curve-card-item) {
 		animation: card-bloom 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+	}
+
+	.tag-empty-state-cell {
+		width: calc(var(--card-width) * 2 + var(--column-gap));
+		padding-top: 1.5rem;
+		pointer-events: none;
+	}
+
+	.tag-empty-state-card {
+		background: hsla(var(--muted) / 0.15);
+		border: 1px dashed hsla(var(--border) / 0.6);
+		border-radius: var(--radius-lg);
+		padding: 1.5rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		gap: 0.75rem;
+	}
+
+	.tag-empty-icon {
+		width: 32px;
+		height: 32px;
+		color: hsl(var(--primary) / 0.6);
+		margin-bottom: 0.25rem;
+	}
+
+	.tag-empty-state-card h3 {
+		font-size: 0.875rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+		margin: 0;
+	}
+
+	.tag-empty-state-card p {
+		font-size: 0.75rem;
+		line-height: 1.4;
+		color: hsl(var(--muted-foreground));
+		margin: 0;
 	}
 </style>
