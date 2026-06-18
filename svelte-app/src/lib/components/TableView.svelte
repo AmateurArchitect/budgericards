@@ -2729,7 +2729,7 @@
 	.printing-text {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 4px;
 	}
 
 	.set-code {
@@ -2742,6 +2742,8 @@
 	.collector-number {
 		color: var(--text-muted);
 		font-variant-numeric: tabular-nums;
+		font-size: 0.6875rem;
+		letter-spacing: 0.05em;
 	}
 
 	/* Color Category Labels */

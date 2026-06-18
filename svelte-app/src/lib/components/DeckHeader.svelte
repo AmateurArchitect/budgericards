@@ -12,7 +12,6 @@
 		ChevronDown,
 		StretchHorizontal,
 		StretchVertical,
-		ArrowDownWideNarrow,
 		MoreVertical,
 		SquareSplitVertical,
 		Table,
@@ -763,10 +762,6 @@
 									aria-expanded={showSortDropdown}
 									aria-haspopup="listbox"
 								>
-									<ArrowDownWideNarrow
-										size={14}
-										class="sort-icon"
-									/>
 									<span class="trigger-value"
 										>{visibleSorts.find(
 											(s) => s.id === deckStore.sorting,
