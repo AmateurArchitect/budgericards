@@ -43,7 +43,10 @@
 		vertical-align: middle;
 		border-radius: 50%;
 		flex-shrink: 0;
-		box-shadow: -1px 1px 0 rgba(0, 0, 0, 0.4);
+		box-shadow: 
+			inset 0 0.0625em 0.0208em rgba(255, 255, 255, 0.5),
+			inset 0 -0.0417em 0.0208em rgba(0, 0, 0, 0.25),
+			0 0.0417em 0.0833em rgba(0, 0, 0, 1);
 		user-select: none;
 		object-fit: contain;
 		will-change: transform;
