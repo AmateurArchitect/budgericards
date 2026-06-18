@@ -2734,16 +2734,11 @@
 
 	.set-code {
 		color: hsl(var(--muted-foreground));
-		font-weight: 700;
-		font-size: 0.6875rem;
-		letter-spacing: 0.05em;
 	}
 
 	.collector-number {
-		color: var(--text-muted);
+		color: hsl(var(--muted-foreground));
 		font-variant-numeric: tabular-nums;
-		font-size: 0.6875rem;
-		letter-spacing: 0.05em;
 	}
 
 	/* Color Category Labels */
