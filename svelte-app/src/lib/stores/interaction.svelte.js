@@ -1,6 +1,9 @@
 import { deckStore } from "./deck.svelte.js";
 import { parseDecklist } from "../utils/decklistParser.js";
 import { fetchCollection } from "../api/scryfall.js";
+import { getCardByName } from "../localSearch.ts";
+import { priceStore } from "./prices.svelte.js";
+import { toastStore } from "./toast.svelte.js";
 
 /**
  * Parses a single text cell/column value into card details
@@ -993,7 +996,7 @@ function createInteractionStore() {
 				} else {
 					const parsed = parseSpreadsheetText(text);
 					if (parsed && parsed.length > 0) {
-						// Resolve any Scryfall IDs or Set/Collector numbers asynchronously in batches, maintaining order
+						// Resolve any Scryfall IDs, Set/Collector numbers, or Names asynchronously in batches, maintaining order
 						const toResolve = [];
 						const cardsToAdd = new Array(parsed.length);
 
@@ -1012,10 +1015,43 @@ function createInteractionStore() {
 									identifier: { set: item.set.toLowerCase(), collector_number: item.collector_number.toLowerCase() }
 								});
 							} else if (item.name) {
-								cardsToAdd[i] = {
-									name: item.name,
-									quantity: item.quantity
-								};
+								// First do a local lookup to see if we can resolve it immediately
+								const localCard = await getCardByName(item.name);
+								if (localCard) {
+									const localPrice = priceStore.getPrice(localCard.name);
+									cardsToAdd[i] = {
+										name: localCard.name,
+										quantity: item.quantity,
+										price: localPrice || 0,
+										metadata: {
+											id: localCard.id,
+											name: localCard.name,
+											type_line: localCard.type || "",
+											mana_cost: localCard.mana || "",
+											cmc: localCard.cmc ?? 0,
+											colors: localCard.colors || [],
+											color_identity: localCard.identity || [],
+											oracle_text: localCard.text || "",
+											card_faces: [],
+											image_uris: {
+												normal: localCard.image,
+												small: localCard.image ? localCard.image.replace('/normal/', '/small/') : null,
+												art_crop: localCard.image ? localCard.image.replace('/normal/', '/art_crop/') : null,
+											},
+											prices: {
+												usd: localPrice !== null ? String(localPrice) : null,
+												usd_foil: null
+											}
+										}
+									};
+								} else {
+									// If not in local DB, add to Scryfall batch lookup
+									toResolve.push({
+										index: i,
+										item,
+										identifier: { name: item.name }
+									});
+								}
 							}
 						}
 
@@ -1024,12 +1060,16 @@ function createInteractionStore() {
 								const response = await fetchCollection(toResolve.map(x => x.identifier));
 								const idMap = new Map();
 								const setCollectorMap = new Map();
+								const nameMap = new Map();
 
 								response.data.forEach(card => {
 									if (card.id) idMap.set(card.id.toLowerCase(), card);
 									if (card.set && card.collector_number) {
 										const key = `${card.set.toLowerCase()}/${card.collector_number.toLowerCase()}`;
 										setCollectorMap.set(key, card);
+									}
+									if (card.name) {
+										nameMap.set(card.name.toLowerCase(), card);
 									}
 								});
 
@@ -1040,6 +1080,8 @@ function createInteractionStore() {
 									} else if (x.item.set && x.item.collector_number) {
 										const key = `${x.item.set.toLowerCase()}/${x.item.collector_number.toLowerCase()}`;
 										foundCard = setCollectorMap.get(key);
+									} else if (x.item.name) {
+										foundCard = nameMap.get(x.item.name.toLowerCase());
 									}
 
 									if (foundCard) {
@@ -1050,32 +1092,29 @@ function createInteractionStore() {
 											metadata: foundCard
 										};
 									} else {
-										if (x.item.name) {
-											cardsToAdd[x.index] = {
-												name: x.item.name,
-												quantity: x.item.quantity,
-												set: x.item.set,
-												collector_number: x.item.collector_number
-											};
-										}
+										// Ignore unrecognized cards completely
 									}
 								}
 							} catch (e) {
 								console.error("Failed to batch resolve pasted card collection:", e);
-								for (const x of toResolve) {
-									if (x.item.name) {
-										cardsToAdd[x.index] = {
-											name: x.item.name,
-											quantity: x.item.quantity,
-											set: x.item.set,
-											collector_number: x.item.collector_number
-										};
-									}
-								}
+								// If Scryfall batch lookup fails, we ignore those cards
 							}
 						}
 
 						const finalCardsToAdd = cardsToAdd.filter(Boolean);
+						const pastedQty = finalCardsToAdd.reduce((sum, c) => sum + c.quantity, 0);
+						const unrecognizedItems = parsed.filter((item, idx) => !cardsToAdd[idx]);
+						const unrecognizedQty = unrecognizedItems.reduce((sum, item) => sum + item.quantity, 0);
+
+						if (unrecognizedQty > 0) {
+							if (pastedQty > 0) {
+								toastStore.show(`Pasted ${pastedQty} card${pastedQty === 1 ? '' : 's'}. Ignored ${unrecognizedQty} unrecognized card${unrecognizedQty === 1 ? '' : 's'}.`, { type: 'warning' });
+							} else {
+								toastStore.show(`Could not paste cards. ${unrecognizedQty} unrecognized card${unrecognizedQty === 1 ? '' : 's'} ignored.`, { type: 'error' });
+							}
+						} else if (pastedQty > 0) {
+							toastStore.show(`Pasted ${pastedQty} card${pastedQty === 1 ? '' : 's'}.`, { type: 'success' });
+						}
 
 						if (finalCardsToAdd.length > 0) {
 							const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];

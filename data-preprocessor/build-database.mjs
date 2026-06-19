@@ -54,16 +54,13 @@ function isDefaultFrame(card) {
   if (card.border_color !== 'black') return false;
   
   const effects = card.frame_effects || [];
-  if (effects.includes('showcase') || effects.includes('colorshifted') || effects.includes('futureshifted') || effects.includes('inverted') || effects.includes('extendedart') || effects.includes('universesbeyond')) return false;
+  if (effects.includes('showcase') || effects.includes('colorshifted') || effects.includes('futureshifted') || effects.includes('inverted') || effects.includes('extendedart')) return false;
   
   if (card.full_art === true || card.textless === true || card.oversized === true || card.promo === true) return false;
   if (card.set_type === 'masterpiece') return false;
   if (card.set === 'sld' || card.set_type === 'box' || card.set_type === 'arsenal' || card.set_type === 'treasure_chest') return false;
   
-  if (card.security_stamp === 'triangle') return false;
-  
   const pTypes = card.promo_types || [];
-  if (pTypes.includes('universesbeyond')) return false;
   
   const badPromoTypes = [
     'masterpiece', 'invocation', 'invention', 'expedition', 
