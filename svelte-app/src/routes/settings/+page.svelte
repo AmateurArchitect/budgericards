@@ -580,8 +580,8 @@
 		content: "";
 		height: 12px;
 		width: 12px;
-		left: 2px;
-		bottom: 2px;
+		left: 3px;
+		top: 3px;
 		background-color: hsl(var(--muted-foreground));
 		transition: 0.15s ease;
 		border-radius: 50%;

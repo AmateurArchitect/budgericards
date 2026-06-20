@@ -1028,7 +1028,7 @@
 																) =>
 																	e.stopPropagation()}
 																onkeydown={(
-																	e,
+																	/** @type {any} */ e,
 																) => {
 																	if (
 																		e.key ===
@@ -1214,7 +1214,7 @@
 																) =>
 																	e.stopPropagation()}
 																onkeydown={(
-																	e,
+																	/** @type {any} */ e,
 																) => {
 																	if (
 																		e.key ===
@@ -1391,7 +1391,7 @@
 															e.stopPropagation()}
 														onmousedown={(/** @type {MouseEvent} */ e) =>
 															e.stopPropagation()}
-														onkeydown={(e) => {
+														onkeydown={(/** @type {any} */ e) => {
 															if (
 																e.key ===
 																"Enter"
