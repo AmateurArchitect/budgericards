@@ -66,7 +66,7 @@
 		flex-direction: column;
 		gap: 10px;
 		pointer-events: none;
-		max-width: 380px;
+		max-width: 480px;
 		width: calc(100vw - 48px);
 	}
 
