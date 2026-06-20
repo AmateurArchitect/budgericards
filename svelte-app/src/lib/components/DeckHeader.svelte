@@ -2,6 +2,7 @@
 	import { onMount } from "svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
+	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import {
 		LayoutGrid,
 		SortAsc,
@@ -471,6 +472,19 @@
 							</div>
 						{/if}
 					</div>
+
+					{#if deckStore.activeBoard === 'maybeboard' && deckStore.maybeboard.length >= 80}
+						<button
+							class="maybeboard-warning-btn"
+							class:full={deckStore.maybeboard.length === 100}
+							onclick={() => interactionStore.maybeboardCleanupModal.isOpen = true}
+							title="Maybeboard is near or at limit. Click to clean up."
+						>
+							<span class="warning-icon">⚠️</span>
+							<span class="warning-text">{deckStore.maybeboard.length}/100</span>
+							<span class="cleanup-link">Clean Up</span>
+						</button>
+					{/if}
 
 					{#if authStore.isAuthenticated && (deckStore.syncState.isSyncing || deckStore.syncState.error)}
 						<div class="sync-indicator-container">
@@ -1351,5 +1365,48 @@
 		height: 36px;
 		font-size: 0.8125rem;
 		font-weight: 600;
+	}
+
+	.maybeboard-warning-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		padding: 3px 8px;
+		background: hsla(38, 92%, 50%, 0.1);
+		border: 1px solid hsla(38, 92%, 50%, 0.4);
+		color: #eab308;
+		border-radius: var(--radius-sm, 4px);
+		font-size: 0.75rem;
+		font-weight: 700;
+		cursor: pointer;
+		line-height: 1;
+		transition: all 0.15s;
+	}
+
+	.maybeboard-warning-btn:hover {
+		background: hsla(38, 92%, 50%, 0.25);
+		border-color: hsla(38, 92%, 50%, 0.6);
+		box-shadow: 0 0 10px hsla(38, 92%, 50%, 0.2);
+	}
+
+	.maybeboard-warning-btn.full {
+		background: hsla(var(--destructive-hsl), 0.1);
+		border-color: hsla(var(--destructive-hsl), 0.4);
+		color: hsl(var(--destructive));
+	}
+
+	.maybeboard-warning-btn.full:hover {
+		background: hsla(var(--destructive-hsl), 0.25);
+		border-color: hsla(var(--destructive-hsl), 0.6);
+		box-shadow: 0 0 10px hsla(var(--destructive-hsl), 0.2);
+	}
+
+	.warning-icon {
+		font-size: 0.875rem;
+	}
+
+	.cleanup-link {
+		text-decoration: underline;
+		margin-left: 2px;
 	}
 </style>

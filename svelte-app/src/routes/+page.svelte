@@ -5,6 +5,8 @@
 	import TableView from "$lib/components/TableView.svelte";
 	import SpoilerView from "$lib/components/SpoilerView.svelte";
 	import ImportView from "$lib/components/ImportView.svelte";
+	import SideboardPanel from "$lib/components/SideboardPanel.svelte";
+	import MaybeboardCleanupModal from "$lib/components/MaybeboardCleanupModal.svelte";
 	import { priceStore } from "$lib/stores/prices.svelte.js";
 	import { onMount } from "svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
@@ -156,6 +158,9 @@
 			{/if}
 		</div>
 	</main>
+
+	<MaybeboardCleanupModal bind:isOpen={interactionStore.maybeboardCleanupModal.isOpen} />
+	<SideboardPanel />
 
 	{#if deckStore.isImagePreloading}
 		<div class="stripey-loader" transition:slide={{ axis: 'y', duration: 200 }}>

@@ -11,7 +11,7 @@ function createSearch() {
 		results: /** @type {any[]} */ ([]),
 		isSearching: false,
 		error: "",
-		collection: "scryfall", // 'scryfall', 'budget-edh-26.2', 'budget-staples', 'sideboard', 'maybeboard', 'deleted'
+		collection: "scryfall", // 'scryfall', 'budget-edh-26.2', 'budget-staples', 'sideboard', 'maybeboard'
 		isCollapsed: false,
 		isFocused: false,
 		hasTriggered: false,
@@ -344,9 +344,9 @@ function createSearch() {
 			const signal = abortController.signal;
 
 			// Handle local board browsing
-			if (['sideboard', 'maybeboard', 'deleted'].includes(state.collection)) {
+			if (['sideboard', 'maybeboard'].includes(state.collection)) {
 				const q = state.query.toLowerCase();
-				const boardKey = state.collection === 'deleted' ? 'garbage' : state.collection;
+				const boardKey = state.collection;
 				/** @type {any[]} */
 				const source = (/** @type {any} */ (deckStore))[boardKey];
 
@@ -444,7 +444,7 @@ function createSearch() {
 
 			// External searches
 			let q = state.query.trim();
-			if (!q && !['sideboard', 'maybeboard', 'deleted'].includes(state.collection)) {
+			if (!q && !['sideboard', 'maybeboard'].includes(state.collection)) {
 				state.results = [];
 				state.isSearching = false;
 				return;
@@ -520,7 +520,7 @@ function createSearch() {
 
 			// Check cache
 			const cacheKey = `${state.collection}:${q}`;
-			if (searchCache.has(cacheKey) && !['sideboard', 'maybeboard', 'deleted'].includes(state.collection)) {
+			if (searchCache.has(cacheKey) && !['sideboard', 'maybeboard'].includes(state.collection)) {
 				const data = searchCache.get(cacheKey);
 				state.isSearching = true;
 				await processResults(data, signal);
@@ -551,7 +551,7 @@ function createSearch() {
 				return;
 			}
 
-			if (!['sideboard', 'maybeboard', 'deleted'].includes(state.collection)) {
+			if (!['sideboard', 'maybeboard'].includes(state.collection)) {
 				searchCache.set(cacheKey, data);
 			}
 			await processResults(data, signal);
@@ -650,14 +650,14 @@ function createSearch() {
 		state.showLargeSearchOverride = false;
 
 		// If query is empty and we are not browsing a local board, clear results and stop
-		if (!q && !['sideboard', 'maybeboard', 'deleted'].includes(collection)) {
+		if (!q && !['sideboard', 'maybeboard'].includes(collection)) {
 			state.results = [];
 			state.isSearching = false;
 			return;
 		}
 
 		// Local board browsing always uses the Scryfall path (reads from deckStore)
-		if (['sideboard', 'maybeboard', 'deleted'].includes(collection)) {
+		if (['sideboard', 'maybeboard'].includes(collection)) {
 			return performScryfallSearch();
 		}
 
@@ -686,7 +686,7 @@ function createSearch() {
 			// Also react to sync manager becoming ready
 			const ______ = syncManager.isReady;
 
-			const isLocal = ['sideboard', 'maybeboard', 'deleted'].includes(state.collection);
+			const isLocal = ['sideboard', 'maybeboard'].includes(state.collection);
 
 			if (isLocal) {
 				performSearch();
@@ -771,7 +771,7 @@ function createSearch() {
 				state.query.length > 0 ||
 				state.results.length > 0 ||
 				(state.hasTriggered && state.results.length === 0) ||
-				["sideboard", "maybeboard", "deleted"].includes(state.collection)
+				["sideboard", "maybeboard"].includes(state.collection)
 			);
 		},
 		get filters() { return state.filters; },
@@ -784,7 +784,7 @@ function createSearch() {
 		setFocus(val) {
 			state.isFocused = val;
 			if (val) {
-				if (['sideboard', 'maybeboard', 'deleted'].includes(state.collection) && state.query === '') {
+				if (['sideboard', 'maybeboard'].includes(state.collection) && state.query === '') {
 					performSearch();
 				}
 			} else {

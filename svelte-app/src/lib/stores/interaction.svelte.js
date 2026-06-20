@@ -293,6 +293,8 @@ function getCardCellValue(card, columnKey) {
  * @property {Object} changePrintingsModal
  * @property {boolean} changePrintingsModal.isOpen
  * @property {any[]} changePrintingsModal.selectedCards
+ * @property {Object} maybeboardCleanupModal
+ * @property {boolean} maybeboardCleanupModal.isOpen
  * @property {Object} printingPickerModal
  * @property {boolean} printingPickerModal.isOpen
  * @property {any} printingPickerModal.card
@@ -344,6 +346,9 @@ function createInteractionStore() {
 			card: /** @type {any} */ (null),
 			zone: /** @type {string | null} */ (null),
 			price: /** @type {number | null} */ (null)
+		},
+		maybeboardCleanupModal: {
+			isOpen: false
 		},
 		selectionAnchor: null, // { cardId, columnKey }
 		selectionFocus: null,  // { cardId, columnKey }
@@ -598,7 +603,7 @@ function createInteractionStore() {
 				return state.menuHeaderTitle;
 			}
 			if (!state.menuCard) return "";
-			const isFromSearch = state.menuZone === 'scryfall' || state.menuZone === 'budget-edh-26.2' || state.menuZone === 'budget-staples' || state.menuZone === 'garbage';
+			const isFromSearch = state.menuZone === 'scryfall' || state.menuZone === 'budget-edh-26.2' || state.menuZone === 'budget-staples';
 			if (isFromSearch) return state.menuCard.name;
 
 			const selectedIds = new Set(
@@ -613,6 +618,7 @@ function createInteractionStore() {
 		get editingCardId() { return state.editingCardId; },
 		get quantityModal() { return state.quantityModal; },
 		get cardDataModal() { return state.cardDataModal; },
+		get maybeboardCleanupModal() { return state.maybeboardCleanupModal; },
 		get selectedCells() { return state.selectedCells; },
 		get selectionAnchor() { return state.selectionAnchor; },
 		get selectionFocus() { return state.selectionFocus; },
@@ -1299,7 +1305,7 @@ function createInteractionStore() {
 			e.preventDefault();
 			e.stopPropagation();
 
-			const isFromSearch = zone === 'scryfall' || zone === 'budget-edh-26.2' || zone === 'budget-staples' || zone === 'garbage';
+			const isFromSearch = zone === 'scryfall' || zone === 'budget-edh-26.2' || zone === 'budget-staples';
 			if (card && card.id && !isFromSearch) {
 				const isCardSelected = [...state.selectedCells].some(cell => cell.startsWith(`${card.id}:`));
 				if (!isCardSelected) {
@@ -1440,7 +1446,7 @@ function createInteractionStore() {
 			const price = state.menuPrice;
 			const card = state.menuCard;
 
-			const isFromSearch = zone === 'scryfall' || zone === 'budget-edh-26.2' || zone === 'budget-staples' || zone === 'garbage';
+			const isFromSearch = zone === 'scryfall' || zone === 'budget-edh-26.2' || zone === 'budget-staples';
 
 			const selectedIds = new Set(
 				[...state.selectedCells].map(cell => cell.split(':')[0])
@@ -1809,12 +1815,11 @@ function createInteractionStore() {
 							const shouldSwap = !(isLegalPair && deckStore.commander.length === 1);
 
 							if (shouldSwap && deckStore.commander.length > 0) {
-								const targetZone = isFromSearch ? 'garbage' : zone;
 								[...deckStore.commander].forEach(c => {
 									if (isFromSearch) {
 										deckStore.removeCard(c.name, 'commander', c.id);
 									} else {
-										deckStore.moveCard(c.name, 'commander', targetZone, c.id, c.price);
+										deckStore.moveCard(c.name, 'commander', zone, c.id, c.price);
 									}
 								});
 							}
@@ -1840,12 +1845,11 @@ function createInteractionStore() {
 						} else {
 							// Swap logic: move existing companions back to the source zone
 							if (deckStore.companion.length > 0) {
-								const targetZone = isFromSearch ? 'garbage' : zone;
 								[...deckStore.companion].forEach(c => {
 									if (isFromSearch) {
 										deckStore.removeCard(c.name, 'companion', c.id);
 									} else {
-										deckStore.moveCard(c.name, 'companion', targetZone, c.id, c.price);
+										deckStore.moveCard(c.name, 'companion', zone, c.id, c.price);
 									}
 								});
 							}

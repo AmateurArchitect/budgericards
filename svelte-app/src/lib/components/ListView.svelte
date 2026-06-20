@@ -103,7 +103,6 @@
 						const isLocalSource = [
 							"sideboard",
 							"maybeboard",
-							"garbage",
 							"commander",
 							"companion",
 							"mainboard",

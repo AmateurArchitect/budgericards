@@ -81,7 +81,6 @@
 		{ divider: true },
 		{ id: "sideboard", label: "Deck Sideboard" },
 		{ id: "maybeboard", label: "Deck Maybeboard" },
-		{ id: "deleted", label: "Recently Deleted Cards" },
 		{ divider: true },
 		{ id: "budget-edh-26.2", label: "Budget EDH 26.2" },
 		{ id: "budget-staples", label: "Budget Staples" },
@@ -98,7 +97,7 @@
 	const activeShortLabel = $derived(activeLabel.split(" (")[0]);
 
 	const collectionButtonText = $derived(
-		["sideboard", "maybeboard", "deleted"].includes(searchStore.collection)
+		["sideboard", "maybeboard"].includes(searchStore.collection)
 			? `Browse ${activeShortLabel}`
 			: `Search ${activeShortLabel}`,
 	);

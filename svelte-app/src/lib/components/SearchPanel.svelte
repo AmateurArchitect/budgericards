@@ -68,8 +68,7 @@
 			const data = JSON.parse(dataStr);
 			if (data.fromDeck) {
 				const collection = searchStore.collection;
-				const targetBoard =
-					collection === "deleted" ? "garbage" : collection;
+				const targetBoard = collection;
 
 				const cardsToProcess = data.selectedCards || [data];
 				deckStore.batchUpdate(() => {
@@ -84,7 +83,7 @@
 								item.price,
 							);
 						} else {
-							// Delete (move to garbage)
+							// Delete
 							deckStore.removeCard(
 								item.name,
 								item.sourceBoard,
@@ -691,9 +690,7 @@
 									Sideboard Empty
 								{:else if searchStore.collection === "maybeboard" && deckStore.maybeboard.length === 0}
 									Maybeboard Empty
-								{:else if searchStore.collection === "deleted" && deckStore.garbage.length === 0}
-									Recently Deleted Cards Empty
-								{:else if !["sideboard", "maybeboard", "deleted"].includes(searchStore.collection)}
+								{:else if !["sideboard", "maybeboard"].includes(searchStore.collection)}
 									The void hungers for cards...
 								{/if}
 							</div>

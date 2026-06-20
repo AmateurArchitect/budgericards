@@ -17,14 +17,10 @@
 		// Ignore clicks on the quantity badge to prevent conflicting actions
 		if (e.target instanceof HTMLElement && e.target.closest('.stack-badge')) return;
 
-		const isLocalBoard = ["sideboard", "maybeboard", "deleted"].includes(
+		const isLocalBoard = ["sideboard", "maybeboard"].includes(
 			searchStore.collection,
 		);
-		const currentBoard = zone || (
-			searchStore.collection === "deleted"
-				? "garbage"
-				: searchStore.collection
-		);
+		const currentBoard = zone || searchStore.collection;
 
 		const isAddShortcut = e.altKey;
 		const isMultiSelectToggle = e.metaKey || (e.ctrlKey && !e.altKey);
@@ -52,8 +48,7 @@
 			);
 		} else if (
 			!inSearchPanel &&
-			isLocalBoard &&
-			searchStore.collection !== "deleted"
+			isLocalBoard
 		) {
 			deckStore.moveCard(
 				card.name,
@@ -148,9 +143,7 @@
 			id: card.id,
 			fromDeck: !inSearchPanel,
 			sourceBoard: zone || (inSearchPanel
-				? searchStore.collection === "deleted"
-					? "garbage"
-					: searchStore.collection
+				? searchStore.collection
 				: deckStore.activeBoard),
 			card: card,
 			selectedCards: selectedCards.length > 0 ? selectedCards : null
@@ -196,17 +189,13 @@
 	}}
 	oncontextmenu={(e) => {
 		const currentBoard = zone || (inSearchPanel
-			? searchStore.collection === "deleted"
-				? "garbage"
-				: searchStore.collection
+			? searchStore.collection
 			: deckStore.activeBoard);
 		interactionStore.showMenu(e, card, currentBoard, price);
 	}}
 	onmouseenter={() => {
 		const currentBoard = zone || (inSearchPanel
-			? searchStore.collection === "deleted"
-				? "garbage"
-				: searchStore.collection
+			? searchStore.collection
 			: deckStore.activeBoard);
 		interactionStore.registerHover(card, currentBoard, price);
 	}}

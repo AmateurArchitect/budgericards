@@ -30,6 +30,17 @@ export const generateId = () => {
 	return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 };
 
+/**
+ * @param {string} cardName
+ * @returns {boolean}
+ */
+export const isBasicLand = (cardName) => {
+	const nameLower = cardName.toLowerCase();
+	return ["plains", "island", "swamp", "mountain", "forest", "wastes", "waste"].some(
+		land => nameLower === land || nameLower === `snow-covered ${land}`
+	);
+};
+
 function createDeckState(initialData = null) {
 	const deckId = initialData?.id || generateId();
 	
@@ -61,7 +72,7 @@ function createDeckState(initialData = null) {
 		mainboard: initialData?.mainboard || [],
 		sideboard: initialData?.sideboard || [],
 		maybeboard: initialData?.maybeboard || [],
-		garbage: initialData?.garbage || [],
+		garbage: [],
 		activeBoard: cachedActiveBoard || initialData?.activeBoard || 'mainboard',
 		grouping: cachedGrouping || initialData?.grouping || 'cmc',
 		sorting: cachedSorting || initialData?.sorting || 'color',
@@ -551,6 +562,45 @@ function createDeck() {
 		}
 	}
 
+	/**
+	 * Tries to add a card to the maybeboard with de-duplication and size checks.
+	 * @param {any} cardObj
+	 * @param {boolean} fromDelete
+	 * @returns {boolean}
+	 */
+	function tryAddToMaybeboard(cardObj, fromDelete = false) {
+		const nameLower = cardObj.name.toLowerCase();
+		const existingIdx = activeDeck.deck.maybeboard.findIndex(c => c.name.toLowerCase() === nameLower);
+
+		if (existingIdx !== -1) {
+			const existing = activeDeck.deck.maybeboard[existingIdx];
+			existing.addedAt = Date.now();
+			if (cardObj.overrides && !existing.overrides) existing.overrides = cardObj.overrides;
+			if (cardObj.tags && !existing.tags) existing.tags = cardObj.tags;
+			if (cardObj.primaryTag && !existing.primaryTag) existing.primaryTag = cardObj.primaryTag;
+			if (cardObj.customColumn && !existing.customColumn) existing.customColumn = cardObj.customColumn;
+			
+			activeDeck.deck.maybeboard = [...activeDeck.deck.maybeboard];
+			return true;
+		}
+
+		if (activeDeck.deck.maybeboard.length >= 100) {
+			const actionLabel = fromDelete ? "discarded" : "added";
+			toastStore.show(`Maybeboard is full (100/100). ${cardObj.name} was ${actionLabel}.`, {
+				type: 'error'
+			});
+			return false;
+		}
+
+		activeDeck.deck.maybeboard.push({
+			...cardObj,
+			id: cardObj.id || generateId(),
+			addedAt: Date.now()
+		});
+		activeDeck.deck.maybeboard = [...activeDeck.deck.maybeboard];
+		return true;
+	}
+
 	function moveCardInternal(cardName, fromZone, toZone, instanceId, price) {
 		if (fromZone === toZone) return;
 
@@ -567,8 +617,22 @@ function createDeck() {
 		}
 
 		if (index !== -1) {
+			const card = source[index];
+			if (toZone === 'maybeboard') {
+				saveHistory(activeDeck);
+				const success = tryAddToMaybeboard({
+					...card,
+					price: price !== null ? price : card.price
+				}, false);
+				if (success) {
+					source.splice(index, 1);
+					persist(activeDeck);
+				}
+				return instanceId;
+			}
+
 			saveHistory(activeDeck);
-			const [card] = source.splice(index, 1);
+			source.splice(index, 1);
 			target.push({
 				...card,
 				id: generateId(),
@@ -1047,13 +1111,21 @@ function createDeck() {
 
 			const price = pc.metadata ? (parseFloat(pc.metadata.prices?.usd || pc.metadata.prices?.usd_foil) || 0) : 0;
 
-			for (let i = 0; i < pc.quantity; i++) {
-				targetBoard.push({
-					id: generateId(),
+			if (boardName === 'maybeboard') {
+				const cardObj = {
 					name: pc.name,
-					price: price,
-					addedAt: Date.now()
-				});
+					price: price
+				};
+				tryAddToMaybeboard(cardObj, false);
+			} else {
+				for (let i = 0; i < pc.quantity; i++) {
+					targetBoard.push({
+						id: generateId(),
+						name: pc.name,
+						price: price,
+						addedAt: Date.now()
+					});
+				}
 			}
 		}
 
@@ -1115,7 +1187,7 @@ function createDeck() {
 		get mainboard() { return activeDeck.deck.mainboard; },
 		get sideboard() { return activeDeck.deck.sideboard; },
 		get maybeboard() { return activeDeck.deck.maybeboard; },
-		get garbage() { return activeDeck.deck.garbage; },
+		get garbage() { return []; },
 
 		get metadata() { return activeDeck.metadata; },
 		updateMetadata(/** @type {Record<string, any>} */ newMetadata) {
@@ -1183,6 +1255,38 @@ function createDeck() {
 		 */
 		addCard(cardName, zone, price, cardMetadata = null) {
 			const targetZoneName = zone || activeDeck.deck.activeBoard;
+			if (targetZoneName === 'maybeboard') {
+				if (cardMetadata) {
+					activeDeck.metadata[cardName.toLowerCase()] = cardMetadata;
+				}
+				let existingCard = null;
+				const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+				for (const b of boards) {
+					if (activeDeck.deck[b]) {
+						const found = activeDeck.deck[b].find(c => c.name.toLowerCase() === cardName.toLowerCase());
+						if (found) {
+							existingCard = found;
+							break;
+						}
+					}
+				}
+				const cardObj = {
+					name: cardName,
+					price: price || 0,
+				};
+				if (existingCard?.overrides) cardObj.overrides = JSON.parse(JSON.stringify(existingCard.overrides));
+				if (existingCard?.tags) cardObj.tags = [...existingCard.tags];
+				if (existingCard?.primaryTag) cardObj.primaryTag = existingCard.primaryTag;
+				if (existingCard?.customColumn) cardObj.customColumn = existingCard.customColumn;
+
+				saveHistory(activeDeck);
+				const success = tryAddToMaybeboard(cardObj, false);
+				if (success) {
+					persist(activeDeck);
+				}
+				return;
+			}
+
 			const targetZone = activeDeck.deck[targetZoneName];
 			if (!targetZone) return;
 
@@ -1606,22 +1710,31 @@ function createDeck() {
 				saveHistory(activeDeck);
 				const removed = targetZone.splice(index, 1)[0];
 
-				if (targetZoneName !== 'garbage') {
-					activeDeck.deck.garbage.unshift({
-						...removed,
-						id: generateId(),
-						addedAt: Date.now()
-					});
-					if (activeDeck.deck.garbage.length > 20) {
-						activeDeck.deck.garbage.pop();
-					}
+				let movedToMaybeboard = false;
+				let shouldMove = false;
+				
+				const isBasic = isBasicLand(removed.name);
+				if (targetZoneName === 'mainboard' || targetZoneName === 'sideboard') {
+					shouldMove = !isBasic;
+				} else if (targetZoneName === 'commander' || targetZoneName === 'companion') {
+					const hasOtherCards = activeDeck.deck.mainboard.length > 0 ||
+						activeDeck.deck.sideboard.length > 0 ||
+						activeDeck.deck.maybeboard.length > 0;
+					shouldMove = hasOtherCards && !isBasic;
+				}
+
+				if (shouldMove) {
+					movedToMaybeboard = tryAddToMaybeboard(removed, true);
 				}
 				persist(activeDeck);
 
 				if (settingsStore.showDeletionToasts) {
 					const isMac = typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
 					const undoHint = isMac ? 'Cmd Z' : 'Ctrl Z';
-					toastStore.show(`Removed ${removed.name} from ${targetZoneName}.`, {
+					const msg = movedToMaybeboard 
+						? `Moved ${removed.name} to maybeboard.` 
+						: `Removed ${removed.name} from ${targetZoneName}.`;
+					toastStore.show(msg, {
 						type: 'info',
 						action: () => {
 							this.undo();
@@ -1634,9 +1747,7 @@ function createDeck() {
 		},
 
 		clearGarbage() {
-			saveHistory(activeDeck);
-			activeDeck.deck.garbage = [];
-			persist(activeDeck);
+			// no-op
 		},
 
 		undo() {
@@ -1801,23 +1912,34 @@ function createDeck() {
 			const removedCount = initialLength - remaining.length;
 
 			if (removedCount > 0) {
+				const example = targetZone.find(/** @param {any} c */ c => c.name === cardName);
 				activeDeck.deck[targetZoneName] = remaining;
 
-				if (targetZoneName !== 'garbage') {
-					const example = targetZone.find(/** @param {any} c */ c => c.name === cardName);
-					activeDeck.deck.garbage.unshift({
-						...example,
-						id: generateId(),
-						addedAt: Date.now()
-					});
-					if (activeDeck.deck.garbage.length > 20) activeDeck.deck.garbage.pop();
+				let movedToMaybeboard = false;
+				let shouldMove = false;
+				
+				const isBasic = isBasicLand(cardName);
+				if (targetZoneName === 'mainboard' || targetZoneName === 'sideboard') {
+					shouldMove = !isBasic;
+				} else if (targetZoneName === 'commander' || targetZoneName === 'companion') {
+					const hasOtherCards = activeDeck.deck.mainboard.length > 0 ||
+						activeDeck.deck.sideboard.length > 0 ||
+						activeDeck.deck.maybeboard.length > 0;
+					shouldMove = hasOtherCards && !isBasic;
+				}
+
+				if (shouldMove && example) {
+					movedToMaybeboard = tryAddToMaybeboard(example, true);
 				}
 				persist(activeDeck);
 
 				if (settingsStore.showDeletionToasts) {
 					const isMac = typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
 					const undoHint = isMac ? 'Cmd Z' : 'Ctrl Z';
-					toastStore.show(`Removed all copies of ${cardName} from ${targetZoneName}.`, {
+					const msg = movedToMaybeboard 
+						? `Moved ${cardName} to maybeboard.` 
+						: `Removed all copies of ${cardName} from ${targetZoneName}.`;
+					toastStore.show(msg, {
 						type: 'info',
 						action: () => {
 							this.undo();
