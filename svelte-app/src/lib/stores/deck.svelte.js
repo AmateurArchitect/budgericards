@@ -168,9 +168,9 @@ function createDeck() {
 			return createDeckState();
 		}
 		if (!loadedDecks[activeDeckId]) {
-			// Try to load from localStorage drafts or cache
+			// Try to load from localStorage drafts or cache without mutating state
 			const loaded = loadFromStorage(activeDeckId);
-			loadedDecks[activeDeckId] = loaded || createDeckState({ id: activeDeckId });
+			return loaded || createDeckState({ id: activeDeckId });
 		}
 		return loadedDecks[activeDeckId];
 	});
@@ -210,6 +210,10 @@ function createDeck() {
 			sessionStorage.setItem('budgericards_active_deck_id', activeId);
 			const freshDraft = createDeckState({ id: activeId });
 			loadedDecks[activeId] = freshDraft;
+		}
+		if (!loadedDecks[activeId]) {
+			const loaded = loadFromStorage(activeId);
+			loadedDecks[activeId] = loaded || createDeckState({ id: activeId });
 		}
 		activeDeckId = activeId;
 	}
