@@ -303,8 +303,9 @@ function getCardCellValue(card, columnKey) {
  * @property {string | null} hoveredColumnKey
  * @property {number} generateTagsTrigger
  * @property {string[] | null} copiedCellValues
- * @property {string | null} copiedColumnKey
  * @property {{cardId: string, columnKey: string, initialKey: string} | null} inlineEditTrigger
+ * @property {string | null} copiedColumnKey
+ * @property {boolean} sideboardExpanded
  */
 
 function createInteractionStore() {
@@ -322,6 +323,7 @@ function createInteractionStore() {
 		menuHeaderTitle: "",
 		activeAnimations: [],
 		editingCardId: null,
+		sideboardExpanded: (typeof window !== 'undefined' ? localStorage.getItem("budgericards_sideboard_expanded") !== "false" : true),
 		quantityModal: {
 			isOpen: false,
 			card: null,
@@ -1984,6 +1986,15 @@ function createInteractionStore() {
 		},
 
 		get activeAnimations() { return state.activeAnimations; },
+
+		get sideboardExpanded() { return state.sideboardExpanded; },
+		/** @param {boolean} val */
+		setSideboardExpanded(val) {
+			state.sideboardExpanded = val;
+			if (typeof window !== 'undefined') {
+				localStorage.setItem("budgericards_sideboard_expanded", String(val));
+			}
+		},
 
 		/**
 		 * @param {any} card 

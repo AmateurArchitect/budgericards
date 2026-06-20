@@ -7,19 +7,16 @@
 	import CardArt from "./CardArt.svelte";
 	import { onMount } from "svelte";
 
-	let isExpanded = $state(true);
-
 	// Load collapsed/expanded state from localStorage if available
 	onMount(() => {
 		const cached = localStorage.getItem("budgericards_sideboard_expanded");
 		if (cached !== null) {
-			isExpanded = cached === "true";
+			interactionStore.setSideboardExpanded(cached === "true");
 		}
 	});
 
 	function togglePanel() {
-		isExpanded = !isExpanded;
-		localStorage.setItem("budgericards_sideboard_expanded", String(isExpanded));
+		interactionStore.setSideboardExpanded(!interactionStore.sideboardExpanded);
 	}
 
 	// Group sideboard cards by name and sort alphabetically
@@ -53,15 +50,15 @@
 </script>
 
 {#if totalCount > 0}
-	<aside class="sideboard-panel-wrapper" class:expanded={isExpanded}>
+	<aside class="sideboard-panel-wrapper" class:expanded={interactionStore.sideboardExpanded}>
 		<!-- Trigger Tab -->
 		<button
 			type="button"
 			class="panel-tab"
 			onclick={togglePanel}
-			aria-label={isExpanded ? "Collapse Sideboard" : "Expand Sideboard"}
+			aria-label={interactionStore.sideboardExpanded ? "Collapse Sideboard" : "Expand Sideboard"}
 		>
-			{#if isExpanded}
+			{#if interactionStore.sideboardExpanded}
 				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 					<path d="M2 9L5 12L2 15M19 9C19 7.69378 18.1652 6.58254 17 6.17071C16.6872 6.06015 16.3506 6 16 6C14.3431 6 13 7 13 9C13 11 14.8348 11.5882 16 12C17.1652 12.4118 19 13 19 15C19 17 17.6569 18 16 18C15.6494 18 15.3128 17.9398 15 17.8293C13.8348 17.4175 13 16.3062 13 15M12 3H20C21.1046 3 22 3.89543 22 5V19C22 20.1046 21.1046 21 20 21H12C10.8954 21 10 20.1046 10 19V5C10 3.89543 10.8954 3 12 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 				</svg>
@@ -69,6 +66,7 @@
 				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 					<path d="M5 9L2 12L5 15M19 9C19 7.69378 18.1652 6.58254 17 6.17071C16.6872 6.06015 16.3506 6 16 6C14.3431 6 13 7 13 9C13 11 14.8348 11.5882 16 12C17.1652 12.4118 19 13 19 15C19 17 17.6569 18 16 18C15.6494 18 15.3128 17.9398 15 17.8293C13.8348 17.4175 13 16.3062 13 15M12 3H20C21.1046 3 22 3.89543 22 5V19C22 20.1046 21.1046 21 20 21H12C10.8954 21 10 20.1046 10 19V5C10 3.89543 10.8954 3 12 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 				</svg>
+				<span class="collapsed-counter">{totalCount}</span>
 			{/if}
 		</button>
 
@@ -178,14 +176,14 @@
 		top: 56px; /* Below app header */
 		right: 0;
 		bottom: 0;
-		width: 280px;
+		width: calc(var(--card-width) + 2.5rem);
 		z-index: 900;
 		background: hsl(var(--popover) / 0.85);
 		backdrop-filter: blur(24px);
 		border-left: 1px solid hsl(var(--border) / 0.6);
 		box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
 		transform: translateX(100%);
-		transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+		transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s ease;
 		display: flex;
 		flex-direction: column;
 	}
@@ -200,8 +198,9 @@
 		left: -36px;
 		top: 80px;
 		width: 36px;
-		height: 44px;
-		padding: 6px;
+		min-height: 44px;
+		height: auto;
+		padding: 6px 4px;
 		background: hsl(var(--popover) / 0.9);
 		backdrop-filter: blur(20px);
 		border: 1px solid hsl(var(--border) / 0.6);
@@ -210,8 +209,10 @@
 		color: hsl(var(--muted-foreground));
 		cursor: pointer;
 		display: flex;
+		flex-direction: column;
 		align-items: center;
 		justify-content: center;
+		gap: 4px;
 		box-shadow: -5px 0 15px rgba(0, 0, 0, 0.15);
 		transition: color 0.15s, background-color 0.15s;
 	}
@@ -219,6 +220,18 @@
 	.panel-tab:hover {
 		color: hsl(var(--foreground));
 		background: hsl(var(--popover));
+	}
+
+	.collapsed-counter {
+		font-size: 0.6875rem;
+		font-weight: 750;
+		color: hsl(var(--foreground));
+		background: hsl(var(--foreground) / 0.15);
+		padding: 1px 5px;
+		border-radius: 4px;
+		min-width: 16px;
+		text-align: center;
+		line-height: 1.2;
 	}
 
 	/* Concave rounded corners connecting the tab to the sideboard panel */
@@ -231,7 +244,7 @@
 		height: 8px;
 		background: transparent;
 		border-bottom-right-radius: 8px;
-		box-shadow: 4px 4px 0 0 hsl(var(--popover) / 0.9);
+		box-shadow: 4px 4px 0 0 hsl(var(--popover) / 0.9), 3px 3px 0 1px hsl(var(--border) / 0.6);
 		pointer-events: none;
 		transition: box-shadow 0.15s;
 	}
@@ -245,17 +258,17 @@
 		height: 8px;
 		background: transparent;
 		border-top-right-radius: 8px;
-		box-shadow: 4px -4px 0 0 hsl(var(--popover) / 0.9);
+		box-shadow: 4px -4px 0 0 hsl(var(--popover) / 0.9), 3px -3px 0 1px hsl(var(--border) / 0.6);
 		pointer-events: none;
 		transition: box-shadow 0.15s;
 	}
 
 	.panel-tab:hover::before {
-		box-shadow: 4px 4px 0 0 hsl(var(--popover));
+		box-shadow: 4px 4px 0 0 hsl(var(--popover)), 3px 3px 0 1px hsl(var(--border) / 0.6);
 	}
 
 	.panel-tab:hover::after {
-		box-shadow: 4px -4px 0 0 hsl(var(--popover));
+		box-shadow: 4px -4px 0 0 hsl(var(--popover)), 3px -3px 0 1px hsl(var(--border) / 0.6);
 	}
 
 	.panel-tab svg {
@@ -306,7 +319,6 @@
 
 	/* Card stack styles inside Sideboard */
 	.sideboard-stack-container {
-		--card-width: 220px;
 		--column-gap: 12px;
 		--stack-overlap: -0.888;
 		--stack-lift: -0.08;

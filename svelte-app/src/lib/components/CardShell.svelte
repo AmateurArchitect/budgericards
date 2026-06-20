@@ -38,6 +38,16 @@
 			return;
 		}
 
+		if (!inSearchPanel && interactionStore.sideboardExpanded) {
+			const currentBoardName = zone || deckStore.activeBoard;
+			if (currentBoardName === "sideboard") {
+				deckStore.moveCard(card.name, "sideboard", "mainboard", card.id, price);
+			} else {
+				deckStore.moveCard(card.name, currentBoardName, "sideboard", card.id, price);
+			}
+			return;
+		}
+
 		if (inSearchPanel && isLocalBoard) {
 			deckStore.moveCard(
 				card.name,
