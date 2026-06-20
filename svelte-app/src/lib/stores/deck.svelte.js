@@ -797,6 +797,8 @@ function createDeck() {
 			const nextMetadata = { ...deckState.metadata };
 			/** @type {string[]} */
 			const scryfallNames = [];
+			/** @type {Map<string, any>} */
+			const localCardsMap = new Map();
 
 			for (const requestedName of missingNames) {
 				const lowName = requestedName.toLowerCase();
@@ -807,9 +809,13 @@ function createDeck() {
 					localCard = await getCardByName(normalizedName);
 				}
 
+				if (localCard) {
+					localCardsMap.set(lowName, localCard);
+				}
+
 				if (localCard && !localCard.name.includes(" // ")) {
 					const priceRecord = await db.prices.get(localCard.id);
-					nextMetadata[lowName] = {
+					const metaObj = {
 						image_uris: {
 							normal: localCard.image,
 							small: localCard.image ? localCard.image.replace('/normal/', '/small/') : null,
@@ -826,6 +832,7 @@ function createDeck() {
 							usd: priceRecord ? String(priceRecord.price) : null
 						}
 					};
+					nextMetadata[lowName] = metaObj;
 				} else {
 					scryfallNames.push(requestedName);
 				}
@@ -852,9 +859,10 @@ function createDeck() {
 					const lowName = requestedName.toLowerCase();
 					const normalizedName = lowName.replace(/\s+\/\s+/g, ' // ');
 					const card = resultMap.get(lowName) || resultMap.get(normalizedName);
+					const localCard = localCardsMap.get(lowName);
 
 					if (card) {
-						nextMetadata[lowName] = {
+						const metaObj = {
 							id: card.id,
 							set: card.set,
 							collector_number: card.collector_number,
@@ -870,6 +878,37 @@ function createDeck() {
 							oracle_text: card.oracle_text || card.card_faces?.[0]?.oracle_text || "",
 							prices: card.prices
 						};
+						nextMetadata[lowName] = metaObj;
+						if (card.name && card.name.includes(" // ")) {
+							nextMetadata[card.name.toLowerCase()] = metaObj;
+							const short = card.name.split(" // ")[0].trim().toLowerCase();
+							nextMetadata[short] = metaObj;
+						}
+					} else if (localCard) {
+						const localMeta = {
+							name: localCard.name,
+							image_uris: {
+								normal: localCard.image,
+								small: localCard.image ? localCard.image.replace('/normal/', '/small/') : null,
+								art_crop: localCard.image ? localCard.image.replace('/normal/', '/art_crop/') : null
+							},
+							card_faces: [],
+							type_line: localCard.type,
+							mana_cost: localCard.mana,
+							cmc: localCard.cmc,
+							colors: localCard.colors || [],
+							color_identity: localCard.identity || [],
+							oracle_text: localCard.text || "",
+							prices: {
+								usd: null
+							}
+						};
+						nextMetadata[lowName] = localMeta;
+						if (localCard.name && localCard.name.includes(" // ")) {
+							nextMetadata[localCard.name.toLowerCase()] = localMeta;
+							const short = localCard.name.split(" // ")[0].trim().toLowerCase();
+							nextMetadata[short] = localMeta;
+						}
 					} else {
 						nextMetadata[lowName] = {
 							notFound: true,
@@ -967,7 +1006,12 @@ function createDeck() {
 			};
 			for (const key in deckState.metadata) {
 				if (key !== 'createdBy' && key !== 'createdAt' && key !== 'updatedAt') {
-					if (newCardNames.has(key)) {
+					const isMatched = Array.from(newCardNames).some(name => {
+						return key === name || 
+							(key.includes(" // ") && key.startsWith(name + " //")) ||
+							(name.includes(" // ") && name.startsWith(key + " //"));
+					});
+					if (isMatched) {
 						nextMetadata[key] = deckState.metadata[key];
 					}
 				}
@@ -984,7 +1028,13 @@ function createDeck() {
 			if (!targetBoard) continue;
 
 			if (pc.metadata) {
-				deckState.metadata[pc.name.toLowerCase()] = pc.metadata;
+				const metaObj = pc.metadata;
+				deckState.metadata[pc.name.toLowerCase()] = metaObj;
+				if (metaObj.name && metaObj.name.includes(" // ")) {
+					deckState.metadata[metaObj.name.toLowerCase()] = metaObj;
+					const short = metaObj.name.split(" // ")[0].trim().toLowerCase();
+					deckState.metadata[short] = metaObj;
+				}
 			} else if (pc.set) {
 				if (!deckState.metadata[pc.name.toLowerCase()]) {
 					deckState.metadata[pc.name.toLowerCase()] = {

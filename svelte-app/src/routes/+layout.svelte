@@ -97,6 +97,11 @@
 
 						// Store in memory cache
 						deckStore.metadata[name] = cardMetadata;
+						if (localCard.name && localCard.name.includes(" // ")) {
+							deckStore.metadata[localCard.name.toLowerCase()] = cardMetadata;
+							const short = localCard.name.split(" // ")[0].trim().toLowerCase();
+							deckStore.metadata[short] = cardMetadata;
+						}
 
 						// Pre-fetch the card image in background
 						const url = cardMetadata.image_uris.art_crop || cardMetadata.image_uris.normal;

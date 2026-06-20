@@ -178,6 +178,11 @@
 
 							// Hydrate deckStore metadata cache in background
 							deckStore.metadata[name] = cardMetadata;
+							if (localCard.name && localCard.name.includes(" // ")) {
+								deckStore.metadata[localCard.name.toLowerCase()] = cardMetadata;
+								const short = localCard.name.split(" // ")[0].trim().toLowerCase();
+								deckStore.metadata[short] = cardMetadata;
+							}
 							details[name] = cardMetadata;
 
 							// Pre-fetch the card image in background for instant rendering
@@ -691,6 +696,11 @@
 									},
 								};
 								deckStore.metadata[lowName] = cardMetadata;
+								if (localCard.name && localCard.name.includes(" // ")) {
+									deckStore.metadata[localCard.name.toLowerCase()] = cardMetadata;
+									const short = localCard.name.split(" // ")[0].trim().toLowerCase();
+									deckStore.metadata[short] = cardMetadata;
+								}
 								resolvedMetadataMap = {
 									...resolvedMetadataMap,
 									[lowName]: cardMetadata
