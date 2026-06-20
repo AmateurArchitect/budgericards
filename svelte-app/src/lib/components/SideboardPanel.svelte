@@ -1,7 +1,10 @@
 <script>
 	import { slide, fade } from "svelte/transition";
+	import { flip } from "svelte/animate";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
-	import { ChevronLeft, ChevronRight, Plus, Minus, ArrowLeftRight, FolderHeart } from "lucide-svelte";
+	import { interactionStore } from "$lib/stores/interaction.svelte.js";
+	import CardShell from "./CardShell.svelte";
+	import CardArt from "./CardArt.svelte";
 	import { onMount } from "svelte";
 
 	let isExpanded = $state(true);
@@ -42,33 +45,10 @@
 
 	const totalCount = $derived(deckStore.sideboard.length);
 
-	/**
-	 * @param {string} name
-	 * @param {any[]} instances
-	 */
-	function handleDecrement(name, instances) {
-		if (instances.length > 0) {
-			deckStore.removeCard(name, "sideboard", instances[0].id);
-		}
-	}
-
-	/**
-	 * @param {string} name
-	 * @param {number} price
-	 */
-	function handleIncrement(name, price) {
-		deckStore.addCard(name, "sideboard", price);
-	}
-
-	/**
-	 * @param {string} name
-	 * @param {any[]} instances
-	 * @param {number} price
-	 */
-	function handleMoveToMain(name, instances, price) {
-		if (instances.length > 0) {
-			deckStore.moveCard(name, "sideboard", "mainboard", instances[0].id, price);
-		}
+	/** @param {HTMLInputElement} node */
+	function selectOnMount(node) {
+		node.focus();
+		node.select();
 	}
 </script>
 
@@ -82,14 +62,14 @@
 			aria-label={isExpanded ? "Collapse Sideboard" : "Expand Sideboard"}
 		>
 			{#if isExpanded}
-				<ChevronRight size={14} />
+				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<path d="M2 9L5 12L2 15M19 9C19 7.69378 18.1652 6.58254 17 6.17071C16.6872 6.06015 16.3506 6 16 6C14.3431 6 13 7 13 9C13 11 14.8348 11.5882 16 12C17.1652 12.4118 19 13 19 15C19 17 17.6569 18 16 18C15.6494 18 15.3128 17.9398 15 17.8293C13.8348 17.4175 13 16.3062 13 15M12 3H20C21.1046 3 22 3.89543 22 5V19C22 20.1046 21.1046 21 20 21H12C10.8954 21 10 20.1046 10 19V5C10 3.89543 10.8954 3 12 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
 			{:else}
-				<ChevronLeft size={14} />
+				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<path d="M5 9L2 12L5 15M19 9C19 7.69378 18.1652 6.58254 17 6.17071C16.6872 6.06015 16.3506 6 16 6C14.3431 6 13 7 13 9C13 11 14.8348 11.5882 16 12C17.1652 12.4118 19 13 19 15C19 17 17.6569 18 16 18C15.6494 18 15.3128 17.9398 15 17.8293C13.8348 17.4175 13 16.3062 13 15M12 3H20C21.1046 3 22 3.89543 22 5V19C22 20.1046 21.1046 21 20 21H12C10.8954 21 10 20.1046 10 19V5C10 3.89543 10.8954 3 12 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
 			{/if}
-			<div class="vertical-label">
-				<FolderHeart size={12} class="icon" />
-				<span>SIDEBOARD ({totalCount})</span>
-			</div>
 		</button>
 
 		<div class="panel-content">
@@ -99,43 +79,94 @@
 			</div>
 
 			<div class="panel-body">
-				{#each groupedSideboard as group (group.name)}
-					<div class="sideboard-item" transition:slide={{ duration: 150 }}>
-						<div class="item-info">
-							<span class="card-name" title={group.name}>{group.name}</span>
-							{#if group.price > 0}
-								<span class="card-price">${(group.price * group.quantity).toFixed(2)}</span>
-							{/if}
-						</div>
-						<div class="item-actions">
-							<div class="quantity-controller">
-								<button
-									class="action-btn"
-									onclick={() => handleDecrement(group.name, group.instances)}
-									title="Remove 1 copy"
-								>
-									<Minus size={12} />
-								</button>
-								<span class="quantity-display">{group.quantity}</span>
-								<button
-									class="action-btn"
-									onclick={() => handleIncrement(group.name, group.price)}
-									title="Add 1 copy"
-								>
-									<Plus size={12} />
-								</button>
-							</div>
-							<button
-								class="action-btn move-btn"
-								onclick={() => handleMoveToMain(group.name, group.instances, group.price)}
-								title="Move 1 copy to Mainboard"
+				<div class="sideboard-stack-container">
+					{#each groupedSideboard as group, idx (group.name)}
+						{@const item = group.instances[0]}
+						{@const isStack = group.quantity > 1}
+						<div
+							animate:flip={{ duration: 200 }}
+							class="sideboard-card-item"
+							class:has-badge={isStack}
+							style="z-index: {idx + 1};"
+						>
+							<CardShell
+								card={item}
+								price={item.price}
+								zone="sideboard"
+								inSearchPanel={false}
 							>
-								<ArrowLeftRight size={12} />
-								<span>Main</span>
-							</button>
+								{#snippet children({
+									isFlipped,
+									isRotated,
+									toggleFlip,
+									toggleRotate,
+								})}
+									{#if isStack}
+										<!-- svelte-ignore a11y_click_events_have_key_events -->
+										<!-- svelte-ignore a11y_no_static_element_interactions -->
+										<button
+											type="button"
+											class="stack-badge"
+											onclick={(e) => {
+												e.stopPropagation();
+												e.preventDefault();
+												interactionStore.startEditing(
+													item.id,
+													"sideboard",
+													item.price,
+												);
+											}}
+										>
+											<span class="multiplier">&times;</span>{group.quantity}
+										</button>
+									{/if}
+									{#if interactionStore.editingCardId === item.id}
+										<!-- svelte-ignore a11y_autofocus -->
+										<input
+											type="number"
+											class="stack-badge-input"
+											value={group.quantity}
+											min="0"
+											max="999"
+											autofocus
+											use:selectOnMount
+											onclick={(e) => e.stopPropagation()}
+											onmousedown={(e) => e.stopPropagation()}
+											onkeydown={(e) => {
+												if (e.key === "Enter") {
+													const val = parseInt(e.currentTarget.value, 10);
+													if (!isNaN(val) && val >= 0) {
+														deckStore.setQuantity(
+															item.name,
+															"sideboard",
+															val,
+															item.price,
+															item,
+														);
+													}
+													interactionStore.stopEditing();
+												} else if (e.key === "Escape") {
+													interactionStore.stopEditing();
+												}
+											}}
+										/>
+									{/if}
+									<CardArt
+										card={item}
+										price={item.price}
+										{isFlipped}
+										{isRotated}
+										{toggleFlip}
+										{toggleRotate}
+										showPrice={false}
+										loading={!item._metadata && !deckStore.metadata[item.name.toLowerCase()]}
+										hideControlsUntilHover={true}
+									/>
+								{/snippet}
+							</CardShell>
 						</div>
-					</div>
-				{/each}
+					{/each}
+				</div>
 			</div>
 		</div>
 	</aside>
@@ -166,10 +197,11 @@
 	/* Panel Trigger Tab */
 	.panel-tab {
 		position: absolute;
-		left: -28px;
+		left: -32px;
 		top: 80px;
-		width: 28px;
-		padding: 12px 4px;
+		width: 32px;
+		height: 32px;
+		padding: 4px;
 		background: hsl(var(--popover) / 0.9);
 		backdrop-filter: blur(20px);
 		border: 1px solid hsl(var(--border) / 0.6);
@@ -178,9 +210,8 @@
 		color: hsl(var(--muted-foreground));
 		cursor: pointer;
 		display: flex;
-		flex-direction: column;
 		align-items: center;
-		gap: 8px;
+		justify-content: center;
 		box-shadow: -5px 0 15px rgba(0, 0, 0, 0.15);
 		transition: color 0.15s, background-color 0.15s;
 	}
@@ -190,22 +221,9 @@
 		background: hsl(var(--popover));
 	}
 
-	.vertical-label {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 6px;
-		font-size: 0.625rem;
-		font-weight: 750;
-		letter-spacing: 0.08em;
-		writing-mode: vertical-rl;
-		text-transform: uppercase;
-		white-space: nowrap;
-	}
-
-	.vertical-label :global(.icon) {
-		transform: rotate(90deg);
-		opacity: 0.7;
+	.panel-tab svg {
+		width: 20px;
+		height: 20px;
 	}
 
 	/* Panel Inner Content */
@@ -247,103 +265,108 @@
 		padding: 1rem 1.25rem 3rem 1.25rem;
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
 	}
 
-	.sideboard-item {
+	/* Card stack styles inside Sideboard */
+	.sideboard-stack-container {
+		--card-width: 220px;
+		--column-gap: 12px;
+		--stack-overlap: -0.888;
+		--stack-lift: -0.08;
+		--stack-push: 0.08;
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
-		padding: 0.625rem;
-		background: hsl(var(--muted) / 0.15);
-		border: 1px solid hsl(var(--border) / 0.3);
-		border-radius: var(--radius-md);
-		transition: border-color 0.15s, background-color 0.15s;
-	}
-
-	.sideboard-item:hover {
-		border-color: hsl(var(--border) / 0.6);
-		background: hsl(var(--muted) / 0.25);
-	}
-
-	.item-info {
-		display: flex;
-		align-items: flex-start;
-		justify-content: space-between;
-		gap: 0.5rem;
-	}
-
-	.card-name {
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		flex: 1;
-	}
-
-	.card-price {
-		font-size: 0.75rem;
-		color: hsl(var(--primary));
-		font-weight: 600;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.item-actions {
-		display: flex;
+		position: relative;
+		width: 100%;
+		padding-bottom: calc(var(--card-width) * 1.4 * 0.85); /* Allow scroll room for the last card */
 		align-items: center;
-		justify-content: space-between;
-		gap: 0.75rem;
 	}
 
-	.quantity-controller {
-		display: flex;
-		align-items: center;
-		background: hsl(var(--background));
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-sm);
-		overflow: hidden;
-	}
-
-	.quantity-display {
-		font-size: 0.75rem;
-		font-weight: 700;
-		min-width: 20px;
-		text-align: center;
-		color: hsl(var(--foreground));
-	}
-
-	.action-btn {
-		background: none;
-		border: none;
-		color: hsl(var(--muted-foreground));
+	.sideboard-card-item {
+		position: relative;
+		width: var(--card-width);
+		height: calc(
+			var(--card-width) * 1.4 * (1 + var(--stack-overlap))
+		) !important;
+		border-radius: 4.5% / 3.2%;
+		background: transparent;
+		flex-shrink: 0;
+		transition: transform 0.2s ease;
 		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 4px 6px;
-		transition: all 0.1s;
+		user-select: none;
+		overflow: visible !important;
+		z-index: 1;
 	}
 
-	.action-btn:hover {
+	.sideboard-card-item.has-badge {
+		height: calc(var(--card-width) * 1.4 * 0.22) !important;
+	}
+
+	.sideboard-card-item:hover :global(.card-shell) {
+		transform: translateY(
+			calc(var(--card-width) * 1.4 * var(--stack-lift))
+		);
+		box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.7);
+	}
+
+	.sideboard-card-item:hover ~ .sideboard-card-item :global(.card-shell) {
+		transform: translateY(
+			calc(var(--card-width) * 1.4 * var(--stack-push))
+		);
+	}
+
+	.stack-badge {
+		position: absolute;
+		top: 11.2%; /* Anchored immediately below name bar */
+		right: 6px;
+		background: rgba(0, 0, 0, 0.5);
+		backdrop-filter: blur(8px);
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		color: white;
+		border-radius: 4px;
+		padding: 1px 4px;
+		font-size: 11px;
+		font-weight: 700;
+		z-index: 10;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+		cursor: pointer;
+		transition: transform 0.15s, background-color 0.15s;
+		display: flex;
+		align-items: center;
+		gap: 1px;
+	}
+
+	.stack-badge:hover {
+		background: rgba(0, 0, 0, 0.75);
+		transform: scale(1.1);
+	}
+
+	.sideboard-card-item:hover .stack-badge {
+		transform: translateY(
+			calc(var(--card-width) * 1.4 * var(--stack-lift))
+		);
+	}
+
+	.stack-badge-input {
+		position: absolute;
+		top: 11.2%;
+		right: 6px;
+		width: 45px;
+		background: hsl(var(--background));
+		border: 2px solid hsl(var(--primary));
 		color: hsl(var(--foreground));
-		background: hsl(var(--accent) / 0.5);
+		border-radius: 4px;
+		padding: 1px 4px;
+		font-size: 11px;
+		font-weight: 700;
+		z-index: 20;
+		text-align: center;
+		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 	}
 
-	.move-btn {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-sm);
-		font-size: 0.6875rem;
-		font-weight: 600;
-		padding: 3px 6px;
-	}
-
-	.move-btn:hover {
-		border-color: hsl(var(--primary) / 0.5);
-		color: hsl(var(--primary));
+	.stack-badge-input::-webkit-outer-spin-button,
+	.stack-badge-input::-webkit-inner-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
 	}
 </style>
