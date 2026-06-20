@@ -6,6 +6,7 @@ import { getCardByName } from '$lib/localSearch';
 import { db } from '$lib/db';
 import { parseDecklist } from '$lib/utils/decklistParser.js';
 import { untrack } from 'svelte';
+import { toastStore } from '$lib/stores/toast.svelte.js';
 
 const browser = typeof window !== 'undefined';
 
@@ -1616,6 +1617,18 @@ function createDeck() {
 					}
 				}
 				persist(activeDeck);
+
+				if (settingsStore.showDeletionToasts) {
+					const isMac = typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
+					const undoHint = isMac ? '⌘Z' : 'Ctrl+Z';
+					toastStore.show(`Removed ${removed.name} from ${targetZoneName}.`, {
+						type: 'info',
+						action: () => {
+							this.undo();
+						},
+						actionLabel: `Undo (${undoHint})`
+					});
+				}
 			}
 		},
 
@@ -1799,6 +1812,18 @@ function createDeck() {
 					if (activeDeck.deck.garbage.length > 20) activeDeck.deck.garbage.pop();
 				}
 				persist(activeDeck);
+
+				if (settingsStore.showDeletionToasts) {
+					const isMac = typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
+					const undoHint = isMac ? '⌘Z' : 'Ctrl+Z';
+					toastStore.show(`Removed all copies of ${cardName} from ${targetZoneName}.`, {
+						type: 'info',
+						action: () => {
+							this.undo();
+						},
+						actionLabel: `Undo (${undoHint})`
+					});
+				}
 			}
 		},
 

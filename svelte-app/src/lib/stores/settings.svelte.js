@@ -20,6 +20,7 @@ function createSettings() {
 	let showTotalPrice = $state(false);
 	let spoilerCardSize = $state(0.50);
 	let enableClipboardPreload = $state(false);
+	let showDeletionToasts = $state(true);
 
 	if (browser) {
 		const isMac = navigator.userAgent.includes('Mac');
@@ -55,6 +56,7 @@ function createSettings() {
 		const savedSize = localStorage.getItem('budgericards_spoiler_card_size');
 		spoilerCardSize = savedSize ? parseFloat(savedSize) : 0.50;
 		enableClipboardPreload = localStorage.getItem('budgericards_enable_clipboard_preload') === 'true';
+		showDeletionToasts = localStorage.getItem('budgericards_show_deletion_toasts') !== 'false';
 	}
 
 	return {
@@ -163,6 +165,11 @@ function createSettings() {
 		set enableClipboardPreload(val) {
 			enableClipboardPreload = val;
 			if (browser) localStorage.setItem('budgericards_enable_clipboard_preload', String(val));
+		},
+		get showDeletionToasts() { return showDeletionToasts; },
+		set showDeletionToasts(val) {
+			showDeletionToasts = val;
+			if (browser) localStorage.setItem('budgericards_show_deletion_toasts', String(val));
 		}
 	};
 }

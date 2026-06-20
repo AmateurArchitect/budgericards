@@ -221,7 +221,7 @@
 							<h2>Privacy & Performance</h2>
 							<p>Manage performance optimizations and local permission policies.</p>
 						</div>
-						<div class="section-content">
+						<div class="section-content" style="display: flex; flex-direction: column; gap: 1.5rem;">
 							<div class="toggle-group-row">
 								<div class="toggle-text-block">
 									<label for="enable-clipboard-preload" class="toggle-label-main">Speculative Clipboard Preloading</label>
@@ -234,6 +234,24 @@
 										type="checkbox"
 										id="enable-clipboard-preload"
 										bind:checked={settingsStore.enableClipboardPreload}
+										disabled={isSubmitting}
+									/>
+									<span class="slider"></span>
+								</label>
+							</div>
+
+							<div class="toggle-group-row">
+								<div class="toggle-text-block">
+									<label for="show-deletion-toasts" class="toggle-label-main">Card Deletion Notifications</label>
+									<p class="toggle-description">
+										Shows a confirmation toast when deleting a card from your deck, allowing you to instantly undo the deletion.
+									</p>
+								</div>
+								<label class="switch">
+									<input
+										type="checkbox"
+										id="show-deletion-toasts"
+										bind:checked={settingsStore.showDeletionToasts}
 										disabled={isSubmitting}
 									/>
 									<span class="slider"></span>

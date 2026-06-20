@@ -26,7 +26,19 @@
 				{/if}
 			</div>
 			<div class="toast-message">
-				{toast.message}
+				<span>{toast.message}</span>
+				{#if toast.action}
+					<button
+						class="toast-action-btn"
+						onclick={(e) => {
+							e.stopPropagation();
+							toast.action();
+							toastStore.dismiss(toast.id);
+						}}
+					>
+						{toast.actionLabel || 'Undo'}
+					</button>
+				{/if}
 			</div>
 			<button
 				class="toast-close"
@@ -113,6 +125,29 @@
 	.toast-message {
 		flex: 1;
 		padding-right: 8px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+	}
+
+	.toast-action-btn {
+		flex-shrink: 0;
+		background: hsla(var(--primary) / 0.15);
+		border: 1px solid hsla(var(--primary) / 0.3);
+		color: hsl(var(--primary));
+		border-radius: var(--radius-sm, 4px);
+		padding: 4px 8px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		font-family: inherit;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.toast-action-btn:hover {
+		background: hsla(var(--primary) / 0.25);
+		border-color: hsl(var(--primary));
 	}
 
 	.toast-close {
