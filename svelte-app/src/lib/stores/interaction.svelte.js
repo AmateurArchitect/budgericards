@@ -1,7 +1,7 @@
 import { deckStore } from "./deck.svelte.js";
 import { parseDecklist } from "../utils/decklistParser.js";
 import { fetchCollection } from "../api/scryfall.js";
-import { getCardByName } from "../localSearch.ts";
+import { getCardByName } from "../localSearch";
 import { priceStore } from "./prices.svelte.js";
 import { toastStore } from "./toast.svelte.js";
 

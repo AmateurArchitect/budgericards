@@ -27,3 +27,8 @@ Living list of solutions to code errors.
 - **Error Signature:** `Type '"X"' is not assignable to type 'PermissionName'` (e.g. `'clipboard-read'`).
 - **Fix Pattern:** Cast the non-standard or newer permission name string using JSDoc type casting to `any`: `/** @type {any} */ ('clipboard-read')`.
 - **Logic:** TypeScript's standard browser definition libraries (`lib.dom.d.ts`) may not include all permissions (such as clipboard read/write actions) in the `PermissionName` type definition union. Casting the string to `any` bypasses this strict typing warning while letting the underlying browser API execute correctly.
+
+## TS Import Extension allowedImportingTsExtensions
+- **Error Signature:** `An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.`
+- **Fix Pattern:** Omit the `.ts` extension or replace it with `.js` in the import statement, e.g., `import { x } from "./file"` instead of `import { x } from "./file.ts"`.
+- **Logic:** TypeScript and Svelte compilation tools (like Vite) do not allow importing files with the `.ts` extension directly, requiring extension-less or `.js` extension paths that are resolved to `.ts` files during compilation.

@@ -130,7 +130,7 @@
 	let isDraggingCard = $state(false);
 	const activeColKeys = $derived(rows[0] ? rows[0].columns.filter((/** @type {any} */ c) => c.key !== "Special").map((/** @type {any} */ c) => c.key) : []);
 	const activeInsertIndices = $derived(Array.from({ length: activeColKeys.length + 1 }, (_, i) => i));
-	const activeTagColsCount = $derived(activeColKeys.filter(k => k !== "No Tag" && k !== "Loading" && k !== "Unknown").length);
+	const activeTagColsCount = $derived(activeColKeys.filter((/** @type {string} */ k) => k !== "No Tag" && k !== "Loading" && k !== "Unknown").length);
 	const emptyStateStartTrack = $derived(
 		(columnTrackMap.has("Special") ? 1 : 0) + activeTagColsCount + 1
 	);

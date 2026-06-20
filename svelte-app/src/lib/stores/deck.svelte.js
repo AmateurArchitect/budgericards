@@ -265,15 +265,15 @@ function createDeck() {
 			});
 
 			const response = await fetchCollection(identifiers);
-			if (response && response.data) {
+				const nextMetadata = { ...deckState.metadata };
 				response.data.forEach(card => {
 					if (card.name) {
-						deckState.metadata[card.name.toLowerCase()] = card;
+						nextMetadata[card.name.toLowerCase()] = card;
 					}
 				});
-				deckState.metadata.updatedAt = Date.now();
+				nextMetadata.updatedAt = Date.now();
+				deckState.metadata = nextMetadata;
 				persist(deckState);
-			}
 		} catch (e) {
 			console.error("resolveAndApplyPrintings failed:", e);
 		}
@@ -405,9 +405,11 @@ function createDeck() {
 		targetState.deck.format = cloudDeck.cards.format || 'Commander';
 		targetState.deck.lastNaturalGrouping = cloudDeck.cards.lastNaturalGrouping || 'cmc';
 
-		Object.assign(targetState.metadata, cloudDeck.cards.metadata || {});
-		targetState.metadata.updatedAt = new Date(cloudDeck.updated_at).getTime();
-
+		targetState.metadata = {
+			...targetState.metadata,
+			...(cloudDeck.cards.metadata || {}),
+			updatedAt: new Date(cloudDeck.updated_at).getTime()
+		};
 		persist(targetState);
 	}
 
@@ -788,6 +790,7 @@ function createDeck() {
 
 		isSyncing = true;
 		try {
+			const nextMetadata = { ...deckState.metadata };
 			/** @type {string[]} */
 			const scryfallNames = [];
 
@@ -802,7 +805,7 @@ function createDeck() {
 
 				if (localCard && !localCard.name.includes(" // ")) {
 					const priceRecord = await db.prices.get(localCard.id);
-					deckState.metadata[lowName] = {
+					nextMetadata[lowName] = {
 						image_uris: {
 							normal: localCard.image,
 							small: localCard.image ? localCard.image.replace('/normal/', '/small/') : null,
@@ -847,7 +850,7 @@ function createDeck() {
 					const card = resultMap.get(lowName) || resultMap.get(normalizedName);
 
 					if (card) {
-						deckState.metadata[lowName] = {
+						nextMetadata[lowName] = {
 							id: card.id,
 							set: card.set,
 							collector_number: card.collector_number,
@@ -864,7 +867,7 @@ function createDeck() {
 							prices: card.prices
 						};
 					} else {
-						deckState.metadata[lowName] = {
+						nextMetadata[lowName] = {
 							notFound: true,
 							name: requestedName,
 							type_line: 'Unknown',
@@ -874,7 +877,8 @@ function createDeck() {
 				});
 			}
 
-			deckState.metadata.updatedAt = Date.now();
+			nextMetadata.updatedAt = Date.now();
+			deckState.metadata = nextMetadata;
 		} catch (e) {
 			console.error('Metadata sync failed:', e);
 		} finally {
@@ -952,13 +956,19 @@ function createDeck() {
 			deckState.autoCommanderPending = true;
 
 			const newCardNames = new Set(parsedCards.filter(c => c.name).map(c => c.name.toLowerCase()));
+			const nextMetadata = {
+				createdBy: deckState.metadata.createdBy,
+				createdAt: deckState.metadata.createdAt,
+				updatedAt: deckState.metadata.updatedAt
+			};
 			for (const key in deckState.metadata) {
 				if (key !== 'createdBy' && key !== 'createdAt' && key !== 'updatedAt') {
-					if (!newCardNames.has(key)) {
-						delete deckState.metadata[key];
+					if (newCardNames.has(key)) {
+						nextMetadata[key] = deckState.metadata[key];
 					}
 				}
 			}
+			deckState.metadata = nextMetadata;
 		}
 
 		saveHistory(deckState);
@@ -1908,11 +1918,11 @@ function createDeck() {
 			activeDeck.deck.sideboard = [];
 			activeDeck.deck.maybeboard = [];
 			activeDeck.deck.garbage = [];
-			for (const key in activeDeck.metadata) {
-				if (key !== 'createdBy' && key !== 'createdAt' && key !== 'updatedAt') {
-					delete activeDeck.metadata[key];
-				}
-			}
+			activeDeck.metadata = {
+				createdBy: activeDeck.metadata.createdBy,
+				createdAt: activeDeck.metadata.createdAt,
+				updatedAt: activeDeck.metadata.updatedAt
+			};
 			persist(activeDeck);
 		}
 	};
