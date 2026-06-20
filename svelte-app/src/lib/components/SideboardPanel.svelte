@@ -152,14 +152,14 @@
 										/>
 									{/if}
 									<CardArt
-										card={item}
+										card={deckStore.metadata[item.name.toLowerCase()] || item}
 										price={item.price}
 										{isFlipped}
 										{isRotated}
 										{toggleFlip}
 										{toggleRotate}
 										showPrice={false}
-										loading={!item._metadata && !deckStore.metadata[item.name.toLowerCase()]}
+										loading={!deckStore.metadata[item.name.toLowerCase()]}
 										hideControlsUntilHover={true}
 									/>
 								{/snippet}
@@ -197,11 +197,11 @@
 	/* Panel Trigger Tab */
 	.panel-tab {
 		position: absolute;
-		left: -32px;
+		left: -36px;
 		top: 80px;
-		width: 32px;
-		height: 32px;
-		padding: 4px;
+		width: 36px;
+		height: 44px;
+		padding: 6px;
 		background: hsl(var(--popover) / 0.9);
 		backdrop-filter: blur(20px);
 		border: 1px solid hsl(var(--border) / 0.6);
@@ -221,9 +221,46 @@
 		background: hsl(var(--popover));
 	}
 
+	/* Concave rounded corners connecting the tab to the sideboard panel */
+	.panel-tab::before {
+		content: "";
+		position: absolute;
+		right: 0;
+		top: -8px;
+		width: 8px;
+		height: 8px;
+		background: transparent;
+		border-bottom-right-radius: 8px;
+		box-shadow: 4px 4px 0 0 hsl(var(--popover) / 0.9);
+		pointer-events: none;
+		transition: box-shadow 0.15s;
+	}
+
+	.panel-tab::after {
+		content: "";
+		position: absolute;
+		right: 0;
+		bottom: -8px;
+		width: 8px;
+		height: 8px;
+		background: transparent;
+		border-top-right-radius: 8px;
+		box-shadow: 4px -4px 0 0 hsl(var(--popover) / 0.9);
+		pointer-events: none;
+		transition: box-shadow 0.15s;
+	}
+
+	.panel-tab:hover::before {
+		box-shadow: 4px 4px 0 0 hsl(var(--popover));
+	}
+
+	.panel-tab:hover::after {
+		box-shadow: 4px -4px 0 0 hsl(var(--popover));
+	}
+
 	.panel-tab svg {
-		width: 20px;
-		height: 20px;
+		width: 22px;
+		height: 22px;
 	}
 
 	/* Panel Inner Content */
