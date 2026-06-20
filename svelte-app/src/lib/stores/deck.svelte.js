@@ -1620,13 +1620,14 @@ function createDeck() {
 
 				if (settingsStore.showDeletionToasts) {
 					const isMac = typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
-					const undoHint = isMac ? '⌘Z' : 'Ctrl+Z';
+					const undoHint = isMac ? 'Cmd Z' : 'Ctrl Z';
 					toastStore.show(`Removed ${removed.name} from ${targetZoneName}.`, {
 						type: 'info',
 						action: () => {
 							this.undo();
 						},
-						actionLabel: `Undo (${undoHint})`
+						actionLabel: 'Undo',
+						shortcutHint: undoHint
 					});
 				}
 			}
@@ -1815,13 +1816,14 @@ function createDeck() {
 
 				if (settingsStore.showDeletionToasts) {
 					const isMac = typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
-					const undoHint = isMac ? '⌘Z' : 'Ctrl+Z';
+					const undoHint = isMac ? 'Cmd Z' : 'Ctrl Z';
 					toastStore.show(`Removed all copies of ${cardName} from ${targetZoneName}.`, {
 						type: 'info',
 						action: () => {
 							this.undo();
 						},
-						actionLabel: `Undo (${undoHint})`
+						actionLabel: 'Undo',
+						shortcutHint: undoHint
 					});
 				}
 			}

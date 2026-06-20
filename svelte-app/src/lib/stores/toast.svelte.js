@@ -16,7 +16,10 @@ export const toastStore = {
 		const newToast = {
 			id,
 			message,
-			type
+			type,
+			action: options.action,
+			actionLabel: options.actionLabel,
+			shortcutHint: options.shortcutHint
 		};
 
 		toasts = [...toasts, newToast];

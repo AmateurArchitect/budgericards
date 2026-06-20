@@ -26,18 +26,23 @@
 				{/if}
 			</div>
 			<div class="toast-message">
-				<span>{toast.message}</span>
+				<span class="toast-text">{toast.message}</span>
 				{#if toast.action}
-					<button
-						class="toast-action-btn"
-						onclick={(e) => {
-							e.stopPropagation();
-							toast.action();
-							toastStore.dismiss(toast.id);
-						}}
-					>
-						{toast.actionLabel || 'Undo'}
-					</button>
+					<div class="toast-action-wrapper">
+						<button
+							class="toast-action-btn"
+							onclick={(e) => {
+								e.stopPropagation();
+								toast.action();
+								toastStore.dismiss(toast.id);
+							}}
+						>
+							{toast.actionLabel || 'Undo'}
+						</button>
+						{#if toast.shortcutHint}
+							<span class="toast-shortcut-hint">({toast.shortcutHint})</span>
+						{/if}
+					</div>
 				{/if}
 			</div>
 			<button
@@ -129,6 +134,24 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 10px;
+	}
+
+	.toast-text {
+		flex: 1;
+	}
+
+	.toast-action-wrapper {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		flex-shrink: 0;
+	}
+
+	.toast-shortcut-hint {
+		font-size: 0.75rem;
+		color: var(--text-muted, #94a3b8);
+		font-weight: 400;
+		opacity: 0.8;
 	}
 
 	.toast-action-btn {
