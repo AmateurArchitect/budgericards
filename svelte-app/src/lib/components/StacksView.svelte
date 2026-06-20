@@ -1024,7 +1024,7 @@
 																) =>
 																	e.stopPropagation()}
 																onmousedown={(
-																	e,
+																	/** @type {MouseEvent} */ e,
 																) =>
 																	e.stopPropagation()}
 																onkeydown={(
@@ -1210,7 +1210,7 @@
 																) =>
 																	e.stopPropagation()}
 																onmousedown={(
-																	e,
+																	/** @type {MouseEvent} */ e,
 																) =>
 																	e.stopPropagation()}
 																onkeydown={(
@@ -1389,7 +1389,7 @@
 															/** @type {MouseEvent} */ e,
 														) =>
 															e.stopPropagation()}
-														onmousedown={(e) =>
+														onmousedown={(/** @type {MouseEvent} */ e) =>
 															e.stopPropagation()}
 														onkeydown={(e) => {
 															if (

@@ -6,7 +6,7 @@ export const toastStore = {
 
 	/**
 	 * @param {string} message
-	 * @param {{ type?: 'info' | 'success' | 'warning' | 'error', duration?: number }} [options]
+	 * @param {{ type?: 'info' | 'success' | 'warning' | 'error', duration?: number, action?: () => void, actionLabel?: string, shortcutHint?: string }} [options]
 	 */
 	show(message, options = {}) {
 		const id = Math.random().toString(36).substring(2, 9);
