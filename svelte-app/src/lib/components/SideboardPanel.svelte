@@ -242,11 +242,9 @@
 		top: -8px;
 		width: 8px;
 		height: 8px;
-		background: hsl(var(--popover) / 0.9);
-		border-top-left-radius: 8px;
-		border-top: 1px solid hsl(var(--border) / 0.6);
-		border-left: 1px solid hsl(var(--border) / 0.6);
+		background: radial-gradient(circle at top left, transparent 7.5px, hsl(var(--border) / 0.6) 8px, hsl(var(--border) / 0.6) 9px, hsl(var(--popover) / 0.9) 9.5px);
 		pointer-events: none;
+		z-index: 2;
 		transition: background 0.15s;
 	}
 
@@ -257,20 +255,18 @@
 		bottom: -8px;
 		width: 8px;
 		height: 8px;
-		background: hsl(var(--popover) / 0.9);
-		border-bottom-left-radius: 8px;
-		border-bottom: 1px solid hsl(var(--border) / 0.6);
-		border-left: 1px solid hsl(var(--border) / 0.6);
+		background: radial-gradient(circle at bottom left, transparent 7.5px, hsl(var(--border) / 0.6) 8px, hsl(var(--border) / 0.6) 9px, hsl(var(--popover) / 0.9) 9.5px);
 		pointer-events: none;
+		z-index: 2;
 		transition: background 0.15s;
 	}
 
 	.panel-tab:hover::before {
-		background: hsl(var(--popover));
+		background: radial-gradient(circle at top left, transparent 7.5px, hsl(var(--border) / 0.6) 8px, hsl(var(--border) / 0.6) 9px, hsl(var(--popover)) 9.5px);
 	}
 
 	.panel-tab:hover::after {
-		background: hsl(var(--popover));
+		background: radial-gradient(circle at bottom left, transparent 7.5px, hsl(var(--border) / 0.6) 8px, hsl(var(--border) / 0.6) 9px, hsl(var(--popover)) 9.5px);
 	}
 
 	.panel-tab svg {
