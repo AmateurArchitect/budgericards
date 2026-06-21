@@ -242,11 +242,12 @@
 		top: -8px;
 		width: 8px;
 		height: 8px;
-		background: transparent;
-		border-bottom-right-radius: 8px;
-		box-shadow: 1px 1px 0 8px hsl(var(--popover) / 0.9), 0 0 0 8px hsl(var(--border) / 0.6);
+		background: hsl(var(--popover) / 0.9);
+		border-top-left-radius: 8px;
+		border-top: 1px solid hsl(var(--border) / 0.6);
+		border-left: 1px solid hsl(var(--border) / 0.6);
 		pointer-events: none;
-		transition: box-shadow 0.15s;
+		transition: background 0.15s;
 	}
 
 	.panel-tab::after {
@@ -256,19 +257,20 @@
 		bottom: -8px;
 		width: 8px;
 		height: 8px;
-		background: transparent;
-		border-top-right-radius: 8px;
-		box-shadow: 1px -1px 0 8px hsl(var(--popover) / 0.9), 0 0 0 8px hsl(var(--border) / 0.6);
+		background: hsl(var(--popover) / 0.9);
+		border-bottom-left-radius: 8px;
+		border-bottom: 1px solid hsl(var(--border) / 0.6);
+		border-left: 1px solid hsl(var(--border) / 0.6);
 		pointer-events: none;
-		transition: box-shadow 0.15s;
+		transition: background 0.15s;
 	}
 
 	.panel-tab:hover::before {
-		box-shadow: 1px 1px 0 8px hsl(var(--popover)), 0 0 0 8px hsl(var(--border) / 0.6);
+		background: hsl(var(--popover));
 	}
 
 	.panel-tab:hover::after {
-		box-shadow: 1px -1px 0 8px hsl(var(--popover)), 0 0 0 8px hsl(var(--border) / 0.6);
+		background: hsl(var(--popover));
 	}
 
 	.panel-tab svg {
