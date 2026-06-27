@@ -189,8 +189,9 @@
 		margin: 0;
 		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
 			Georgia, serif;
-		font-size: 2.15rem;
-		font-weight: 400;
+		font-size: 1.625rem;
+		font-style: italic;
+		font-weight: 500;
 		letter-spacing: -0.01em;
 		color: hsl(var(--foreground));
 	}
