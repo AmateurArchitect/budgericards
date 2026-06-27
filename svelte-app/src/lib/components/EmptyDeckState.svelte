@@ -1,5 +1,6 @@
 <script>
 	import { fade } from "svelte/transition";
+	import { onMount } from "svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { searchStore } from "$lib/stores/search.svelte.js";
@@ -11,10 +12,72 @@
 	let showDeckOptionsModal = $state(false);
 	/** @type {HTMLElement | null} */
 	let headerEl = $state(null);
+	/** @type {HTMLTextAreaElement | null} */
+	let textareaEl = $state(null);
+	let inputText = $state("");
+
+	onMount(() => {
+		textareaEl?.focus();
+	});
+
+	// Handle routing to search or list views based on text input reactively
+	$effect(() => {
+		const val = inputText;
+		if (val.startsWith("/") || val.startsWith("?")) {
+			// Search trigger syntax
+			searchStore.query = val.slice(1);
+			inputText = "";
+			const lastView =
+				localStorage.getItem("budgericards_last_active_view_mode") ||
+				"stacks";
+			settingsStore.deckViewMode =
+				lastView === "spoiler" ? "spoiler" : "stacks";
+
+			setTimeout(() => {
+				const searchInput = /** @type {HTMLInputElement | null} */ (
+					document.querySelector(
+						".search-input-field, input[type='search'], input[placeholder*='Search']",
+					)
+				);
+				if (searchInput) {
+					searchInput.focus();
+					searchInput.select();
+				}
+			}, 50);
+		} else if (val.includes(":")) {
+			// Search operator syntax
+			searchStore.query = val;
+			inputText = "";
+			const lastView =
+				localStorage.getItem("budgericards_last_active_view_mode") ||
+				"stacks";
+			settingsStore.deckViewMode =
+				lastView === "spoiler" ? "spoiler" : "stacks";
+
+			setTimeout(() => {
+				const searchInput = /** @type {HTMLInputElement | null} */ (
+					document.querySelector(
+						".search-input-field, input[type='search'], input[placeholder*='Search']",
+					)
+				);
+				if (searchInput) {
+					searchInput.focus();
+				}
+			}, 50);
+		} else if (val.includes("\n")) {
+			// Multiline input (pasted decklist) goes straight to List View
+			deckStore.importText = val;
+			inputText = "";
+			settingsStore.deckViewMode = "list";
+		}
+	});
 
 	/** @param {ClipboardEvent} e */
 	async function handlePaste(e) {
 		if (!deckStore.isEmptyStateActive) return;
+
+		// If pasting directly into our textarea, let standard textarea paste and reactivity handle it
+		if (e.target === textareaEl) return;
 
 		let text = e.clipboardData?.getData("text/plain") || "";
 		if (!text) {
@@ -63,57 +126,20 @@
 			return;
 		}
 
-		const char = e.key;
+		// Direct focus and let character input register
+		textareaEl?.focus();
+	}
 
-		// Determine if this is a Search Query vs. Card Name
-		// Search syntax typically starts with / or ? or contains a colon (like o:, type:, etc.)
-		const isSearchTrigger = char === "/" || char === "?";
-
-		if (isSearchTrigger) {
+	/** @param {KeyboardEvent} e */
+	function handleTextareaKeyDown(e) {
+		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault();
-			const lastView =
-				localStorage.getItem("budgericards_last_active_view_mode") ||
-				"stacks";
-			settingsStore.deckViewMode =
-				lastView === "spoiler" ? "spoiler" : "stacks";
-
-			// Focus search input
-			setTimeout(() => {
-				const searchInput = /** @type {HTMLInputElement | null} */ (
-					document.querySelector(
-						".search-input-field, input[type='search'], input[placeholder*='Search']",
-					)
-				);
-				if (searchInput) {
-					searchInput.focus();
-					searchInput.select();
-				}
-			}, 50);
-		} else if (char === ":") {
-			// Search operator syntax
-			e.preventDefault();
-			const lastView =
-				localStorage.getItem("budgericards_last_active_view_mode") ||
-				"stacks";
-			settingsStore.deckViewMode =
-				lastView === "spoiler" ? "spoiler" : "stacks";
-			searchStore.query = ":";
-
-			setTimeout(() => {
-				const searchInput = /** @type {HTMLInputElement | null} */ (
-					document.querySelector(
-						".search-input-field, input[type='search'], input[placeholder*='Search']",
-					)
-				);
-				if (searchInput) {
-					searchInput.focus();
-				}
-			}, 50);
-		} else {
-			// Card name - go to list/import view and insert character
-			e.preventDefault();
-			settingsStore.deckViewMode = "list";
-			deckStore.importText = char;
+			const val = inputText.trim();
+			if (val) {
+				deckStore.importText = val;
+				inputText = "";
+				settingsStore.deckViewMode = "list";
+			}
 		}
 	}
 
@@ -135,18 +161,19 @@
 		settingsStore.deckViewMode =
 			lastView === "spoiler" ? "spoiler" : "stacks";
 	}
-
-
 </script>
 
 <svelte:window onpaste={handlePaste} onkeydown={handleKeyDown} />
 
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="empty-state-wrapper"
 	class:drag-over={dropZoneActive}
 	ondragover={handleDragOver}
 	ondragleave={handleDragLeave}
 	ondrop={handleDrop}
+	onclick={() => textareaEl?.focus()}
 	role="region"
 	aria-label="Empty Deck Workspace"
 	in:fade={{ duration: 150 }}
@@ -168,9 +195,15 @@
 		<p class="description">
 			To get started, paste a decklist or search for cards
 		</p>
-		<div class="cursor-prompt" aria-hidden="true">
-			<span class="blinking-cursor"></span>
-		</div>
+		<textarea
+			bind:this={textareaEl}
+			bind:value={inputText}
+			onkeydown={handleTextareaKeyDown}
+			placeholder="Paste a decklist or type a card name..."
+			class="borderless-input"
+			rows="1"
+			aria-label="Decklist or card entry field"
+		></textarea>
 	</div>
 </div>
 
@@ -191,6 +224,7 @@
 		box-sizing: border-box;
 		padding: 25vh 2rem 2rem 2rem; /* Position 25% from top to leave ~2x space below */
 		transition: background-color 0.2s ease;
+		cursor: text;
 	}
 
 	.empty-state-wrapper.drag-over {
@@ -200,6 +234,7 @@
 	.content-container {
 		text-align: left;
 		max-width: 480px;
+		width: 100%;
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
@@ -247,27 +282,24 @@
 		color: hsl(var(--muted-foreground));
 	}
 
-	.cursor-prompt {
-		display: flex;
-		align-items: center;
+	.borderless-input {
+		width: 100%;
+		background: transparent;
+		border: none;
+		outline: none;
+		resize: none;
+		color: hsl(var(--foreground));
+		font-family: var(--font-sans), sans-serif;
+		font-size: 0.95rem;
+		line-height: 1.5;
 		margin-top: 1rem;
-		padding-left: 0.15rem;
+		padding: 0;
+		height: auto;
+		min-height: 24px;
+		cursor: text;
 	}
 
-	.blinking-cursor {
-		width: 1.5px;
-		height: 1.35rem;
-		background-color: hsl(var(--foreground));
-		animation: blink 1.1s step-end infinite;
-	}
-
-	@keyframes blink {
-		from,
-		to {
-			background-color: transparent;
-		}
-		50% {
-			background-color: hsl(var(--foreground));
-		}
+	.borderless-input::placeholder {
+		color: hsl(var(--muted-foreground) / 0.4);
 	}
 </style>
