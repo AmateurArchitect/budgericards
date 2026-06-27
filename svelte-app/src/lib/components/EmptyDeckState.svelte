@@ -5,6 +5,7 @@
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
+	import { db } from "$lib/db";
 
 	import DeckOptionsModal from "./DeckOptionsModal.svelte";
 
@@ -16,8 +17,36 @@
 	let textareaEl = $state(null);
 	let inputText = $state("");
 
+	let suggestions = $state(/** @type {string[]} */ ([]));
+	let activeIndex = $state(0);
+
 	onMount(() => {
 		textareaEl?.focus();
+	});
+
+	// Query IndexedDB for card name suggestions
+	$effect(() => {
+		const query = inputText.trim();
+		if (query.length < 2 || query.startsWith("/") || query.startsWith("?")) {
+			suggestions = [];
+			return;
+		}
+
+		const fetchSuggestions = async () => {
+			try {
+				const matches = await db.cards
+					.where("name")
+					.startsWithIgnoreCase(query)
+					.limit(5)
+					.toArray();
+				suggestions = [...new Set(matches.map((m) => m.name))];
+				activeIndex = 0;
+			} catch (err) {
+				console.error("Autocomplete search error:", err);
+			}
+		};
+
+		fetchSuggestions();
 	});
 
 	// Handle routing to search or list views based on text input reactively
@@ -71,6 +100,13 @@
 			settingsStore.deckViewMode = "list";
 		}
 	});
+
+	/** @param {string} name */
+	async function addSingleCard(name) {
+		deckStore.addCard(name, deckStore.activeBoard, 0);
+		inputText = "";
+		suggestions = [];
+	}
 
 	/** @param {ClipboardEvent} e */
 	async function handlePaste(e) {
@@ -132,14 +168,38 @@
 
 	/** @param {KeyboardEvent} e */
 	function handleTextareaKeyDown(e) {
-		if (e.key === "Enter" && !e.shiftKey) {
+		if (suggestions.length > 0) {
+			if (e.key === "ArrowDown") {
+				e.preventDefault();
+				activeIndex = (activeIndex + 1) % suggestions.length;
+			} else if (e.key === "ArrowUp") {
+				e.preventDefault();
+				activeIndex = (activeIndex - 1 + suggestions.length) % suggestions.length;
+			} else if (e.key === "Enter" || e.key === "Tab") {
+				e.preventDefault();
+				addSingleCard(suggestions[activeIndex]);
+			} else if (e.key === "Escape") {
+				e.preventDefault();
+				suggestions = [];
+			}
+		} else if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault();
 			const val = inputText.trim();
 			if (val) {
-				deckStore.importText = val;
-				inputText = "";
-				settingsStore.deckViewMode = "list";
+				addSingleCard(val);
 			}
+		}
+	}
+
+	/** @param {MouseEvent} e */
+	function handleWindowClick(e) {
+		if (!deckStore.isEmptyStateActive) return;
+		const target = /** @type {HTMLElement} */ (e.target);
+		if (
+			target.closest(".empty-state-wrapper") &&
+			!target.closest("button, textarea, input, ul")
+		) {
+			textareaEl?.focus();
 		}
 	}
 
@@ -163,17 +223,14 @@
 	}
 </script>
 
-<svelte:window onpaste={handlePaste} onkeydown={handleKeyDown} />
+<svelte:window onpaste={handlePaste} onkeydown={handleKeyDown} onclick={handleWindowClick} />
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="empty-state-wrapper"
 	class:drag-over={dropZoneActive}
 	ondragover={handleDragOver}
 	ondragleave={handleDragLeave}
 	ondrop={handleDrop}
-	onclick={() => textareaEl?.focus()}
 	role="region"
 	aria-label="Empty Deck Workspace"
 	in:fade={{ duration: 150 }}
@@ -195,15 +252,33 @@
 		<p class="description">
 			To get started, paste a decklist or search for cards
 		</p>
-		<textarea
-			bind:this={textareaEl}
-			bind:value={inputText}
-			onkeydown={handleTextareaKeyDown}
-			placeholder="Paste a decklist or type a card name..."
-			class="borderless-input"
-			rows="1"
-			aria-label="Decklist or card entry field"
-		></textarea>
+		<div class="input-positioner">
+			<textarea
+				bind:this={textareaEl}
+				bind:value={inputText}
+				onkeydown={handleTextareaKeyDown}
+				placeholder="Paste a decklist or type a card name..."
+				class="borderless-input"
+				rows="1"
+				aria-label="Decklist or card entry field"
+			></textarea>
+			
+			{#if suggestions.length > 0}
+				<ul class="autocomplete-suggestions" transition:fade={{ duration: 100 }}>
+					{#each suggestions as sug, i}
+						<li class:active={i === activeIndex}>
+							<button 
+								onclick={() => addSingleCard(sug)}
+								type="button"
+								tabindex="-1"
+							>
+								{sug}
+							</button>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
 	</div>
 </div>
 
@@ -282,6 +357,13 @@
 		color: hsl(var(--muted-foreground));
 	}
 
+	.input-positioner {
+		position: relative;
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+	}
+
 	.borderless-input {
 		width: 100%;
 		background: transparent;
@@ -301,5 +383,49 @@
 
 	.borderless-input::placeholder {
 		color: hsl(var(--muted-foreground) / 0.4);
+	}
+
+	.autocomplete-suggestions {
+		position: absolute;
+		top: calc(100% + 0.5rem);
+		left: 0;
+		width: 100%;
+		background: hsl(var(--popover) / 0.85);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: var(--radius-md);
+		box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+		padding: 0.35rem;
+		margin: 0;
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		z-index: 50;
+	}
+
+	.autocomplete-suggestions li {
+		width: 100%;
+	}
+
+	.autocomplete-suggestions button {
+		width: 100%;
+		background: none;
+		border: none;
+		text-align: left;
+		padding: 0.4rem 0.75rem;
+		font-size: 0.9rem;
+		color: hsl(var(--muted-foreground));
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		outline: none;
+		transition: all 0.15s ease;
+	}
+
+	.autocomplete-suggestions li.active button,
+	.autocomplete-suggestions button:hover {
+		background: hsl(var(--primary) / 0.15);
+		color: hsl(var(--foreground));
 	}
 </style>
