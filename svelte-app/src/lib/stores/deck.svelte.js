@@ -9,6 +9,7 @@ import { untrack } from 'svelte';
 import { toastStore } from '$lib/stores/toast.svelte.js';
 
 const browser = typeof window !== 'undefined';
+let initialSyncComplete = $state(false);
 
 /** 
  * @typedef {Object} DeckCard
@@ -110,7 +111,12 @@ function createDeckState(initialData = null) {
 		console.log("[createDeckState] init:", { id: deckId, name: initialData?.name, isInitiallyEmpty, hasBeenPopulated });
 	}
 
-	const isEmptyStateActive = $derived(browser ? !hasBeenPopulated : false);
+	const isEmptyStateActive = $derived.by(() => {
+		if (!browser) return false;
+		if (authStore.isLoading) return false;
+		if (authStore.isAuthenticated && !initialSyncComplete) return false;
+		return !hasBeenPopulated;
+	});
 
 	return {
 		get deck() { return deck; },
@@ -419,6 +425,12 @@ function createDeck() {
 				cached[updatedId] = deckData;
 				delete cached[oldId];
 				localStorage.setItem('budgericards_cached_decks', JSON.stringify(cached));
+
+				let drafts = JSON.parse(localStorage.getItem('budgericards_local_drafts') || '[]');
+				const newDrafts = drafts.filter(/** @param {any} d */ d => d.id !== oldId);
+				if (newDrafts.length !== drafts.length) {
+					localStorage.setItem('budgericards_local_drafts', JSON.stringify(newDrafts));
+				}
 			}
 
 			syncState.lastSynced = Date.now();
@@ -433,7 +445,10 @@ function createDeck() {
 
 	function loadDeckData(cloudDeck) {
 		const targetState = activeDeck;
-		targetState.deck.id = cloudDeck.id;
+		const oldId = targetState.deck.id;
+		const updatedId = cloudDeck.id;
+
+		targetState.deck.id = updatedId;
 		targetState.deck.name = cloudDeck.name;
 		targetState.deck.commander = cloudDeck.cards.commander || [];
 		targetState.deck.companion = cloudDeck.cards.companion || [];
@@ -455,6 +470,32 @@ function createDeck() {
 			...(cloudDeck.cards.metadata || {}),
 			updatedAt: new Date(cloudDeck.updated_at).getTime()
 		};
+
+		if (browser) {
+			sessionStorage.setItem('budgericards_active_deck_id', updatedId);
+			if (activeDeckId === oldId) {
+				activeDeckId = updatedId;
+			}
+		}
+
+		if (oldId !== updatedId) {
+			loadedDecks[updatedId] = targetState;
+			delete loadedDecks[oldId];
+
+			if (browser) {
+				let cached = JSON.parse(localStorage.getItem('budgericards_cached_decks') || '{}');
+				if (cached[oldId]) {
+					delete cached[oldId];
+					localStorage.setItem('budgericards_cached_decks', JSON.stringify(cached));
+				}
+				let drafts = JSON.parse(localStorage.getItem('budgericards_local_drafts') || '[]');
+				const newDrafts = drafts.filter(/** @param {any} d */ d => d.id !== oldId);
+				if (newDrafts.length !== drafts.length) {
+					localStorage.setItem('budgericards_local_drafts', JSON.stringify(newDrafts));
+				}
+			}
+		}
+
 		persist(targetState);
 	}
 
@@ -506,6 +547,7 @@ function createDeck() {
 			syncState.error = err.message || String(err);
 		} finally {
 			syncState.isSyncing = false;
+			initialSyncComplete = true;
 		}
 	}
 
@@ -812,6 +854,14 @@ function createDeck() {
 		$effect(() => {
 			if (browser && authStore.isAuthenticated && !authStore.isLoading && activeDeck.deck.id) {
 				pullDecksFromCloud();
+			}
+		});
+
+		$effect(() => {
+			if (browser) {
+				if (!authStore.isLoading && !authStore.isAuthenticated) {
+					initialSyncComplete = true;
+				}
 			}
 		});
 	});
