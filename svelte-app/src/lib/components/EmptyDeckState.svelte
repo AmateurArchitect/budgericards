@@ -135,6 +135,8 @@
 		settingsStore.deckViewMode =
 			lastView === "spoiler" ? "spoiler" : "stacks";
 	}
+
+
 </script>
 
 <svelte:window onpaste={handlePaste} onkeydown={handleKeyDown} />

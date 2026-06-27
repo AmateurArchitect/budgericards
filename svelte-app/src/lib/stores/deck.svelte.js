@@ -2200,6 +2200,8 @@ function createDeck() {
 		},
 		get isImagePreloading() { return activeDeck.isImagePreloading; },
 		get isEmptyStateActive() { return activeDeck.isEmptyStateActive; },
+		get hasBeenPopulated() { return activeDeck.hasBeenPopulated; },
+		set hasBeenPopulated(val) { activeDeck.hasBeenPopulated = val; },
 		clearMetadataAndCards() {
 			saveHistory(activeDeck);
 			activeDeck.deck.commander = [];

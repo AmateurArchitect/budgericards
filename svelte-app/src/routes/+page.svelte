@@ -15,6 +15,7 @@
 	import { fade, slide } from "svelte/transition";
 	import { Loader } from "lucide-svelte";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
+	import { searchStore } from "$lib/stores/search.svelte.js";
 	import EmptyDeckState from "$lib/components/EmptyDeckState.svelte";
 
 	let isHydrated = $state(false);
@@ -23,6 +24,13 @@
 		priceStore.load();
 		isHydrated = true;
 	});
+
+	const showEmptyState = $derived(
+		isHydrated &&
+		deckStore.isEmptyStateActive &&
+		settingsStore.deckViewMode !== "list" &&
+		searchStore.query.trim() === ""
+	);
 
 	$effect(() => {
 		console.log("[+page.svelte] status:", { isHydrated, isEmptyStateActive: deckStore.isEmptyStateActive });
@@ -149,7 +157,7 @@
 	style={Object.entries(layoutStore.cssVariables).map(([k, v]) => `${k}: ${v}`).join("; ")}
 >
 	<main class="app-layout">
-		{#if isHydrated && deckStore.isEmptyStateActive}
+		{#if showEmptyState}
 			<EmptyDeckState />
 		{:else}
 			<SearchPanel />
