@@ -107,7 +107,7 @@ function createDeckState(initialData = null) {
 	);
 	let hasBeenPopulated = $state(!isInitiallyEmpty);
 
-	const isEmptyStateActive = $derived(!hasBeenPopulated);
+	const isEmptyStateActive = $derived(browser ? !hasBeenPopulated : false);
 
 	return {
 		get deck() { return deck; },
