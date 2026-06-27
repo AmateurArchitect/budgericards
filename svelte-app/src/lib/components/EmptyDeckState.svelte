@@ -125,23 +125,29 @@
 	in:fade={{ duration: 150 }}
 >
 	<div class="content-container">
-		<h2>Build Your Deck</h2>
-		<p class="description">
-			To get started, paste a decklist, drag and drop cards from Scryfall, or start typing a card name or a card search.
-		</p>
+		<h2>Start a New Deck</h2>
+		<ul class="get-started-list">
+			<li>Paste a decklist</li>
+			<li>Drag and drop cards from Scryfall</li>
+			<li>Start typing a card name or a card search</li>
+		</ul>
+		<div class="cursor-prompt" aria-hidden="true">
+			<span class="prompt-symbol">&gt;</span>
+			<span class="blinking-cursor"></span>
+		</div>
 	</div>
 </div>
 
 <style>
 	.empty-state-wrapper {
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		justify-content: center;
 		width: 100%;
 		height: calc(100vh - 56px); /* Full height minus main header */
 		background: transparent;
 		box-sizing: border-box;
-		padding: 2rem;
+		padding: 25vh 2rem 2rem 2rem; /* Position 25% from top to leave ~2x space below */
 		transition: background-color 0.2s ease;
 	}
 
@@ -155,7 +161,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.75rem;
+		gap: 1.25rem;
 		user-select: none;
 	}
 
@@ -167,10 +173,46 @@
 		color: hsl(var(--foreground));
 	}
 
-	.description {
+	.get-started-list {
 		margin: 0;
+		text-align: left;
+		padding-left: 1.5rem;
 		font-size: 0.95rem;
-		line-height: 1.6;
+		line-height: 1.75;
 		color: hsl(var(--muted-foreground));
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.get-started-list li {
+		padding-left: 0.25rem;
+	}
+
+	.cursor-prompt {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.35rem;
+		margin-top: 1.5rem;
+		font-family: var(--font-mono, monospace);
+		font-size: 1.2rem;
+		color: hsl(var(--primary));
+	}
+
+	.prompt-symbol {
+		opacity: 0.8;
+	}
+
+	.blinking-cursor {
+		width: 8px;
+		height: 18px;
+		background-color: hsl(var(--primary));
+		animation: blink 1s step-end infinite;
+	}
+
+	@keyframes blink {
+		from, to { background-color: transparent }
+		50% { background-color: hsl(var(--primary)) }
 	}
 </style>
