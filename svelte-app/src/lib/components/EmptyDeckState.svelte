@@ -187,7 +187,8 @@
 
 	h2 {
 		margin: 0;
-		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
+			Georgia, serif;
 		font-size: 2.15rem;
 		font-weight: 400;
 		letter-spacing: -0.01em;
@@ -199,7 +200,7 @@
 		text-align: left;
 		padding-left: 1.25rem;
 		font-size: 0.95rem;
-		line-height: 1.75;
+		line-height: 1.33;
 		color: hsl(var(--muted-foreground));
 		display: flex;
 		flex-direction: column;
