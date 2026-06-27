@@ -107,13 +107,6 @@ function createDeckState(initialData = null) {
 	);
 	let hasBeenPopulated = $state(!isInitiallyEmpty);
 
-	$effect(() => {
-		const total = deck.commander.length + deck.companion.length + deck.mainboard.length + deck.sideboard.length + deck.maybeboard.length;
-		if (total > 0) {
-			hasBeenPopulated = true;
-		}
-	});
-
 	const isEmptyStateActive = $derived(!hasBeenPopulated);
 
 	return {
@@ -135,6 +128,8 @@ function createDeckState(initialData = null) {
 		set lastPastedName(val) { lastPastedName = val; },
 		get isImagePreloading() { return isImagePreloading; },
 		set isImagePreloading(val) { isImagePreloading = val; },
+		get hasBeenPopulated() { return hasBeenPopulated; },
+		set hasBeenPopulated(val) { hasBeenPopulated = val; },
 		get isEmptyStateActive() { return isEmptyStateActive; }
 	};
 }
@@ -502,6 +497,12 @@ function createDeck() {
 	/** @param {ReturnType<typeof createDeckState>} deckState */
 	function persist(deckState) {
 		if (!browser) return;
+
+		const total = deckState.deck.commander.length + deckState.deck.companion.length + deckState.deck.mainboard.length + deckState.deck.sideboard.length + deckState.deck.maybeboard.length;
+		if (total > 0) {
+			deckState.hasBeenPopulated = true;
+		}
+
 		if (isBatching) {
 			batchNeedsPersist = true;
 			return;
