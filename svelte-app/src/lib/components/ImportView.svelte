@@ -54,6 +54,12 @@
 	/** @type {HTMLDivElement | null} */
 	let highlightsEl = $state(null);
 
+	$effect(() => {
+		if (textareaEl) {
+			textareaEl.focus();
+		}
+	});
+
 
 
 	// Reactive parsing of current text

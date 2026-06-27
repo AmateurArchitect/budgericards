@@ -15,6 +15,7 @@
 	import { fade, slide } from "svelte/transition";
 	import { Loader } from "lucide-svelte";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
+	import EmptyDeckState from "$lib/components/EmptyDeckState.svelte";
 
 	onMount(() => {
 		priceStore.load();
@@ -141,22 +142,26 @@
 	style={Object.entries(layoutStore.cssVariables).map(([k, v]) => `${k}: ${v}`).join("; ")}
 >
 	<main class="app-layout">
-		<SearchPanel />
-		
-		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="deck-area" onclick={handleDeckAreaClick}>
-			<DeckHeader />
-			{#if settingsStore.deckViewMode === 'list'}
-				<ImportView />
-			{:else if settingsStore.deckViewMode === 'table'}
-				<TableView />
-			{:else if settingsStore.deckViewMode === 'spoiler'}
-				<SpoilerView />
-			{:else}
-				<StacksView />
-			{/if}
-		</div>
+		{#if deckStore.isEmptyStateActive}
+			<EmptyDeckState />
+		{:else}
+			<SearchPanel />
+			
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div class="deck-area" onclick={handleDeckAreaClick}>
+				<DeckHeader />
+				{#if settingsStore.deckViewMode === 'list'}
+					<ImportView />
+				{:else if settingsStore.deckViewMode === 'table'}
+					<TableView />
+				{:else if settingsStore.deckViewMode === 'spoiler'}
+					<SpoilerView />
+				{:else}
+					<StacksView />
+				{/if}
+			</div>
+		{/if}
 	</main>
 
 	<MaybeboardCleanupModal bind:isOpen={interactionStore.maybeboardCleanupModal.isOpen} />

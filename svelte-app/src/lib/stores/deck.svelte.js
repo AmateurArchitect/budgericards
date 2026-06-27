@@ -98,6 +98,24 @@ function createDeckState(initialData = null) {
 	let lastPastedName = $state('');
 	let isImagePreloading = $state(false);
 
+	const isInitiallyEmpty = !initialData || (
+		(initialData.commander?.length || 0) +
+		(initialData.companion?.length || 0) +
+		(initialData.mainboard?.length || 0) +
+		(initialData.sideboard?.length || 0) +
+		(initialData.maybeboard?.length || 0) === 0
+	);
+	let hasBeenPopulated = $state(!isInitiallyEmpty);
+
+	$effect(() => {
+		const total = deck.commander.length + deck.companion.length + deck.mainboard.length + deck.sideboard.length + deck.maybeboard.length;
+		if (total > 0) {
+			hasBeenPopulated = true;
+		}
+	});
+
+	const isEmptyStateActive = $derived(!hasBeenPopulated);
+
 	return {
 		get deck() { return deck; },
 		set deck(val) { deck = val; },
@@ -116,7 +134,8 @@ function createDeckState(initialData = null) {
 		get lastPastedName() { return lastPastedName; },
 		set lastPastedName(val) { lastPastedName = val; },
 		get isImagePreloading() { return isImagePreloading; },
-		set isImagePreloading(val) { isImagePreloading = val; }
+		set isImagePreloading(val) { isImagePreloading = val; },
+		get isEmptyStateActive() { return isEmptyStateActive; }
 	};
 }
 
@@ -2113,6 +2132,7 @@ function createDeck() {
 			await fetchMetadataAndPreloadImages(activeDeck, cardNames);
 		},
 		get isImagePreloading() { return activeDeck.isImagePreloading; },
+		get isEmptyStateActive() { return activeDeck.isEmptyStateActive; },
 		clearMetadataAndCards() {
 			saveHistory(activeDeck);
 			activeDeck.deck.commander = [];
