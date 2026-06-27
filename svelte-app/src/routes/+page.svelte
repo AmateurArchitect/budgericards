@@ -24,6 +24,10 @@
 		isHydrated = true;
 	});
 
+	$effect(() => {
+		console.log("[+page.svelte] status:", { isHydrated, isEmptyStateActive: deckStore.isEmptyStateActive });
+	});
+
 	/** @param {DragEvent} e */
 	async function handleGlobalDrop(e) {
 		e.preventDefault();

@@ -106,6 +106,9 @@ function createDeckState(initialData = null) {
 		(initialData.maybeboard?.length || 0) === 0
 	);
 	let hasBeenPopulated = $state(!isInitiallyEmpty);
+	if (browser) {
+		console.log("[createDeckState] init:", { id: deckId, name: initialData?.name, isInitiallyEmpty, hasBeenPopulated });
+	}
 
 	const isEmptyStateActive = $derived(browser ? !hasBeenPopulated : false);
 
@@ -203,15 +206,23 @@ function createDeck() {
 
 	function loadFromStorage(id) {
 		if (!browser) return null;
+		console.log("[loadFromStorage] checking id:", id);
 		// 1. Check local drafts
 		const drafts = JSON.parse(localStorage.getItem('budgericards_local_drafts') || '[]');
 		const draft = drafts.find(/** @param {any} d */ d => d.id === id);
-		if (draft) return createDeckState(draft);
+		if (draft) {
+			console.log("[loadFromStorage] found in drafts:", draft.name);
+			return createDeckState(draft);
+		}
 
 		// 2. Check cached decks
 		const cached = JSON.parse(localStorage.getItem('budgericards_cached_decks') || '{}');
-		if (cached[id]) return createDeckState(cached[id]);
+		if (cached[id]) {
+			console.log("[loadFromStorage] found in cached decks:", cached[id].name);
+			return createDeckState(cached[id]);
+		}
 
+		console.log("[loadFromStorage] not found for id:", id);
 		return null;
 	}
 
@@ -230,18 +241,22 @@ function createDeck() {
 		}
 
 		let activeId = sessionStorage.getItem('budgericards_active_deck_id') || '';
+		console.log("[createDeck] browser init. activeId from sessionStorage:", activeId);
 		if (!activeId) {
 			// Start a fresh unnamed draft
 			activeId = generateId();
 			sessionStorage.setItem('budgericards_active_deck_id', activeId);
+			console.log("[createDeck] starting fresh draft with id:", activeId);
 			const freshDraft = createDeckState({ id: activeId });
 			loadedDecks[activeId] = freshDraft;
 		}
 		if (!loadedDecks[activeId]) {
 			const loaded = loadFromStorage(activeId);
+			console.log("[createDeck] loadFromStorage returned:", loaded ? "loaded" : "null");
 			loadedDecks[activeId] = loaded || createDeckState({ id: activeId });
 		}
 		activeDeckId = activeId;
+		console.log("[createDeck] activeDeckId set to:", activeDeckId);
 	}
 
 	let isBatching = false;
@@ -500,6 +515,7 @@ function createDeck() {
 
 		const total = deckState.deck.commander.length + deckState.deck.companion.length + deckState.deck.mainboard.length + deckState.deck.sideboard.length + deckState.deck.maybeboard.length;
 		if (total > 0) {
+			console.log("[persist] setting hasBeenPopulated to true for deck:", deckState.deck.name, "total cards:", total);
 			deckState.hasBeenPopulated = true;
 		}
 
