@@ -17,8 +17,11 @@
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import EmptyDeckState from "$lib/components/EmptyDeckState.svelte";
 
+	let isHydrated = $state(false);
+
 	onMount(() => {
 		priceStore.load();
+		isHydrated = true;
 	});
 
 	/** @param {DragEvent} e */
@@ -142,7 +145,7 @@
 	style={Object.entries(layoutStore.cssVariables).map(([k, v]) => `${k}: ${v}`).join("; ")}
 >
 	<main class="app-layout">
-		{#if deckStore.isEmptyStateActive}
+		{#if isHydrated && deckStore.isEmptyStateActive}
 			<EmptyDeckState />
 		{:else}
 			<SearchPanel />
