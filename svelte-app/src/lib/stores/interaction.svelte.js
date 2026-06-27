@@ -1987,7 +1987,9 @@ function createInteractionStore() {
 
 		get activeAnimations() { return state.activeAnimations; },
 
-		get sideboardExpanded() { return state.sideboardExpanded; },
+		get sideboardExpanded() {
+			return state.sideboardExpanded && (deckStore.sideboard?.length > 0);
+		},
 		/** @param {boolean} val */
 		setSideboardExpanded(val) {
 			state.sideboardExpanded = val;
