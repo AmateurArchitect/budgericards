@@ -5,7 +5,12 @@
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 
+	import DeckOptionsModal from "./DeckOptionsModal.svelte";
+
 	let dropZoneActive = $state(false);
+	let showDeckOptionsModal = $state(false);
+	/** @type {HTMLElement | null} */
+	let headerEl = $state(null);
 
 	/** @param {ClipboardEvent} e */
 	async function handlePaste(e) {
@@ -145,18 +150,33 @@
 	in:fade={{ duration: 150 }}
 >
 	<div class="content-container">
-		<h2>Start a New Deck</h2>
-		<ul class="get-started-list">
-			<li>Paste a decklist</li>
-			<li>Drag and drop cards from Scryfall</li>
-			<li>Type a card name</li>
-			<li>Type a card search</li>
-		</ul>
+		<button
+			bind:this={headerEl}
+			class="deck-title-editable-btn"
+			onclick={(e) => {
+				e.stopPropagation();
+				showDeckOptionsModal = true;
+			}}
+			title="Click to rename deck"
+		>
+			<h2>
+				{deckStore.name && deckStore.name !== "Untitled Deck" ? deckStore.name : "New Deck"}
+			</h2>
+		</button>
+		<p class="description">
+			To get started, paste a decklist or search for cards
+		</p>
 		<div class="cursor-prompt" aria-hidden="true">
 			<span class="blinking-cursor"></span>
 		</div>
 	</div>
 </div>
+
+<DeckOptionsModal
+	bind:isOpen={showDeckOptionsModal}
+	fallbackArt={null}
+	triggerElement={headerEl}
+/>
 
 <style>
 	.empty-state-wrapper {
@@ -196,20 +216,33 @@
 		color: hsl(var(--foreground));
 	}
 
-	.get-started-list {
+	.deck-title-editable-btn {
+		background: none;
+		border: none;
+		padding: 0;
 		margin: 0;
+		cursor: pointer;
+		outline: none;
 		text-align: left;
-		padding-left: 1.25rem;
+		transition: opacity 0.25s ease;
+	}
+
+	.deck-title-editable-btn:hover {
+		opacity: 0.8;
+	}
+
+	.deck-title-editable-btn:hover h2 {
+		text-decoration: underline;
+		text-decoration-style: dashed;
+		text-decoration-thickness: 1px;
+		text-underline-offset: 4px;
+	}
+
+	.description {
+		margin: 0;
 		font-size: 0.95rem;
 		line-height: 1.33;
 		color: hsl(var(--muted-foreground));
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.get-started-list li {
-		padding-left: 0.25rem;
 	}
 
 	.cursor-prompt {
