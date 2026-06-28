@@ -22,6 +22,8 @@
 		Cloud,
 		CloudOff,
 		RefreshCw,
+		BarChart2,
+		Settings,
 	} from "lucide-svelte";
 	import Button from "./ui/Button.svelte";
 	import Input from "./ui/Input.svelte";
@@ -590,6 +592,30 @@
 							title="Spoiler View"
 						>
 							<Image size={14} />
+						</Button>
+						<Button
+							variant={settingsStore.deckViewMode === "stats"
+								? "toggle-active"
+								: "ghost"}
+							size="icon"
+							class="display-toggle-btn"
+							onclick={() =>
+								(settingsStore.deckViewMode = "stats")}
+							title="Stats View"
+						>
+							<BarChart2 size={14} />
+						</Button>
+						<Button
+							variant={settingsStore.deckViewMode === "settings"
+								? "toggle-active"
+								: "ghost"}
+							size="icon"
+							class="display-toggle-btn"
+							onclick={() =>
+								(settingsStore.deckViewMode = "settings")}
+							title="Settings"
+						>
+							<Settings size={14} />
 						</Button>
 					</div>
 				</div>

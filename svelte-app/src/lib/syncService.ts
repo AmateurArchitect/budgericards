@@ -43,6 +43,43 @@ export const syncService = {
 		return { data: data as SyncedDeck[] | null, error };
 	},
 
+	/**
+	 * Fetches a single public deck from Supabase by matching its UUID prefix (short ID).
+	 */
+	async fetchDeckByShortId(shortId: string): Promise<{ data: SyncedDeck | null; error: any }> {
+		const { data, error } = await supabase
+			.from('decks')
+			.select('*')
+			.like('id', `${shortId}%`)
+			.maybeSingle();
+		return { data: data as SyncedDeck | null, error };
+	},
+
+	/**
+	 * Fetches all public decks stored in Supabase.
+	 */
+	async fetchPublicDecks(): Promise<{ data: SyncedDeck[] | null; error: any }> {
+		const { data, error } = await supabase
+			.from('decks')
+			.select('*')
+			.eq('cards->metadata->visibility', 'public')
+			.order('updated_at', { ascending: false });
+		return { data: data as SyncedDeck[] | null, error };
+	},
+
+	/**
+	 * Fetches all public decks for a specific username.
+	 */
+	async fetchPublicDecksByUser(username: string): Promise<{ data: SyncedDeck[] | null; error: any }> {
+		const { data, error } = await supabase
+			.from('decks')
+			.select('*')
+			.eq('cards->metadata->createdBy', username)
+			.eq('cards->metadata->visibility', 'public')
+			.order('updated_at', { ascending: false });
+		return { data: data as SyncedDeck[] | null, error };
+	},
+
 	async CustomMethodNameNotStrict() {
 		// keeping signature compatible
 	},

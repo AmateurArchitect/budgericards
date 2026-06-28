@@ -14,8 +14,10 @@
 	let decks = $state([]);
 	/** @type {any[]} */
 	let localDrafts = $state([]);
-	let isLoading = $state(false);
-	let error = $state("");
+	let activeTab = $state("browse");
+	/** @type {any[]} */
+	let publicDecks = $state([]);
+	let isBrowsingLoading = $state(false);
 
 	async function loadDecks() {
 		if (!authStore.isAuthenticated && !authStore.isLoading) {
@@ -37,16 +39,40 @@
 		}
 	}
 
+	async function loadPublicDecks() {
+		isBrowsingLoading = true;
+		try {
+			const { data, error: fetchError } = await syncService.fetchPublicDecks();
+			if (fetchError) throw fetchError;
+			publicDecks = data || [];
+		} catch (err) {
+			console.error("Failed to load public decks:", err);
+		} finally {
+			isBrowsingLoading = false;
+		}
+	}
+
 	onMount(() => {
-		loadDecks();
+		if (authStore.isAuthenticated) {
+			activeTab = "my-decks";
+			loadDecks();
+		} else {
+			loadPublicDecks();
+		}
 		if (typeof window !== "undefined") {
 			localDrafts = JSON.parse(localStorage.getItem("budgericards_local_drafts") || "[]");
 		}
 	});
 
 	$effect(() => {
-		if (!authStore.isLoading && !authStore.isAuthenticated) {
-			goto("/login?redirectTo=/decks");
+		if (authStore.isAuthenticated && decks.length === 0) {
+			loadDecks();
+		}
+	});
+
+	$effect(() => {
+		if (activeTab === "browse" && publicDecks.length === 0) {
+			loadPublicDecks();
 		}
 	});
 
@@ -322,232 +348,328 @@
 <div class="decks-page-wrapper">
 	<div class="decks-page-container">
 		<header class="page-header">
-		<div class="title-area">
-			<FolderOpen class="header-icon" size={20} />
-			<h1>Your Decks</h1>
-		</div>
-	</header>
-
-	<main class="page-body">
-		{#if authStore.isLoading || (isLoading && allDecks.length === 0)}
-			<div class="loading-state">
-				<Loader class="spinner" size={36} />
-				<p>Loading your decks...</p>
+			<div class="title-area">
+				<FolderOpen class="header-icon" size={20} />
+				<h1>Decks</h1>
 			</div>
-		{:else if error}
-			<div class="error-state">
-				<p>{error}</p>
-				<Button onclick={loadDecks} variant="outline">Try Again</Button>
-			</div>
-		{:else if allDecks.length === 0}
-			<div class="empty-state">
-				<div class="empty-icon-container">
-					<svg
-						viewBox="0 0 160 160"
-						width="140"
-						height="140"
-						fill="none"
-						xmlns="http://www.w3.org/2000/svg"
-					>
-						<!-- Vertical Stack of Cards -->
-						{#each Array(13) as _, i}
-							{@const yOffset = (12 - i) * 2.8}
-							<g
-								transform="translate(0, {yOffset}) matrix(-0.86, 0.5, 0.871, 0.5, 79, 70)"
-							>
-								<rect
-									x="-25"
-									y="-35"
-									width="50"
-									height="70"
-									rx="3"
-									fill={i === 12
-										? "hsl(var(--muted) / 0.55)"
-										: "hsl(var(--background))"}
-									stroke="currentColor"
-									stroke-width="1"
-									stroke-opacity={i === 12 ? "0.9" : "0.5"}
-								/>
-								{#if i === 12}
-									<!-- Design Details on the Top Card (MTG Card Back) -->
-									<!-- Inner border -->
-									<rect
-										x="-21"
-										y="-31"
-										width="42"
-										height="62"
-										rx="1.5"
-										stroke="currentColor"
-										stroke-width="1"
-										stroke-opacity="0.8"
-									/>
+		</header>
 
-									<!-- Ellipse in the center (MTG Card Back Oval) -->
-									<ellipse
-										cx="0"
-										cy="0"
-										rx="14"
-										ry="24"
-										fill="hsl(var(--muted) / 0.1)"
-										stroke="currentColor"
-										stroke-width="1"
-										stroke-opacity="0.8"
-									/>
-
-									<!-- 5 mana circles in WUBRG pentagon layout -->
-									<g
-										stroke="currentColor"
-										stroke-width="1"
-										stroke-opacity="0.8"
-									>
-										<!-- Top (White) -->
-										<circle cx="0" cy="-6" r="1.2" />
-										<!-- Right (Blue) -->
-										<circle cx="5" cy="-2" r="1.2" />
-										<!-- Bottom Right (Black) -->
-										<circle cx="3" cy="4" r="1.2" />
-										<!-- Bottom Left (Red) -->
-										<circle cx="-3" cy="4" r="1.2" />
-										<!-- Left (Green) -->
-										<circle cx="-5" cy="-2" r="1.2" />
-									</g>
-								{/if}
-							</g>
-						{/each}
-					</svg>
-				</div>
-				<h3>Create your first deck</h3>
-				<p>
-					Your saved decks will appear here. Continue to the
-					deckbuilder to start brewing.
-				</p>
-				<a href="/" class="start-building-btn"
-					>Start Building <span class="arrow-icon">→</span></a
+		<div class="tab-bar">
+			{#if authStore.isAuthenticated}
+				<button 
+					class="tab-btn" 
+					class:active={activeTab === 'my-decks'} 
+					onclick={() => activeTab = 'my-decks'}
 				>
-			</div>
-		{:else}
-			{#if allDecks.length >= 6}
-				<div class="library-controls">
-					<div class="control-group">
-						<span class="control-label">Sort by:</span>
-						<div class="control-buttons">
-							<button class="control-btn" class:active={sortBy === 'updated'} onclick={() => sortBy = 'updated'}>Recent</button>
-							<button class="control-btn" class:active={sortBy === 'name'} onclick={() => sortBy = 'name'}>Name</button>
-							<button class="control-btn" class:active={sortBy === 'cards'} onclick={() => sortBy = 'cards'}>Cards</button>
-						</div>
-					</div>
+					My Decks
+				</button>
+			{/if}
+			<button 
+				class="tab-btn" 
+				class:active={activeTab === 'browse'} 
+				onclick={() => activeTab = 'browse'}
+			>
+				Browse Public Decks
+			</button>
+		</div>
 
-					{#if allDecks.length >= 12}
+		<main class="page-body">
+		{#if activeTab === 'my-decks'}
+			{#if authStore.isLoading || (isLoading && allDecks.length === 0)}
+				<div class="loading-state">
+					<Loader class="spinner" size={36} />
+					<p>Loading your decks...</p>
+				</div>
+			{:else if error}
+				<div class="error-state">
+					<p>{error}</p>
+					<Button onclick={loadDecks} variant="outline">Try Again</Button>
+				</div>
+			{:else if allDecks.length === 0}
+				<div class="empty-state">
+					<div class="empty-icon-container">
+						<svg
+							viewBox="0 0 160 160"
+							width="140"
+							height="140"
+							fill="none"
+							xmlns="http://www.w3.org/2000/svg"
+						>
+							<!-- Vertical Stack of Cards -->
+							{#each Array(13) as _, i}
+								{@const yOffset = (12 - i) * 2.8}
+								<g
+									transform="translate(0, {yOffset}) matrix(-0.86, 0.5, 0.871, 0.5, 79, 70)"
+								>
+									<rect
+										x="-25"
+										y="-35"
+										width="50"
+										height="70"
+										rx="3"
+										fill={i === 12
+											? "hsl(var(--muted) / 0.55)"
+											: "hsl(var(--background))"}
+										stroke="currentColor"
+										stroke-width="1"
+										stroke-opacity={i === 12 ? "0.9" : "0.5"}
+									/>
+									{#if i === 12}
+										<!-- Design Details on the Top Card (MTG Card Back) -->
+										<!-- Inner border -->
+										<rect
+											x="-21"
+											y="-31"
+											width="42"
+											height="62"
+											rx="1.5"
+											stroke="currentColor"
+											stroke-width="1"
+											stroke-opacity="0.8"
+										/>
+
+										<!-- Ellipse in the center (MTG Card Back Oval) -->
+										<ellipse
+											cx="0"
+											cy="0"
+											rx="14"
+											ry="24"
+											fill="hsl(var(--muted) / 0.1)"
+											stroke="currentColor"
+											stroke-width="1"
+											stroke-opacity="0.8"
+										/>
+
+										<!-- 5 mana circles in WUBRG pentagon layout -->
+										<g
+											stroke="currentColor"
+											stroke-width="1"
+											stroke-opacity="0.8"
+										>
+											<!-- Top (White) -->
+											<circle cx="0" cy="-6" r="1.2" />
+											<!-- Right (Blue) -->
+											<circle cx="5" cy="-2" r="1.2" />
+											<!-- Bottom Right (Black) -->
+											<circle cx="3" cy="4" r="1.2" />
+											<!-- Bottom Left (Red) -->
+											<circle cx="-3" cy="4" r="1.2" />
+											<!-- Left (Green) -->
+											<circle cx="-5" cy="-2" r="1.2" />
+										</g>
+									{/if}
+								</g>
+							{/each}
+						</svg>
+					</div>
+					<h3>Create your first deck</h3>
+					<p>
+						Your saved decks will appear here. Continue to the
+						deckbuilder to start brewing.
+					</p>
+					<a href="/" class="start-building-btn"
+						>Start Building <span class="arrow-icon">→</span></a
+					>
+				</div>
+			{:else}
+				{#if allDecks.length >= 6}
+					<div class="library-controls">
 						<div class="control-group">
-							<span class="control-label">Group by:</span>
+							<span class="control-label">Sort by:</span>
 							<div class="control-buttons">
-								<button class="control-btn" class:active={groupBy === 'none'} onclick={() => groupBy = 'none'}>None</button>
-								<button class="control-btn" class:active={groupBy === 'format'} onclick={() => groupBy = 'format'}>Format</button>
-								<button class="control-btn" class:active={groupBy === 'colors'} onclick={() => groupBy = 'colors'}>Colors</button>
+								<button class="control-btn" class:active={sortBy === 'updated'} onclick={() => sortBy = 'updated'}>Recent</button>
+								<button class="control-btn" class:active={sortBy === 'name'} onclick={() => sortBy = 'name'}>Name</button>
+								<button class="control-btn" class:active={sortBy === 'cards'} onclick={() => sortBy = 'cards'}>Cards</button>
 							</div>
 						</div>
-					{/if}
-				</div>
-			{/if}
 
-			<section class="library-section">
-				{#each groupedDecks as group, groupIdx (group.key)}
-					<div class="group-container" class:has-title={!!group.label}>
-						{#if group.label}
-							<h3 class="group-title">{group.label} ({group.items.length})</h3>
+						{#if allDecks.length >= 12}
+							<div class="control-group">
+								<span class="control-label">Group by:</span>
+								<div class="control-buttons">
+									<button class="control-btn" class:active={groupBy === 'none'} onclick={() => groupBy = 'none'}>None</button>
+									<button class="control-btn" class:active={groupBy === 'format'} onclick={() => groupBy = 'format'}>Format</button>
+									<button class="control-btn" class:active={groupBy === 'colors'} onclick={() => groupBy = 'colors'}>Colors</button>
+								</div>
+							</div>
 						{/if}
-						
-						<div class="decks-grid">
-							{#if groupIdx === 0}
-								<div
-									class="deck-card create-card"
-									role="button"
-									tabindex="0"
-									onclick={handleNewDeckLink}
-									onkeydown={(e) => {
-										if (e.key === "Enter" || e.key === " ") {
-											e.preventDefault();
-											handleNewDeckLink();
-										}
-									}}
-								>
-									<div class="deck-art-preview create-art-preview">
-										<PlusCircle class="create-icon" size={32} />
-									</div>
-									<div class="deck-details create-details">
-										<h3 class="deck-name">Create New Deck</h3>
-										<p class="deck-desc">Start building a fresh draft</p>
-									</div>
-								</div>
-							{/if}
-
-							{#each group.items as deck (deck.id)}
-								<div
-									class="deck-card"
-									role="button"
-									tabindex="0"
-									onclick={() => handleSelectDeck(deck)}
-									onkeydown={(e) => {
-										if (e.key === "Enter" || e.key === " ") {
-											e.preventDefault();
-											handleSelectDeck(deck);
-										}
-									}}
-								>
-									<div class="deck-art-preview" class:draft-preview={deck.isDraft}>
-										{#if getDeckCoverArt(deck)}
-											<img
-												src={getDeckCoverArt(deck)}
-												alt=""
-												class="deck-art-img"
-												class:draft-img={deck.isDraft}
-											/>
-										{:else}
-											<div class="deck-art-fallback" class:draft-art-fallback={deck.isDraft}></div>
-										{/if}
-										<div class="deck-badge" class:draft-badge={deck.isDraft}>
-											{deck.isDraft ? "Local Draft" : (deck.cards?.format || "Commander")}
-										</div>
-									</div>
-
-									<div class="deck-details">
-										<h3 class="deck-name">{deck.isDraft ? (deck.name || "Name & Save This Deck") : deck.name}</h3>
-										<div class="deck-meta">
-											{#if getDeckManaSymbols(deck).length > 0}
-												<div class="deck-mana-symbols">
-													{#each getDeckManaSymbols(deck) as sym}
-														<ManaSymbol symbol={sym} size="0.75rem" className="ms-cost" />
-													{/each}
-												</div>
-												<span class="meta-dot">•</span>
-											{/if}
-											<span class="card-count"
-												>{getCardCount(deck)} Cards</span
-											>
-											<span class="meta-dot">•</span>
-											<span class="updated-time"
-												>Updated {formatUpdatedDate(
-													deck.isDraft ? deck.metadata?.updatedAt : deck.updated_at,
-												)}</span
-											>
-										</div>
-									</div>
-
-									<div class="deck-actions">
-										<button
-											class="action-icon-btn delete-btn"
-											title={deck.isDraft ? "Delete Draft" : "Delete Deck"}
-											onclick={(e) => handleDeleteDeck(deck.id, e, deck.isDraft)}
-										>
-											<Trash2 size={16} />
-										</button>
-									</div>
-								</div>
-							{/each}
-						</div>
 					</div>
-				{/each}
-			</section>
+				{/if}
+
+				<section class="library-section">
+					{#each groupedDecks as group, groupIdx (group.key)}
+						<div class="group-container" class:has-title={!!group.label}>
+							{#if group.label}
+								<h3 class="group-title">{group.label} ({group.items.length})</h3>
+							{/if}
+							
+							<div class="decks-grid">
+								{#if groupIdx === 0}
+									<div
+										class="deck-card create-card"
+										role="button"
+										tabindex="0"
+										onclick={handleNewDeckLink}
+										onkeydown={(e) => {
+											if (e.key === "Enter" || e.key === " ") {
+												e.preventDefault();
+												handleNewDeckLink();
+											}
+										}}
+									>
+										<div class="deck-art-preview create-art-preview">
+											<PlusCircle class="create-icon" size={32} />
+										</div>
+										<div class="deck-details create-details">
+											<h3 class="deck-name">Create New Deck</h3>
+											<p class="deck-desc">Start building a fresh draft</p>
+										</div>
+									</div>
+								{/if}
+
+								{#each group.items as deck (deck.id)}
+									<div
+										class="deck-card"
+										role="button"
+										tabindex="0"
+										onclick={() => handleSelectDeck(deck)}
+										onkeydown={(e) => {
+											if (e.key === "Enter" || e.key === " ") {
+												e.preventDefault();
+												handleSelectDeck(deck);
+											}
+										}}
+									>
+										<div class="deck-art-preview" class:draft-preview={deck.isDraft}>
+											{#if getDeckCoverArt(deck)}
+												<img
+													src={getDeckCoverArt(deck)}
+													alt=""
+													class="deck-art-img"
+													class:draft-img={deck.isDraft}
+												/>
+											{:else}
+												<div class="deck-art-fallback" class:draft-art-fallback={deck.isDraft}></div>
+											{/if}
+											<div class="deck-badge" class:draft-badge={deck.isDraft}>
+												{deck.isDraft ? "Local Draft" : (deck.cards?.format || "Commander")}
+											</div>
+										</div>
+
+										<div class="deck-details">
+											<h3 class="deck-name">{deck.isDraft ? (deck.name || "Name & Save This Deck") : deck.name}</h3>
+											<div class="deck-meta">
+												{#if getDeckManaSymbols(deck).length > 0}
+													<div class="deck-mana-symbols">
+														{#each getDeckManaSymbols(deck) as sym}
+															<ManaSymbol symbol={sym} size="0.75rem" className="ms-cost" />
+														{/each}
+													</div>
+													<span class="meta-dot">•</span>
+												{/if}
+												<span class="card-count"
+													>{getCardCount(deck)} Cards</span
+												>
+												<span class="meta-dot">•</span>
+												<span class="updated-time"
+													>Updated {formatUpdatedDate(
+														deck.isDraft ? deck.metadata?.updatedAt : deck.updated_at,
+													)}</span
+												>
+											</div>
+										</div>
+
+										<div class="deck-actions">
+											<button
+												class="action-icon-btn delete-btn"
+												title={deck.isDraft ? "Delete Draft" : "Delete Deck"}
+												onclick={(e) => handleDeleteDeck(deck.id, e, deck.isDraft)}
+											>
+												<Trash2 size={16} />
+											</button>
+										</div>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/each}
+				</section>
+			{/if}
+		{:else if activeTab === 'browse'}
+			{#if isBrowsingLoading}
+				<div class="loading-state">
+					<Loader class="spinner" size={36} />
+					<p>Fetching public decks...</p>
+				</div>
+			{:else if publicDecks.length === 0}
+				<div class="empty-state">
+					<h3>No public decks found</h3>
+					<p>Decks made public by builders will appear here.</p>
+				</div>
+			{:else}
+				<section class="library-section">
+					<div class="decks-grid">
+						{#each publicDecks as deck (deck.id)}
+							<div
+								class="deck-card"
+								role="button"
+								tabindex="0"
+								onclick={() => handleSelectDeck(deck)}
+								onkeydown={(e) => {
+									if (e.key === "Enter" || e.key === " ") {
+										e.preventDefault();
+										handleSelectDeck(deck);
+									}
+								}}
+							>
+								<div class="deck-art-preview">
+									{#if getDeckCoverArt(deck)}
+										<img
+											src={getDeckCoverArt(deck)}
+											alt=""
+											class="deck-art-img"
+										/>
+									{:else}
+										<div class="deck-art-fallback"></div>
+									{/if}
+									<div class="deck-badge">
+										{deck.cards?.format || "Commander"}
+									</div>
+								</div>
+
+								<div class="deck-details">
+									<h3 class="deck-name">{deck.name}</h3>
+									<div class="deck-meta">
+										<a 
+											href="/user/{deck.cards?.metadata?.createdBy || 'Anonymous'}" 
+											class="creator-link"
+											onclick={(e) => e.stopPropagation()}
+										>
+											@{deck.cards?.metadata?.createdBy || 'Anonymous'}
+										</a>
+										<span class="meta-dot">•</span>
+										{#if getDeckManaSymbols(deck).length > 0}
+											<div class="deck-mana-symbols">
+												{#each getDeckManaSymbols(deck) as sym}
+													<ManaSymbol symbol={sym} size="0.75rem" className="ms-cost" />
+												{/each}
+											</div>
+											<span class="meta-dot">•</span>
+										{/if}
+										<span class="card-count"
+											>{getCardCount(deck)} Cards</span
+										>
+										<span class="meta-dot">•</span>
+										<span class="updated-time"
+											>Updated {formatUpdatedDate(deck.updated_at)}</span
+										>
+									</div>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</section>
+			{/if}
 		{/if}
 	</main>
 </div>
@@ -1011,5 +1133,57 @@
 		letter-spacing: 0.05em;
 		border-bottom: 1px dashed hsl(var(--border) / 0.2);
 		padding-bottom: 0.25rem;
+	}
+
+	/* Tabs & Profiles Styles */
+	.tab-bar {
+		display: flex;
+		gap: 1.5rem;
+		margin-bottom: 2rem;
+		border-bottom: 1px solid hsl(var(--border) / 0.3);
+	}
+
+	.tab-btn {
+		background: none;
+		border: none;
+		padding: 0.75rem 0.25rem;
+		font-size: 0.95rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		position: relative;
+		transition: color 0.2s ease;
+	}
+
+	.tab-btn:hover {
+		color: hsl(var(--foreground));
+	}
+
+	.tab-btn.active {
+		color: hsl(var(--foreground));
+		font-weight: 600;
+	}
+
+	.tab-btn.active::after {
+		content: "";
+		position: absolute;
+		bottom: -1px;
+		left: 0;
+		right: 0;
+		height: 2px;
+		background: hsl(var(--primary));
+		border-radius: 2px;
+	}
+
+	.creator-link {
+		color: hsl(var(--primary));
+		text-decoration: none;
+		font-weight: 600;
+		transition: opacity 0.15s ease;
+	}
+
+	.creator-link:hover {
+		opacity: 0.8;
+		text-decoration: underline;
 	}
 </style>

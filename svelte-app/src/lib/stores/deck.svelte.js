@@ -21,20 +21,14 @@ let initialSyncComplete = $state(false);
  */
 
 export const generateId = () => {
-	if (browser && typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+	if (browser && typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
 		try {
-			const bytes = new Uint8Array(4);
-			window.crypto.getRandomValues(bytes);
-			return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+			return window.crypto.randomUUID();
 		} catch (e) {
 			// Fallback below
 		}
 	}
-	let result = '';
-	for (let i = 0; i < 8; i++) {
-		result += Math.floor(Math.random() * 16).toString(16);
-	}
-	return result;
+	return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 };
 
 /**
@@ -221,7 +215,7 @@ function createDeck() {
 		console.log("[loadFromStorage] checking id:", id);
 		// 1. Check local drafts
 		const drafts = JSON.parse(localStorage.getItem('budgericards_local_drafts') || '[]');
-		const draft = drafts.find(/** @param {any} d */ d => d.id === id);
+		const draft = drafts.find(/** @param {any} d */ d => d.id === id || d.id.startsWith(id));
 		if (draft) {
 			console.log("[loadFromStorage] found in drafts:", draft.name);
 			return createDeckState(draft);
@@ -229,9 +223,10 @@ function createDeck() {
 
 		// 2. Check cached decks
 		const cached = JSON.parse(localStorage.getItem('budgericards_cached_decks') || '{}');
-		if (cached[id]) {
-			console.log("[loadFromStorage] found in cached decks:", cached[id].name);
-			return createDeckState(cached[id]);
+		const cachedId = Object.keys(cached).find(k => k === id || k.startsWith(id));
+		if (cachedId) {
+			console.log("[loadFromStorage] found in cached decks:", cached[cachedId].name);
+			return createDeckState(cached[cachedId]);
 		}
 
 		console.log("[loadFromStorage] not found for id:", id);
@@ -505,6 +500,19 @@ function createDeck() {
 		persist(targetState);
 	}
 
+	async function fetchSharedDeckFallback(shortId) {
+		if (shortId && shortId.length >= 8) {
+			console.log("Deck not found in user's cloud library. Checking public/shared decks for:", shortId);
+			const { data: sharedDeck, error: sharedError } = await syncService.fetchDeckByShortId(shortId);
+			if (sharedDeck) {
+				console.log("Loaded public shared deck:", sharedDeck.name);
+				loadDeckData(sharedDeck);
+			} else {
+				console.log("Shared deck not found or not public for:", shortId);
+			}
+		}
+	}
+
 	async function pullDecksFromCloud() {
 		syncState.isSyncing = true;
 		try {
@@ -512,7 +520,7 @@ function createDeck() {
 			if (error) throw error;
 			const targetState = activeDeck;
 			if (data && data.length > 0) {
-				const cloudDeck = data.find(d => d.id === targetState.deck.id);
+				const cloudDeck = data.find(d => d.id === targetState.deck.id || d.id.startsWith(targetState.deck.id));
 				if (cloudDeck) {
 					const cloudTime = new Date(cloudDeck.updated_at).getTime();
 					const localTime = targetState.metadata.updatedAt || 0;
@@ -537,6 +545,9 @@ function createDeck() {
 							if (!isUnnamed) {
 								console.log("Saving local deck as a new cloud deck:", targetState.deck.name);
 								await triggerCloudSyncNow(targetState);
+							} else {
+								// Try fetching shared deck since it wasn't found in owned library
+								await fetchSharedDeckFallback(targetState.deck.id);
 							}
 						}
 					}
@@ -546,6 +557,8 @@ function createDeck() {
 				if (!isUnnamed) {
 					console.log("No cloud decks found. Backing up current local deck to cloud.");
 					await triggerCloudSyncNow(targetState);
+				} else {
+					await fetchSharedDeckFallback(targetState.deck.id);
 				}
 			}
 		} catch (err) {
@@ -860,6 +873,16 @@ function createDeck() {
 		$effect(() => {
 			if (browser && authStore.isAuthenticated && !authStore.isLoading && activeDeck.deck.id) {
 				pullDecksFromCloud();
+			}
+		});
+
+		$effect(() => {
+			if (browser && !authStore.isLoading && !authStore.isAuthenticated && activeDeck.deck.id) {
+				const targetState = activeDeck;
+				const isEmpty = targetState.deck.commander.length === 0 && targetState.deck.companion.length === 0 && targetState.deck.mainboard.length === 0 && targetState.deck.sideboard.length === 0 && targetState.deck.maybeboard.length === 0;
+				if (isEmpty) {
+					fetchSharedDeckFallback(targetState.deck.id);
+				}
 			}
 		});
 
@@ -1271,6 +1294,8 @@ function createDeck() {
 		set coverArt(val) { saveHistory(activeDeck); activeDeck.deck.coverArt = val; persist(activeDeck); },
 		get format() { return activeDeck.deck.format; },
 		set format(val) { saveHistory(activeDeck); activeDeck.deck.format = val; persist(activeDeck); },
+		get visibility() { return activeDeck.metadata.visibility || 'public'; },
+		set visibility(val) { saveHistory(activeDeck); activeDeck.metadata.visibility = val; persist(activeDeck); },
 		get lastNaturalGrouping() { return activeDeck.deck.lastNaturalGrouping || 'cmc'; },
 		set lastNaturalGrouping(val) { activeDeck.deck.lastNaturalGrouping = val; persist(activeDeck); },
 
@@ -1957,6 +1982,33 @@ function createDeck() {
 
 		selectDeckId(id) {
 			if (activeDeckId !== id) {
+				// Search loadedDecks for a matching prefix
+				const matchingId = Object.keys(loadedDecks).find(k => k.startsWith(id));
+				if (matchingId) {
+					activeDeckId = matchingId;
+					sessionStorage.setItem('budgericards_active_deck_id', matchingId);
+					return;
+				}
+
+				// Search localDrafts/cache for a matching prefix
+				if (browser) {
+					const drafts = JSON.parse(localStorage.getItem('budgericards_local_drafts') || '[]');
+					const draft = drafts.find(/** @param {any} d */ d => d.id.startsWith(id));
+					if (draft) {
+						activeDeckId = draft.id;
+						sessionStorage.setItem('budgericards_active_deck_id', draft.id);
+						return;
+					}
+
+					const cached = JSON.parse(localStorage.getItem('budgericards_cached_decks') || '{}');
+					const cachedId = Object.keys(cached).find(k => k.startsWith(id));
+					if (cachedId) {
+						activeDeckId = cachedId;
+						sessionStorage.setItem('budgericards_active_deck_id', cachedId);
+						return;
+					}
+				}
+
 				sessionStorage.setItem('budgericards_active_deck_id', id);
 				activeDeckId = id;
 			}

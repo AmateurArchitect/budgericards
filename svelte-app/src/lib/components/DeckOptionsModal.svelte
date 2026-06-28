@@ -1,7 +1,8 @@
 <script>
 	import { fade, fly } from 'svelte/transition';
-	import { X, Image as ImageIcon, Download, Upload, ChevronDown, ChevronRight, Copy } from 'lucide-svelte';
+	import { X, Image as ImageIcon, Download, Upload, ChevronDown, ChevronRight, Copy, Settings } from 'lucide-svelte';
 	import { deckStore } from '$lib/stores/deck.svelte.js';
+	import { settingsStore } from '$lib/stores/settings.svelte.js';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import { onMount, tick } from 'svelte';
@@ -357,6 +358,14 @@
 				>
 					<Upload size={16} class="btn-icon" />
 					Import Cards
+				</Button>
+				<Button 
+					variant="outline" 
+					class="modal-action-btn"
+					onclick={() => { settingsStore.deckViewMode = 'settings'; close(); }}
+				>
+					<Settings size={16} class="btn-icon" />
+					Settings
 				</Button>
 				<Button variant="outline" class="modal-action-btn">
 					<Copy size={16} class="btn-icon" />

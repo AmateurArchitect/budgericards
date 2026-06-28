@@ -17,6 +17,8 @@
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import EmptyDeckState from "$lib/components/EmptyDeckState.svelte";
+	import StatsView from "$lib/components/StatsView.svelte";
+	import SettingsView from "$lib/components/SettingsView.svelte";
 	import { page } from "$app/stores";
 	import { goto } from "$app/navigation";
 
@@ -31,6 +33,8 @@
 		isHydrated &&
 		deckStore.isEmptyStateActive &&
 		settingsStore.deckViewMode !== "list" &&
+		settingsStore.deckViewMode !== "settings" &&
+		settingsStore.deckViewMode !== "stats" &&
 		searchStore.query.trim() === ""
 	);
 
@@ -56,13 +60,15 @@
 
 	// Reactively update URL slug when deck name changes
 	$effect(() => {
-		const id = $page.params.id;
+		const id = deckStore.id;
 		const name = deckStore.name;
 		if (id && isHydrated) {
+			const shortId = id.slice(0, 8);
 			const expectedSlug = slugify(name);
 			const currentSlug = $page.params.slug;
-			if (currentSlug !== expectedSlug) {
-				goto(`/decks/${id}/${expectedSlug}`, { replaceState: true, noScroll: true });
+			const currentId = $page.params.id;
+			if (currentSlug !== expectedSlug || currentId !== shortId) {
+				goto(`/decks/${shortId}/${expectedSlug}`, { replaceState: true, noScroll: true });
 			}
 		}
 	});
@@ -206,6 +212,10 @@
 					<TableView />
 				{:else if settingsStore.deckViewMode === 'spoiler'}
 					<SpoilerView />
+				{:else if settingsStore.deckViewMode === 'stats'}
+					<StatsView />
+				{:else if settingsStore.deckViewMode === 'settings'}
+					<SettingsView />
 				{:else}
 					<StacksView />
 				{/if}
