@@ -50,6 +50,17 @@
 		}
 	});
 
+	/** @param {string} name */
+	function slugify(name) {
+		if (!name) return "untitled-deck";
+		return name
+			.toLowerCase()
+			.trim()
+			.replace(/[^\w\s-]/g, "")
+			.replace(/[\s_-]+/g, "-")
+			.replace(/^-+|-+$/g, "");
+	}
+
 	/** @param {any} deck */
 	function handleSelectDeck(deck) {
 		const cards = deck.cards || deck;
@@ -67,7 +78,7 @@
 			format: cards.format || "Commander",
 			metadata: cards.metadata || {},
 		});
-		goto("/");
+		goto(`/decks/${deck.id}/${slugify(deck.name)}`);
 	}
 
 	/**

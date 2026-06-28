@@ -21,14 +21,20 @@ let initialSyncComplete = $state(false);
  */
 
 export const generateId = () => {
-	if (browser && typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
+	if (browser && typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
 		try {
-			return window.crypto.randomUUID();
+			const bytes = new Uint8Array(4);
+			window.crypto.getRandomValues(bytes);
+			return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 		} catch (e) {
 			// Fallback below
 		}
 	}
-	return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+	let result = '';
+	for (let i = 0; i < 8; i++) {
+		result += Math.floor(Math.random() * 16).toString(16);
+	}
+	return result;
 };
 
 /**
@@ -1948,6 +1954,13 @@ function createDeck() {
 
 		get canUndo() { return activeDeck.history.length > 0; },
 		get canRedo() { return activeDeck.redoStack.length > 0; },
+
+		selectDeckId(id) {
+			if (activeDeckId !== id) {
+				sessionStorage.setItem('budgericards_active_deck_id', id);
+				activeDeckId = id;
+			}
+		},
 
 		/** @param {any} newDeck */
 		setDeck(newDeck) {
