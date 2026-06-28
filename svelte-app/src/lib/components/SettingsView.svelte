@@ -101,7 +101,7 @@
 	.settings-view-container {
 		flex: 1;
 		overflow-y: auto;
-		padding: 2rem;
+		padding: 1.5rem;
 		background: hsl(var(--background));
 		font-family: var(--font-sans), sans-serif;
 	}
@@ -112,14 +112,14 @@
 		-webkit-backdrop-filter: blur(8px);
 		border: 1px solid hsl(var(--border) / 0.5);
 		border-radius: var(--radius-lg);
-		padding: 2rem;
-		max-width: 600px;
+		padding: 1.5rem;
+		max-width: 440px;
 		margin: 0 auto;
 	}
 
 	h2 {
-		margin: 0 0 1.5rem 0;
-		font-size: 1.5rem;
+		margin: 0 0 1.25rem 0;
+		font-size: 1.25rem;
 		font-weight: 700;
 		color: hsl(var(--foreground));
 		letter-spacing: -0.02em;
@@ -128,17 +128,17 @@
 	.settings-form {
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: 1.2rem;
 	}
 
 	.form-group {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: 0.35rem;
 	}
 
 	label {
-		font-size: 0.85rem;
+		font-size: 0.725rem;
 		font-weight: 600;
 		color: hsl(var(--muted-foreground));
 		text-transform: uppercase;
@@ -149,9 +149,9 @@
 		background: hsl(var(--input) / 0.2);
 		border: 1px solid hsl(var(--border) / 0.8);
 		border-radius: var(--radius-md);
-		padding: 0.75rem 1rem;
+		padding: 0.5rem 0.75rem;
 		color: hsl(var(--foreground));
-		font-size: 0.95rem;
+		font-size: 0.875rem;
 		outline: none;
 		transition: all 0.2s ease;
 	}
@@ -162,40 +162,42 @@
 	}
 
 	.help-text {
-		font-size: 0.8rem;
+		font-size: 0.75rem;
 		color: hsl(var(--muted-foreground));
-		margin: 0.25rem 0 0 0;
+		margin: 0.2rem 0 0 0;
+		line-height: 1.4;
 	}
 
 	.divider {
 		border: 0;
 		height: 1px;
 		background: hsl(var(--border) / 0.5);
-		margin: 1rem 0;
+		margin: 0.75rem 0;
 	}
 
 	.danger-zone {
 		background: hsl(var(--destructive) / 0.05);
 		border: 1px solid hsl(var(--destructive) / 0.2);
 		border-radius: var(--radius-md);
-		padding: 1.25rem;
+		padding: 1rem;
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 0.75rem;
+		gap: 0.5rem;
 	}
 
 	.danger-zone h3 {
 		margin: 0;
 		color: hsl(var(--destructive));
-		font-size: 1rem;
+		font-size: 0.875rem;
 		font-weight: 600;
 	}
 
 	.danger-text {
 		margin: 0;
-		font-size: 0.85rem;
+		font-size: 0.775rem;
 		color: hsl(var(--muted-foreground));
+		line-height: 1.4;
 	}
 
 	.btn-delete {
@@ -203,8 +205,8 @@
 		color: white;
 		border: none;
 		border-radius: var(--radius-md);
-		padding: 0.6rem 1.25rem;
-		font-size: 0.9rem;
+		padding: 0.5rem 1rem;
+		font-size: 0.8rem;
 		font-weight: 600;
 		cursor: pointer;
 		transition: opacity 0.2s ease;
