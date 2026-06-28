@@ -21,6 +21,7 @@ function createSettings() {
 	let spoilerCardSize = $state(0.50);
 	let enableClipboardPreload = $state(false);
 	let showDeletionToasts = $state(true);
+	let statsSubTab = $state("dashboard");
 
 	if (browser) {
 		const isMac = navigator.userAgent.includes('Mac');
@@ -170,6 +171,10 @@ function createSettings() {
 		set showDeletionToasts(val) {
 			showDeletionToasts = val;
 			if (browser) localStorage.setItem('budgericards_show_deletion_toasts', String(val));
+		},
+		get statsSubTab() { return statsSubTab; },
+		set statsSubTab(val) {
+			statsSubTab = val;
 		}
 	};
 }
