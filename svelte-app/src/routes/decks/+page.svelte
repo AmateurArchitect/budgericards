@@ -14,10 +14,6 @@
 	let decks = $state([]);
 	/** @type {any[]} */
 	let localDrafts = $state([]);
-	let activeTab = $state("browse");
-	/** @type {any[]} */
-	let publicDecks = $state([]);
-	let isBrowsingLoading = $state(false);
 	let isLoading = $state(false);
 	let error = $state("");
 
@@ -41,25 +37,9 @@
 		}
 	}
 
-	async function loadPublicDecks() {
-		isBrowsingLoading = true;
-		try {
-			const { data, error: fetchError } = await syncService.fetchPublicDecks();
-			if (fetchError) throw fetchError;
-			publicDecks = data || [];
-		} catch (err) {
-			console.error("Failed to load public decks:", err);
-		} finally {
-			isBrowsingLoading = false;
-		}
-	}
-
 	onMount(() => {
 		if (authStore.isAuthenticated) {
-			activeTab = "my-decks";
 			loadDecks();
-		} else {
-			loadPublicDecks();
 		}
 		if (typeof window !== "undefined") {
 			localDrafts = JSON.parse(localStorage.getItem("budgericards_local_drafts") || "[]");
@@ -67,14 +47,14 @@
 	});
 
 	$effect(() => {
-		if (authStore.isAuthenticated && decks.length === 0) {
-			loadDecks();
+		if (!authStore.isLoading && !authStore.isAuthenticated) {
+			goto("/login?redirectTo=/decks");
 		}
 	});
 
 	$effect(() => {
-		if (activeTab === "browse" && publicDecks.length === 0) {
-			loadPublicDecks();
+		if (authStore.isAuthenticated && decks.length === 0) {
+			loadDecks();
 		}
 	});
 
@@ -356,27 +336,7 @@
 			</div>
 		</header>
 
-		<div class="tab-bar">
-			{#if authStore.isAuthenticated}
-				<button 
-					class="tab-btn" 
-					class:active={activeTab === 'my-decks'} 
-					onclick={() => activeTab = 'my-decks'}
-				>
-					My Decks
-				</button>
-			{/if}
-			<button 
-				class="tab-btn" 
-				class:active={activeTab === 'browse'} 
-				onclick={() => activeTab = 'browse'}
-			>
-				Browse Public Decks
-			</button>
-		</div>
-
 		<main class="page-body">
-		{#if activeTab === 'my-decks'}
 			{#if authStore.isLoading || (isLoading && allDecks.length === 0)}
 				<div class="loading-state">
 					<Loader class="spinner" size={36} />
@@ -597,82 +557,6 @@
 					{/each}
 				</section>
 			{/if}
-		{:else if activeTab === 'browse'}
-			{#if isBrowsingLoading}
-				<div class="loading-state">
-					<Loader class="spinner" size={36} />
-					<p>Fetching public decks...</p>
-				</div>
-			{:else if publicDecks.length === 0}
-				<div class="empty-state">
-					<h3>No public decks found</h3>
-					<p>Decks made public by builders will appear here.</p>
-				</div>
-			{:else}
-				<section class="library-section">
-					<div class="decks-grid">
-						{#each publicDecks as deck (deck.id)}
-							<div
-								class="deck-card"
-								role="button"
-								tabindex="0"
-								onclick={() => handleSelectDeck(deck)}
-								onkeydown={(e) => {
-									if (e.key === "Enter" || e.key === " ") {
-										e.preventDefault();
-										handleSelectDeck(deck);
-									}
-								}}
-							>
-								<div class="deck-art-preview">
-									{#if getDeckCoverArt(deck)}
-										<img
-											src={getDeckCoverArt(deck)}
-											alt=""
-											class="deck-art-img"
-										/>
-									{:else}
-										<div class="deck-art-fallback"></div>
-									{/if}
-									<div class="deck-badge">
-										{deck.cards?.format || "Commander"}
-									</div>
-								</div>
-
-								<div class="deck-details">
-									<h3 class="deck-name">{deck.name}</h3>
-									<div class="deck-meta">
-										<a 
-											href="/user/{deck.cards?.metadata?.createdBy || 'Anonymous'}" 
-											class="creator-link"
-											onclick={(e) => e.stopPropagation()}
-										>
-											@{deck.cards?.metadata?.createdBy || 'Anonymous'}
-										</a>
-										<span class="meta-dot">•</span>
-										{#if getDeckManaSymbols(deck).length > 0}
-											<div class="deck-mana-symbols">
-												{#each getDeckManaSymbols(deck) as sym}
-													<ManaSymbol symbol={sym} size="0.75rem" className="ms-cost" />
-												{/each}
-											</div>
-											<span class="meta-dot">•</span>
-										{/if}
-										<span class="card-count"
-											>{getCardCount(deck)} Cards</span
-										>
-										<span class="meta-dot">•</span>
-										<span class="updated-time"
-											>Updated {formatUpdatedDate(deck.updated_at)}</span
-										>
-									</div>
-								</div>
-							</div>
-						{/each}
-					</div>
-				</section>
-			{/if}
-		{/if}
 	</main>
 </div>
 </div>
@@ -1135,57 +1019,5 @@
 		letter-spacing: 0.05em;
 		border-bottom: 1px dashed hsl(var(--border) / 0.2);
 		padding-bottom: 0.25rem;
-	}
-
-	/* Tabs & Profiles Styles */
-	.tab-bar {
-		display: flex;
-		gap: 1.5rem;
-		margin-bottom: 2rem;
-		border-bottom: 1px solid hsl(var(--border) / 0.3);
-	}
-
-	.tab-btn {
-		background: none;
-		border: none;
-		padding: 0.75rem 0.25rem;
-		font-size: 0.95rem;
-		font-weight: 500;
-		color: hsl(var(--muted-foreground));
-		cursor: pointer;
-		position: relative;
-		transition: color 0.2s ease;
-	}
-
-	.tab-btn:hover {
-		color: hsl(var(--foreground));
-	}
-
-	.tab-btn.active {
-		color: hsl(var(--foreground));
-		font-weight: 600;
-	}
-
-	.tab-btn.active::after {
-		content: "";
-		position: absolute;
-		bottom: -1px;
-		left: 0;
-		right: 0;
-		height: 2px;
-		background: hsl(var(--primary));
-		border-radius: 2px;
-	}
-
-	.creator-link {
-		color: hsl(var(--primary));
-		text-decoration: none;
-		font-weight: 600;
-		transition: opacity 0.15s ease;
-	}
-
-	.creator-link:hover {
-		opacity: 0.8;
-		text-decoration: underline;
 	}
 </style>

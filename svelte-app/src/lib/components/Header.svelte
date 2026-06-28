@@ -183,7 +183,7 @@
 			{#if showBudgieDropdown}
 				<div class="budgie-dropdown" transition:fade={{ duration: 150 }}>
 					{#if String($page.url.pathname) === '/'}
-						<a href="/decks" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+						<a href="/browse" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
 							<FolderOpen size={14} />
 							<span>Browse Decks</span>
 						</a>
@@ -212,7 +212,7 @@
 
 		{#if String($page.url.pathname) !== '/'}
 			<nav class="nav-links">
-				<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>Browse Decks</a>
+				<a href="/browse" class="nav-item" class:active={$page.url.pathname === '/browse'}>Browse Decks</a>
 				<a href="/gallery" class="nav-item" class:active={$page.url.pathname === '/gallery'}>Art Gallery</a>
 			</nav>
 		{/if}
