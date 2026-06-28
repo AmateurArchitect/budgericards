@@ -250,7 +250,7 @@
 			</h2>
 		</button>
 		<p class="description">
-			To get started, paste a decklist or search for cards
+			To get started, <span class="highlight">paste</span> a decklist or <span class="highlight">search</span> for cards
 		</p>
 		<div class="input-positioner">
 			<textarea
@@ -355,6 +355,10 @@
 		font-size: 0.95rem;
 		line-height: 1.33;
 		color: hsl(var(--muted-foreground));
+	}
+
+	.description .highlight {
+		color: hsl(var(--foreground));
 	}
 
 	.input-positioner {
