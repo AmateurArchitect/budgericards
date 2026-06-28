@@ -18,6 +18,8 @@
 	/** @type {any[]} */
 	let publicDecks = $state([]);
 	let isBrowsingLoading = $state(false);
+	let isLoading = $state(false);
+	let error = $state("");
 
 	async function loadDecks() {
 		if (!authStore.isAuthenticated && !authStore.isLoading) {
