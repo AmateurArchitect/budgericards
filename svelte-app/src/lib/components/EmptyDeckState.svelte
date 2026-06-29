@@ -368,33 +368,28 @@
 
 	.editor-textarea {
 		width: 100%;
-		background: hsl(var(--card) / 0.45);
-		backdrop-filter: blur(8px);
-		-webkit-backdrop-filter: blur(8px);
-		border: 1px solid hsl(var(--border) / 0.6);
-		border-radius: var(--radius-lg);
-		box-sizing: border-box;
+		background: transparent;
+		border: none;
 		outline: none;
 		resize: vertical;
 		color: hsl(var(--foreground));
-		font-family: var(--font-mono), monospace;
-		font-size: 0.875rem;
-		line-height: 1.6;
-		margin-top: 0.5rem;
-		padding: 1rem;
+		font-family: var(--font-sans), sans-serif;
+		font-size: 0.95rem;
+		line-height: 1.5;
+		margin-top: 1rem;
+		padding: 0;
 		min-height: 140px;
 		cursor: text;
-		transition: all 0.2s ease;
 	}
 
 	.editor-textarea:focus {
-		border-color: hsl(var(--primary) / 0.6);
-		box-shadow: 0 0 0 4px hsl(var(--primary) / 0.1);
-		background: hsl(var(--card) / 0.6);
+		outline: none;
+		border: none;
+		box-shadow: none;
 	}
 
 	.editor-textarea::placeholder {
-		color: hsl(var(--muted-foreground) / 0.35);
+		color: hsl(var(--muted-foreground) / 0.4);
 	}
 
 	.autocomplete-suggestions {
