@@ -59,8 +59,47 @@ export function parseDecklist(text) {
 		// 2. Skip obvious non-card lines (comments)
 		if (line.startsWith('//') || line.startsWith('#')) continue;
 
-		// 3. Extract inline board prefixes (e.g. "SB: 1 Duress")
+		// 2.5. Support for TSV style lines
 		let lineBoard = currentBoard;
+		if (line.includes('\t')) {
+			const parts = line.split('\t').map(p => p.trim());
+			let quantity = 1;
+			let name = '';
+			let set = undefined;
+			let collector_number = undefined;
+
+			if (/^\d+$/.test(parts[0])) {
+				quantity = parseInt(parts[0], 10);
+				name = parts[1];
+			} else if (parts[1] && /^\d+$/.test(parts[1])) {
+				quantity = parseInt(parts[1], 10);
+				name = parts[0];
+			} else {
+				name = parts[0];
+			}
+
+			for (let i = 2; i < parts.length; i++) {
+				const part = parts[i];
+				if (/^[a-zA-Z0-9]{3,4}$/.test(part) && !set) {
+					set = part.toLowerCase();
+				} else if (/^\d+[a-zA-Z]*$/.test(part) && set && !collector_number) {
+					collector_number = part;
+				}
+			}
+
+			if (name) {
+				result.push({
+					name,
+					quantity,
+					board: lineBoard,
+					set,
+					collector_number
+				});
+				continue;
+			}
+		}
+
+		// 3. Extract inline board prefixes (e.g. "SB: 1 Duress")
 		let name = line;
 		const boardPrefixMatch = name.match(/^(sb|sideboard|commander|companion|maybeboard):\s*/i);
 		if (boardPrefixMatch) {

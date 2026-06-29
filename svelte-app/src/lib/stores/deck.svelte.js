@@ -2175,6 +2175,7 @@ function createDeck() {
 		},
 
 		async saveImport() {
+			const hasTabs = activeDeck.importText.includes('\t');
 			const parsedCards = parseDecklist(activeDeck.importText);
 
 			// Check for unrecognized card names in IndexedDB
@@ -2286,8 +2287,12 @@ function createDeck() {
 			activeDeck.importText = cleanDecklistTextFor(activeDeck);
 
 			// Return back to last used view mode besides list
-			const lastView = localStorage.getItem('budgericards_last_active_view_mode') || 'stacks';
-			settingsStore.deckViewMode = lastView;
+			if (hasTabs) {
+				settingsStore.deckViewMode = 'table';
+			} else {
+				const lastView = localStorage.getItem('budgericards_last_active_view_mode') || 'stacks';
+				settingsStore.deckViewMode = lastView;
+			}
 		},
 
 		async preloadDeckImagesAndShow(cardNames) {

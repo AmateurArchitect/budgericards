@@ -179,7 +179,11 @@
 	const isSearch = $derived(
 		inputText.startsWith("/") ||
 			inputText.startsWith("?") ||
-			inputText.includes(":"),
+			(inputText.includes(":") &&
+				!inputText.includes("\n") &&
+				!/^\s*\d+/.test(inputText) &&
+				!inputText.startsWith("//") &&
+				!inputText.startsWith("#")),
 	);
 
 	/** @param {string} name */
