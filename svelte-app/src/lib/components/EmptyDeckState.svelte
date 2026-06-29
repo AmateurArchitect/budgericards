@@ -21,12 +21,23 @@
 	let suggestions = $state(/** @type {string[]} */ ([]));
 	let activeIndex = $state(0);
 	let isMac = $state(false);
+	let placeholderIndex = $state(0);
+
+	const placeholders = [
+		["1 Figure of Fable", "4 Flooded Strand", "2 Forest"],
+		["t:creature c:wubrg", 'oracle:"draw a card"', "mv:3"],
+		["paste or start typing...", "", ""]
+	];
 
 	onMount(() => {
 		textareaEl?.focus();
 		if (typeof window !== "undefined" && typeof navigator !== "undefined") {
 			isMac = navigator.platform.indexOf("Mac") > -1;
 		}
+		const interval = setInterval(() => {
+			placeholderIndex = (placeholderIndex + 1) % placeholders.length;
+		}, 4000);
+		return () => clearInterval(interval);
 	});
 
 	// Query IndexedDB for card name suggestions matching the active line
@@ -236,11 +247,25 @@
 				bind:this={textareaEl}
 				bind:value={inputText}
 				onkeydown={handleTextareaKeyDown}
-				placeholder="1 Figure of Fable&#10;4 Flooded Strand&#10;2 Forest"
+				placeholder=""
 				class="editor-textarea"
 				rows="6"
 				aria-label="Decklist or card entry field"
 			></textarea>
+
+			{#if !inputText}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div class="fake-placeholder" onclick={() => textareaEl?.focus()}>
+					{#key placeholderIndex}
+						<div class="placeholder-group" in:fade={{ duration: 300 }}>
+							<div class="placeholder-line line-1">{placeholders[placeholderIndex][0]}</div>
+							<div class="placeholder-line line-2">{placeholders[placeholderIndex][1]}</div>
+							<div class="placeholder-line line-3">{placeholders[placeholderIndex][2]}</div>
+						</div>
+					{/key}
+				</div>
+			{/if}
 			
 			{#if suggestions.length > 0}
 				<ul class="autocomplete-suggestions" transition:fade={{ duration: 100 }}>
@@ -388,8 +413,38 @@
 		box-shadow: none;
 	}
 
-	.editor-textarea::placeholder {
-		color: hsl(var(--muted-foreground) / 0.4);
+	.fake-placeholder {
+		position: absolute;
+		top: 1rem;
+		left: 0;
+		right: 0;
+		pointer-events: none;
+		font-family: var(--font-sans), sans-serif;
+		font-size: 0.95rem;
+		line-height: 1.5;
+		user-select: none;
+	}
+
+	.placeholder-group {
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+	}
+
+	.placeholder-line {
+		color: hsl(var(--foreground));
+	}
+
+	.placeholder-line.line-1 {
+		opacity: 0.35;
+	}
+
+	.placeholder-line.line-2 {
+		opacity: 0.22;
+	}
+
+	.placeholder-line.line-3 {
+		opacity: 0.1;
 	}
 
 	.autocomplete-suggestions {
