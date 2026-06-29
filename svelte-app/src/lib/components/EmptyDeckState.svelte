@@ -151,9 +151,10 @@
 			lastView === "spoiler" ? "spoiler" : "stacks";
 	}
 
-	function handleSave() {
+	async function handleSave() {
 		deckStore.importText = inputText;
 		inputText = "";
+		await deckStore.saveImport();
 		const lastView =
 			localStorage.getItem("budgericards_last_active_view_mode") ||
 			"stacks";
