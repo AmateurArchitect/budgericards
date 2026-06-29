@@ -32,3 +32,8 @@ Living list of solutions to code errors.
 - **Error Signature:** `An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.`
 - **Fix Pattern:** Omit the `.ts` extension or replace it with `.js` in the import statement, e.g., `import { x } from "./file"` instead of `import { x } from "./file.ts"`.
 - **Logic:** TypeScript and Svelte compilation tools (like Vite) do not allow importing files with the `.ts` extension directly, requiring extension-less or `.js` extension paths that are resolved to `.ts` files during compilation.
+
+## TypeScript Object Indexing with String (No Index Signature)
+- **Error Signature:** `Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'X'.`
+- **Fix Pattern:** Cast the object to `any` before indexing, or declare a typed variable: `const castedObject = /** @type {any} */ (object);`
+- **Logic:** When using TypeScript/JSDoc with strict mode, objects without an explicit index signature cannot be dynamically indexed with a variable of type `string`. Casting the object to `any` tells the compiler to allow dynamic indexing.

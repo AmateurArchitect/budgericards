@@ -6,11 +6,14 @@
 
 	// Gather all active cards (mainboard + commander + companion)
 	const activeCards = $derived([
-		...deckStore.deck.commander,
-		...deckStore.deck.companion,
-		...deckStore.deck.mainboard
+		...deckStore.commander,
+		...deckStore.companion,
+		...deckStore.mainboard
 	]);
 
+	/**
+	 * @param {string} name
+	 */
 	function getMeta(name) {
 		return deckStore.metadata[name.toLowerCase()] || {};
 	}
@@ -91,14 +94,24 @@
 		return Object.entries(counts).filter(([_, info]) => info.count > 0);
 	});
 
+	/**
+	 * @param {number} sum
+	 * @param {any} c
+	 * @returns {number}
+	 */
+	const sumPrices = (sum, c) => sum + ((c.price || 0) * (c.quantity || 1));
+
 	// Total pricing summaries
 	const boardPrices = $derived.by(() => {
 		const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+		/** @type {Record<string, number>} */
 		const prices = {};
 		let total = 0;
 		boards.forEach(b => {
-			const list = deckStore.deck[b] || [];
-			const priceVal = list.reduce((sum, c) => sum + ((c.price || 0) * (c.quantity || 1)), 0);
+			const store = /** @type {any} */ (deckStore);
+			/** @type {any[]} */
+			const list = store[b] || [];
+			const priceVal = list.reduce(sumPrices, 0);
 			prices[b] = priceVal;
 			total += priceVal;
 		});
@@ -113,6 +126,9 @@
 	let library = $state([]);
 	let mulliganCount = $state(0);
 
+	/**
+	 * @param {any[]} array
+	 */
 	function shuffle(array) {
 		const arr = [...array];
 		for (let i = arr.length - 1; i > 0; i--) {
@@ -123,12 +139,17 @@
 	}
 
 	function resetSampleHand() {
+		/** @type {string[]} */
 		const decklist = [];
-		deckStore.deck.mainboard.forEach(c => {
+		/**
+		 * @param {any} c
+		 */
+		const addCardNames = c => {
 			for (let i = 0; i < (c.quantity || 1); i++) {
 				decklist.push(c.name);
 			}
-		});
+		};
+		deckStore.mainboard.forEach(addCardNames);
 		library = shuffle(decklist);
 		hand = [];
 		mulliganCount = 0;
@@ -143,12 +164,17 @@
 
 	function mulligan() {
 		mulliganCount++;
+		/** @type {string[]} */
 		const decklist = [];
-		deckStore.deck.mainboard.forEach(c => {
+		/**
+		 * @param {any} c
+		 */
+		const addCardNames = c => {
 			for (let i = 0; i < (c.quantity || 1); i++) {
 				decklist.push(c.name);
 			}
-		});
+		};
+		deckStore.mainboard.forEach(addCardNames);
 		library = shuffle(decklist);
 		drawHand();
 	}
@@ -160,6 +186,9 @@
 		}
 	}
 
+	/**
+	 * @param {string} name
+	 */
 	function getCardImg(name) {
 		const meta = getMeta(name);
 		return meta.image_uris?.normal || meta.card_faces?.[0]?.image_uris?.normal || null;
@@ -167,12 +196,16 @@
 
 	// 3. Required Tokens Finder (Scryfall metadata all_parts)
 	const requiredTokens = $derived.by(() => {
+		/** @type {any[]} */
 		const tokens = [];
 		const seen = new Set();
 		activeCards.forEach(c => {
 			const meta = getMeta(c.name);
 			if (meta.all_parts) {
-				meta.all_parts.forEach(part => {
+				/**
+				 * @param {any} part
+				 */
+				const processPart = part => {
 					if (part.component === "token" && !seen.has(part.name)) {
 						seen.add(part.name);
 						tokens.push({
@@ -180,7 +213,8 @@
 							image_uri: part.image_uris?.normal || part.image_uris?.large || null
 						});
 					}
-				});
+				};
+				meta.all_parts.forEach(processPart);
 			}
 		});
 		return tokens;
@@ -216,6 +250,14 @@
 			combosError = "";
 			isCombosLoading = false;
 		}
+	}
+
+	/**
+	 * @param {any} combo
+	 * @returns {string}
+	 */
+	function getComboTitle(combo) {
+		return combo.results?.map(/** @param {any} r */ r => r.name).join(", ") || "Alternative Synergy";
 	}
 
 	onMount(() => {
@@ -410,7 +452,7 @@
 					{#each combos as combo}
 						<div class="combo-item">
 							<h4 class="combo-title">
-								{combo.results?.map(r => r.name).join(", ") || "Alternative Synergy"}
+								{getComboTitle(combo)}
 							</h4>
 							<div class="combo-details">
 								<div class="combo-cards">
@@ -541,7 +583,7 @@
 
 	.chart-bar {
 		width: 22px;
-		background: linear-gradient(to top, hsl(var(--primary)), hsl(var(--primary-dark) || var(--primary)));
+		background: linear-gradient(to top, hsl(var(--primary)), hsl(var(--primary-dark, var(--primary))));
 		border-radius: 4px 4px 0 0;
 		transition: height 0.3s ease;
 		cursor: pointer;
@@ -647,7 +689,7 @@
 		gap: 1rem;
 	}
 
-	.spinner {
+	:global(.spinner) {
 		animation: spin 1s linear infinite;
 	}
 
