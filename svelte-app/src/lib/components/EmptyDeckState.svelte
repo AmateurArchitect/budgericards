@@ -192,6 +192,14 @@
 		interactionStore.pasteSelected();
 	}
 
+	/** @param {ClipboardEvent} e */
+	function handleTextareaPaste(e) {
+		const scrollY = window.scrollY;
+		requestAnimationFrame(() => {
+			window.scrollTo(window.scrollX, scrollY);
+		});
+	}
+
 	/** @param {KeyboardEvent} e */
 	function handleKeyDown(e) {
 		if (!deckStore.isEmptyStateActive) return;
@@ -310,6 +318,7 @@
 				bind:this={textareaEl}
 				bind:value={inputText}
 				onkeydown={handleTextareaKeyDown}
+				onpaste={handleTextareaPaste}
 				placeholder=""
 				class="editor-textarea"
 				rows="6"
