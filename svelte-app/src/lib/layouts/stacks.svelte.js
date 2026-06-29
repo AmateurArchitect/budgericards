@@ -315,7 +315,7 @@ export function createStacksEngine() {
 					bottomRow.columns.push({ key, label: "", stacks: [] });
 					continue;
 				}
-				const data = columnMap[key];
+				const data = columnMap[key] || { top: [], bottom: [] };
 				data.bottom.sort(sortFn);
 				const cards = groupCards(data.bottom, splitView, effectiveGrouping);
 				bottomRow.columns.push({
