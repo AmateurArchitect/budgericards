@@ -2177,12 +2177,42 @@ function createDeck() {
 		async saveImport() {
 			const parsedCards = parseDecklist(activeDeck.importText);
 
+			// Check for unrecognized card names in IndexedDB
+			const unrecognizedList = [];
+			const recognizedParsedCards = [];
+			for (const pc of parsedCards) {
+				if (pc.scryfallId || (pc.set && pc.collector_number && !pc.name)) {
+					recognizedParsedCards.push(pc);
+					continue;
+				}
+				if (pc.name) {
+					const match = await db.cards.where("name").equals(pc.name).first();
+					if (match) {
+						recognizedParsedCards.push(pc);
+					} else {
+						unrecognizedList.push(pc.name);
+					}
+				}
+			}
+
+			if (unrecognizedList.length > 0 && typeof window !== "undefined") {
+				const proceed = window.confirm(
+					`Warning: The following ${unrecognizedList.length} card(s) are unrecognized and will not be saved:\n\n` +
+					unrecognizedList.slice(0, 10).map(name => `• ${name}`).join("\n") +
+					(unrecognizedList.length > 10 ? `\n...and ${unrecognizedList.length - 10} more` : "") +
+					`\n\nWould you like to save the rest of the deck?`
+				);
+				if (!proceed) {
+					return false;
+				}
+			}
+
 			// Resolve any Scryfall IDs or Set/Collector numbers asynchronously in batches, maintaining order
 			const toResolve = [];
-			const resolvedCards = new Array(parsedCards.length);
+			const resolvedCards = new Array(recognizedParsedCards.length);
 
-			for (let i = 0; i < parsedCards.length; i++) {
-				const pc = parsedCards[i];
+			for (let i = 0; i < recognizedParsedCards.length; i++) {
+				const pc = recognizedParsedCards[i];
 				if (pc.scryfallId) {
 					toResolve.push({
 						index: i,

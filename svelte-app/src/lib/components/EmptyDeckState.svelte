@@ -110,6 +110,63 @@
 		checkCards();
 	});
 
+	let unrecognizedCount = $state(0);
+
+	/** @param {string} text */
+	function calculateTotal(text) {
+		let total = 0;
+		const lines = text.split("\n");
+		for (const line of lines) {
+			const trimmed = line.trim();
+			if (!trimmed) continue;
+			if (trimmed.startsWith("/") || trimmed.startsWith("?") || trimmed.includes(":")) {
+				continue;
+			}
+			const match = trimmed.match(/^(\s*\d+)\s+/);
+			if (match) {
+				total += parseInt(match[1].trim(), 10);
+			} else {
+				total += 1;
+			}
+		}
+		return total;
+	}
+
+	const totalQty = $derived(calculateTotal(inputText));
+
+	$effect(() => {
+		const val = inputText.trim();
+		if (!val) {
+			unrecognizedCount = 0;
+			return;
+		}
+
+		const checkUnrecognized = async () => {
+			const lines = val.split("\n");
+			let unrecognized = 0;
+			for (const line of lines) {
+				const trimmed = line.trim();
+				if (!trimmed) continue;
+				if (trimmed.startsWith("/") || trimmed.startsWith("?") || trimmed.includes(":")) {
+					continue;
+				}
+				const cleanName = trimmed.replace(/^\d+\s+/, "").trim();
+				if (cleanName.length >= 2) {
+					const match = await db.cards
+						.where("name")
+						.equals(cleanName)
+						.first();
+					if (!match) {
+						unrecognized++;
+					}
+				}
+			}
+			unrecognizedCount = unrecognized;
+		};
+
+		checkUnrecognized();
+	});
+
 	// Dynamically adjust textarea height to fit content without vertical scrollbars
 	$effect(() => {
 		if (textareaEl && inputText !== undefined) {
@@ -375,6 +432,16 @@
 
 		{#if inputText.trim().length > 0}
 			<div class="actions-row" in:fade={{ duration: 150 }}>
+				{#if !isSearch && totalQty > 0}
+					<span class="stats-indicator">
+						{totalQty} {totalQty === 1 ? 'card' : 'cards'}
+						{#if unrecognizedCount > 0}
+							<span class="warning-indicator" title={`${unrecognizedCount} unrecognized cards`}>
+								• ⚠️ {unrecognizedCount}
+							</span>
+						{/if}
+					</span>
+				{/if}
 				{#if isSearch}
 					<button
 						class="primary-btn search-btn"
@@ -649,5 +716,23 @@
 		border: 1px solid hsl(var(--border) / 0.4);
 		padding: 1px 4px;
 		border-radius: 3px;
+	}
+
+	.stats-indicator {
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
+		padding: 0 0.25rem 0 0.5rem;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		border-right: 1px solid hsl(var(--border) / 0.6);
+		margin-right: 0.25rem;
+		height: 20px;
+	}
+
+	.warning-indicator {
+		color: hsl(var(--destructive));
+		font-weight: 600;
 	}
 </style>
