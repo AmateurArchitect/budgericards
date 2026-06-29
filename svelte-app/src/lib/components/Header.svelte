@@ -217,7 +217,7 @@
 			</nav>
 		{/if}
 
-		{#if String($page.url.pathname) === '/'}
+		{#if String($page.url.pathname) === '/' || ($page.url.pathname.startsWith('/decks/') && $page.params.id)}
 			<div class="search-bar">
 				<div
 					class="search-input-group"
