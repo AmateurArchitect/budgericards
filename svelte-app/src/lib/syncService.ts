@@ -50,7 +50,7 @@ export const syncService = {
 		const { data, error } = await supabase
 			.from('decks')
 			.select('*')
-			.like('id', `${shortId}%`)
+			.filter('id::text', 'like', `${shortId}%`)
 			.maybeSingle();
 		return { data: data as SyncedDeck | null, error };
 	},
