@@ -77,6 +77,39 @@
 		fetchSuggestions();
 	});
 
+	let hasKnownCard = $state(false);
+
+	// Verify if the typed text contains at least one exact matching card in IndexedDB
+	$effect(() => {
+		const val = inputText.trim();
+		if (!val) {
+			hasKnownCard = false;
+			return;
+		}
+
+		const checkCards = async () => {
+			const lines = val.split("\n");
+			for (const line of lines) {
+				const trimmed = line.trim();
+				if (!trimmed) continue;
+				const cleanName = trimmed.replace(/^\d+\s+/, "").trim();
+				if (cleanName.length >= 2) {
+					const match = await db.cards
+						.where("name")
+						.equals(cleanName)
+						.first();
+					if (match) {
+						hasKnownCard = true;
+						return;
+					}
+				}
+			}
+			hasKnownCard = false;
+		};
+
+		checkCards();
+	});
+
 	// Determine if the input is meant as a card search
 	const isSearch = $derived(
 		inputText.startsWith("/") ||
@@ -190,7 +223,7 @@
 			e.preventDefault();
 			if (isSearch) {
 				handleSearch();
-			} else if (inputText.trim()) {
+			} else if (hasKnownCard) {
 				handleSave();
 			}
 		}
@@ -332,15 +365,17 @@
 						<Search size={14} style="margin-right: 6px;" />
 						Search Cards
 					</button>
-				{:else}
+				{:else if hasKnownCard}
 					<button class="primary-btn save-btn" onclick={handleSave}>
 						<Save size={14} style="margin-right: 6px;" />
 						Save & Continue
 					</button>
 				{/if}
-				<span class="shortcut-tip">
-					Press <kbd>{isMac ? "⌘" : "Ctrl"}+Enter</kbd> to submit
-				</span>
+				{#if isSearch || hasKnownCard}
+					<span class="shortcut-tip">
+						Press <kbd>{isMac ? "⌘" : "Ctrl"}+Enter</kbd> to submit
+					</span>
+				{/if}
 			</div>
 		{/if}
 	</div>
