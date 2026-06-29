@@ -16,11 +16,22 @@
 	}
 
 	onMount(() => {
-		let activeId = sessionStorage.getItem('budgericards_active_deck_id');
-		if (!activeId) {
+		const urlParams = new URLSearchParams(window.location.search);
+		const isNewDeck = urlParams.get('new_deck') === 'true';
+
+		let activeId;
+		if (isNewDeck) {
 			activeId = generateId();
 			sessionStorage.setItem('budgericards_active_deck_id', activeId);
+			sessionStorage.setItem('budgericards_is_new_draft', 'true');
+		} else {
+			activeId = sessionStorage.getItem('budgericards_active_deck_id');
+			if (!activeId) {
+				activeId = generateId();
+				sessionStorage.setItem('budgericards_active_deck_id', activeId);
+			}
 		}
+
 		// Select the deck ID to boot up the store
 		deckStore.selectDeckId(activeId);
 		
