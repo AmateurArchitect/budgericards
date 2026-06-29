@@ -110,6 +110,14 @@
 		checkCards();
 	});
 
+	// Dynamically adjust textarea height to fit content without vertical scrollbars
+	$effect(() => {
+		if (textareaEl && inputText !== undefined) {
+			textareaEl.style.height = "auto";
+			textareaEl.style.height = textareaEl.scrollHeight + "px";
+		}
+	});
+
 	// Determine if the input is meant as a card search
 	const isSearch = $derived(
 		inputText.startsWith("/") ||
@@ -393,12 +401,13 @@
 		align-items: flex-start;
 		justify-content: center;
 		width: 100%;
-		height: calc(100vh - 56px);
+		min-height: calc(100vh - 56px);
 		background: transparent;
 		box-sizing: border-box;
-		padding: 20vh 2rem 2rem 2rem;
+		padding: 20vh 2rem 120px 2rem;
 		transition: background-color 0.2s ease;
 		cursor: text;
+		overflow-y: auto;
 	}
 
 	.empty-state-wrapper.drag-over {
@@ -472,7 +481,8 @@
 		background: transparent;
 		border: none;
 		outline: none;
-		resize: vertical;
+		resize: none;
+		overflow: hidden;
 		color: hsl(var(--foreground));
 		font-family: var(--font-sans), sans-serif;
 		font-size: 0.95rem;
@@ -567,11 +577,21 @@
 	}
 
 	.actions-row {
+		position: fixed;
+		bottom: 2.5rem;
+		left: 50%;
+		transform: translateX(-50%);
 		display: flex;
 		align-items: center;
 		gap: 1rem;
-		width: 100%;
-		margin-top: 0.5rem;
+		background: hsl(var(--popover) / 0.85);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		border: 1px solid hsl(var(--border) / 0.6);
+		border-radius: var(--radius-full, 9999px);
+		padding: 0.5rem 1rem 0.5rem 0.75rem;
+		box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.4);
+		z-index: 100;
 	}
 
 	.primary-btn {
