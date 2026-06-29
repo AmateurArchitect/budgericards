@@ -268,7 +268,11 @@
 			{/if}
 			
 			{#if suggestions.length > 0}
-				<ul class="autocomplete-suggestions" transition:fade={{ duration: 100 }}>
+				<ul 
+					class="autocomplete-suggestions" 
+					style="top: calc(1rem + ({inputText.split('\n').length} * 1.425rem) + 4px);"
+					transition:fade={{ duration: 100 }}
+				>
 					{#each suggestions as sug, i}
 						<li class:active={i === activeIndex}>
 							<button 
