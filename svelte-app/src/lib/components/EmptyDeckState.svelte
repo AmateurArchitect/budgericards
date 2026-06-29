@@ -25,8 +25,8 @@
 
 	const placeholders = [
 		["1 Figure of Fable", "4 Flooded Strand", "2 Forest"],
-		["t:creature c:wubrg", 'oracle:"draw a card"', "mv:3"],
-		["paste or start typing...", "", ""]
+		["t:creature c:wubrg"],
+		["paste or start typing...", "", ""],
 	];
 
 	onMount(() => {
@@ -51,7 +51,11 @@
 		const lastLine = lines[lines.length - 1].trim();
 		const cleanQuery = lastLine.replace(/^\d+\s+/, "");
 
-		if (cleanQuery.length < 2 || cleanQuery.startsWith("/") || cleanQuery.startsWith("?")) {
+		if (
+			cleanQuery.length < 2 ||
+			cleanQuery.startsWith("/") ||
+			cleanQuery.startsWith("?")
+		) {
 			suggestions = [];
 			return;
 		}
@@ -76,8 +80,8 @@
 	// Determine if the input is meant as a card search
 	const isSearch = $derived(
 		inputText.startsWith("/") ||
-		inputText.startsWith("?") ||
-		inputText.includes(":")
+			inputText.startsWith("?") ||
+			inputText.includes(":"),
 	);
 
 	/** @param {string} name */
@@ -99,14 +103,19 @@
 		}
 		searchStore.query = query;
 		inputText = "";
-		const lastView = localStorage.getItem("budgericards_last_active_view_mode") || "stacks";
-		settingsStore.deckViewMode = lastView === "spoiler" ? "spoiler" : "stacks";
+		const lastView =
+			localStorage.getItem("budgericards_last_active_view_mode") ||
+			"stacks";
+		settingsStore.deckViewMode =
+			lastView === "spoiler" ? "spoiler" : "stacks";
 	}
 
 	function handleSave() {
 		deckStore.importText = inputText;
 		inputText = "";
-		const lastView = localStorage.getItem("budgericards_last_active_view_mode") || "stacks";
+		const lastView =
+			localStorage.getItem("budgericards_last_active_view_mode") ||
+			"stacks";
 		settingsStore.deckViewMode = lastView === "list" ? "stacks" : lastView;
 	}
 
@@ -133,7 +142,9 @@
 		if (hasTabs) {
 			settingsStore.deckViewMode = "table";
 		} else {
-			const lastView = localStorage.getItem("budgericards_last_active_view_mode") || "stacks";
+			const lastView =
+				localStorage.getItem("budgericards_last_active_view_mode") ||
+				"stacks";
 			settingsStore.deckViewMode = lastView;
 		}
 
@@ -166,7 +177,8 @@
 				activeIndex = (activeIndex + 1) % suggestions.length;
 			} else if (e.key === "ArrowUp") {
 				e.preventDefault();
-				activeIndex = (activeIndex - 1 + suggestions.length) % suggestions.length;
+				activeIndex =
+					(activeIndex - 1 + suggestions.length) % suggestions.length;
 			} else if (e.key === "Enter" || e.key === "Tab") {
 				e.preventDefault();
 				addSingleCard(suggestions[activeIndex]);
@@ -208,12 +220,19 @@
 
 	function handleDrop() {
 		dropZoneActive = false;
-		const lastView = localStorage.getItem("budgericards_last_active_view_mode") || "stacks";
-		settingsStore.deckViewMode = lastView === "spoiler" ? "spoiler" : "stacks";
+		const lastView =
+			localStorage.getItem("budgericards_last_active_view_mode") ||
+			"stacks";
+		settingsStore.deckViewMode =
+			lastView === "spoiler" ? "spoiler" : "stacks";
 	}
 </script>
 
-<svelte:window onpaste={handlePaste} onkeydown={handleKeyDown} onclick={handleWindowClick} />
+<svelte:window
+	onpaste={handlePaste}
+	onkeydown={handleKeyDown}
+	onclick={handleWindowClick}
+/>
 
 <div
 	class="empty-state-wrapper"
@@ -236,11 +255,14 @@
 			title="Click to rename deck"
 		>
 			<h2>
-				{deckStore.name && deckStore.name !== "Untitled Deck" ? deckStore.name : "New Deck"}
+				{deckStore.name && deckStore.name !== "Untitled Deck"
+					? deckStore.name
+					: "New Deck"}
 			</h2>
 		</button>
 		<p class="description">
-			To get started, <span class="highlight">paste</span> a decklist or <span class="highlight">search</span> for cards
+			To get started, <span class="highlight">paste</span> a decklist or
+			<span class="highlight">search</span> for cards
 		</p>
 		<div class="input-positioner">
 			<textarea
@@ -256,26 +278,37 @@
 			{#if !inputText}
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div class="fake-placeholder" onclick={() => textareaEl?.focus()}>
+				<div
+					class="fake-placeholder"
+					onclick={() => textareaEl?.focus()}
+				>
 					{#key placeholderIndex}
-						<div class="placeholder-group" in:fade={{ duration: 300 }}>
-							<div class="placeholder-line line-1">{placeholders[placeholderIndex][0]}</div>
-							<div class="placeholder-line line-2">{placeholders[placeholderIndex][1]}</div>
-							<div class="placeholder-line line-3">{placeholders[placeholderIndex][2]}</div>
+						<div
+							class="placeholder-group"
+							in:fade={{ duration: 300 }}
+						>
+							<div class="placeholder-line line-1">
+								{placeholders[placeholderIndex][0]}
+							</div>
+							<div class="placeholder-line line-2">
+								{placeholders[placeholderIndex][1]}
+							</div>
+							<div class="placeholder-line line-3">
+								{placeholders[placeholderIndex][2]}
+							</div>
 						</div>
 					{/key}
 				</div>
 			{/if}
-			
+
 			{#if suggestions.length > 0}
-				<ul 
-					class="autocomplete-suggestions" 
-					style="top: calc(1rem + ({inputText.split('\n').length} * 1.425rem) + 4px);"
+				<ul
+					class="autocomplete-suggestions"
 					transition:fade={{ duration: 100 }}
 				>
 					{#each suggestions as sug, i}
 						<li class:active={i === activeIndex}>
-							<button 
+							<button
 								onclick={() => addSingleCard(sug)}
 								type="button"
 								tabindex="-1"
@@ -291,7 +324,10 @@
 		{#if inputText.trim().length > 0}
 			<div class="actions-row" in:fade={{ duration: 150 }}>
 				{#if isSearch}
-					<button class="primary-btn search-btn" onclick={handleSearch}>
+					<button
+						class="primary-btn search-btn"
+						onclick={handleSearch}
+					>
 						<Search size={14} style="margin-right: 6px;" />
 						Search Cards
 					</button>
