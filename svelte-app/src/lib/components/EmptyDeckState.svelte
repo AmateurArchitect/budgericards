@@ -304,6 +304,7 @@
 			{#if suggestions.length > 0}
 				<ul
 					class="autocomplete-suggestions"
+					style={`top: calc(1rem + (${inputText.split('\n').length} * 1.425rem) + 4px);`}
 					transition:fade={{ duration: 100 }}
 				>
 					{#each suggestions as sug, i}
@@ -489,7 +490,6 @@
 
 	.autocomplete-suggestions {
 		position: absolute;
-		top: calc(100% + 0.5rem);
 		left: 0;
 		width: 100%;
 		background: hsl(var(--popover) / 0.85);
