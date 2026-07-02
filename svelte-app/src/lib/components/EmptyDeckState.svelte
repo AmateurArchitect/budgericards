@@ -72,7 +72,13 @@
 					.startsWithIgnoreCase(cleanQuery)
 					.limit(5)
 					.toArray();
-				suggestions = [...new Set(matches.map((m) => m.name))];
+				const exactMatch = matches.find(m => m.name.toLowerCase() === cleanQuery.toLowerCase());
+				const otherMatches = matches.filter(m => m.name.toLowerCase() !== cleanQuery.toLowerCase());
+				if (exactMatch && otherMatches.length === 0) {
+					suggestions = [];
+				} else {
+					suggestions = [...new Set(matches.map((m) => m.name))];
+				}
 				activeIndex = 0;
 			} catch (err) {
 				console.error("Autocomplete search error:", err);
@@ -260,11 +266,44 @@
 	}
 
 	/** @param {ClipboardEvent} e */
-	function handleTextareaPaste(e) {
+	async function handleTextareaPaste(e) {
 		const scrollY = window.scrollY;
 		requestAnimationFrame(() => {
 			window.scrollTo(window.scrollX, scrollY);
 		});
+
+		const text = e.clipboardData?.getData("text/plain") || "";
+		if (!text) return;
+
+		const lines = text.split(/\r?\n/);
+		let hasValidCards = false;
+		let hasUnrecognized = false;
+
+		for (const line of lines) {
+			const trimmed = line.trim();
+			if (!trimmed) continue;
+			if (trimmed.startsWith("/") || trimmed.startsWith("?") || trimmed.includes(":")) {
+				continue;
+			}
+			const cleanName = trimmed.replace(/^\d+\s+/, "").trim();
+			if (cleanName.length >= 2) {
+				const match = await db.cards
+					.where("name")
+					.equals(cleanName)
+					.first();
+				if (match) {
+					hasValidCards = true;
+				} else {
+					hasUnrecognized = true;
+				}
+			}
+		}
+
+		if (hasValidCards && !hasUnrecognized) {
+			e.preventDefault();
+			inputText = text;
+			await handleSave();
+		}
 	}
 
 	/** @param {KeyboardEvent} e */
@@ -488,7 +527,7 @@
 		min-height: calc(100vh - 56px);
 		background: transparent;
 		box-sizing: border-box;
-		padding: 20vh 2rem 120px 2rem;
+		padding: 20vh 2rem 240px 2rem;
 		transition: background-color 0.2s ease;
 		cursor: text;
 		overflow-y: auto;
