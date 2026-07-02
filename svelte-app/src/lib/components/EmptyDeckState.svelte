@@ -10,6 +10,7 @@
 
 	import DeckOptionsModal from "./DeckOptionsModal.svelte";
 	import { parseDecklist } from "$lib/utils/decklistParser.js";
+	import { getCardByName } from "$lib/localSearch";
 
 	let dropZoneActive = $state(false);
 	let showDeckOptionsModal = $state(false);
@@ -18,6 +19,54 @@
 	/** @type {HTMLTextAreaElement | null} */
 	let textareaEl = $state(null);
 	let inputText = $state("");
+	const lines = $derived(inputText.split(/\r?\n/));
+	const parsedCards = $derived(parseDecklist(inputText));
+	/** @type {Record<string, any>} */
+	let resolvedMetadataMap = $state({});
+
+	$effect(() => {
+		const cards = parsedCards;
+		const uniqueNames = [
+			...new Set(cards.filter(c => c.name).map((c) => /** @type {string} */ (c.name).toLowerCase())),
+		];
+
+		const resolveAll = async () => {
+			/** @type {Record<string, any>} */
+			const details = {};
+
+			await Promise.all(
+				uniqueNames.map(async (name) => {
+					if (deckStore.metadata[name]) {
+						details[name] = deckStore.metadata[name];
+						return;
+					}
+					try {
+						const localCard = await getCardByName(name);
+						if (localCard) {
+							const priceRecord = await db.prices.get(localCard.id);
+							const cardMetadata = {
+								name: localCard.name,
+								type_line: localCard.type || "",
+								prices: {
+									usd: priceRecord ? String(priceRecord.price) : null,
+								},
+							};
+							deckStore.metadata[name] = cardMetadata;
+							details[name] = cardMetadata;
+						} else {
+							details[name] = null;
+						}
+					} catch (e) {
+						details[name] = null;
+					}
+				})
+			);
+
+			resolvedMetadataMap = details;
+		};
+
+		resolveAll();
+	});
 
 	let suggestions = $state(/** @type {string[]} */ ([]));
 	let activeIndex = $state(0);
@@ -185,6 +234,64 @@
 		inputText = lines.join("\n") + "\n";
 		suggestions = [];
 		textareaEl?.focus();
+	}
+
+	function highlightLineParts(line) {
+		const trimmed = line.trim();
+		if (!trimmed) {
+			return [{ text: line || " ", className: "" }];
+		}
+
+		const isHeader = trimmed.startsWith("//") || trimmed.startsWith("#");
+		if (isHeader) {
+			return [{ text: line, className: "header-part" }];
+		}
+
+		const leadingSpacesMatch = line.match(/^(\s*)/);
+		const leadingSpaces = leadingSpacesMatch ? leadingSpacesMatch[1] : "";
+
+		const textToParse = line.slice(leadingSpaces.length);
+
+		const qtyMatch = textToParse.match(/^(?:(x\s*\d+|\d+\s*x?)\s+)(.+)$/i);
+		let quantityText = "";
+		let remainingText = textToParse;
+
+		if (qtyMatch) {
+			quantityText = qtyMatch[1] + " ";
+			remainingText = qtyMatch[2];
+		}
+
+		const suffixIndexMatch = remainingText.match(
+			/\s+([([][A-Za-z0-9\-\/]{2,7}[)\]]|\*[a-zA-Z0-9:]+\*|[#\^\|]|[\$€£])/,
+		);
+		let cardName = remainingText;
+		let suffixText = "";
+
+		if (suffixIndexMatch && suffixIndexMatch.index !== undefined) {
+			cardName = remainingText.substring(0, suffixIndexMatch.index);
+			suffixText = remainingText.substring(suffixIndexMatch.index);
+		}
+
+		const cleanedName = cardName.trim().replace(/\s*$/, "");
+		let nameClass = "unresolved-name";
+
+		if (cleanedName) {
+			const lowName = cleanedName.toLowerCase();
+			const metadata = resolvedMetadataMap[lowName];
+
+			if (metadata !== undefined && metadata !== null) {
+				nameClass = "resolved-name";
+			} else if (metadata === null) {
+				nameClass = "unrecognized-name";
+			}
+		}
+
+		return [
+			{ text: leadingSpaces, className: "" },
+			{ text: quantityText, className: "qty-part" },
+			{ text: cardName, className: nameClass },
+			{ text: suffixText, className: "suffix-part" },
+		];
 	}
 
 	function handleSearch() {
@@ -398,16 +505,30 @@
 			<span class="highlight">search</span> for cards
 		</p>
 		<div class="input-positioner">
-			<textarea
-				bind:this={textareaEl}
-				bind:value={inputText}
-				onkeydown={handleTextareaKeyDown}
-				onpaste={handleTextareaPaste}
-				placeholder=""
-				class="editor-textarea"
-				rows="6"
-				aria-label="Decklist or card entry field"
-			></textarea>
+			<div class="editor-container">
+				<!-- Background Layer: Highlighted plain text lines -->
+				<div class="highlights-layer">
+					{#each lines as line}
+						<div class="line-row">
+							{#each highlightLineParts(line) as part}
+								<span class={part.className}>{part.text}</span>
+							{/each}
+						</div>
+					{/each}
+				</div>
+
+				<!-- Foreground Layer: Real Textarea -->
+				<textarea
+					bind:this={textareaEl}
+					bind:value={inputText}
+					onkeydown={handleTextareaKeyDown}
+					onpaste={handleTextareaPaste}
+					placeholder=""
+					class="editor-textarea"
+					rows="6"
+					aria-label="Decklist or card entry field"
+				></textarea>
+			</div>
 
 			{#if !inputText}
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -577,20 +698,38 @@
 		flex-direction: column;
 	}
 
-	.editor-textarea {
+	.editor-container {
+		position: relative;
 		width: 100%;
+		margin-top: 1rem;
+		min-height: 140px;
+	}
+
+	.editor-textarea,
+	.highlights-layer {
+		width: 100%;
+		height: 100%;
+		min-height: 140px;
+		margin: 0;
+		padding: 0;
+		box-sizing: border-box;
+		font-family: var(--font-sans), sans-serif;
+		font-size: 0.95rem;
+		line-height: 1.5;
+		white-space: pre-wrap;
+		word-wrap: break-word;
+	}
+
+	.editor-textarea {
+		position: relative;
+		z-index: 2;
 		background: transparent;
 		border: none;
 		outline: none;
 		resize: none;
 		overflow: hidden;
-		color: hsl(var(--foreground));
-		font-family: var(--font-sans), sans-serif;
-		font-size: 0.95rem;
-		line-height: 1.5;
-		margin-top: 1rem;
-		padding: 0;
-		min-height: 140px;
+		color: transparent;
+		caret-color: hsl(var(--foreground));
 		cursor: text;
 	}
 
@@ -598,6 +737,46 @@
 		outline: none;
 		border: none;
 		box-shadow: none;
+	}
+
+	.highlights-layer {
+		position: absolute;
+		top: 0;
+		left: 0;
+		z-index: 1;
+		pointer-events: none;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.line-row {
+		min-height: 1.5em;
+		display: block;
+		white-space: pre-wrap;
+		word-wrap: break-word;
+	}
+
+	.header-part {
+		color: hsl(var(--muted-foreground));
+		font-weight: 500;
+		font-style: italic;
+	}
+
+	.qty-part,
+	.suffix-part {
+		color: hsl(var(--muted-foreground));
+	}
+
+	.resolved-name {
+		color: hsl(var(--foreground));
+		font-weight: 500;
+	}
+
+	.unresolved-name {
+		color: hsl(var(--muted-foreground));
+	}
+
+	.unrecognized-name {
+		color: #ef4444;
 	}
 
 	.fake-placeholder {
