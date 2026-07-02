@@ -1173,6 +1173,7 @@ function createDeck() {
 			deckState.deck.mainboard = [];
 			deckState.deck.sideboard = [];
 			deckState.deck.maybeboard = [];
+			deckState.deck.activeBoard = 'mainboard';
 
 			deckState.firstPastedName = parsedCards[0]?.name || '';
 			deckState.lastPastedName = parsedCards[parsedCards.length - 1]?.name || '';
