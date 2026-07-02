@@ -30,14 +30,19 @@
 	];
 
 	onMount(() => {
-		textareaEl?.focus();
+		const focusTimeout = setTimeout(() => {
+			textareaEl?.focus();
+		}, 50);
 		if (typeof window !== "undefined" && typeof navigator !== "undefined") {
 			isMac = navigator.platform.indexOf("Mac") > -1;
 		}
 		const interval = setInterval(() => {
 			placeholderIndex = (placeholderIndex + 1) % placeholders.length;
 		}, 4000);
-		return () => clearInterval(interval);
+		return () => {
+			clearInterval(interval);
+			clearTimeout(focusTimeout);
+		};
 	});
 
 	// Query IndexedDB for card name suggestions matching the active line
