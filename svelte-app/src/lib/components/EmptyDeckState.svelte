@@ -9,6 +9,7 @@
 	import { Search, Save } from "lucide-svelte";
 
 	import DeckOptionsModal from "./DeckOptionsModal.svelte";
+	import { parseDecklist } from "$lib/utils/decklistParser.js";
 
 	let dropZoneActive = $state(false);
 	let showDeckOptionsModal = $state(false);
@@ -99,15 +100,12 @@
 		}
 
 		const checkCards = async () => {
-			const lines = val.split(/\r?\n/);
-			for (const line of lines) {
-				const trimmed = line.trim();
-				if (!trimmed) continue;
-				const cleanName = trimmed.replace(/^\d+\s+/, "").trim();
-				if (cleanName.length >= 2) {
+			const parsed = parseDecklist(val);
+			for (const pc of parsed) {
+				if (pc.name) {
 					const match = await db.cards
 						.where("name")
-						.equals(cleanName)
+						.equals(pc.name)
 						.first();
 					if (match) {
 						hasKnownCard = true;
@@ -125,22 +123,8 @@
 
 	/** @param {string} text */
 	function calculateTotal(text) {
-		let total = 0;
-		const lines = text.split(/\r?\n/);
-		for (const line of lines) {
-			const trimmed = line.trim();
-			if (!trimmed) continue;
-			if (trimmed.startsWith("/") || trimmed.startsWith("?") || trimmed.includes(":")) {
-				continue;
-			}
-			const match = trimmed.match(/^(\s*\d+)\s+/);
-			if (match) {
-				total += parseInt(match[1].trim(), 10);
-			} else {
-				total += 1;
-			}
-		}
-		return total;
+		const parsed = parseDecklist(text);
+		return parsed.reduce((sum, card) => sum + (card.quantity || 1), 0);
 	}
 
 	const totalQty = $derived(calculateTotal(inputText));
@@ -153,19 +137,13 @@
 		}
 
 		const checkUnrecognized = async () => {
-			const lines = val.split(/\r?\n/);
+			const parsed = parseDecklist(val);
 			let unrecognized = 0;
-			for (const line of lines) {
-				const trimmed = line.trim();
-				if (!trimmed) continue;
-				if (trimmed.startsWith("/") || trimmed.startsWith("?") || trimmed.includes(":")) {
-					continue;
-				}
-				const cleanName = trimmed.replace(/^\d+\s+/, "").trim();
-				if (cleanName.length >= 2) {
+			for (const pc of parsed) {
+				if (pc.name) {
 					const match = await db.cards
 						.where("name")
-						.equals(cleanName)
+						.equals(pc.name)
 						.first();
 					if (!match) {
 						unrecognized++;
@@ -188,7 +166,7 @@
 
 	// Determine if the input is meant as a card search
 	const isSearch = $derived(
-		inputText.startsWith("/") ||
+		(inputText.startsWith("/") && !inputText.startsWith("//")) ||
 			inputText.startsWith("?") ||
 			(inputText.includes(":") &&
 				!/\r|\n/.test(inputText) &&
