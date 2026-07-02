@@ -973,6 +973,75 @@
 		activeCategoryName = currentActive;
 	}
 	let isDraggingSelection = $state(false);
+	let lastMouseX = 0;
+	let lastMouseY = 0;
+	/** @type {any} */
+	let autoScrollInterval = null;
+
+	function stopAutoScroll() {
+		if (autoScrollInterval) {
+			clearInterval(autoScrollInterval);
+			autoScrollInterval = null;
+		}
+	}
+
+	function startAutoScroll() {
+		if (autoScrollInterval) return;
+		autoScrollInterval = setInterval(() => {
+			if (!isDraggingSelection || !tableWrapperEl) {
+				stopAutoScroll();
+				return;
+			}
+			const rect = tableWrapperEl.getBoundingClientRect();
+			
+			const threshold = 40;
+			const topDist = lastMouseY - rect.top;
+			const bottomDist = rect.bottom - lastMouseY;
+
+			let scrollSpeed = 0;
+			if (topDist < threshold) {
+				scrollSpeed = -Math.max(5, (threshold - topDist) * 0.7);
+			} else if (bottomDist < threshold) {
+				scrollSpeed = Math.max(5, (threshold - bottomDist) * 0.7);
+			}
+
+			if (scrollSpeed !== 0) {
+				tableWrapperEl.scrollTop += scrollSpeed;
+				
+				const targetY = Math.max(rect.top + 40, Math.min(rect.bottom - 10, lastMouseY));
+				const targetX = Math.max(rect.left + 10, Math.min(rect.right - 10, lastMouseX));
+				
+				const elementAtPoint = document.elementFromPoint(targetX, targetY);
+				if (elementAtPoint) {
+					const td = elementAtPoint.closest("td");
+					const tr = elementAtPoint.closest("tr.card-row");
+					if (td && tr) {
+						const cardId = tr.getAttribute("data-card-id");
+						let colKey = null;
+						if (td.classList.contains("col-cmc")) colKey = "cmc";
+						else if (td.classList.contains("col-type")) colKey = "type";
+						else if (td.classList.contains("col-color-cat")) colKey = "color-cat";
+						else if (td.classList.contains("col-qty")) colKey = "qty";
+						else if (td.classList.contains("col-name")) colKey = "name";
+						else if (td.classList.contains("col-tags")) colKey = "tags";
+						else if (td.classList.contains("col-printing")) colKey = "printing";
+						else if (td.classList.contains("col-price")) colKey = "price";
+						else if (td.classList.contains("col-mana")) colKey = "mana";
+						else if (td.classList.contains("col-color-id")) colKey = "color-id";
+
+						if (cardId && colKey) {
+							interactionStore.handleCardSelectClick(
+								cardId,
+								true,
+								false,
+								colKey
+							);
+						}
+					}
+				}
+			}
+		}, 30);
+	}
 
 	$effect(() => {
 		const editId = interactionStore.editingCardId;
@@ -998,10 +1067,33 @@
 		handleScroll();
 		const handleGlobalMouseUp = () => {
 			isDraggingSelection = false;
+			stopAutoScroll();
+		};
+		/** @param {MouseEvent} e */
+		const handleGlobalMouseMove = (e) => {
+			if (!isDraggingSelection) return;
+			lastMouseX = e.clientX;
+			lastMouseY = e.clientY;
+
+			if (tableWrapperEl) {
+				const rect = tableWrapperEl.getBoundingClientRect();
+				const threshold = 40;
+				if (
+					lastMouseY - rect.top < threshold ||
+					rect.bottom - lastMouseY < threshold
+				) {
+					startAutoScroll();
+				} else {
+					stopAutoScroll();
+				}
+			}
 		};
 		window.addEventListener("mouseup", handleGlobalMouseUp);
+		window.addEventListener("mousemove", handleGlobalMouseMove);
 		return () => {
 			window.removeEventListener("mouseup", handleGlobalMouseUp);
+			window.removeEventListener("mousemove", handleGlobalMouseMove);
+			stopAutoScroll();
 		};
 	});
 </script>
@@ -1351,6 +1443,7 @@
 										class:is-editing={editingCardName ===
 											cardRow.name &&
 											editingCardZone === cardRow.zone}
+										data-card-id={cardRow.instances[0]?.id}
 										onmousedown={(e) => {
 											if (e.button !== 0) return;
 											const targetEl =
