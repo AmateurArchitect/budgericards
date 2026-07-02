@@ -152,10 +152,7 @@
 			const parsed = parseDecklist(val);
 			for (const pc of parsed) {
 				if (pc.name) {
-					const match = await db.cards
-						.where("name")
-						.equals(pc.name)
-						.first();
+					const match = await getCardByName(pc.name);
 					if (match) {
 						hasKnownCard = true;
 						return;
@@ -194,10 +191,7 @@
 			const unrecNames = [];
 			for (const pc of parsed) {
 				if (pc.name) {
-					const match = await db.cards
-						.where("name")
-						.equals(pc.name)
-						.first();
+					const match = await getCardByName(pc.name);
 					if (!match) {
 						unrecognized++;
 						unrecNames.push(pc.name);
@@ -366,22 +360,15 @@
 		const text = e.clipboardData?.getData("text/plain") || "";
 		if (!text) return;
 
-		const lines = text.split(/\r?\n/);
+		const parsed = parseDecklist(text);
+		if (parsed.length === 0) return;
+
 		let hasValidCards = false;
 		let hasUnrecognized = false;
 
-		for (const line of lines) {
-			const trimmed = line.trim();
-			if (!trimmed) continue;
-			if (trimmed.startsWith("/") || trimmed.startsWith("?") || trimmed.includes(":")) {
-				continue;
-			}
-			const cleanName = trimmed.replace(/^\d+\s+/, "").trim();
-			if (cleanName.length >= 2) {
-				const match = await db.cards
-					.where("name")
-					.equals(cleanName)
-					.first();
+		for (const pc of parsed) {
+			if (pc.name) {
+				const match = await getCardByName(pc.name);
 				if (match) {
 					hasValidCards = true;
 				} else {

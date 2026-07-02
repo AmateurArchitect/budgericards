@@ -2194,8 +2194,9 @@ function createDeck() {
 					continue;
 				}
 				if (pc.name) {
-					const match = await db.cards.where("name").equals(pc.name).first();
+					const match = await getCardByName(pc.name);
 					if (match) {
+						pc.name = match.name;
 						recognizedParsedCards.push(pc);
 					} else {
 						unrecognizedList.push(pc.name);
