@@ -47,7 +47,7 @@
 			suggestions = [];
 			return;
 		}
-		const lines = val.split("\n");
+		const lines = val.split(/\r?\n/);
 		const lastLine = lines[lines.length - 1].trim();
 		const cleanQuery = lastLine.replace(/^\d+\s+/, "");
 
@@ -88,7 +88,7 @@
 		}
 
 		const checkCards = async () => {
-			const lines = val.split("\n");
+			const lines = val.split(/\r?\n/);
 			for (const line of lines) {
 				const trimmed = line.trim();
 				if (!trimmed) continue;
@@ -115,7 +115,7 @@
 	/** @param {string} text */
 	function calculateTotal(text) {
 		let total = 0;
-		const lines = text.split("\n");
+		const lines = text.split(/\r?\n/);
 		for (const line of lines) {
 			const trimmed = line.trim();
 			if (!trimmed) continue;
@@ -142,7 +142,7 @@
 		}
 
 		const checkUnrecognized = async () => {
-			const lines = val.split("\n");
+			const lines = val.split(/\r?\n/);
 			let unrecognized = 0;
 			for (const line of lines) {
 				const trimmed = line.trim();
@@ -180,7 +180,7 @@
 		inputText.startsWith("/") ||
 			inputText.startsWith("?") ||
 			(inputText.includes(":") &&
-				!inputText.includes("\n") &&
+				!/\r|\n/.test(inputText) &&
 				!/^\s*\d+/.test(inputText) &&
 				!inputText.startsWith("//") &&
 				!inputText.startsWith("#")),
@@ -188,7 +188,7 @@
 
 	/** @param {string} name */
 	async function addSingleCard(name) {
-		const lines = inputText.split("\n");
+		const lines = inputText.split(/\r?\n/);
 		const lastLine = lines[lines.length - 1];
 		const match = lastLine.match(/^(\s*\d+\s+)/);
 		const prefix = match ? match[1] : "1 ";
@@ -301,7 +301,7 @@
 			e.preventDefault();
 			if (isSearch) {
 				handleSearch();
-			} else if (hasKnownCard) {
+			} else {
 				handleSave();
 			}
 		}
@@ -416,7 +416,7 @@
 			{#if suggestions.length > 0}
 				<ul
 					class="autocomplete-suggestions"
-					style={`top: calc(1rem + (${inputText.split('\n').length} * 1.425rem) + 4px);`}
+					style={`top: calc(1rem + (${inputText.split(/\r?\n/).length} * 1.425rem) + 4px);`}
 					transition:fade={{ duration: 100 }}
 				>
 					{#each suggestions as sug, i}
@@ -454,17 +454,15 @@
 						<Search size={14} style="margin-right: 6px;" />
 						Search Cards
 					</button>
-				{:else if hasKnownCard}
+				{:else}
 					<button class="primary-btn save-btn" onclick={handleSave}>
 						<Save size={14} style="margin-right: 6px;" />
 						Save & Continue
 					</button>
 				{/if}
-				{#if isSearch || hasKnownCard}
-					<span class="shortcut-tip">
-						Press <kbd>{isMac ? "⌘" : "Ctrl"}+Enter</kbd> to submit
-					</span>
-				{/if}
+				<span class="shortcut-tip">
+					Press <kbd>{isMac ? "⌘" : "Ctrl"}+Enter</kbd> to submit
+				</span>
 			</div>
 		{/if}
 	</div>
