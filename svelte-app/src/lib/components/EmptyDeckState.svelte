@@ -169,6 +169,8 @@
 	});
 
 	let unrecognizedCount = $state(0);
+	let unrecognizedNames = $state(/** @type {string[]} */ ([]));
+	let showErrorPopover = $state(false);
 
 	/** @param {string} text */
 	function calculateTotal(text) {
@@ -182,12 +184,14 @@
 		const val = inputText.trim();
 		if (!val) {
 			unrecognizedCount = 0;
+			unrecognizedNames = [];
 			return;
 		}
 
 		const checkUnrecognized = async () => {
 			const parsed = parseDecklist(val);
 			let unrecognized = 0;
+			const unrecNames = [];
 			for (const pc of parsed) {
 				if (pc.name) {
 					const match = await db.cards
@@ -196,10 +200,12 @@
 						.first();
 					if (!match) {
 						unrecognized++;
+						unrecNames.push(pc.name);
 					}
 				}
 			}
 			unrecognizedCount = unrecognized;
+			unrecognizedNames = unrecNames;
 		};
 
 		checkUnrecognized();
@@ -440,9 +446,12 @@
 	function handleWindowClick(e) {
 		if (!deckStore.isEmptyStateActive) return;
 		const target = /** @type {HTMLElement} */ (e.target);
+		if (!target.closest(".warning-indicator") && !target.closest(".error-popover")) {
+			showErrorPopover = false;
+		}
 		if (
 			target.closest(".empty-state-wrapper") &&
-			!target.closest("button, textarea, input, ul")
+			!target.closest("button, textarea, input, ul, .error-popover")
 		) {
 			textareaEl?.focus();
 		}
@@ -579,11 +588,29 @@
 
 		{#if inputText.trim().length > 0}
 			<div class="actions-row" in:fade={{ duration: 150 }}>
+				{#if showErrorPopover && unrecognizedNames.length > 0}
+					<div class="error-popover" transition:fade={{ duration: 100 }}>
+						<div class="popover-header">Unrecognized Cards</div>
+						<ul class="popover-list">
+							{#each unrecognizedNames as name}
+								<li>{name}</li>
+							{/each}
+						</ul>
+					</div>
+				{/if}
+
 				{#if !isSearch && totalQty > 0}
 					<span class="stats-indicator">
 						{totalQty} {totalQty === 1 ? 'card' : 'cards'}
 						{#if unrecognizedCount > 0}
-							<span class="warning-indicator" title={`${unrecognizedCount} unrecognized cards`}>
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<span
+								class="warning-indicator"
+								onclick={(e) => { e.stopPropagation(); showErrorPopover = !showErrorPopover; }}
+								style="cursor: pointer;"
+								title="Click to see unrecognized cards"
+							>
 								• ⚠️ {unrecognizedCount}
 							</span>
 						{/if}
@@ -626,7 +653,7 @@
 		min-height: calc(100vh - 56px);
 		background: transparent;
 		box-sizing: border-box;
-		padding: 20vh 2rem 240px 2rem;
+		padding: 20vh 2rem 180px 2rem;
 		transition: background-color 0.2s ease;
 		cursor: text;
 		overflow-y: auto;
@@ -872,6 +899,46 @@
 		padding: 0.5rem 1rem 0.5rem 0.75rem;
 		box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.4);
 		z-index: 100;
+	}
+
+	.error-popover {
+		position: absolute;
+		bottom: 120%;
+		left: 0.5rem;
+		background: hsl(var(--popover) / 0.95);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		border: 1px solid hsl(var(--border) / 0.8);
+		border-radius: var(--radius-md);
+		box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+		padding: 0.75rem;
+		width: max-content;
+		max-width: 250px;
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+		z-index: 110;
+		color: hsl(var(--foreground));
+	}
+
+	.popover-header {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: #ef4444;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		text-align: left;
+	}
+
+	.popover-list {
+		margin: 0;
+		padding: 0 0 0 1.25rem;
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		text-align: left;
 	}
 
 	.primary-btn {
