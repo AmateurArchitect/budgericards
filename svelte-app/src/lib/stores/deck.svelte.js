@@ -1245,6 +1245,12 @@ function createDeck() {
 			}
 		}
 
+		if (replace && deckState.deck.mainboard.length === 0) {
+			if (deckState.deck.sideboard.length > 0) {
+				deckState.deck.activeBoard = 'sideboard';
+			}
+		}
+
 		deckState.metadata.updatedAt = Date.now();
 		persist(deckState);
 	}
