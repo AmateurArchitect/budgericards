@@ -958,6 +958,8 @@ function createDeck() {
 	function needsMetadataSync(deckState, name) {
 		const meta = deckState.metadata[name.toLowerCase()];
 		if (!meta) return true;
+		// If it's a partial preview metadata object (lacks image_uris and card_faces), it needs a full sync
+		if (!meta.image_uris && (!meta.card_faces || meta.card_faces.length === 0)) return true;
 		if ((meta.card_faces?.length === 0 || !meta.card_faces) && 
 			((meta.type_line && meta.type_line.includes(" // ")) || 
 			 (meta.name && meta.name.includes(" // ")) || 
