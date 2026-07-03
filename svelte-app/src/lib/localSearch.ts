@@ -100,55 +100,83 @@ function evalCondition(card: CleanCard, cond: ConditionNode, priceOverride?: num
 
 		case 'c':
 		case 'color': {
-			const targets = expandColors(rawValue);
-			if (op === '>=') {
-				match = targets.every(t => card.colors.includes(t));
-			} else if (op === '<=') {
-				match = card.colors.every(c => targets.includes(c));
-			} else if (op === '>') {
-				match = targets.every(t => card.colors.includes(t)) && card.colors.length > targets.length;
-			} else if (op === '<') {
-				match = card.colors.every(c => targets.includes(c)) && card.colors.length < targets.length;
+			if (/^\d+$/.test(rawValue)) {
+				const num = parseInt(rawValue, 10);
+				if (op === '>=') match = card.colors.length >= num;
+				else if (op === '<=') match = card.colors.length <= num;
+				else if (op === '>') match = card.colors.length > num;
+				else if (op === '<') match = card.colors.length < num;
+				else match = card.colors.length === num;
 			} else {
-				// Default color contains target colors (e.g. c:w contains white)
-				match = targets.every(t => card.colors.includes(t));
+				const targets = expandColors(rawValue);
+				if (op === '>=') {
+					match = targets.every(t => card.colors.includes(t));
+				} else if (op === '<=') {
+					match = card.colors.every(c => targets.includes(c));
+				} else if (op === '>') {
+					match = targets.every(t => card.colors.includes(t)) && card.colors.length > targets.length;
+				} else if (op === '<') {
+					match = card.colors.every(c => targets.includes(c)) && card.colors.length < targets.length;
+				} else {
+					// Default color contains target colors (e.g. c:w contains white)
+					match = targets.every(t => card.colors.includes(t));
+				}
 			}
 			break;
 		}
 
 		case 'c_exact': {
-			const targets = expandColors(rawValue);
-			// Exact color match (e.g. c=w matches mono-white cards)
-			match =
-				targets.every(t => card.colors.includes(t)) &&
-				card.colors.every(c => targets.includes(c));
+			if (/^\d+$/.test(rawValue)) {
+				const num = parseInt(rawValue, 10);
+				match = card.colors.length === num;
+			} else {
+				const targets = expandColors(rawValue);
+				// Exact color match (e.g. c=w matches mono-white cards)
+				match =
+					targets.every(t => card.colors.includes(t)) &&
+					card.colors.every(c => targets.includes(c));
+			}
 			break;
 		}
 
 		case 'id':
 		case 'identity': {
-			const targets = expandColors(rawValue);
-			if (op === '>=') {
-				match = targets.every(t => card.identity.includes(t));
-			} else if (op === '<=') {
-				match = card.identity.every(c => targets.includes(c));
-			} else if (op === '>') {
-				match = targets.every(t => card.identity.includes(t)) && card.identity.length > targets.length;
-			} else if (op === '<') {
-				match = card.identity.every(c => targets.includes(c)) && card.identity.length < targets.length;
+			if (/^\d+$/.test(rawValue)) {
+				const num = parseInt(rawValue, 10);
+				if (op === '>=') match = card.identity.length >= num;
+				else if (op === '<=') match = card.identity.length <= num;
+				else if (op === '>') match = card.identity.length > num;
+				else if (op === '<') match = card.identity.length < num;
+				else match = card.identity.length === num;
 			} else {
-				// Default identity fits within target colors (e.g. id:w contains only white/colorless)
-				match = card.identity.every(c => targets.includes(c));
+				const targets = expandColors(rawValue);
+				if (op === '>=') {
+					match = targets.every(t => card.identity.includes(t));
+				} else if (op === '<=') {
+					match = card.identity.every(c => targets.includes(c));
+				} else if (op === '>') {
+					match = targets.every(t => card.identity.includes(t)) && card.identity.length > targets.length;
+				} else if (op === '<') {
+					match = card.identity.every(c => targets.includes(c)) && card.identity.length < targets.length;
+				} else {
+					// Default identity fits within target colors (e.g. id:w contains only white/colorless)
+					match = card.identity.every(c => targets.includes(c));
+				}
 			}
 			break;
 		}
 
 		case 'id_exact': {
-			const targets = expandColors(rawValue);
-			// Exact identity match (e.g. id=w matches exactly white cards)
-			match =
-				targets.every(t => card.identity.includes(t)) &&
-				card.identity.every(c => targets.includes(c));
+			if (/^\d+$/.test(rawValue)) {
+				const num = parseInt(rawValue, 10);
+				match = card.identity.length === num;
+			} else {
+				const targets = expandColors(rawValue);
+				// Exact identity match (e.g. id=w matches exactly white cards)
+				match =
+					targets.every(t => card.identity.includes(t)) &&
+					card.identity.every(c => targets.includes(c));
+			}
 			break;
 		}
 
