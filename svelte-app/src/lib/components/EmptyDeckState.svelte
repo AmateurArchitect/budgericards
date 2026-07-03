@@ -24,6 +24,7 @@
 	/** @type {Record<string, any>} */
 	let resolvedMetadataMap = $state({});
 	let isPasting = $state(false);
+	let activeLineIndex = $state(-1);
 
 	$effect(() => {
 		const cards = parsedCards;
@@ -237,8 +238,11 @@
 		textareaEl?.focus();
 	}
 
-	/** @param {string} line */
-	function highlightLineParts(line) {
+	/**
+	 * @param {string} line
+	 * @param {boolean} isCursorOnLine
+	 */
+	function highlightLineParts(line, isCursorOnLine) {
 		const trimmed = line.trim();
 		if (!trimmed) {
 			return [{ text: line || " ", className: "" }];
@@ -281,7 +285,11 @@
 			const lowName = cleanedName.toLowerCase();
 			const metadata = resolvedMetadataMap[lowName];
 
-			if (metadata !== undefined && metadata !== null) {
+			if (isSearch) {
+				nameClass = "";
+			} else if (isCursorOnLine) {
+				nameClass = "unresolved-name";
+			} else if (metadata !== undefined && metadata !== null) {
 				nameClass = "resolved-name";
 			} else if (metadata === null) {
 				nameClass = "unrecognized-name";
@@ -391,6 +399,15 @@
 		}
 	}
 
+	function updateActiveLine() {
+		if (!textareaEl) return;
+		const textBeforeCursor = textareaEl.value.substring(
+			0,
+			textareaEl.selectionStart,
+		);
+		activeLineIndex = textBeforeCursor.split("\n").length - 1;
+	}
+
 	/** @param {KeyboardEvent} e */
 	function handleKeyDown(e) {
 		if (!deckStore.isEmptyStateActive) return;
@@ -488,32 +505,34 @@
 	in:fade={{ duration: 150 }}
 >
 	<div class="content-container">
-		<button
-			bind:this={headerEl}
-			class="deck-title-editable-btn"
-			onclick={(e) => {
-				e.stopPropagation();
-				showDeckOptionsModal = true;
-			}}
-			title="Click to rename deck"
-		>
-			<h2>
-				{deckStore.name && deckStore.name !== "Untitled Deck"
-					? deckStore.name
-					: "New Deck"}
-			</h2>
-		</button>
-		<p class="description">
-			To get started, <span class="highlight">paste</span> a decklist or
-			<span class="highlight">search</span> for cards
-		</p>
+		<div class="header-section">
+			<button
+				bind:this={headerEl}
+				class="deck-title-editable-btn"
+				onclick={(e) => {
+					e.stopPropagation();
+					showDeckOptionsModal = true;
+				}}
+				title="Click to rename deck"
+			>
+				<h2>
+					{deckStore.name && deckStore.name !== "Untitled Deck"
+						? deckStore.name
+						: "New Deck"}
+				</h2>
+			</button>
+			<p class="description">
+				To get started, <span class="highlight">paste</span> a decklist or
+				<span class="highlight">search</span> for cards
+			</p>
+		</div>
 		<div class="input-positioner">
 			<div class="editor-container">
 				<!-- Background Layer: Highlighted plain text lines -->
 				<div class="highlights-layer">
-					{#each lines as line}
+					{#each lines as line, idx}
 						<div class="line-row">
-							{#each highlightLineParts(line) as part}
+							{#each highlightLineParts(line, idx === activeLineIndex) as part}
 								<span class={part.className}>{part.text}</span>
 							{/each}
 						</div>
@@ -526,6 +545,10 @@
 					bind:value={inputText}
 					onkeydown={handleTextareaKeyDown}
 					onpaste={handleTextareaPaste}
+					oninput={updateActiveLine}
+					onkeyup={updateActiveLine}
+					onclick={updateActiveLine}
+					onfocus={updateActiveLine}
 					placeholder=""
 					class="editor-textarea"
 					rows="6"
@@ -602,11 +625,13 @@
 							<span
 								class="warning-indicator"
 								onclick={(e) => { e.stopPropagation(); showErrorPopover = !showErrorPopover; }}
-								style="cursor: pointer;"
+								style="cursor: pointer; margin-left: 6px;"
 								title="Click to see unrecognized cards"
 							>
-								• ⚠️ {unrecognizedCount}
+								⚠️ {unrecognizedCount} unrecognized
 							</span>
+						{:else}
+							{totalQty} {totalQty === 1 ? 'card' : 'cards'}
 						{/if}
 					</span>
 				{/if}
@@ -619,9 +644,13 @@
 						Search Cards
 					</button>
 				{:else}
-					<button class="primary-btn save-btn" onclick={handleSave}>
+					<button 
+						class="primary-btn save-btn" 
+						class:warning-btn={unrecognizedCount > 0}
+						onclick={handleSave}
+					>
 						<Save size={14} style="margin-right: 6px;" />
-						Save & Continue
+						{unrecognizedCount > 0 ? 'Save anyway (ignore unrecognized)' : 'Save & Continue'}
 					</button>
 				{/if}
 				<span class="shortcut-tip">
@@ -647,7 +676,7 @@
 		min-height: calc(100vh - 56px);
 		background: transparent;
 		box-sizing: border-box;
-		padding: 20vh 2rem 180px 2rem;
+		padding: 0 2rem 180px 2rem;
 		transition: background-color 0.2s ease;
 		cursor: text;
 		overflow-y: auto;
@@ -659,13 +688,27 @@
 
 	.content-container {
 		text-align: left;
-		max-width: 520px;
+		min-width: 360px;
+		max-width: 50vw;
+		width: fit-content;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		user-select: none;
+	}
+
+	.header-section {
+		position: sticky;
+		top: 0;
+		background-color: hsl(var(--background));
 		width: 100%;
+		z-index: 10;
+		padding-top: 12vh;
+		padding-bottom: 1.5rem;
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 1.25rem;
-		user-select: none;
 	}
 
 	h2 {
@@ -729,7 +772,6 @@
 	.editor-textarea,
 	.highlights-layer {
 		width: 100%;
-		height: 100%;
 		min-height: 140px;
 		margin: 0;
 		padding: 0;
@@ -742,7 +784,11 @@
 	}
 
 	.editor-textarea {
-		position: relative;
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
 		z-index: 2;
 		background: transparent;
 		border: none;
@@ -761,9 +807,7 @@
 	}
 
 	.highlights-layer {
-		position: absolute;
-		top: 0;
-		left: 0;
+		position: relative;
 		z-index: 1;
 		pointer-events: none;
 		color: hsl(var(--muted-foreground));
@@ -944,7 +988,7 @@
 		font-size: 0.875rem;
 		font-weight: 600;
 		border: none;
-		border-radius: var(--radius-md);
+		border-radius: var(--radius-full, 9999px);
 		cursor: pointer;
 		transition: all 0.2s ease;
 		color: white;
@@ -956,6 +1000,16 @@
 
 	.save-btn:hover {
 		background: hsl(var(--primary-dark));
+		transform: translateY(-1px);
+	}
+
+	.warning-btn {
+		background: #f59e0b !important;
+		color: #000 !important;
+	}
+
+	.warning-btn:hover {
+		background: #d97706 !important;
 		transform: translateY(-1px);
 	}
 
