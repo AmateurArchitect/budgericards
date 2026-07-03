@@ -306,19 +306,23 @@ export async function runLocalSearch(
  * Used for metadata hydration in the deck store.
  */
 export async function getCardByName(name: string): Promise<CleanCard | undefined> {
-	let card = await db.cards
+	const matches = await db.cards
 		.where('name')
-		.equalsIgnoreCase(name)
-		.first();
+		.startsWithIgnoreCase(name)
+		.limit(10)
+		.toArray();
 	
+	let card = matches.find(c => c.name.toLowerCase() === name.toLowerCase());
 	if (card) return card;
 
 	const searchPrefix = name + ' //';
-	card = await db.cards
+	const prefixMatches = await db.cards
 		.where('name')
 		.startsWithIgnoreCase(searchPrefix)
-		.first();
+		.limit(10)
+		.toArray();
 	
+	card = prefixMatches.find(c => c.name.toLowerCase().startsWith(searchPrefix.toLowerCase()));
 	return card;
 }
 
