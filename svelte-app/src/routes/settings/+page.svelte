@@ -257,6 +257,24 @@
 									<span class="slider"></span>
 								</label>
 							</div>
+
+							<div class="toggle-group-row">
+								<div class="toggle-text-block">
+									<label for="move-to-maybeboard-on-delete" class="toggle-label-main">Move Deleted Cards to Maybeboard</label>
+									<p class="toggle-description">
+										Automatically moves cards deleted from the mainboard to the maybeboard instead of removing them completely.
+									</p>
+								</div>
+								<label class="switch">
+									<input
+										type="checkbox"
+										id="move-to-maybeboard-on-delete"
+										bind:checked={settingsStore.moveToMaybeboardOnDelete}
+										disabled={isSubmitting}
+									/>
+									<span class="slider"></span>
+								</label>
+							</div>
 						</div>
 					</section>
 

@@ -83,6 +83,19 @@
 				</p>
 			</div>
 
+			<!-- Move Deleted Cards to Maybeboard Selection -->
+			<div class="form-group">
+				<label for="deck-move-to-maybeboard">Move Deleted Cards to Maybeboard</label>
+				<select id="deck-move-to-maybeboard" bind:value={deckStore.moveToMaybeboardOnDelete} class="settings-select">
+					<option value="default">🌐 Use Global Setting</option>
+					<option value="true">✔️ Yes</option>
+					<option value="false">❌ No</option>
+				</select>
+				<p class="help-text">
+					Control whether cards deleted from the mainboard are automatically sent to the maybeboard.
+				</p>
+			</div>
+
 			<hr class="divider" />
 
 			<!-- Danger Zone -->

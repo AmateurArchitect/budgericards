@@ -268,6 +268,58 @@ function createDeck() {
 
 	let isBatching = false;
 	let batchNeedsPersist = false;
+	let batchedDeletions = [];
+
+	function showBatchedToast() {
+		if (!settingsStore.showDeletionToasts || batchedDeletions.length === 0) {
+			batchedDeletions = [];
+			return;
+		}
+
+		const moved = batchedDeletions.filter(d => d.movedToMaybeboard);
+		const removed = batchedDeletions.filter(d => !d.movedToMaybeboard);
+
+		let msg = "";
+		if (moved.length > 0 && removed.length > 0) {
+			const movedCount = moved.reduce((sum, d) => sum + d.count, 0);
+			const removedCount = removed.reduce((sum, d) => sum + d.count, 0);
+			msg = `Moved ${movedCount} card${movedCount > 1 ? 's' : ''} to maybeboard, removed ${removedCount} card${removedCount > 1 ? 's' : ''}.`;
+		} else if (moved.length > 0) {
+			const movedCount = moved.reduce((sum, d) => sum + d.count, 0);
+			if (movedCount === 1) {
+				msg = `Moved ${moved[0].name} to maybeboard.`;
+			} else if (movedCount <= 3) {
+				const names = moved.map(d => d.name).join(", ");
+				msg = `Moved ${names} to maybeboard.`;
+			} else {
+				msg = `Moved ${movedCount} cards to maybeboard.`;
+			}
+		} else if (removed.length > 0) {
+			const removedCount = removed.reduce((sum, d) => sum + d.count, 0);
+			if (removedCount === 1) {
+				msg = `Removed ${removed[0].name} from ${removed[0].fromZone}.`;
+			} else if (removedCount <= 3) {
+				const names = removed.map(d => d.name).join(", ");
+				msg = `Removed ${names}.`;
+			} else {
+				msg = `Removed ${removedCount} cards.`;
+			}
+		}
+
+		if (msg) {
+			const isMac = typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
+			const undoHint = isMac ? 'Cmd Z' : 'Ctrl Z';
+			toastStore.show(msg, {
+				type: 'info',
+				action: () => {
+					deckStore.undo();
+				},
+				actionLabel: 'Undo',
+				shortcutHint: undoHint
+			});
+		}
+		batchedDeletions = [];
+	}
 
 	function batchUpdate(fn) {
 		if (isBatching) {
@@ -277,11 +329,15 @@ function createDeck() {
 		saveHistory(activeDeck);
 		isBatching = true;
 		batchNeedsPersist = false;
+		batchedDeletions = [];
 
 		try {
 			fn();
 		} finally {
 			isBatching = false;
+			if (batchedDeletions.length > 0) {
+				showBatchedToast();
+			}
 			if (batchNeedsPersist) {
 				persist(activeDeck);
 				triggerCloudSync(activeDeck);
@@ -1303,6 +1359,8 @@ function createDeck() {
 		set format(val) { saveHistory(activeDeck); activeDeck.deck.format = val; persist(activeDeck); },
 		get visibility() { return activeDeck.metadata.visibility || 'public'; },
 		set visibility(val) { saveHistory(activeDeck); activeDeck.metadata.visibility = val; persist(activeDeck); },
+		get moveToMaybeboardOnDelete() { return activeDeck.metadata.moveToMaybeboardOnDelete || 'default'; },
+		set moveToMaybeboardOnDelete(val) { saveHistory(activeDeck); activeDeck.metadata.moveToMaybeboardOnDelete = val; persist(activeDeck); },
 		get lastNaturalGrouping() { return activeDeck.deck.lastNaturalGrouping || 'cmc'; },
 		set lastNaturalGrouping(val) { activeDeck.deck.lastNaturalGrouping = val; persist(activeDeck); },
 
@@ -1837,8 +1895,20 @@ function createDeck() {
 				let movedToMaybeboard = false;
 				let shouldMove = false;
 				
+				let moveToMaybeboardEnabled = true;
+				const deckSetting = activeDeck.metadata.moveToMaybeboardOnDelete || 'default';
+				if (deckSetting === 'true' || deckSetting === true) {
+					moveToMaybeboardEnabled = true;
+				} else if (deckSetting === 'false' || deckSetting === false) {
+					moveToMaybeboardEnabled = false;
+				} else {
+					moveToMaybeboardEnabled = settingsStore.moveToMaybeboardOnDelete;
+				}
+
 				const isBasic = isBasicLand(removed.name);
-				if (targetZoneName === 'mainboard' || targetZoneName === 'sideboard') {
+				if (targetZoneName === 'mainboard') {
+					shouldMove = moveToMaybeboardEnabled && !isBasic;
+				} else if (targetZoneName === 'sideboard') {
 					shouldMove = !isBasic;
 				} else if (targetZoneName === 'commander' || targetZoneName === 'companion') {
 					const hasOtherCards = activeDeck.deck.mainboard.length > 0 ||
@@ -1852,7 +1922,14 @@ function createDeck() {
 				}
 				persist(activeDeck);
 
-				if (settingsStore.showDeletionToasts) {
+				if (isBatching) {
+					batchedDeletions.push({
+						name: removed.name,
+						movedToMaybeboard,
+						fromZone: targetZoneName,
+						count: 1
+					});
+				} else if (settingsStore.showDeletionToasts) {
 					const isMac = typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
 					const undoHint = isMac ? 'Cmd Z' : 'Ctrl Z';
 					const msg = movedToMaybeboard 
@@ -2076,8 +2153,20 @@ function createDeck() {
 				let movedToMaybeboard = false;
 				let shouldMove = false;
 				
+				let moveToMaybeboardEnabled = true;
+				const deckSetting = activeDeck.metadata.moveToMaybeboardOnDelete || 'default';
+				if (deckSetting === 'true' || deckSetting === true) {
+					moveToMaybeboardEnabled = true;
+				} else if (deckSetting === 'false' || deckSetting === false) {
+					moveToMaybeboardEnabled = false;
+				} else {
+					moveToMaybeboardEnabled = settingsStore.moveToMaybeboardOnDelete;
+				}
+
 				const isBasic = isBasicLand(cardName);
-				if (targetZoneName === 'mainboard' || targetZoneName === 'sideboard') {
+				if (targetZoneName === 'mainboard') {
+					shouldMove = moveToMaybeboardEnabled && !isBasic;
+				} else if (targetZoneName === 'sideboard') {
 					shouldMove = !isBasic;
 				} else if (targetZoneName === 'commander' || targetZoneName === 'companion') {
 					const hasOtherCards = activeDeck.deck.mainboard.length > 0 ||
@@ -2091,7 +2180,14 @@ function createDeck() {
 				}
 				persist(activeDeck);
 
-				if (settingsStore.showDeletionToasts) {
+				if (isBatching) {
+					batchedDeletions.push({
+						name: cardName,
+						movedToMaybeboard,
+						fromZone: targetZoneName,
+						count: removedCount
+					});
+				} else if (settingsStore.showDeletionToasts) {
 					const isMac = typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
 					const undoHint = isMac ? 'Cmd Z' : 'Ctrl Z';
 					const msg = movedToMaybeboard 
