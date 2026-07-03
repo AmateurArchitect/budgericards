@@ -10,7 +10,7 @@
 
 	import DeckOptionsModal from "./DeckOptionsModal.svelte";
 	import { parseDecklist } from "$lib/utils/decklistParser.js";
-	import { getCardByName } from "$lib/localSearch";
+	import { getCardByName, runLocalSearch, isPrintingQuery } from "$lib/localSearch";
 
 	let dropZoneActive = $state(false);
 	let showDeckOptionsModal = $state(false);
@@ -25,6 +25,49 @@
 	let resolvedMetadataMap = $state({});
 	let isPasting = $state(false);
 	let activeLineIndex = $state(-1);
+
+	const cleanSearchQuery = $derived.by(() => {
+		if (!isSearch) return "";
+		let q = inputText.trim();
+		if (q.startsWith("/") || q.startsWith("?")) {
+			q = q.slice(1);
+		}
+		return q.trim();
+	});
+
+	const isUsefulSearch = $derived(isSearch && cleanSearchQuery.length >= 3);
+
+	let searchCount = $state(0);
+	let showLargeSearchOverride = $state(false);
+
+	$effect(() => {
+		// Reset override when query changes
+		const _ = cleanSearchQuery;
+		showLargeSearchOverride = false;
+	});
+
+	$effect(() => {
+		const q = cleanSearchQuery;
+		if (!isUsefulSearch || !q) {
+			searchCount = 0;
+			return;
+		}
+
+		const checkSearchCount = async () => {
+			try {
+				if (isPrintingQuery(q)) {
+					searchCount = 0;
+					return;
+				}
+				const results = await runLocalSearch(q);
+				searchCount = results.length;
+			} catch (e) {
+				searchCount = 0;
+			}
+		};
+
+		checkSearchCount();
+	});
 
 	$effect(() => {
 		const cards = parsedCards;
@@ -305,11 +348,16 @@
 	}
 
 	function handleSearch() {
-		let query = inputText.trim();
-		if (query.startsWith("/") || query.startsWith("?")) {
-			query = query.slice(1);
+		if (searchCount >= 500 && !showLargeSearchOverride) {
+			showLargeSearchOverride = true;
+			return;
 		}
+
+		let query = cleanSearchQuery;
 		searchStore.query = query;
+		if (searchCount >= 500) {
+			searchStore.overrideLargeSearch();
+		}
 		const lastView =
 			localStorage.getItem("budgericards_last_active_view_mode") ||
 			"stacks";
@@ -603,7 +651,7 @@
 			{/if}
 		</div>
 
-		{#if inputText.trim().length > 0 && !isPasting && (isSearch || (totalQty - unrecognizedCount > 0))}
+		{#if inputText.trim().length > 0 && !isPasting && (isUsefulSearch || (totalQty - unrecognizedCount > 0))}
 			<div class="actions-row" in:fade={{ duration: 150 }}>
 				{#if showErrorPopover && unrecognizedNames.length > 0}
 					<div class="error-popover" transition:fade={{ duration: 100 }}>
@@ -618,8 +666,8 @@
 
 				{#if !isSearch && totalQty > 0}
 					<span class="stats-indicator">
-						{totalQty} {totalQty === 1 ? 'card' : 'cards'}
 						{#if unrecognizedCount > 0}
+							{totalQty - unrecognizedCount} / {totalQty} recognized
 							<!-- svelte-ignore a11y_click_events_have_key_events -->
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<span
@@ -635,15 +683,30 @@
 						{/if}
 					</span>
 				{/if}
-				{#if isSearch}
-					<button
-						class="primary-btn search-btn"
-						onclick={handleSearch}
-					>
-						<Search size={14} style="margin-right: 6px;" />
-						Search Cards
-					</button>
-				{:else}
+				{#if isUsefulSearch}
+					{#if searchCount >= 500 && !showLargeSearchOverride}
+						<span class="stats-indicator">
+							<span class="warning-indicator" style="margin-right: 6px;">
+								⚠️ Matches {searchCount} cards
+							</span>
+						</span>
+						<button
+							class="primary-btn search-btn warning-btn"
+							onclick={() => { showLargeSearchOverride = true; handleSearch(); }}
+						>
+							<Search size={14} style="margin-right: 6px;" />
+							Search anyway
+						</button>
+					{:else}
+						<button
+							class="primary-btn search-btn"
+							onclick={handleSearch}
+						>
+							<Search size={14} style="margin-right: 6px;" />
+							Search Cards
+						</button>
+					{/if}
+				{:else if !isSearch}
 					<button 
 						class="primary-btn save-btn" 
 						class:warning-btn={unrecognizedCount > 0}
