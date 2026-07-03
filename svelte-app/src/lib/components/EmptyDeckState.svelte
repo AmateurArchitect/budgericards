@@ -26,6 +26,17 @@
 	let isPasting = $state(false);
 	let activeLineIndex = $state(-1);
 
+	// Determine if the input is meant as a card search
+	const isSearch = $derived(
+		(inputText.startsWith("/") && !inputText.startsWith("//")) ||
+			inputText.startsWith("?") ||
+			(inputText.includes(":") &&
+				!/\r|\n/.test(inputText) &&
+				!/^\s*\d+/.test(inputText) &&
+				!inputText.startsWith("//") &&
+				!inputText.startsWith("#")),
+	);
+
 	const cleanSearchQuery = $derived.by(() => {
 		if (!isSearch) return "";
 		let q = inputText.trim();
@@ -257,17 +268,6 @@
 			textareaEl.style.height = textareaEl.scrollHeight + "px";
 		}
 	});
-
-	// Determine if the input is meant as a card search
-	const isSearch = $derived(
-		(inputText.startsWith("/") && !inputText.startsWith("//")) ||
-			inputText.startsWith("?") ||
-			(inputText.includes(":") &&
-				!/\r|\n/.test(inputText) &&
-				!/^\s*\d+/.test(inputText) &&
-				!inputText.startsWith("//") &&
-				!inputText.startsWith("#")),
-	);
 
 	/** @param {string} name */
 	async function addSingleCard(name) {
