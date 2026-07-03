@@ -23,6 +23,7 @@
 	const parsedCards = $derived(parseDecklist(inputText));
 	/** @type {Record<string, any>} */
 	let resolvedMetadataMap = $state({});
+	let isPasting = $state(false);
 
 	$effect(() => {
 		const cards = parsedCards;
@@ -362,24 +363,31 @@
 		const parsed = parseDecklist(text);
 		if (parsed.length === 0) return;
 
-		let hasValidCards = false;
-		let hasUnrecognized = false;
+		isPasting = true;
+		try {
+			let hasValidCards = false;
+			let hasUnrecognized = false;
 
-		for (const pc of parsed) {
-			if (pc.name) {
-				const match = await getCardByName(pc.name);
-				if (match) {
-					hasValidCards = true;
-				} else {
-					hasUnrecognized = true;
+			for (const pc of parsed) {
+				if (pc.name) {
+					const match = await getCardByName(pc.name);
+					if (match) {
+						hasValidCards = true;
+					} else {
+						hasUnrecognized = true;
+					}
 				}
 			}
-		}
 
-		if (hasValidCards && !hasUnrecognized) {
-			e.preventDefault();
-			inputText = text;
-			await handleSave();
+			if (hasValidCards && !hasUnrecognized) {
+				e.preventDefault();
+				inputText = text;
+				await handleSave();
+			} else {
+				isPasting = false;
+			}
+		} catch (err) {
+			isPasting = false;
 		}
 	}
 
@@ -572,7 +580,7 @@
 			{/if}
 		</div>
 
-		{#if inputText.trim().length > 0}
+		{#if inputText.trim().length > 0 && !isPasting}
 			<div class="actions-row" in:fade={{ duration: 150 }}>
 				{#if showErrorPopover && unrecognizedNames.length > 0}
 					<div class="error-popover" transition:fade={{ duration: 100 }}>
