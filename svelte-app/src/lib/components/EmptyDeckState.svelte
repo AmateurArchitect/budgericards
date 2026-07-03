@@ -236,6 +236,7 @@
 		textareaEl?.focus();
 	}
 
+	/** @param {string} line */
 	function highlightLineParts(line) {
 		const trimmed = line.trim();
 		if (!trimmed) {
@@ -300,7 +301,6 @@
 			query = query.slice(1);
 		}
 		searchStore.query = query;
-		inputText = "";
 		const lastView =
 			localStorage.getItem("budgericards_last_active_view_mode") ||
 			"stacks";
@@ -310,7 +310,6 @@
 
 	async function handleSave() {
 		deckStore.importText = inputText;
-		inputText = "";
 		await deckStore.saveImport();
 		const lastView =
 			localStorage.getItem("budgericards_last_active_view_mode") ||
