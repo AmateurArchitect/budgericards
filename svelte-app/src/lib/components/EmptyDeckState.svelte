@@ -603,7 +603,7 @@
 			{/if}
 		</div>
 
-		{#if inputText.trim().length > 0 && !isPasting}
+		{#if inputText.trim().length > 0 && !isPasting && (isSearch || (totalQty - unrecognizedCount > 0))}
 			<div class="actions-row" in:fade={{ duration: 150 }}>
 				{#if showErrorPopover && unrecognizedNames.length > 0}
 					<div class="error-popover" transition:fade={{ duration: 100 }}>
