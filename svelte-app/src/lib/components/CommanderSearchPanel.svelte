@@ -234,9 +234,15 @@
 				{:else}
 					<div class="results-grid">
 						{#each results as card, i (card.id || card.name)}
-							<button class="card-result-btn" style="--i: {i}" onclick={() => handleSelectCommander(card)}>
-								<Card {card} price={priceStore.getPrice(card.name)} inSearchPanel={true} index={i} />
-							</button>
+							<div class="card-result-btn" style="--i: {i}">
+								<Card 
+									{card} 
+									price={priceStore.getPrice(card.name)} 
+									inSearchPanel={true} 
+									index={i} 
+									onclick={() => handleSelectCommander(card)}
+								/>
+							</div>
 						{/each}
 					</div>
 				{/if}

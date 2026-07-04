@@ -3,8 +3,8 @@
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 
-	/** @type {{ card: any, price: number | null, zone?: string, inSearchPanel?: boolean, disableTooltip?: boolean, class?: string, style?: string, children: import('svelte').Snippet<[any]> }} */
-	let { card, price, zone, inSearchPanel = false, disableTooltip = false, class: className = "", style = "", children } = $props();
+	/** @type {{ card: any, price: number | null, zone?: string, inSearchPanel?: boolean, disableTooltip?: boolean, onclick?: (e: MouseEvent | KeyboardEvent) => void, class?: string, style?: string, children: import('svelte').Snippet<[any]> }} */
+	let { card, price, zone, inSearchPanel = false, disableTooltip = false, onclick = null, class: className = "", style = "", children } = $props();
 
 	const meta = $derived(card.type_line ? card : (deckStore.metadata[card.name?.toLowerCase()] || card));
 
@@ -190,11 +190,12 @@
 	style="{style}"
 	class:is-dragging={isDragging}
 	class:is-selected={!inSearchPanel && [...interactionStore.selectedCells].some(cell => cell.startsWith(card.id + ":"))}
-	onclick={handleLeftClick}
+	onclick={onclick || handleLeftClick}
 	onkeydown={(e) => {
 		if (e.key === "Enter" || e.key === " ") {
 			e.preventDefault();
-			handleLeftClick(e);
+			const handler = onclick || handleLeftClick;
+			handler(e);
 		}
 	}}
 	oncontextmenu={(e) => {

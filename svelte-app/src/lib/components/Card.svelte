@@ -3,15 +3,15 @@
 	import CardArt from "./CardArt.svelte";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 
-	/** @type {{ card: any, price: number | null, inSearchPanel?: boolean, index?: number }} */
-	let { card, price, inSearchPanel = false, index = 0 } = $props();
+	/** @type {{ card: any, price: number | null, inSearchPanel?: boolean, index?: number, onclick?: (e: MouseEvent | KeyboardEvent) => void }} */
+	let { card, price, inSearchPanel = false, index = 0, onclick = null } = $props();
 
 	const priceDisplay = $derived(
 		price !== null ? `$${Number(price).toFixed(2)}` : "Illegal",
 	);
 </script>
 
-<CardShell {card} {price} {inSearchPanel}>
+<CardShell {card} {price} {inSearchPanel} {onclick}>
 	{#snippet children({
 		isDragging,
 		isFlipped,
