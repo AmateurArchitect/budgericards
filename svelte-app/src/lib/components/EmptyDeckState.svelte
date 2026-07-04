@@ -380,7 +380,7 @@
 		return [
 			{ text: leadingSpaces, className: "" },
 			{ text: quantityText, className: "qty-part" },
-			{ text: cardName, className: nameClass },
+			{ text: cardName, className: nameClass, card: cleanedName ? resolvedMetadataMap[cleanedName.toLowerCase()] : null },
 			{ text: suffixText, className: "suffix-part" },
 		];
 	}
@@ -620,7 +620,21 @@
 					{#each lines as line, idx}
 						<div class="line-row">
 							{#each highlightLineParts(line, idx === activeLineIndex) as part}
-								<span class={part.className}>{part.text}</span>
+								{#if part.className === 'resolved-name' && part.card}
+									<!-- svelte-ignore a11y_mouse_events_have_key_events -->
+									<!-- svelte-ignore a11y_no_static_element_interactions -->
+									<!-- svelte-ignore a11y_click_events_have_key_events -->
+									<span
+										class={part.className}
+										onmouseenter={() => interactionStore.registerHover(part.card, 'mainboard', null)}
+										onmouseleave={() => interactionStore.unregisterHover()}
+										onclick={() => textareaEl?.focus()}
+									>
+										{part.text}
+									</span>
+								{:else}
+									<span class={part.className}>{part.text}</span>
+								{/if}
 							{/each}
 						</div>
 					{/each}
@@ -947,6 +961,8 @@
 	.resolved-name {
 		color: hsl(var(--foreground));
 		font-weight: 500;
+		pointer-events: auto;
+		cursor: text;
 	}
 
 	.unresolved-name {
