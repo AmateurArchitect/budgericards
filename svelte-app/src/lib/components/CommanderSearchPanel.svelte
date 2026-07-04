@@ -19,7 +19,7 @@
 	let { isOpen = $bindable(), onClose } = $props();
 
 	let searchQuery = $state("");
-	let selectedColors = $state(/** @type {string[]} */ ([]));
+	let selectedColors = $state(/** @type {string[]} */ (["W"]));
 	let selectedFormat = $state(
 		deckStore.format && deckStore.format !== "None" && deckStore.format !== "List"
 			? deckStore.format
@@ -78,7 +78,7 @@
 		isSearching = true;
 		try {
 			// Query the database for matches or fall back to general legendary search if empty query
-			const queryText = searchQuery.trim() || "*";
+			const queryText = searchQuery.trim() || "t:legendary";
 			const rawResults = await runLocalSearch(queryText, { limit: 200 });
 
 			const filtered = rawResults.filter(card => {
@@ -98,7 +98,9 @@
 				return true;
 			});
 
-			results = filtered.map(normalizeLocalCard);
+			results = filtered
+				.map(normalizeLocalCard)
+				.sort((a, b) => a.name.localeCompare(b.name));
 		} catch (err) {
 			console.error("Commander search failed:", err);
 		} finally {
@@ -135,6 +137,15 @@
 	function handleFormatChange(/** @type {Event} */ e) {
 		const target = /** @type {HTMLSelectElement} */ (e.target);
 		selectedFormat = target.value;
+	}
+
+	/** @param {WheelEvent} e */
+	function handleWheel(e) {
+		if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+			e.preventDefault();
+			const container = /** @type {HTMLElement} */ (e.currentTarget);
+			container.scrollLeft += e.deltaY;
+		}
 	}
 
 	/** @param {HTMLElement} node */
@@ -221,7 +232,7 @@
 				</div>
 			</div>
 
-			<div class="panel-results">
+			<div class="panel-results" onwheel={handleWheel}>
 				{#if isSearching}
 					<div class="loading-state">
 						<Loader class="spinner animate-spin" size={28} />
