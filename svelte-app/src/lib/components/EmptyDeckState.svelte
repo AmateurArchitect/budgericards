@@ -11,7 +11,11 @@
 	import DeckOptionsModal from "./DeckOptionsModal.svelte";
 	import CommanderSearchPanel from "./CommanderSearchPanel.svelte";
 	import { parseDecklist } from "$lib/utils/decklistParser.js";
-	import { getCardByName, runLocalSearch, isPrintingQuery } from "$lib/localSearch";
+	import {
+		getCardByName,
+		runLocalSearch,
+		isPrintingQuery,
+	} from "$lib/localSearch";
 
 	let dropZoneActive = $state(false);
 	let showDeckOptionsModal = $state(false);
@@ -48,7 +52,11 @@
 		return q.trim();
 	});
 
-	const isUsefulSearch = $derived(isSearch && cleanSearchQuery.length >= 3 && !/[:><=]$/.test(cleanSearchQuery));
+	const isUsefulSearch = $derived(
+		isSearch &&
+			cleanSearchQuery.length >= 3 &&
+			!/[:><=]$/.test(cleanSearchQuery),
+	);
 
 	let searchCount = $state(0);
 	let showLargeSearchOverride = $state(false);
@@ -85,7 +93,11 @@
 	$effect(() => {
 		const cards = parsedCards;
 		const uniqueNames = [
-			...new Set(cards.filter(c => c.name).map((c) => /** @type {string} */ (c.name).toLowerCase())),
+			...new Set(
+				cards
+					.filter((c) => c.name)
+					.map((c) => /** @type {string} */ (c.name).toLowerCase()),
+			),
 		];
 
 		const resolveAll = async () => {
@@ -101,12 +113,16 @@
 					try {
 						const localCard = await getCardByName(name);
 						if (localCard) {
-							const priceRecord = await db.prices.get(localCard.id);
+							const priceRecord = await db.prices.get(
+								localCard.id,
+							);
 							const cardMetadata = {
 								name: localCard.name,
 								type_line: localCard.type || "",
 								prices: {
-									usd: priceRecord ? String(priceRecord.price) : null,
+									usd: priceRecord
+										? String(priceRecord.price)
+										: null,
 								},
 							};
 							deckStore.metadata[name] = cardMetadata;
@@ -117,7 +133,7 @@
 					} catch (e) {
 						details[name] = null;
 					}
-				})
+				}),
 			);
 
 			resolvedMetadataMap = details;
@@ -181,8 +197,12 @@
 					.startsWithIgnoreCase(cleanQuery)
 					.limit(10)
 					.toArray();
-				const exactMatch = matches.find(m => m.name.toLowerCase() === cleanQuery.toLowerCase());
-				const otherMatches = matches.filter(m => m.name.toLowerCase() !== cleanQuery.toLowerCase());
+				const exactMatch = matches.find(
+					(m) => m.name.toLowerCase() === cleanQuery.toLowerCase(),
+				);
+				const otherMatches = matches.filter(
+					(m) => m.name.toLowerCase() !== cleanQuery.toLowerCase(),
+				);
 				if (matches.length >= 10) {
 					suggestions = [];
 					suggestionCards = [];
@@ -278,7 +298,8 @@
 			let unrecognized = 0;
 			const unrecNames = [];
 			const activeLineText = lines[activeLineIndex] || "";
-			const activeCardName = getCardNameFromLine(activeLineText).toLowerCase();
+			const activeCardName =
+				getCardNameFromLine(activeLineText).toLowerCase();
 
 			for (const pc of parsed) {
 				if (pc.name) {
@@ -382,7 +403,13 @@
 		return [
 			{ text: leadingSpaces, className: "" },
 			{ text: quantityText, className: "qty-part" },
-			{ text: cardName, className: nameClass, card: cleanedName ? resolvedMetadataMap[cleanedName.toLowerCase()] : null },
+			{
+				text: cardName,
+				className: nameClass,
+				card: cleanedName
+					? resolvedMetadataMap[cleanedName.toLowerCase()]
+					: null,
+			},
 			{ text: suffixText, className: "suffix-part" },
 		];
 	}
@@ -546,7 +573,10 @@
 	function handleWindowClick(e) {
 		if (!deckStore.isEmptyStateActive) return;
 		const target = /** @type {HTMLElement} */ (e.target);
-		if (!target.closest(".warning-indicator") && !target.closest(".error-popover")) {
+		if (
+			!target.closest(".warning-indicator") &&
+			!target.closest(".error-popover")
+		) {
 			showErrorPopover = false;
 		}
 		if (
@@ -608,13 +638,14 @@
 					{deckStore.name && deckStore.name !== "Untitled Deck"
 						? deckStore.name
 						: "New Deck"}
-					{#if deckStore.format && deckStore.format !== 'None'}
+					{#if deckStore.format && deckStore.format !== "None"}
 						<span class="format-badge">{deckStore.format}</span>
 					{/if}
 				</h2>
 			</button>
 			<p class="description">
-				To get started, <span class="highlight">paste</span> a decklist or
+				To get started, <span class="highlight">paste</span> a decklist
+				or
 				<span class="highlight">search</span> for cards
 			</p>
 		</div>
@@ -625,20 +656,28 @@
 					{#each lines as line, idx}
 						<div class="line-row">
 							{#each highlightLineParts(line, idx === activeLineIndex) as part}
-								{#if part.className === 'resolved-name' && part.card}
+								{#if part.className === "resolved-name" && part.card}
 									<!-- svelte-ignore a11y_mouse_events_have_key_events -->
 									<!-- svelte-ignore a11y_no_static_element_interactions -->
 									<!-- svelte-ignore a11y_click_events_have_key_events -->
 									<span
 										class={part.className}
-										onmouseenter={() => interactionStore.registerHover(part.card, 'mainboard', null)}
-										onmouseleave={() => interactionStore.unregisterHover()}
+										onmouseenter={() =>
+											interactionStore.registerHover(
+												part.card,
+												"mainboard",
+												null,
+											)}
+										onmouseleave={() =>
+											interactionStore.unregisterHover()}
 										onclick={() => textareaEl?.focus()}
 									>
 										{part.text}
 									</span>
 								{:else}
-									<span class={part.className}>{part.text}</span>
+									<span class={part.className}
+										>{part.text}</span
+									>
 								{/if}
 							{/each}
 						</div>
@@ -696,7 +735,10 @@
 				>
 					<ul class="autocomplete-suggestions">
 						{#each suggestions as sug, i}
-							<li class:active={i === activeIndex} onmouseenter={() => activeIndex = i}>
+							<li
+								class:active={i === activeIndex}
+								onmouseenter={() => (activeIndex = i)}
+							>
 								<button
 									onclick={() => addSingleCard(sug)}
 									type="button"
@@ -708,7 +750,10 @@
 						{/each}
 					</ul>
 					{#if suggestionCards[activeIndex] && suggestionCards[activeIndex].image}
-						<div class="card-preview-panel" transition:fade={{ duration: 100 }}>
+						<div
+							class="card-preview-panel"
+							transition:fade={{ duration: 100 }}
+						>
 							<img
 								src={suggestionCards[activeIndex].image}
 								alt={suggestionCards[activeIndex].name}
@@ -721,24 +766,33 @@
 		</div>
 
 		{#if !inputText}
-			<div class="glassmorphic-search-container" in:fade={{ duration: 150 }}>
+			<div
+				class="glassmorphic-search-container"
+				in:fade={{ duration: 150 }}
+			>
 				<button
 					type="button"
 					class="glass-search-bar"
-					onclick={() => isCommanderSearchOpen = true}
+					onclick={() => (isCommanderSearchOpen = true)}
 				>
 					<Search class="search-bar-icon" size={16} />
-					<span class="placeholder">Search for Commander...</span>
+					<span class="placeholder">Search for a Commander...</span>
 				</button>
 			</div>
 		{/if}
 
-		<CommanderSearchPanel bind:isOpen={isCommanderSearchOpen} onClose={() => {}} />
+		<CommanderSearchPanel
+			bind:isOpen={isCommanderSearchOpen}
+			onClose={() => {}}
+		/>
 
 		{#if inputText.trim().length > 0 && !isPasting && (isUsefulSearch || totalQty > 0)}
 			<div class="actions-row" in:fade={{ duration: 150 }}>
 				{#if showErrorPopover && unrecognizedNames.length > 0}
-					<div class="error-popover" transition:fade={{ duration: 100 }}>
+					<div
+						class="error-popover"
+						transition:fade={{ duration: 100 }}
+					>
 						<div class="popover-header">Unrecognized Cards</div>
 						<ul class="popover-list">
 							{#each unrecognizedNames as name}
@@ -756,27 +810,36 @@
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<span
 								class="warning-indicator"
-								onclick={(e) => { e.stopPropagation(); showErrorPopover = !showErrorPopover; }}
+								onclick={(e) => {
+									e.stopPropagation();
+									showErrorPopover = !showErrorPopover;
+								}}
 								style="cursor: pointer; margin-left: 6px;"
 								title="Click to see unrecognized cards"
 							>
 								⚠️ {unrecognizedCount} unrecognized
 							</span>
 						{:else}
-							{totalQty} {totalQty === 1 ? 'card' : 'cards'}
+							{totalQty} {totalQty === 1 ? "card" : "cards"}
 						{/if}
 					</span>
 				{/if}
 				{#if isUsefulSearch}
 					{#if searchCount >= 500 && !showLargeSearchOverride}
 						<span class="stats-indicator">
-							<span class="warning-indicator" style="margin-right: 6px;">
+							<span
+								class="warning-indicator"
+								style="margin-right: 6px;"
+							>
 								⚠️ Matches {searchCount} cards
 							</span>
 						</span>
 						<button
 							class="primary-btn search-btn warning-btn"
-							onclick={() => { showLargeSearchOverride = true; handleSearch(); }}
+							onclick={() => {
+								showLargeSearchOverride = true;
+								handleSearch();
+							}}
 						>
 							<Search size={14} style="margin-right: 6px;" />
 							Search anyway
@@ -791,13 +854,15 @@
 						</button>
 					{/if}
 				{:else if !isSearch}
-					<button 
-						class="primary-btn save-btn" 
+					<button
+						class="primary-btn save-btn"
 						class:warning-btn={unrecognizedCount > 0}
 						onclick={handleSave}
 					>
 						<Save size={14} style="margin-right: 6px;" />
-						{unrecognizedCount > 0 ? 'Save anyway (ignore unrecognized)' : 'Save & Continue'}
+						{unrecognizedCount > 0
+							? "Save anyway (ignore unrecognized)"
+							: "Save & Continue"}
 					</button>
 				{/if}
 				<span class="shortcut-tip">
@@ -934,7 +999,7 @@
 		cursor: pointer;
 		text-align: left;
 		transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-		box-shadow: 
+		box-shadow:
 			0 4px 30px rgba(0, 0, 0, 0.1),
 			inset 0 1px 0.5px rgba(255, 255, 255, 0.05);
 		outline: none;
@@ -945,7 +1010,7 @@
 		border-color: hsla(var(--primary) / 0.4);
 		color: #ffffff;
 		transform: translateY(-1px);
-		box-shadow: 
+		box-shadow:
 			0 8px 32px rgba(0, 0, 0, 0.25),
 			0 0 0 1px hsla(var(--primary) / 0.2),
 			inset 0 1px 0.5px rgba(255, 255, 255, 0.1);
