@@ -22,6 +22,14 @@
 	let isSearching = $state(false);
 	/** @type {any[]} */
 	let results = $state([]);
+	/** @type {HTMLInputElement | null} */
+	let searchInputEl = $state(null);
+
+	$effect(() => {
+		if (isOpen && searchInputEl) {
+			setTimeout(() => searchInputEl?.focus(), 50);
+		}
+	});
 
 	const colors = [
 		{ id: "W", name: "white", label: "White" },
@@ -85,7 +93,7 @@
 	function handleSelectCommander(/** @type {any} */ card) {
 		deckStore.batchUpdate(() => {
 			// Clear existing commander
-			deckStore.commander = [];
+			deckStore.deck.commander = [];
 			// Add new commander
 			deckStore.addCard(card.name, 'commander', card.price || 0, card);
 			// Update format if set to None or List
@@ -143,11 +151,11 @@
 				<div class="search-input-wrapper">
 					<Search class="search-icon" size={16} />
 					<input
+						bind:this={searchInputEl}
 						type="text"
 						placeholder="Search legendary creatures & planeswalkers..."
 						bind:value={searchQuery}
 						oninput={performSearch}
-						autofocus
 					/>
 				</div>
 
