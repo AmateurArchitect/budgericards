@@ -718,6 +718,21 @@
 			{/if}
 		</div>
 
+		{#if !inputText}
+			<div class="suggestion-actions" in:fade={{ duration: 150 }}>
+				<button
+					type="button"
+					class="suggestion-btn"
+					onclick={() => {
+						inputText = "/t:legendary t:creature";
+						textareaEl?.focus();
+					}}
+				>
+					Search for Commander
+				</button>
+			</div>
+		{/if}
+
 		{#if inputText.trim().length > 0 && !isPasting && (isUsefulSearch || (totalQty - unrecognizedCount > 0))}
 			<div class="actions-row" in:fade={{ duration: 150 }}>
 				{#if showErrorPopover && unrecognizedNames.length > 0}
@@ -885,8 +900,33 @@
 	.description {
 		margin: 0;
 		font-size: 0.95rem;
-		line-height: 1.33;
+		line-height: 1.5;
 		color: hsl(var(--muted-foreground));
+	}
+
+	.suggestion-actions {
+		display: flex;
+		justify-content: center;
+		margin-top: 1.5rem;
+		width: 100%;
+	}
+
+	.suggestion-btn {
+		background: hsl(var(--muted) / 0.1);
+		border: 1px solid hsl(var(--border) / 0.5);
+		color: hsl(var(--muted-foreground));
+		padding: 0.5rem 1rem;
+		border-radius: var(--radius-md);
+		font-size: 0.85rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.suggestion-btn:hover {
+		background: hsl(var(--accent));
+		color: hsl(var(--accent-foreground));
+		border-color: hsl(var(--border));
 	}
 
 	.description .highlight {
