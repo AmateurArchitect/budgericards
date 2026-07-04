@@ -46,7 +46,7 @@
 		return q.trim();
 	});
 
-	const isUsefulSearch = $derived(isSearch && cleanSearchQuery.length >= 3);
+	const isUsefulSearch = $derived(isSearch && cleanSearchQuery.length >= 3 && !/[:><=]$/.test(cleanSearchQuery));
 
 	let searchCount = $state(0);
 	let showLargeSearchOverride = $state(false);
