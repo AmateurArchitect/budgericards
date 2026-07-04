@@ -9,11 +9,13 @@
 	import { Search, Save } from "lucide-svelte";
 
 	import DeckOptionsModal from "./DeckOptionsModal.svelte";
+	import CommanderSearchPanel from "./CommanderSearchPanel.svelte";
 	import { parseDecklist } from "$lib/utils/decklistParser.js";
 	import { getCardByName, runLocalSearch, isPrintingQuery } from "$lib/localSearch";
 
 	let dropZoneActive = $state(false);
 	let showDeckOptionsModal = $state(false);
+	let isCommanderSearchOpen = $state(false);
 	/** @type {HTMLElement | null} */
 	let headerEl = $state(null);
 	/** @type {HTMLTextAreaElement | null} */
@@ -719,19 +721,19 @@
 		</div>
 
 		{#if !inputText}
-			<div class="suggestion-actions" in:fade={{ duration: 150 }}>
+			<div class="glassmorphic-search-container" in:fade={{ duration: 150 }}>
 				<button
 					type="button"
-					class="suggestion-btn"
-					onclick={() => {
-						inputText = "/t:legendary t:creature";
-						textareaEl?.focus();
-					}}
+					class="glass-search-bar"
+					onclick={() => isCommanderSearchOpen = true}
 				>
-					Search for Commander
+					<Search class="search-bar-icon" size={16} />
+					<span class="placeholder">Search for Commander...</span>
 				</button>
 			</div>
 		{/if}
+
+		<CommanderSearchPanel bind:isOpen={isCommanderSearchOpen} onClose={() => {}} />
 
 		{#if inputText.trim().length > 0 && !isPasting && (isUsefulSearch || (totalQty - unrecognizedCount > 0))}
 			<div class="actions-row" in:fade={{ duration: 150 }}>
@@ -904,29 +906,61 @@
 		color: hsl(var(--muted-foreground));
 	}
 
-	.suggestion-actions {
+	.glassmorphic-search-container {
 		display: flex;
 		justify-content: center;
-		margin-top: 1.5rem;
+		margin-top: 2.5rem;
 		width: 100%;
+		max-width: 500px;
+		margin-left: auto;
+		margin-right: auto;
 	}
 
-	.suggestion-btn {
-		background: hsl(var(--muted) / 0.1);
-		border: 1px solid hsl(var(--border) / 0.5);
+	.glass-search-bar {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		width: 100%;
+		height: 3rem;
+		padding: 0 1.25rem;
+		background: hsla(var(--popover-foreground) / 0.03);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		border: 1px solid hsla(var(--border) / 0.4);
+		border-radius: var(--radius-lg);
 		color: hsl(var(--muted-foreground));
-		padding: 0.5rem 1rem;
-		border-radius: var(--radius-md);
-		font-size: 0.85rem;
-		font-weight: 500;
 		cursor: pointer;
-		transition: all 0.2s ease;
+		text-align: left;
+		transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+		box-shadow: 
+			0 4px 30px rgba(0, 0, 0, 0.1),
+			inset 0 1px 0.5px rgba(255, 255, 255, 0.05);
+		outline: none;
 	}
 
-	.suggestion-btn:hover {
-		background: hsl(var(--accent));
-		color: hsl(var(--accent-foreground));
-		border-color: hsl(var(--border));
+	.glass-search-bar:hover {
+		background: hsla(var(--popover-foreground) / 0.06);
+		border-color: hsla(var(--primary) / 0.4);
+		color: #ffffff;
+		transform: translateY(-1px);
+		box-shadow: 
+			0 8px 32px rgba(0, 0, 0, 0.25),
+			0 0 0 1px hsla(var(--primary) / 0.2),
+			inset 0 1px 0.5px rgba(255, 255, 255, 0.1);
+	}
+
+	.glass-search-bar .placeholder {
+		font-size: 0.9rem;
+		font-weight: 500;
+	}
+
+	:global(.glass-search-bar .search-bar-icon) {
+		color: hsl(var(--muted-foreground));
+		transition: color 0.2s ease;
+	}
+
+	.glass-search-bar:hover :global(.search-bar-icon) {
+		color: hsl(var(--primary));
 	}
 
 	.description .highlight {
