@@ -94,7 +94,7 @@
 	function handleSelectCommander(/** @type {any} */ card) {
 		deckStore.batchUpdate(() => {
 			// Clear existing commander
-			deckStore.deck.commander = [];
+			deckStore.commander = [];
 			// Add new commander
 			deckStore.addCard(card.name, 'commander', card.price || 0, card);
 			// Update format if set to None or List

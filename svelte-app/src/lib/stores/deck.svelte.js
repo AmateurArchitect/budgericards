@@ -1371,6 +1371,7 @@ function createDeck() {
 		set lastNaturalGrouping(val) { activeDeck.deck.lastNaturalGrouping = val; persist(activeDeck); },
 
 		get commander() { return activeDeck.deck.commander; },
+		set commander(val) { saveHistory(activeDeck); activeDeck.deck.commander = val; persist(activeDeck); },
 		get companion() { return activeDeck.deck.companion; },
 		get mainboard() { return activeDeck.deck.mainboard; },
 		get sideboard() { return activeDeck.deck.sideboard; },
