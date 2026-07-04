@@ -4,7 +4,7 @@
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 
 	/** @type {{ card: any, price: number | null, zone?: string, inSearchPanel?: boolean, disableTooltip?: boolean, onclick?: (e: MouseEvent | KeyboardEvent) => void, class?: string, style?: string, children: import('svelte').Snippet<[any]> }} */
-	let { card, price, zone, inSearchPanel = false, disableTooltip = false, onclick = null, class: className = "", style = "", children } = $props();
+	let { card, price, zone, inSearchPanel = false, disableTooltip = false, onclick = undefined, class: className = "", style = "", children } = $props();
 
 	const meta = $derived(card.type_line ? card : (deckStore.metadata[card.name?.toLowerCase()] || card));
 

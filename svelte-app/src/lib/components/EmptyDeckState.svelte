@@ -735,7 +735,7 @@
 
 		<CommanderSearchPanel bind:isOpen={isCommanderSearchOpen} onClose={() => {}} />
 
-		{#if inputText.trim().length > 0 && !isPasting && (isUsefulSearch || (totalQty - unrecognizedCount > 0))}
+		{#if inputText.trim().length > 0 && !isPasting && (isUsefulSearch || totalQty > 0)}
 			<div class="actions-row" in:fade={{ duration: 150 }}>
 				{#if showErrorPopover && unrecognizedNames.length > 0}
 					<div class="error-popover" transition:fade={{ duration: 100 }}>

@@ -4,7 +4,7 @@
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 
 	/** @type {{ card: any, price: number | null, inSearchPanel?: boolean, index?: number, onclick?: (e: MouseEvent | KeyboardEvent) => void }} */
-	let { card, price, inSearchPanel = false, index = 0, onclick = null } = $props();
+	let { card, price, inSearchPanel = false, index = 0, onclick = undefined } = $props();
 
 	const priceDisplay = $derived(
 		price !== null ? `$${Number(price).toFixed(2)}` : "Illegal",
