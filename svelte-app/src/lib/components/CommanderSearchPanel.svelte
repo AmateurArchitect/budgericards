@@ -233,8 +233,8 @@
 					</div>
 				{:else}
 					<div class="results-grid">
-						{#each results as card, i}
-							<button class="card-result-btn" onclick={() => handleSelectCommander(card)}>
+						{#each results as card, i (card.id || card.name)}
+							<button class="card-result-btn" style="--i: {i}" onclick={() => handleSelectCommander(card)}>
 								<Card {card} price={priceStore.getPrice(card.name)} inSearchPanel={true} index={i} />
 							</button>
 						{/each}
@@ -442,7 +442,24 @@
 		overflow-y: hidden;
 		padding: 1rem 1.5rem 1.5rem 1.5rem;
 		background: hsl(var(--background) / 0.3);
-		min-height: calc(var(--card-height, 220px) + 2rem + 6px);
+		min-height: calc(var(--card-height, 220px) + 2.5rem + 6px);
+	}
+
+	.panel-results::-webkit-scrollbar {
+		height: 6px;
+	}
+
+	.panel-results::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.panel-results::-webkit-scrollbar-thumb {
+		background: hsl(var(--border));
+		border-radius: var(--radius-sm);
+	}
+
+	.panel-results::-webkit-scrollbar-thumb:hover {
+		background: hsl(var(--muted-foreground) / 0.5);
 	}
 
 	.loading-state,
@@ -479,11 +496,28 @@
 		outline: none;
 		flex-shrink: 0;
 		width: var(--card-width);
+
+		/* Staggered entry animation */
+		opacity: 0;
+		transform: translateY(10px);
+		animation: card-pop-in 450ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+		animation-delay: calc(var(--i) * 50ms);
 	}
 
 	.card-result-btn :global(.card-container) {
 		width: var(--card-width) !important;
 		flex-shrink: 0;
+	}
+
+	@keyframes card-pop-in {
+		0% {
+			opacity: 0;
+			transform: scale(0.95) translateY(10px);
+		}
+		100% {
+			opacity: 1;
+			transform: scale(1) translateY(0);
+		}
 	}
 
 	@keyframes spin {
