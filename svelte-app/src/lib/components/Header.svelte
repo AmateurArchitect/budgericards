@@ -30,6 +30,7 @@
 	import SearchOptionsModal from "./SearchOptionsModal.svelte";
 	import ViewOptionsModal from "./ViewOptionsModal.svelte";
 	import DisplayNamePromptModal from "./DisplayNamePromptModal.svelte";
+	import ConfirmModal from "./ConfirmModal.svelte";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/stores";
@@ -413,6 +414,7 @@
 
 <ViewOptionsModal bind:isOpen={showViewOptionsModal} triggerElement={null} />
 <DisplayNamePromptModal />
+<ConfirmModal />
 
 {#if showAboutModal}
 	<div 

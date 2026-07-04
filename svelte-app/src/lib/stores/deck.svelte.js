@@ -7,6 +7,7 @@ import { db } from '$lib/db';
 import { parseDecklist } from '$lib/utils/decklistParser.js';
 import { untrack } from 'svelte';
 import { toastStore } from '$lib/stores/toast.svelte.js';
+import { confirmStore } from '$lib/stores/confirm.svelte.js';
 
 const browser = typeof window !== 'undefined';
 let initialSyncComplete = $state(false);
@@ -2306,12 +2307,11 @@ function createDeck() {
 			}
 
 			if (unrecognizedList.length > 0 && typeof window !== "undefined") {
-				const proceed = window.confirm(
-					`Warning: The following ${unrecognizedList.length} card(s) are unrecognized and will not be saved:\n\n` +
-					unrecognizedList.slice(0, 10).map(name => `• ${name}`).join("\n") +
-					(unrecognizedList.length > 10 ? `\n...and ${unrecognizedList.length - 10} more` : "") +
-					`\n\nWould you like to save the rest of the deck?`
-				);
+				const proceed = await confirmStore.show({
+					title: 'Unrecognized Cards',
+					message: `Warning: The following ${unrecognizedList.length} card(s) are unrecognized and will not be saved:`,
+					list: unrecognizedList
+				});
 				if (!proceed) {
 					return false;
 				}
