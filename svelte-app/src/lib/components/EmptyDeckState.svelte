@@ -11,6 +11,7 @@
 	import DeckOptionsModal from "./DeckOptionsModal.svelte";
 	import CommanderSearchPanel from "./CommanderSearchPanel.svelte";
 	import { parseDecklist } from "$lib/utils/decklistParser.js";
+	import { batchProcess } from "$lib/utils/promise.js";
 	import {
 		getCardByName,
 		runLocalSearch,
@@ -295,23 +296,29 @@
 
 		const checkUnrecognized = async () => {
 			const parsed = parseDecklist(val);
-			let unrecognized = 0;
-			const unrecNames = [];
 			const activeLineText = lines[activeLineIndex] || "";
 			const activeCardName =
 				getCardNameFromLine(activeLineText).toLowerCase();
 
-			for (const pc of parsed) {
-				if (pc.name) {
-					const nameLow = pc.name.toLowerCase();
+			const results = await batchProcess(parsed, 100, async (pc) => {
+				if (!pc.name) return { name: null, match: null };
+				try {
 					const match = await getCardByName(pc.name);
-					if (!match) {
-						if (nameLow === activeCardName) {
-							continue;
-						}
-						unrecognized++;
-						unrecNames.push(pc.name);
+					return { name: pc.name, match };
+				} catch (err) {
+					return { name: pc.name, match: null };
+				}
+			});
+
+			let unrecognized = 0;
+			const unrecNames = [];
+			for (const res of results) {
+				if (res.name && !res.match) {
+					if (res.name.toLowerCase() === activeCardName) {
+						continue;
 					}
+					unrecognized++;
+					unrecNames.push(res.name);
 				}
 			}
 			unrecognizedCount = unrecognized;
@@ -488,19 +495,17 @@
 
 		isPasting = true;
 		try {
-			let hasValidCards = false;
-			let hasUnrecognized = false;
-
-			for (const pc of parsed) {
-				if (pc.name) {
-					const match = await getCardByName(pc.name);
-					if (match) {
-						hasValidCards = true;
-					} else {
-						hasUnrecognized = true;
-					}
+			const matches = await batchProcess(parsed, 100, async (pc) => {
+				if (!pc.name) return null;
+				try {
+					return await getCardByName(pc.name);
+				} catch (err) {
+					return null;
 				}
-			}
+			});
+
+			const hasValidCards = matches.some(match => match !== null);
+			const hasUnrecognized = matches.some((match, index) => parsed[index].name && match === null);
 
 			if (hasValidCards && !hasUnrecognized) {
 				e.preventDefault();

@@ -5,6 +5,7 @@ import { syncService } from '$lib/syncService';
 import { getCardByName } from '$lib/localSearch';
 import { db } from '$lib/db';
 import { parseDecklist } from '$lib/utils/decklistParser.js';
+import { batchProcess } from '$lib/utils/promise.js';
 import { untrack } from 'svelte';
 import { toastStore } from '$lib/stores/toast.svelte.js';
 import { confirmStore } from '$lib/stores/confirm.svelte.js';
@@ -2291,22 +2292,34 @@ function createDeck() {
 			const hasTabs = activeDeck.importText.includes('\t');
 			const parsedCards = parseDecklist(activeDeck.importText);
 
-			// Check for unrecognized card names in IndexedDB
 			const unrecognizedList = [];
 			const recognizedParsedCards = [];
-			for (const pc of parsedCards) {
+
+			const results = await batchProcess(parsedCards, 100, async (pc) => {
 				if (pc.scryfallId || (pc.set && pc.collector_number && !pc.name)) {
-					recognizedParsedCards.push(pc);
-					continue;
+					return { type: 'skipped', pc };
 				}
 				if (pc.name) {
-					const match = await getCardByName(pc.name);
-					if (match) {
-						pc.name = match.name;
-						recognizedParsedCards.push(pc);
-					} else {
-						unrecognizedList.push(pc.name);
+					try {
+						const match = await getCardByName(pc.name);
+						if (match) {
+							pc.name = match.name;
+							return { type: 'recognized', pc };
+						}
+					} catch (err) {
+						// Fall through to unrecognized
 					}
+					return { type: 'unrecognized', pc };
+				}
+				return null;
+			});
+
+			for (const res of results) {
+				if (!res) continue;
+				if (res.type === 'skipped' || res.type === 'recognized') {
+					recognizedParsedCards.push(res.pc);
+				} else if (res.type === 'unrecognized') {
+					unrecognizedList.push(res.pc.name);
 				}
 			}
 
