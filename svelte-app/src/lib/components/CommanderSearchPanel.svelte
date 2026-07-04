@@ -7,6 +7,7 @@
 	import Card from "./Card.svelte";
 	import Button from "./ui/Button.svelte";
 	import { priceStore } from "$lib/stores/prices.svelte.js";
+	import { layoutStore } from "$lib/stores/layout.svelte.js";
 
 	/**
 	 * @typedef {Object} Props
@@ -162,6 +163,7 @@
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="commander-panel-title"
+			style={Object.entries(layoutStore.cssVariables).map(([k, v]) => `${k}: ${v}`).join("; ")}
 			in:slide={{ duration: 250, axis: 'y' }}
 			out:slide={{ duration: 200, axis: 'y' }}
 		>
@@ -279,6 +281,12 @@
 		flex-direction: column;
 		overflow: hidden;
 		padding-bottom: env(safe-area-inset-bottom, 0);
+
+		/* Layout fallbacks to ensure height is never 0 even if Svelte transitions reset the style attribute */
+		--card-width: clamp(120px, min((100vw - 200px) / 7, 23.5vh), 240px);
+		--card-height: calc(var(--card-width) * 3.5 / 2.5);
+		--column-gap: 24px;
+		--base-margin: 20px;
 	}
 
 	.panel-header {
@@ -434,7 +442,7 @@
 		overflow-y: hidden;
 		padding: 1rem 1.5rem 1.5rem 1.5rem;
 		background: hsl(var(--background) / 0.3);
-		min-height: calc(var(--card-height) + 2rem + 6px);
+		min-height: calc(var(--card-height, 220px) + 2rem + 6px);
 	}
 
 	.loading-state,
