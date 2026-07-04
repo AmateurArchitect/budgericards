@@ -37,13 +37,14 @@
 		}
 	});
 
-	const colors = [
-		{ id: "W", name: "white", label: "White" },
-		{ id: "U", name: "blue", label: "Blue" },
-		{ id: "B", name: "black", label: "Black" },
-		{ id: "R", name: "red", label: "Red" },
-		{ id: "G", name: "green", label: "Green" }
-	];
+ 	const colors = [
+ 		{ id: "W", name: "white", label: "White" },
+ 		{ id: "U", name: "blue", label: "Blue" },
+ 		{ id: "B", name: "black", label: "Black" },
+ 		{ id: "R", name: "red", label: "Red" },
+ 		{ id: "G", name: "green", label: "Green" },
+ 		{ id: "C", name: "colorless", label: "Colorless" }
+ 	];
 
 	function getIconPath(/** @type {string} */ name, /** @type {boolean} */ active) {
 		const state = active ? "selected" : "unselected";
@@ -51,10 +52,19 @@
 	}
 
 	function toggleColor(/** @type {string} */ colorId) {
-		if (selectedColors.includes(colorId)) {
-			selectedColors = selectedColors.filter(c => c !== colorId);
+		if (colorId === "C") {
+			if (selectedColors.includes("C")) {
+				selectedColors = [];
+			} else {
+				selectedColors = ["C"];
+			}
 		} else {
-			selectedColors = [...selectedColors, colorId];
+			const cleanColors = selectedColors.filter(c => c !== "C");
+			if (cleanColors.includes(colorId)) {
+				selectedColors = cleanColors.filter(c => c !== colorId);
+			} else {
+				selectedColors = [...cleanColors, colorId];
+			}
 		}
 	}
 
@@ -132,8 +142,14 @@
 				}
 
 				if (selectedColors.length > 0) {
-					const isSubset = card.identity?.every(c => selectedColors.includes(c));
-					if (!isSubset) return false;
+					const identity = card.identity || [];
+					if (selectedColors.includes("C")) {
+						if (identity.length > 0) return false;
+					} else {
+						if (identity.length !== selectedColors.length) return false;
+						const hasAll = identity.every(c => selectedColors.includes(c));
+						if (!hasAll) return false;
+					}
 				}
 
 				return true;
@@ -476,6 +492,7 @@
 	.color-btn.active.color-black { filter: drop-shadow(0 0 4px rgba(160, 140, 190, 0.5)); }
 	.color-btn.active.color-red { filter: drop-shadow(0 0 4px rgba(255, 130, 100, 0.65)); }
 	.color-btn.active.color-green { filter: drop-shadow(0 0 4px rgba(130, 220, 140, 0.65)); }
+	.color-btn.active.color-colorless { filter: drop-shadow(0 0 4px rgba(200, 200, 200, 0.65)); }
 
 	.format-select {
 		height: 2.25rem;
