@@ -907,13 +907,15 @@
 	}
 
 	.glassmorphic-search-container {
+		position: absolute;
+		bottom: 2rem;
+		left: 50%;
+		transform: translateX(-50%);
 		display: flex;
 		justify-content: center;
-		margin-top: 2.5rem;
-		width: 100%;
+		width: calc(100% - 3.5rem);
 		max-width: 500px;
-		margin-left: auto;
-		margin-right: auto;
+		z-index: 10;
 	}
 
 	.glass-search-bar {

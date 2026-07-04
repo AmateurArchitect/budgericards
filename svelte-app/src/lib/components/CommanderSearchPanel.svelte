@@ -6,6 +6,7 @@
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import Card from "./Card.svelte";
 	import Button from "./ui/Button.svelte";
+	import { priceStore } from "$lib/stores/prices.svelte.js";
 
 	/**
 	 * @typedef {Object} Props
@@ -207,7 +208,7 @@
 					<div class="results-grid">
 						{#each results as card, i}
 							<button class="card-result-btn" onclick={() => handleSelectCommander(card)}>
-								<Card {card} price={card.price} inSearchPanel={true} index={i} />
+								<Card {card} price={priceStore.getPrice(card.name)} inSearchPanel={true} index={i} />
 							</button>
 						{/each}
 					</div>
@@ -404,9 +405,11 @@
 
 	.panel-results {
 		flex: 1;
-		overflow-y: auto;
-		padding: 1.5rem;
+		overflow-x: auto;
+		overflow-y: hidden;
+		padding: 1rem 1.5rem 1.5rem 1.5rem;
 		background: hsl(var(--background) / 0.3);
+		min-height: calc(var(--card-height) + 2rem + 6px);
 	}
 
 	.loading-state,
@@ -428,9 +431,10 @@
 	}
 
 	.results-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-		gap: 1rem;
+		display: flex;
+		gap: var(--column-gap, 0.75rem);
+		align-items: flex-start;
+		overflow-x: visible;
 	}
 
 	.card-result-btn {
@@ -439,14 +443,14 @@
 		padding: 0;
 		margin: 0;
 		cursor: pointer;
-		text-align: left;
 		outline: none;
-		width: 100%;
+		flex-shrink: 0;
+		width: var(--card-width);
 	}
 
 	.card-result-btn :global(.card-container) {
-		width: 100% !important;
-		aspect-ratio: 2.5 / 3.5;
+		width: var(--card-width) !important;
+		flex-shrink: 0;
 	}
 
 	@keyframes spin {
