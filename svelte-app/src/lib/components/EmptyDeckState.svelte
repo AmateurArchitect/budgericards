@@ -125,6 +125,7 @@
 	});
 
 	let suggestions = $state(/** @type {string[]} */ ([]));
+	let suggestionCards = $state(/** @type {any[]} */ ([]));
 	let activeIndex = $state(0);
 	let isMac = $state(false);
 	let placeholderIndex = $state(0);
@@ -182,10 +183,13 @@
 				const otherMatches = matches.filter(m => m.name.toLowerCase() !== cleanQuery.toLowerCase());
 				if (matches.length >= 10) {
 					suggestions = [];
+					suggestionCards = [];
 				} else if (exactMatch && otherMatches.length === 0) {
 					suggestions = [];
+					suggestionCards = [];
 				} else {
-					suggestions = [...new Set(matches.map((m) => m.name))];
+					suggestionCards = matches;
+					suggestions = matches.map((m) => m.name);
 				}
 				activeIndex = 0;
 			} catch (err) {
@@ -280,6 +284,7 @@
 		lines[lines.length - 1] = prefix + name;
 		inputText = lines.join("\n") + "\n";
 		suggestions = [];
+		suggestionCards = [];
 		textareaEl?.focus();
 	}
 
@@ -492,6 +497,7 @@
 			} else if (e.key === "Escape") {
 				e.preventDefault();
 				suggestions = [];
+				suggestionCards = [];
 			}
 		} else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
 			e.preventDefault();
@@ -633,23 +639,34 @@
 			{/if}
 
 			{#if suggestions.length > 0}
-				<ul
-					class="autocomplete-suggestions"
+				<div
+					class="autocomplete-container"
 					style={`top: calc(1rem + (${inputText.split(/\r?\n/).length} * 1.425rem) + 4px);`}
 					transition:fade={{ duration: 100 }}
 				>
-					{#each suggestions as sug, i}
-						<li class:active={i === activeIndex}>
-							<button
-								onclick={() => addSingleCard(sug)}
-								type="button"
-								tabindex="-1"
-							>
-								{sug}
-							</button>
-						</li>
-					{/each}
-				</ul>
+					<ul class="autocomplete-suggestions">
+						{#each suggestions as sug, i}
+							<li class:active={i === activeIndex} onmouseenter={() => activeIndex = i}>
+								<button
+									onclick={() => addSingleCard(sug)}
+									type="button"
+									tabindex="-1"
+								>
+									{sug}
+								</button>
+							</li>
+						{/each}
+					</ul>
+					{#if suggestionCards[activeIndex] && suggestionCards[activeIndex].image}
+						<div class="card-preview-panel" transition:fade={{ duration: 100 }}>
+							<img
+								src={suggestionCards[activeIndex].image}
+								alt={suggestionCards[activeIndex].name}
+								class="preview-card-img"
+							/>
+						</div>
+					{/if}
+				</div>
 			{/if}
 		</div>
 
@@ -943,10 +960,19 @@
 		opacity: 0.1;
 	}
 
-	.autocomplete-suggestions {
+	.autocomplete-container {
 		position: absolute;
 		left: 0;
-		width: 100%;
+		width: fit-content;
+		display: flex;
+		align-items: flex-start;
+		gap: 0.75rem;
+		z-index: 50;
+		pointer-events: auto;
+	}
+
+	.autocomplete-suggestions {
+		width: 280px;
 		background: hsl(var(--popover) / 0.85);
 		backdrop-filter: blur(12px);
 		-webkit-backdrop-filter: blur(12px);
@@ -959,7 +985,22 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.15rem;
-		z-index: 50;
+	}
+
+	.card-preview-panel {
+		width: 172px;
+		height: 240px;
+		border-radius: 10px;
+		overflow: hidden;
+		box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+		background: hsl(var(--card));
+		border: 1px solid hsl(var(--border) / 0.5);
+	}
+
+	.preview-card-img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
 	}
 
 	.autocomplete-suggestions li {
