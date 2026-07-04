@@ -176,11 +176,13 @@
 				const matches = await db.cards
 					.where("name")
 					.startsWithIgnoreCase(cleanQuery)
-					.limit(5)
+					.limit(10)
 					.toArray();
 				const exactMatch = matches.find(m => m.name.toLowerCase() === cleanQuery.toLowerCase());
 				const otherMatches = matches.filter(m => m.name.toLowerCase() !== cleanQuery.toLowerCase());
-				if (exactMatch && otherMatches.length === 0) {
+				if (matches.length >= 10) {
+					suggestions = [];
+				} else if (exactMatch && otherMatches.length === 0) {
 					suggestions = [];
 				} else {
 					suggestions = [...new Set(matches.map((m) => m.name))];
