@@ -16,6 +16,7 @@
 	let localDrafts = $state([]);
 	let isLoading = $state(false);
 	let error = $state("");
+	let hasLoaded = false;
 
 	async function loadDecks() {
 		if (!authStore.isAuthenticated && !authStore.isLoading) {
@@ -29,6 +30,7 @@
 			const { data, error: fetchError } = await syncService.fetchDecks();
 			if (fetchError) throw fetchError;
 			decks = data || [];
+			hasLoaded = true;
 		} catch (err) {
 			console.error("Failed to load decks:", err);
 			error = "Could not load synced decks. Please try again.";
@@ -53,7 +55,7 @@
 	});
 
 	$effect(() => {
-		if (authStore.isAuthenticated && decks.length === 0) {
+		if (authStore.isAuthenticated && !hasLoaded && !isLoading) {
 			loadDecks();
 		}
 	});
