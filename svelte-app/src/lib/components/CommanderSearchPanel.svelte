@@ -19,7 +19,11 @@
 
 	let searchQuery = $state("");
 	let selectedColors = $state(/** @type {string[]} */ ([]));
-	let selectedFormat = $state(deckStore.format || "Commander");
+	let selectedFormat = $state(
+		deckStore.format && deckStore.format !== "None" && deckStore.format !== "List"
+			? deckStore.format
+			: "Commander"
+	);
 	let isSearching = $state(false);
 	/** @type {any[]} */
 	let results = $state([]);
@@ -86,6 +90,10 @@
 
 	// Trigger search on input query or color filter change
 	$effect(() => {
+		// Explicitly read reactive dependencies so Svelte registers them
+		const _query = searchQuery;
+		const _colors = selectedColors;
+
 		if (isOpen) {
 			performSearch();
 		}
