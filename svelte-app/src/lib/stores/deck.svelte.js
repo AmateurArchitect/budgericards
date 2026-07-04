@@ -2083,6 +2083,7 @@ function createDeck() {
 					if (draft) {
 						activeDeckId = draft.id;
 						sessionStorage.setItem('budgericards_active_deck_id', draft.id);
+						loadedDecks[draft.id] = createDeckState(draft);
 						return;
 					}
 
@@ -2091,12 +2092,14 @@ function createDeck() {
 					if (cachedId) {
 						activeDeckId = cachedId;
 						sessionStorage.setItem('budgericards_active_deck_id', cachedId);
+						loadedDecks[cachedId] = createDeckState(cached[cachedId]);
 						return;
 					}
 				}
 
 				sessionStorage.setItem('budgericards_active_deck_id', id);
 				activeDeckId = id;
+				loadedDecks[id] = createDeckState({ id });
 			}
 		},
 

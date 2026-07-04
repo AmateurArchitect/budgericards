@@ -606,6 +606,9 @@
 					{deckStore.name && deckStore.name !== "Untitled Deck"
 						? deckStore.name
 						: "New Deck"}
+					{#if deckStore.format && deckStore.format !== 'None'}
+						<span class="format-badge">{deckStore.format}</span>
+					{/if}
 				</h2>
 			</button>
 			<p class="description">
@@ -869,6 +872,14 @@
 		text-decoration-style: dashed;
 		text-decoration-thickness: 1px;
 		text-underline-offset: 4px;
+	}
+
+	.format-badge {
+		font-size: 0.9rem;
+		font-weight: normal;
+		color: hsl(var(--muted-foreground));
+		margin-left: 0.65rem;
+		vertical-align: middle;
 	}
 
 	.description {
