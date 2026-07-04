@@ -74,6 +74,47 @@
 		};
 	}
 
+	/**
+	 * @param {any} a
+	 * @param {any} b
+	 * @returns {number}
+	 */
+	function compareCommanders(a, b) {
+		// 1. Color Identity Category (Standard MTG order W -> U -> B -> R -> G -> Gold -> Colorless)
+		/**
+		 * @param {any} card
+		 * @returns {number}
+		 */
+		const getColorsCat = (card) => {
+			const colorId = card.color_identity || card.identity || [];
+			if (colorId.length === 0) return 6; // Colorless
+			if (colorId.length > 1) return 5; // Gold / Multicolored
+			const monoOrder = /** @type {Record<string, number>} */ ({ W: 0, U: 1, B: 2, R: 3, G: 4 });
+			return monoOrder[colorId[0]] ?? 6;
+		};
+
+		const catA = getColorsCat(a);
+		const catB = getColorsCat(b);
+		if (catA !== catB) return catA - catB;
+
+		// If both are Gold/multicolored, sort by color combination string (e.g. WU, UB, etc.)
+		if (catA === 5) {
+			const colorOrder = /** @type {Record<string, number>} */ ({ W: 0, U: 1, B: 2, R: 3, G: 4 });
+			const aColors = [...(a.color_identity || a.identity || [])].sort((x, y) => colorOrder[x] - colorOrder[y]).join("");
+			const bColors = [...(b.color_identity || b.identity || [])].sort((x, y) => colorOrder[x] - colorOrder[y]).join("");
+			const colorComp = aColors.localeCompare(bColors);
+			if (colorComp !== 0) return colorComp;
+		}
+
+		// 2. Mana Value / CMC
+		const cmcA = a.cmc ?? 0;
+		const cmcB = b.cmc ?? 0;
+		if (cmcA !== cmcB) return cmcA - cmcB;
+
+		// 3. Alphabetical by name
+		return a.name.localeCompare(b.name);
+	}
+
 	async function performSearch() {
 		isSearching = true;
 		try {
@@ -100,7 +141,7 @@
 
 			results = filtered
 				.map(normalizeLocalCard)
-				.sort((a, b) => a.name.localeCompare(b.name));
+				.sort(compareCommanders);
 		} catch (err) {
 			console.error("Commander search failed:", err);
 		} finally {
