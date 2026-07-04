@@ -44,7 +44,9 @@
 			loadDecks();
 		}
 		if (typeof window !== "undefined") {
-			localDrafts = JSON.parse(localStorage.getItem("budgericards_local_drafts") || "[]");
+			localDrafts = JSON.parse(
+				localStorage.getItem("budgericards_local_drafts") || "[]",
+			);
 		}
 	});
 
@@ -108,12 +110,20 @@
 
 		try {
 			if (isDraft) {
-				let drafts = JSON.parse(localStorage.getItem("budgericards_local_drafts") || "[]");
-				drafts = drafts.filter(/** @param {any} d */ (d) => d.id !== deckId);
-				localStorage.setItem("budgericards_local_drafts", JSON.stringify(drafts));
+				let drafts = JSON.parse(
+					localStorage.getItem("budgericards_local_drafts") || "[]",
+				);
+				drafts = drafts.filter(
+					/** @param {any} d */ (d) => d.id !== deckId,
+				);
+				localStorage.setItem(
+					"budgericards_local_drafts",
+					JSON.stringify(drafts),
+				);
 				localDrafts = drafts;
 			} else {
-				const { error: deleteError } = await syncService.deleteDeck(deckId);
+				const { error: deleteError } =
+					await syncService.deleteDeck(deckId);
 				if (deleteError) throw deleteError;
 				decks = decks.filter((d) => d.id !== deckId);
 			}
@@ -128,7 +138,7 @@
 					sideboard: [],
 					maybeboard: [],
 					garbage: [],
-					coverArt: null
+					coverArt: null,
 				});
 			}
 		} catch (err) {
@@ -209,13 +219,13 @@
 		const cards = deck.cards || deck;
 		const metadata = cards.metadata || {};
 		const colorsSet = new Set();
-		
+
 		const allCardsList = [
 			...(cards.commander || []),
 			...(cards.companion || []),
 			...(cards.mainboard || []),
 			...(cards.sideboard || []),
-			...(cards.maybeboard || [])
+			...(cards.maybeboard || []),
 		];
 
 		for (const card of allCardsList) {
@@ -228,14 +238,20 @@
 		}
 
 		if (colorsSet.size === 0) return "Colorless";
-		
+
 		// Sort WUBRG order
 		const wubrg = ["W", "U", "B", "R", "G"];
-		const sorted = wubrg.filter(c => colorsSet.has(c));
+		const sorted = wubrg.filter((c) => colorsSet.has(c));
 		if (sorted.length === 0) return "Colorless";
 		if (sorted.length === 1) {
 			/** @type {Record<string, string>} */
-			const names = { "W": "White", "U": "Blue", "B": "Black", "R": "Red", "G": "Green" };
+			const names = {
+				W: "White",
+				U: "Blue",
+				B: "Black",
+				R: "Red",
+				G: "Green",
+			};
 			return names[sorted[0]] || sorted[0];
 		}
 		if (sorted.length === 5) return "Five-Color";
@@ -243,14 +259,16 @@
 	}
 
 	const allDecks = $derived.by(() => {
-		const mappedDrafts = localDrafts.map(d => ({
+		const mappedDrafts = localDrafts.map((d) => ({
 			...d,
 			isDraft: true,
-			updated_at: d.metadata?.updatedAt ? new Date(d.metadata.updatedAt).toISOString() : new Date().toISOString()
+			updated_at: d.metadata?.updatedAt
+				? new Date(d.metadata.updatedAt).toISOString()
+				: new Date().toISOString(),
 		}));
-		const mappedDecks = decks.map(d => ({
+		const mappedDecks = decks.map((d) => ({
 			...d,
-			isDraft: false
+			isDraft: false,
 		}));
 		return [...mappedDrafts, ...mappedDecks];
 	});
@@ -258,7 +276,11 @@
 	const sortedDecks = $derived.by(() => {
 		let list = [...allDecks];
 		if (sortBy === "updated") {
-			list.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+			list.sort(
+				(a, b) =>
+					new Date(b.updated_at).getTime() -
+					new Date(a.updated_at).getTime(),
+			);
 		} else if (sortBy === "name") {
 			list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 		} else if (sortBy === "cards") {
@@ -278,7 +300,9 @@
 
 		if (groupBy === "format") {
 			for (const deck of list) {
-				const format = deck.isDraft ? "Local Draft" : (deck.cards?.format || "Commander");
+				const format = deck.isDraft
+					? "Local Draft"
+					: deck.cards?.format || "Commander";
 				if (!groups[format]) groups[format] = [];
 				groups[format].push(deck);
 			}
@@ -290,11 +314,17 @@
 			}
 		}
 
-		return Object.entries(groups).map(([label, items]) => ({
-			key: label,
-			label,
-			items
-		})).sort((a, b) => b.items.length - a.items.length || a.label.localeCompare(b.label));
+		return Object.entries(groups)
+			.map(([label, items]) => ({
+				key: label,
+				label,
+				items,
+			}))
+			.sort(
+				(a, b) =>
+					b.items.length - a.items.length ||
+					a.label.localeCompare(b.label),
+			);
 	});
 
 	/** @param {any} deck */
@@ -302,13 +332,13 @@
 		const cards = deck.cards || deck;
 		const metadata = cards.metadata || {};
 		const colorsSet = new Set();
-		
+
 		const allCardsList = [
 			...(cards.commander || []),
 			...(cards.companion || []),
 			...(cards.mainboard || []),
 			...(cards.sideboard || []),
-			...(cards.maybeboard || [])
+			...(cards.maybeboard || []),
 		];
 
 		for (const card of allCardsList) {
@@ -321,7 +351,7 @@
 		}
 
 		const wubrg = ["W", "U", "B", "R", "G"];
-		return wubrg.filter(c => colorsSet.has(c));
+		return wubrg.filter((c) => colorsSet.has(c));
 	}
 
 	function handleNewDeckLink() {
@@ -334,7 +364,7 @@
 		<header class="page-header">
 			<div class="title-area">
 				<FolderOpen class="header-icon" size={20} />
-				<h1>Decks</h1>
+				<h1>Your Decks</h1>
 			</div>
 		</header>
 
@@ -347,7 +377,9 @@
 			{:else if error}
 				<div class="error-state">
 					<p>{error}</p>
-					<Button onclick={loadDecks} variant="outline">Try Again</Button>
+					<Button onclick={loadDecks} variant="outline"
+						>Try Again</Button
+					>
 				</div>
 			{:else if allDecks.length === 0}
 				<div class="empty-state">
@@ -376,7 +408,9 @@
 											: "hsl(var(--background))"}
 										stroke="currentColor"
 										stroke-width="1"
-										stroke-opacity={i === 12 ? "0.9" : "0.5"}
+										stroke-opacity={i === 12
+											? "0.9"
+											: "0.5"}
 									/>
 									{#if i === 12}
 										<!-- Design Details on the Top Card (MTG Card Back) -->
@@ -441,9 +475,24 @@
 						<div class="control-group">
 							<span class="control-label">Sort by:</span>
 							<div class="control-buttons">
-								<button class="control-btn" class:active={sortBy === 'updated'} onclick={() => sortBy = 'updated'}>Recent</button>
-								<button class="control-btn" class:active={sortBy === 'name'} onclick={() => sortBy = 'name'}>Name</button>
-								<button class="control-btn" class:active={sortBy === 'cards'} onclick={() => sortBy = 'cards'}>Cards</button>
+								<button
+									class="control-btn"
+									class:active={sortBy === "updated"}
+									onclick={() => (sortBy = "updated")}
+									>Recent</button
+								>
+								<button
+									class="control-btn"
+									class:active={sortBy === "name"}
+									onclick={() => (sortBy = "name")}
+									>Name</button
+								>
+								<button
+									class="control-btn"
+									class:active={sortBy === "cards"}
+									onclick={() => (sortBy = "cards")}
+									>Cards</button
+								>
 							</div>
 						</div>
 
@@ -451,9 +500,24 @@
 							<div class="control-group">
 								<span class="control-label">Group by:</span>
 								<div class="control-buttons">
-									<button class="control-btn" class:active={groupBy === 'none'} onclick={() => groupBy = 'none'}>None</button>
-									<button class="control-btn" class:active={groupBy === 'format'} onclick={() => groupBy = 'format'}>Format</button>
-									<button class="control-btn" class:active={groupBy === 'colors'} onclick={() => groupBy = 'colors'}>Colors</button>
+									<button
+										class="control-btn"
+										class:active={groupBy === "none"}
+										onclick={() => (groupBy = "none")}
+										>None</button
+									>
+									<button
+										class="control-btn"
+										class:active={groupBy === "format"}
+										onclick={() => (groupBy = "format")}
+										>Format</button
+									>
+									<button
+										class="control-btn"
+										class:active={groupBy === "colors"}
+										onclick={() => (groupBy = "colors")}
+										>Colors</button
+									>
 								</div>
 							</div>
 						{/if}
@@ -462,11 +526,16 @@
 
 				<section class="library-section">
 					{#each groupedDecks as group, groupIdx (group.key)}
-						<div class="group-container" class:has-title={!!group.label}>
+						<div
+							class="group-container"
+							class:has-title={!!group.label}
+						>
 							{#if group.label}
-								<h3 class="group-title">{group.label} ({group.items.length})</h3>
+								<h3 class="group-title">
+									{group.label} ({group.items.length})
+								</h3>
 							{/if}
-							
+
 							<div class="decks-grid">
 								{#if groupIdx === 0}
 									<div
@@ -475,18 +544,32 @@
 										tabindex="0"
 										onclick={handleNewDeckLink}
 										onkeydown={(e) => {
-											if (e.key === "Enter" || e.key === " ") {
+											if (
+												e.key === "Enter" ||
+												e.key === " "
+											) {
 												e.preventDefault();
 												handleNewDeckLink();
 											}
 										}}
 									>
-										<div class="deck-art-preview create-art-preview">
-											<PlusCircle class="create-icon" size={32} />
+										<div
+											class="deck-art-preview create-art-preview"
+										>
+											<PlusCircle
+												class="create-icon"
+												size={32}
+											/>
 										</div>
-										<div class="deck-details create-details">
-											<h3 class="deck-name">Create New Deck</h3>
-											<p class="deck-desc">Start building a fresh draft</p>
+										<div
+											class="deck-details create-details"
+										>
+											<h3 class="deck-name">
+												Create New Deck
+											</h3>
+											<p class="deck-desc">
+												Start building a fresh draft
+											</p>
 										</div>
 									</div>
 								{/if}
@@ -498,13 +581,19 @@
 										tabindex="0"
 										onclick={() => handleSelectDeck(deck)}
 										onkeydown={(e) => {
-											if (e.key === "Enter" || e.key === " ") {
+											if (
+												e.key === "Enter" ||
+												e.key === " "
+											) {
 												e.preventDefault();
 												handleSelectDeck(deck);
 											}
 										}}
 									>
-										<div class="deck-art-preview" class:draft-preview={deck.isDraft}>
+										<div
+											class="deck-art-preview"
+											class:draft-preview={deck.isDraft}
+										>
 											{#if getDeckCoverArt(deck)}
 												<img
 													src={getDeckCoverArt(deck)}
@@ -513,23 +602,45 @@
 													class:draft-img={deck.isDraft}
 												/>
 											{:else}
-												<div class="deck-art-fallback" class:draft-art-fallback={deck.isDraft}></div>
+												<div
+													class="deck-art-fallback"
+													class:draft-art-fallback={deck.isDraft}
+												></div>
 											{/if}
-											<div class="deck-badge" class:draft-badge={deck.isDraft}>
-												{deck.isDraft ? "Local Draft" : (deck.cards?.format || "Commander")}
+											<div
+												class="deck-badge"
+												class:draft-badge={deck.isDraft}
+											>
+												{deck.isDraft
+													? "Local Draft"
+													: deck.cards?.format ||
+														"Commander"}
 											</div>
 										</div>
 
 										<div class="deck-details">
-											<h3 class="deck-name">{deck.isDraft ? (deck.name || "Name & Save This Deck") : deck.name}</h3>
+											<h3 class="deck-name">
+												{deck.isDraft
+													? deck.name ||
+														"Name & Save This Deck"
+													: deck.name}
+											</h3>
 											<div class="deck-meta">
 												{#if getDeckManaSymbols(deck).length > 0}
-													<div class="deck-mana-symbols">
+													<div
+														class="deck-mana-symbols"
+													>
 														{#each getDeckManaSymbols(deck) as sym}
-															<ManaSymbol symbol={sym} size="0.75rem" className="ms-cost" />
+															<ManaSymbol
+																symbol={sym}
+																size="0.75rem"
+																className="ms-cost"
+															/>
 														{/each}
 													</div>
-													<span class="meta-dot">•</span>
+													<span class="meta-dot"
+														>•</span
+													>
 												{/if}
 												<span class="card-count"
 													>{getCardCount(deck)} Cards</span
@@ -537,7 +648,10 @@
 												<span class="meta-dot">•</span>
 												<span class="updated-time"
 													>Updated {formatUpdatedDate(
-														deck.isDraft ? deck.metadata?.updatedAt : deck.updated_at,
+														deck.isDraft
+															? deck.metadata
+																	?.updatedAt
+															: deck.updated_at,
 													)}</span
 												>
 											</div>
@@ -546,8 +660,15 @@
 										<div class="deck-actions">
 											<button
 												class="action-icon-btn delete-btn"
-												title={deck.isDraft ? "Delete Draft" : "Delete Deck"}
-												onclick={(e) => handleDeleteDeck(deck.id, e, deck.isDraft)}
+												title={deck.isDraft
+													? "Delete Draft"
+													: "Delete Deck"}
+												onclick={(e) =>
+													handleDeleteDeck(
+														deck.id,
+														e,
+														deck.isDraft,
+													)}
 											>
 												<Trash2 size={16} />
 											</button>
@@ -559,8 +680,8 @@
 					{/each}
 				</section>
 			{/if}
-	</main>
-</div>
+		</main>
+	</div>
 </div>
 
 <style>
@@ -749,7 +870,6 @@
 		transform: translateY(-2px);
 		box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
 	}
-
 
 	.deck-art-preview {
 		width: 100%;
