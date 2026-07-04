@@ -46,7 +46,21 @@ function isDefaultFrame(card) {
   if (!['black', 'white', 'silver'].includes(card.border_color)) return false;
   
   const effects = card.frame_effects || [];
-  if (effects.includes('showcase') || effects.includes('colorshifted') || effects.includes('futureshifted') || effects.includes('inverted') || effects.includes('extendedart')) return false;
+  if (
+    effects.includes('showcase') || 
+    effects.includes('colorshifted') || 
+    effects.includes('futureshifted') || 
+    effects.includes('inverted') || 
+    effects.includes('extendedart') ||
+    effects.includes('universesbeyond')
+  ) return false;
+  
+  if (card.security_stamp === 'triangle') return false;
+  
+  const ubSets = new Set([
+    'msc', '40k', 'ltr', 'ltc', 'who', 'pip', 'acr'
+  ]);
+  if (ubSets.has(card.set)) return false;
   
   if (card.full_art === true || card.textless === true || card.oversized === true || card.promo === true) return false;
   if (card.set_type === 'masterpiece') return false;
