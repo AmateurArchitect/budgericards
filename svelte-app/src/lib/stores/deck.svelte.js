@@ -115,7 +115,10 @@ function createDeckState(initialData = null) {
 	const isEmptyStateActive = $derived.by(() => {
 		if (!browser) return false;
 		if (authStore.isLoading) return false;
-		if (authStore.isAuthenticated && !initialSyncComplete) return false;
+		if (authStore.isAuthenticated && !initialSyncComplete) {
+			const isNewDraft = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('budgericards_is_new_draft') === 'true';
+			if (!isNewDraft) return false;
+		}
 		return !hasBeenPopulated;
 	});
 
