@@ -57,6 +57,22 @@
 		}
 	}
 
+	function normalizeLocalCard(/** @type {any} */ card) {
+		const localPrice = priceStore.getPrice(card.name);
+		return {
+			...card,
+			type_line:      card.type,
+			oracle_text:    card.text,
+			mana_cost:      card.mana,
+			color_identity: card.identity,
+			prices: {
+				usd: localPrice !== null ? String(localPrice) : null,
+				usd_foil: null
+			},
+			_source: 'local'
+		};
+	}
+
 	async function performSearch() {
 		isSearching = true;
 		try {
@@ -64,8 +80,7 @@
 			const queryText = searchQuery.trim() || "*";
 			const rawResults = await runLocalSearch(queryText, { limit: 200 });
 
-			// Filter to legendary creatures/planeswalkers and match subset color identity in JS
-			results = rawResults.filter(card => {
+			const filtered = rawResults.filter(card => {
 				const isLegendary = card.type?.toLowerCase().includes("legendary");
 				const isCreature = card.type?.toLowerCase().includes("creature");
 				const isPlaneswalker = card.type?.toLowerCase().includes("planeswalker");
@@ -81,6 +96,8 @@
 
 				return true;
 			});
+
+			results = filtered.map(normalizeLocalCard);
 		} catch (err) {
 			console.error("Commander search failed:", err);
 		} finally {
