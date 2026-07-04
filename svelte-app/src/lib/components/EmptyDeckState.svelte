@@ -239,6 +239,30 @@
 
 	const totalQty = $derived(calculateTotal(inputText));
 
+	/** @param {string} line */
+	function getCardNameFromLine(line) {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("#")) {
+			return "";
+		}
+		const leadingSpacesMatch = line.match(/^(\s*)/);
+		const leadingSpaces = leadingSpacesMatch ? leadingSpacesMatch[1] : "";
+		const textToParse = line.slice(leadingSpaces.length);
+		const qtyMatch = textToParse.match(/^(?:(x\s*\d+|\d+\s*x?)\s+)(.+)$/i);
+		let remainingText = textToParse;
+		if (qtyMatch) {
+			remainingText = qtyMatch[2];
+		}
+		const suffixIndexMatch = remainingText.match(
+			/\s+([([][A-Za-z0-9\-\/]{2,7}[)\]]|\*[a-zA-Z0-9:]+\*|[#\^\|]|[\$€£])/,
+		);
+		let cardName = remainingText;
+		if (suffixIndexMatch && suffixIndexMatch.index !== undefined) {
+			cardName = remainingText.substring(0, suffixIndexMatch.index);
+		}
+		return cardName.trim().replace(/\s*$/, "");
+	}
+
 	$effect(() => {
 		const val = inputText.trim();
 		if (!val) {
@@ -251,10 +275,17 @@
 			const parsed = parseDecklist(val);
 			let unrecognized = 0;
 			const unrecNames = [];
+			const activeLineText = lines[activeLineIndex] || "";
+			const activeCardName = getCardNameFromLine(activeLineText).toLowerCase();
+
 			for (const pc of parsed) {
 				if (pc.name) {
+					const nameLow = pc.name.toLowerCase();
 					const match = await getCardByName(pc.name);
 					if (!match) {
+						if (nameLow === activeCardName) {
+							continue;
+						}
 						unrecognized++;
 						unrecNames.push(pc.name);
 					}
