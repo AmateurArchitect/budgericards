@@ -495,9 +495,15 @@
 	.color-btn.active.color-colorless { filter: drop-shadow(0 0 4px rgba(200, 200, 200, 0.65)); }
 
 	.format-select {
+		appearance: none;
+		-webkit-appearance: none;
+		-moz-appearance: none;
 		height: 2.25rem;
-		padding: 0 0.75rem;
+		padding: 0 2rem 0 0.75rem;
 		background: hsl(var(--input) / 0.3);
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		background-position: right 10px center;
 		border: 1px solid hsl(var(--border) / 0.4);
 		border-radius: var(--radius-md);
 		font-size: 0.875rem;
