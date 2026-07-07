@@ -143,6 +143,56 @@
 		resolveAll();
 	});
 
+	// Automatic title-case/normalization check for all lines (except the active editing line)
+	$effect(() => {
+		const currentText = inputText;
+		const currentActive = activeLineIndex;
+		const metadataMap = resolvedMetadataMap;
+
+		if (!currentText) return;
+
+		const linesArr = currentText.split(/\r?\n/);
+		let changed = false;
+
+		for (let i = 0; i < linesArr.length; i++) {
+			if (i === currentActive) continue;
+
+			const lineText = linesArr[i];
+			if (!lineText) continue;
+
+			const cardInfo = getCardInfo(lineText);
+			if (cardInfo) {
+				const lowName = cardInfo.name.toLowerCase();
+				const metadata = metadataMap[lowName] || deckStore.metadata[lowName];
+				if (metadata) {
+					const normalized = getNormalizedCardName(metadata);
+					const parts = getActiveLineParts(lineText);
+					if (parts && normalized && parts.namePart !== normalized) {
+						linesArr[i] = parts.qtyPrefix + normalized + parts.suffix;
+						changed = true;
+					}
+				}
+			}
+		}
+
+		if (changed) {
+			const selectionStart = textareaEl?.selectionStart;
+			const selectionEnd = textareaEl?.selectionEnd;
+
+			inputText = linesArr.join("\n");
+
+			if (selectionStart !== undefined && selectionEnd !== undefined) {
+				requestAnimationFrame(() => {
+					if (textareaEl) {
+						textareaEl.selectionStart = selectionStart;
+						textareaEl.selectionEnd = selectionEnd;
+					}
+				});
+			}
+		}
+	});
+
+
 	let suggestions = $state(/** @type {string[]} */ ([]));
 	let suggestionCards = $state(/** @type {any[]} */ ([]));
 	let activeIndex = $state(0);
@@ -348,6 +398,88 @@
 		suggestionCards = [];
 		textareaEl?.focus();
 	}
+
+	// Helper to check if a line represents a recognized card
+	/** @type {(line: string) => any} */
+	function getCardInfo(line) {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("#"))
+			return null;
+
+		const parsed = parseDecklist(trimmed);
+		if (parsed.length === 1) {
+			return parsed[0];
+		}
+		return null;
+	}
+
+	/** @param {any} card */
+	function getNormalizedCardName(card) {
+		if (!card || !card.name) return "";
+
+		const name = card.name;
+		if (!name.includes(" // ")) {
+			return name;
+		}
+
+		const type = (card.type_line || card.type || "").toLowerCase();
+		const isPermanent =
+			type.includes("creature") ||
+			type.includes("land") ||
+			type.includes("artifact") ||
+			type.includes("planeswalker") ||
+			type.includes("enchantment");
+
+		if (isPermanent) {
+			return name.split(" // ")[0].trim();
+		} else {
+			return name;
+		}
+	}
+
+	/** @param {string} lineText */
+	function getActiveLineParts(lineText) {
+		const trimmed = lineText.trim();
+		if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("#"))
+			return null;
+
+		const leadingSpacesMatch = lineText.match(/^(\s*)/);
+		const leadingSpaces = leadingSpacesMatch ? leadingSpacesMatch[1] : "";
+		const textToParse = lineText.slice(leadingSpaces.length);
+
+		const qtyMatch = textToParse.match(/^(?:(x\s*\d+|\d+\s*x?)\s+)(.+)$/i);
+		let quantityText = "";
+		let remainingText = textToParse;
+
+		if (qtyMatch) {
+			quantityText = qtyMatch[1] + " ";
+			remainingText = qtyMatch[2];
+		}
+
+		// Match set codes and collector numbers which stay in the decklist (e.g. " (ZNR) 104" or " | ZNR")
+		const setMatch = remainingText.match(/\s+([([][A-Za-z0-9\-\/]{2,7}[)\]](\s+[A-Za-z0-9★\-]+)?|\|\s*[A-Za-z0-9\-\/]{2,7}(\s+[A-Za-z0-9★\-]+)?)/);
+		
+		let cardName = remainingText;
+		let suffixText = "";
+
+		if (setMatch && setMatch.index !== undefined) {
+			cardName = remainingText.substring(0, setMatch.index);
+			suffixText = setMatch[0];
+		} else {
+			// Check if there are other unsupported tags (like *CM:Removal* or ^Don't Have^) to strip
+			const tagMatch = remainingText.match(/\s+(\*([^*]+)\*|[#\^\|]|[\$€£])/);
+			if (tagMatch && tagMatch.index !== undefined) {
+				cardName = remainingText.substring(0, tagMatch.index);
+			}
+		}
+
+		return {
+			qtyPrefix: leadingSpaces + quantityText,
+			namePart: cardName.trim(),
+			suffix: suffixText
+		};
+	}
+
 
 	/**
 	 * @param {string} line
@@ -699,6 +831,7 @@
 					onkeyup={updateActiveLine}
 					onclick={updateActiveLine}
 					onfocus={updateActiveLine}
+					onblur={() => { activeLineIndex = -1; }}
 					placeholder=""
 					class="editor-textarea"
 					rows="6"
