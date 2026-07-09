@@ -1073,6 +1073,8 @@
 	}
 
 	.deck-title-editable-btn {
+		width: 100%;
+		display: block;
 		background: none;
 		border: none;
 		padding: 0;

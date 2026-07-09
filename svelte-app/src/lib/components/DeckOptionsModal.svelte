@@ -305,6 +305,10 @@
 		flex: 1;
 	}
 
+	.name-group :global(.ui-input) {
+		height: 40px;
+	}
+
 	.format-group {
 		width: 140px;
 		position: relative;
