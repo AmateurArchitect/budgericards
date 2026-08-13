@@ -36,13 +36,13 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_S3_ENDPOINT: ${{ secrets.R2_ENDPOINT_URL }}
 
-      - name: Fetch Scryfall Bulk Metadata and Download raw-default-cards.json
+      - name: Fetch Scryfall Bulk Metadata and Download raw-default-cards.jsonl.gz
         run: |
-          BULK_URL=$(curl -s https://api.scryfall.com/bulk-data | jq -r '.data[] | select(.type=="default_cards") | .download_uri')
-          curl -L -o raw-default-cards.json "$BULK_URL"
+          BULK_URL=$(curl -s https://api.scryfall.com/bulk-data | jq -r '.data[] | select(.type=="default_cards") | .jsonl_download_uri')
+          curl -L -o raw-default-cards.jsonl.gz "$BULK_URL"
 
       - name: Run Preprocessor Utility
-        run: node data-preprocessor/build-database.mjs raw-default-cards.json dist
+        run: node data-preprocessor/build-database.mjs raw-default-cards.jsonl.gz dist
 
       - name: Compress Data Files with Brotli
         run: |

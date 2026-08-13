@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import StreamArray from 'stream-json/streamers/stream-array.js';
+import zlib from 'zlib';
+import readline from 'readline';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -221,79 +222,19 @@ function processCardBucket(id, bucket) {
 console.log("Streaming full bulk data...");
 const processingMap = new Map();
 
-const fileStream = fs.createReadStream(INPUT_FILE);
-const pipeline = fileStream.pipe(StreamArray.withParserAsStream());
+let fileStream = fs.createReadStream(INPUT_FILE);
+if (INPUT_FILE.endsWith('.gz')) {
+  fileStream = fileStream.pipe(zlib.createGunzip());
+}
+
+const rl = readline.createInterface({
+  input: fileStream,
+  crlfDelay: Infinity
+});
 
 let cardsProcessed = 0;
 
-pipeline.on('data', data => {
-  const card = data.value;
-  if (!card.oracle_id) return;
-  if (!isCardAllowed(card)) return;
-  
-  const id = card.oracle_id;
-  
-  const usd = card.prices?.usd ? parseFloat(card.prices.usd) : Infinity;
-  const usdFoil = card.prices?.usd_foil ? parseFloat(card.prices.usd_foil) : Infinity;
-  
-  let priceToConsider = Infinity;
-  if (!card.oversized && card.border_color !== 'gold' && card.border_color !== 'silver' && card.games && card.games.includes('paper')) {
-    priceToConsider = Math.min(usd, usdFoil);
-  }
-
-  // Optimize memory by stripping out properties we don't use before pushing to the array
-  // This is vital to prevent running out of heap memory when processing 100,000 cards!
-  const lightweightCard = {
-    oracle_id: card.oracle_id,
-    name: card.name,
-    lang: card.lang,
-    released_at: card.released_at,
-    illustration_id: card.illustration_id,
-    layout: card.layout,
-    image_uris: card.image_uris,
-    card_faces: card.card_faces,
-    mana_cost: card.mana_cost,
-    cmc: card.cmc,
-    type_line: card.type_line,
-    oracle_text: card.oracle_text,
-    power: card.power,
-    toughness: card.toughness,
-    loyalty: card.loyalty,
-    colors: card.colors,
-    color_identity: card.color_identity,
-    keywords: card.keywords,
-    legalities: card.legalities,
-    finishes: card.finishes,
-    oversized: card.oversized,
-    promo: card.promo,
-    set_type: card.set_type,
-    set: card.set,
-    border_color: card.border_color,
-    frame: card.frame,
-    full_art: card.full_art,
-    textless: card.textless,
-    frame_effects: card.frame_effects,
-    promo_types: card.promo_types,
-    security_stamp: card.security_stamp,
-    watermark: card.watermark,
-    games: card.games
-  };
-
-  if (!processingMap.has(id)) {
-    processingMap.set(id, { cheapestPrice: priceToConsider, allPrintings: [lightweightCard] });
-  } else {
-    const existing = processingMap.get(id);
-    existing.allPrintings.push(lightweightCard);
-    if (priceToConsider < existing.cheapestPrice) existing.cheapestPrice = priceToConsider;
-  }
-  
-  cardsProcessed++;
-  if (cardsProcessed % 10000 === 0) {
-    console.log(`Processed ${cardsProcessed} valid prints...`);
-  }
-});
-
-pipeline.on('end', () => {
+function finalizeDatabase() {
   console.log(`Finished streaming. Grouped into ${processingMap.size} unique oracle_ids.`);
   
   const finalCards = [];
@@ -341,8 +282,92 @@ pipeline.on('end', () => {
   
   fs.writeFileSync(OUTPUT_MANIFEST, JSON.stringify(manifest, null, 2));
   console.log(`Updated manifest.json: version ${manifest.cards_version}, tracking ${manifest.prices_files.length} price file(s).`);
+}
+
+rl.on('line', (line) => {
+  let cleaned = line.trim();
+  if (!cleaned) return;
+  
+  // Support standard JSON formats if a user passes a json file that starts with `[` and ends with `]`
+  if (cleaned.startsWith('[')) cleaned = cleaned.substring(1);
+  if (cleaned.endsWith(']')) cleaned = cleaned.substring(0, cleaned.length - 1);
+  if (cleaned.endsWith(',')) cleaned = cleaned.substring(0, cleaned.length - 1);
+  cleaned = cleaned.trim();
+  if (!cleaned) return;
+
+  try {
+    const card = JSON.parse(cleaned);
+    if (!card.oracle_id) return;
+    if (!isCardAllowed(card)) return;
+    
+    const id = card.oracle_id;
+    
+    const usd = card.prices?.usd ? parseFloat(card.prices.usd) : Infinity;
+    const usdFoil = card.prices?.usd_foil ? parseFloat(card.prices.usd_foil) : Infinity;
+    
+    let priceToConsider = Infinity;
+    if (!card.oversized && card.border_color !== 'gold' && card.border_color !== 'silver' && card.games && card.games.includes('paper')) {
+      priceToConsider = Math.min(usd, usdFoil);
+    }
+
+    // Optimize memory by stripping out properties we don't use before pushing to the array
+    const lightweightCard = {
+      oracle_id: card.oracle_id,
+      name: card.name,
+      lang: card.lang,
+      released_at: card.released_at,
+      illustration_id: card.illustration_id,
+      layout: card.layout,
+      image_uris: card.image_uris,
+      card_faces: card.card_faces,
+      mana_cost: card.mana_cost,
+      cmc: card.cmc,
+      type_line: card.type_line,
+      oracle_text: card.oracle_text,
+      power: card.power,
+      toughness: card.toughness,
+      loyalty: card.loyalty,
+      colors: card.colors,
+      color_identity: card.color_identity,
+      keywords: card.keywords,
+      legalities: card.legalities,
+      finishes: card.finishes,
+      oversized: card.oversized,
+      promo: card.promo,
+      set_type: card.set_type,
+      set: card.set,
+      border_color: card.border_color,
+      frame: card.frame,
+      full_art: card.full_art,
+      textless: card.textless,
+      frame_effects: card.frame_effects,
+      promo_types: card.promo_types,
+      security_stamp: card.security_stamp,
+      watermark: card.watermark,
+      games: card.games
+    };
+
+    if (!processingMap.has(id)) {
+      processingMap.set(id, { cheapestPrice: priceToConsider, allPrintings: [lightweightCard] });
+    } else {
+      const existing = processingMap.get(id);
+      existing.allPrintings.push(lightweightCard);
+      if (priceToConsider < existing.cheapestPrice) existing.cheapestPrice = priceToConsider;
+    }
+    
+    cardsProcessed++;
+    if (cardsProcessed % 10000 === 0) {
+      console.log(`Processed ${cardsProcessed} valid prints...`);
+    }
+  } catch (err) {
+    console.error("Error parsing JSON line:", err);
+  }
 });
 
-pipeline.on('error', (err) => {
+rl.on('close', () => {
+  finalizeDatabase();
+});
+
+fileStream.on('error', (err) => {
   console.error("Stream error:", err);
 });

@@ -1,13 +1,16 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import StreamArray from 'stream-json/streamers/stream-array.js';
+import zlib from 'zlib';
+import readline from 'readline';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const INPUT_FILE = path.join(__dirname, '../default-cards-20260506211251.json');
-const OUTPUT_FILE = path.join(__dirname, 'sandbox-default-cards.json');
+const INPUT_FILE = process.argv[2]
+  ? path.resolve(process.argv[2])
+  : path.join(__dirname, '../default-cards-20260506211251.json');
+const OUTPUT_FILE = path.join(__dirname, 'sandbox-default-cards.jsonl');
 
 const TARGET_QUOTAS = {
   normal: 20,
@@ -100,40 +103,62 @@ function checkQuotasFulfilled() {
 async function runPass1() {
   console.log("Starting Pass 1: Discovering oracle_ids...");
   return new Promise((resolve, reject) => {
-    const fileStream = fs.createReadStream(INPUT_FILE);
-    const pipeline = fileStream.pipe(StreamArray.withParserAsStream());
+    let fileStream = fs.createReadStream(INPUT_FILE);
+    if (INPUT_FILE.endsWith('.gz')) {
+      fileStream = fileStream.pipe(zlib.createGunzip());
+    }
+
+    const rl = readline.createInterface({
+      input: fileStream,
+      crlfDelay: Infinity
+    });
     
     let resolved = false;
 
-    pipeline.on('data', data => {
-      const card = data.value;
-      if (!card.oracle_id) return;
-      if (!isCardAllowed(card)) return;
+    rl.on('line', line => {
+      if (resolved) return;
+      let cleaned = line.trim();
+      if (!cleaned) return;
       
-      if (targetOracleIds.has(card.oracle_id)) return;
-      
-      const cats = getCategories(card);
-      let added = false;
-      for (const cat of cats) {
-        if (currentCounts[cat] < TARGET_QUOTAS[cat]) {
-          currentCounts[cat]++;
-          added = true;
+      if (cleaned.startsWith('[')) cleaned = cleaned.substring(1);
+      if (cleaned.endsWith(']')) cleaned = cleaned.substring(0, cleaned.length - 1);
+      if (cleaned.endsWith(',')) cleaned = cleaned.substring(0, cleaned.length - 1);
+      cleaned = cleaned.trim();
+      if (!cleaned) return;
+
+      try {
+        const card = JSON.parse(cleaned);
+        if (!card.oracle_id) return;
+        if (!isCardAllowed(card)) return;
+        
+        if (targetOracleIds.has(card.oracle_id)) return;
+        
+        const cats = getCategories(card);
+        let added = false;
+        for (const cat of cats) {
+          if (currentCounts[cat] < TARGET_QUOTAS[cat]) {
+            currentCounts[cat]++;
+            added = true;
+          }
         }
-      }
-      
-      if (added) {
-        targetOracleIds.add(card.oracle_id);
-      }
-      
-      if (checkQuotasFulfilled() && !resolved) {
-        resolved = true;
-        console.log("All quotas fulfilled! Ending Pass 1.");
-        fileStream.destroy();
-        resolve();
+        
+        if (added) {
+          targetOracleIds.add(card.oracle_id);
+        }
+        
+        if (checkQuotasFulfilled() && !resolved) {
+          resolved = true;
+          console.log("All quotas fulfilled! Ending Pass 1.");
+          rl.close();
+          fileStream.destroy();
+          resolve();
+        }
+      } catch (err) {
+        // Ignore JSON parse errors on header/footer lines if reading raw JSON file
       }
     });
     
-    pipeline.on('end', () => {
+    rl.on('close', () => {
       if (!resolved) {
         resolved = true;
         console.log("Pass 1 finished reading entire file.");
@@ -153,22 +178,43 @@ async function runPass2() {
   const collectedCards = [];
   
   return new Promise((resolve, reject) => {
-    const fileStream = fs.createReadStream(INPUT_FILE);
-    const pipeline = fileStream.pipe(StreamArray.withParserAsStream());
+    let fileStream = fs.createReadStream(INPUT_FILE);
+    if (INPUT_FILE.endsWith('.gz')) {
+      fileStream = fileStream.pipe(zlib.createGunzip());
+    }
+
+    const rl = readline.createInterface({
+      input: fileStream,
+      crlfDelay: Infinity
+    });
       
-    pipeline.on('data', data => {
-      const card = data.value;
-      if (!card.oracle_id) return;
-      if (!isCardAllowed(card)) return;
+    rl.on('line', line => {
+      let cleaned = line.trim();
+      if (!cleaned) return;
       
-      if (targetOracleIds.has(card.oracle_id)) {
-        collectedCards.push(card);
+      if (cleaned.startsWith('[')) cleaned = cleaned.substring(1);
+      if (cleaned.endsWith(']')) cleaned = cleaned.substring(0, cleaned.length - 1);
+      if (cleaned.endsWith(',')) cleaned = cleaned.substring(0, cleaned.length - 1);
+      cleaned = cleaned.trim();
+      if (!cleaned) return;
+
+      try {
+        const card = JSON.parse(cleaned);
+        if (!card.oracle_id) return;
+        if (!isCardAllowed(card)) return;
+        
+        if (targetOracleIds.has(card.oracle_id)) {
+          collectedCards.push(card);
+        }
+      } catch (err) {
+        // Ignore JSON parse errors on header/footer
       }
     });
     
-    pipeline.on('end', () => {
+    rl.on('close', () => {
       console.log(`Pass 2 finished. Collected ${collectedCards.length} total printings.`);
-      fs.writeFileSync(OUTPUT_FILE, JSON.stringify(collectedCards, null, 2));
+      const jsonl = collectedCards.map(c => JSON.stringify(c)).join('\n');
+      fs.writeFileSync(OUTPUT_FILE, jsonl);
       console.log(`Wrote sandbox to ${OUTPUT_FILE}`);
       resolve();
     });
