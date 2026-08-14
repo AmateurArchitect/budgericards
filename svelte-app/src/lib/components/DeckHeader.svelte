@@ -1,5 +1,5 @@
 <script>
-	import { onMount } from "svelte";
+	import { onMount, untrack } from "svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
@@ -164,41 +164,48 @@
 	);
 
 	$effect(() => {
-		// 1. Sanitize grouping for Stacks View
-		if (settingsStore.deckViewMode === "stacks") {
-			if (
-				deckStore.grouping === "none" ||
-				deckStore.grouping === "creature"
-			) {
-				deckStore.grouping = "cmc";
+		// Read values we want to react to
+		const viewMode = settingsStore.deckViewMode;
+		const grouping = deckStore.grouping;
+		const sorting = deckStore.sorting;
+		const sortIds = visibleSorts.map((s) => s.id);
+
+		untrack(() => {
+			// 1. Sanitize grouping for Stacks View
+			if (viewMode === "stacks") {
+				if (
+					deckStore.grouping === "none" ||
+					deckStore.grouping === "creature"
+				) {
+					deckStore.grouping = "cmc";
+				}
 			}
-		}
 
-		// 2. Sanitize sorting for the current view mode (if current sort is not available)
-		const availableSortIds = visibleSorts.map((s) => s.id);
-		if (
-			!availableSortIds.includes(deckStore.sorting) &&
-			availableSortIds.length > 0
-		) {
-			deckStore.sorting = availableSortIds.includes("color")
-				? "color"
-				: availableSortIds[0];
-		}
+			// 2. Sanitize sorting for the current view mode (if current sort is not available)
+			if (
+				!sortIds.includes(deckStore.sorting) &&
+				sortIds.length > 0
+			) {
+				deckStore.sorting = sortIds.includes("color")
+					? "color"
+					: sortIds[0];
+			}
 
-		// 3. Resolve grouping/sorting clash (never allow set to same value)
-		if (
-			deckStore.grouping === deckStore.sorting &&
-			deckStore.grouping !== "none" &&
-			deckStore.grouping !== "freeform"
-		) {
-			/** @type {Record<string, string>} */
-			const defaultSorts = {
-				cmc: "color",
-				type: "cmc",
-				color: "cmc",
-			};
-			deckStore.sorting = defaultSorts[deckStore.grouping] || "color";
-		}
+			// 3. Resolve grouping/sorting clash (never allow set to same value)
+			if (
+				deckStore.grouping === deckStore.sorting &&
+				deckStore.grouping !== "none" &&
+				deckStore.grouping !== "freeform"
+			) {
+				/** @type {Record<string, string>} */
+				const defaultSorts = {
+					cmc: "color",
+					type: "cmc",
+					color: "cmc",
+				};
+				deckStore.sorting = defaultSorts[deckStore.grouping] || "color";
+			}
+		});
 	});
 
 	const visibleSorts = $derived(

@@ -8,7 +8,7 @@
 	import SideboardPanel from "$lib/components/SideboardPanel.svelte";
 	import MaybeboardCleanupModal from "$lib/components/MaybeboardCleanupModal.svelte";
 	import { priceStore } from "$lib/stores/prices.svelte.js";
-	import { onMount } from "svelte";
+	import { onMount, untrack } from "svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { layoutStore } from "$lib/stores/layout.svelte.js";
@@ -42,7 +42,9 @@
 	$effect(() => {
 		const id = $page.params.id;
 		if (id) {
-			deckStore.selectDeckId(id);
+			untrack(() => {
+				deckStore.selectDeckId(id);
+			});
 		}
 	});
 

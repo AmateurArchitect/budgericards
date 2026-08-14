@@ -37,3 +37,8 @@ Living list of solutions to code errors.
 - **Error Signature:** `Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'X'.`
 - **Fix Pattern:** Cast the object to `any` before indexing, or declare a typed variable: `const castedObject = /** @type {any} */ (object);`
 - **Logic:** When using TypeScript/JSDoc with strict mode, objects without an explicit index signature cannot be dynamically indexed with a variable of type `string`. Casting the object to `any` tells the compiler to allow dynamic indexing.
+
+## Svelte 5 Unsafe State Mutation in Tracking Contexts
+- **Error Signature:** `Uncaught Error: https://svelte.dev/e/state_unsafe_mutation` (State mutated unsafe).
+- **Fix Pattern:** Wrap state mutations occurring inside `$effect` or tracking contexts (or functions called synchronously by them) in Svelte's `untrack(() => { ... })`.
+- **Logic:** Svelte 5 strictly prevents mutating state variables inside active tracking contexts (like `$derived` or `$effect`) to avoid infinite update loops. Using `untrack` suspends the reactive context during the mutations.

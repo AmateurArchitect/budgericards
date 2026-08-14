@@ -1,6 +1,6 @@
 <script>
 	import { fade, scale } from "svelte/transition";
-	import { onMount } from "svelte";
+	import { onMount, untrack } from "svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { searchStore } from "$lib/stores/search.svelte.js";
@@ -126,7 +126,9 @@
 										: null,
 								},
 							};
-							deckStore.metadata[name] = cardMetadata;
+							untrack(() => {
+								deckStore.metadata[name] = cardMetadata;
+							});
 							details[name] = cardMetadata;
 						} else {
 							details[name] = null;
@@ -179,7 +181,9 @@
 			const selectionStart = textareaEl?.selectionStart;
 			const selectionEnd = textareaEl?.selectionEnd;
 
-			inputText = linesArr.join("\n");
+			untrack(() => {
+				inputText = linesArr.join("\n");
+			});
 
 			if (selectionStart !== undefined && selectionEnd !== undefined) {
 				requestAnimationFrame(() => {
