@@ -19,7 +19,7 @@ if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
-const OUTPUT_CARDS = path.join(OUTPUT_DIR, 'cards.json');
+const OUTPUT_CARDS = path.join(OUTPUT_DIR, 'cards.jsonl');
 const dateString = new Date().toISOString().split('T')[0].replace(/-/g, '_');
 const OUTPUT_PRICES = path.join(OUTPUT_DIR, `prices_${dateString}.json`);
 const OUTPUT_MANIFEST = path.join(OUTPUT_DIR, 'manifest.json');
@@ -249,7 +249,7 @@ function finalizeDatabase() {
     }
   }
   
-  fs.writeFileSync(OUTPUT_CARDS, JSON.stringify(finalCards, null, 2));
+  fs.writeFileSync(OUTPUT_CARDS, finalCards.map(c => JSON.stringify(c)).join('\n'));
   fs.writeFileSync(OUTPUT_PRICES, JSON.stringify(finalPricesMap, null, 2));
   
   console.log(`Successfully compiled ${finalCards.length} cards and ${Object.keys(finalPricesMap).length} price records.`);

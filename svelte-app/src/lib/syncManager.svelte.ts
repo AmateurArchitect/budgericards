@@ -30,7 +30,7 @@ import { PUBLIC_R2_BASE_URL } from '$env/static/public';
 const BASE_URL: string = PUBLIC_R2_BASE_URL || '';
 
 const MANIFEST_URL   = BASE_URL ? `${BASE_URL}/manifest.json` : '/manifest.json';
-const CARDS_BASE_URL = BASE_URL ? `${BASE_URL}/cards.json`    : '/cards.json';
+const CARDS_BASE_URL = BASE_URL ? `${BASE_URL}/cards.jsonl`    : '/cards.jsonl';
 
 
 const VERSION_KEY = 'budgericards_cards_version';
@@ -62,27 +62,70 @@ async function fetchManifest(): Promise<Manifest> {
 }
 
 /**
- * Downloads cards.json and bulk-inserts all records into IndexedDB.
- * Reports progress (0-100) as it goes.
+ * Downloads cards.jsonl and bulk-inserts all records incrementally into IndexedDB.
+ * Reports progress (0-100) reactively as it goes.
  */
 async function downloadAndPopulateCards(version: string): Promise<void> {
 	const res = await fetch(CARDS_BASE_URL);
-	if (!res.ok) throw new Error(`Failed to fetch cards.json: ${res.status}`);
+	if (!res.ok) throw new Error(`Failed to fetch cards.jsonl: ${res.status}`);
 
-	const cards: CleanCard[] = await res.json();
-	const total = cards.length;
+	const reader = res.body?.getReader();
+	if (!reader) throw new Error('ReadableStream not supported by browser');
+
+	const decoder = new TextDecoder('utf-8');
+	let buffer = '';
+	let processedCount = 0;
+	let chunkBuffer: CleanCard[] = [];
 
 	// Clear the existing table before re-populating
 	await db.cards.clear();
 
-	// Bulk-insert in chunks so we can report progress
-	for (let i = 0; i < total; i += CHUNK_SIZE) {
-		const chunk = cards.slice(i, i + CHUNK_SIZE);
-		await db.cards.bulkPut(chunk);
-		progress = Math.round(((i + chunk.length) / total) * 100);
+	// We estimate progress based on typical MTG database size of ~32,000 cards
+	const estimatedTotalCards = 32000;
+
+	while (true) {
+		const { done, value } = await reader.read();
+		if (done) break;
+
+		buffer += decoder.decode(value, { stream: true });
+		const lines = buffer.split('\n');
+		buffer = lines.pop() || ''; // Keep partial line in buffer
+
+		for (const line of lines) {
+			const trimmed = line.trim();
+			if (!trimmed) continue;
+
+			try {
+				const card = JSON.parse(trimmed) as CleanCard;
+				chunkBuffer.push(card);
+				processedCount++;
+
+				if (chunkBuffer.length >= CHUNK_SIZE) {
+					await db.cards.bulkPut(chunkBuffer);
+					chunkBuffer = [];
+					progress = Math.min(99, Math.round((processedCount / estimatedTotalCards) * 100));
+				}
+			} catch (err) {
+				console.warn('Failed to parse line during sync streaming:', err);
+			}
+		}
 	}
 
-	// Persist the version so we skip the download next time
+	// Insert any remaining items
+	if (buffer.trim()) {
+		try {
+			const card = JSON.parse(buffer.trim()) as CleanCard;
+			chunkBuffer.push(card);
+		} catch (err) {
+			console.warn('Failed to parse final line in buffer:', err);
+		}
+	}
+
+	if (chunkBuffer.length > 0) {
+		await db.cards.bulkPut(chunkBuffer);
+	}
+
+	progress = 100;
 	localStorage.setItem(VERSION_KEY, version);
 }
 

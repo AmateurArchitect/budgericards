@@ -46,7 +46,7 @@ jobs:
 
       - name: Compress Data Files with Brotli
         run: |
-          brotli -q 9 -o dist/cards.json.br dist/cards.json
+          brotli -q 9 -o dist/cards.jsonl.br dist/cards.jsonl
           for f in dist/prices_*.json; do brotli -q 9 -o "${f}.br" "$f"; done
 
       - name: Upload Compressed Data Files to R2
