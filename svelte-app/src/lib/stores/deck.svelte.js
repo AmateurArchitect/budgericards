@@ -2405,9 +2405,9 @@ function createDeck() {
 			// Clean up any empty slots just in case
 			const finalResolvedCards = resolvedCards.filter(Boolean);
 
-			// Sync metadata and preload images before inserting the cards into the deck state
+			// Sync metadata and preload images in the background so it doesn't block the save/import flow
 			const cardNames = finalResolvedCards.filter(c => c.name).map(c => c.name);
-			await fetchMetadataAndPreloadImages(activeDeck, cardNames);
+			fetchMetadataAndPreloadImages(activeDeck, cardNames);
 
 			importCardsInternal(activeDeck, finalResolvedCards, { replace: true });
 			activeDeck.importText = cleanDecklistTextFor(activeDeck);
