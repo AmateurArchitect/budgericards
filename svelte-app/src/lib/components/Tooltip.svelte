@@ -212,7 +212,12 @@
 	function updateEditingFieldState() {
 		if (typeof document === "undefined") return;
 		const active = document.activeElement;
-		isEditingField = !!(active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || (active instanceof HTMLElement && active.isContentEditable)));
+		const nextValue = !!(active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || (active instanceof HTMLElement && active.isContentEditable)));
+		if (isEditingField !== nextValue) {
+			Promise.resolve().then(() => {
+				isEditingField = nextValue;
+			});
+		}
 	}
 
 	onMount(() => {
