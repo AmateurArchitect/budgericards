@@ -1409,21 +1409,23 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 0.85rem;
-		background: hsl(var(--muted) / 0.35);
-		border: 1px solid hsl(var(--border) / 0.6);
+		background: hsl(var(--muted) / 0.65);
+		border: 1px solid hsl(var(--border) / 0.95);
 		color: hsl(var(--muted-foreground));
-		padding: 0 0.65rem 0 0.75rem;
-		border-radius: var(--radius-md);
+		padding: 0 0.65rem 0 0.85rem;
+		border-radius: 9999px;
 		cursor: pointer;
 		transition: all 0.15s ease;
 		white-space: nowrap;
 		box-sizing: border-box;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 	}
 
 	.search-trigger-btn:hover {
-		background: hsl(var(--muted) / 0.55);
-		border-color: hsl(var(--border));
+		background: hsl(var(--muted) / 0.9);
+		border-color: hsl(var(--foreground) / 0.25);
 		color: hsl(var(--foreground));
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 	}
 
 	.search-trigger-left {
