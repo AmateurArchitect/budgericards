@@ -873,11 +873,13 @@
 				<button
 					class="search-trigger-btn"
 					onclick={() => searchStore.openSearch()}
-					aria-label="Search cards (⌘/ or /)"
-					title="Search cards (⌘/ or /)"
+					aria-label="Card search (⌘/ or /)"
+					title="Card Search (⌘/ or /)"
 				>
-					<Search size={14} class="search-trigger-icon" />
-					<span class="search-trigger-text">Search</span>
+					<div class="search-trigger-left">
+						<Search size={14} class="search-trigger-icon" />
+						<span class="search-trigger-text">Card Search</span>
+					</div>
 					<div class="shortcut-keycaps">
 						<kbd class="key-cap">⌘</kbd>
 						<kbd class="key-cap">/</kbd>
@@ -1402,16 +1404,16 @@
 
 	.search-trigger-btn {
 		height: 36px;
+		min-width: 175px;
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		background: hsl(var(--primary) / 0.12);
-		border: 1px solid hsl(var(--primary) / 0.3);
-		color: hsl(var(--foreground));
-		padding: 0 0.85rem;
+		justify-content: space-between;
+		gap: 0.85rem;
+		background: hsl(var(--muted) / 0.35);
+		border: 1px solid hsl(var(--border) / 0.6);
+		color: hsl(var(--muted-foreground));
+		padding: 0 0.65rem 0 0.75rem;
 		border-radius: var(--radius-md);
-		font-size: 13px;
-		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.15s ease;
 		white-space: nowrap;
@@ -1419,14 +1421,31 @@
 	}
 
 	.search-trigger-btn:hover {
-		background: hsl(var(--primary) / 0.22);
-		border-color: hsl(var(--primary) / 0.6);
-		box-shadow: 0 0 12px hsl(var(--primary) / 0.25);
-		transform: translateY(-1px);
+		background: hsl(var(--muted) / 0.55);
+		border-color: hsl(var(--border));
+		color: hsl(var(--foreground));
+	}
+
+	.search-trigger-left {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
 	}
 
 	:global(.search-trigger-icon) {
-		color: hsl(var(--primary));
+		color: hsl(var(--muted-foreground));
+		transition: color 0.15s ease;
+	}
+
+	.search-trigger-btn:hover :global(.search-trigger-icon) {
+		color: hsl(var(--foreground));
+	}
+
+	.search-trigger-text {
+		font-size: 13px;
+		font-weight: 500;
+		color: inherit;
+		letter-spacing: -0.01em;
 	}
 
 	.shortcut-keycaps {
@@ -1456,7 +1475,7 @@
 	}
 
 	.search-trigger-btn:hover .key-cap {
-		border-color: hsl(var(--primary) / 0.4);
+		border-color: hsl(var(--border));
 		color: hsl(var(--foreground));
 		background: hsl(var(--background));
 	}
