@@ -14,6 +14,7 @@ function createSearch() {
 		collection: "scryfall", // 'scryfall', 'budget-edh-26.2', 'budget-staples', 'sideboard', 'maybeboard'
 		isCollapsed: false,
 		isFocused: false,
+		isOpen: false,
 		hasTriggered: false,
 		filters: {
 			colors: /** @type {string[]} */ ([]),
@@ -764,6 +765,29 @@ function createSearch() {
 		get error() { return state.error; },
 		get isCollapsed() { return state.isCollapsed; },
 		get isFocused() { return state.isFocused; },
+		get isOpen() { 
+			return state.isOpen || state.isFocused || state.query.length > 0 || state.results.length > 0 || ['sideboard', 'maybeboard'].includes(state.collection); 
+		},
+		set isOpen(val) { state.isOpen = val; },
+		openSearch() {
+			state.isOpen = true;
+			state.isFocused = true;
+		},
+		closeSearch() {
+			state.isOpen = false;
+			state.isFocused = false;
+			state.isCollapsed = false;
+			state.query = '';
+			state.results = [];
+			state.hasTriggered = false;
+		},
+		toggleSearch() {
+			if (this.isOpen) {
+				this.closeSearch();
+			} else {
+				this.openSearch();
+			}
+		},
 		get hasTriggered() { return state.hasTriggered; },
 		get isExpanded() {
 			return (

@@ -1,41 +1,32 @@
 <script>
 	import { slide, fade, fly } from "svelte/transition";
-	import { backOut } from "svelte/easing";
-	import { horizontalSlide } from "$lib/utils/transitions.js";
 	import {
 		ChevronDown,
+		ChevronUp,
 		Search,
-		MoreHorizontal,
 		HelpCircle,
 		SlidersHorizontal,
-		Compass,
 		PlusCircle,
-		User,
-		Menu,
 		X,
 		LogOut,
 		Palette,
 		FolderOpen,
 		Settings as SettingsIcon,
 	} from "lucide-svelte";
-	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { searchStore } from "$lib/stores/search.svelte.js";
-	import { priceStore } from "$lib/stores/prices.svelte.js";
 	import { authStore } from "$lib/stores/auth.svelte.js";
+	import { settingsStore } from "$lib/stores/settings.svelte.js";
+	import { goto } from "$app/navigation";
+	import { page } from "$app/stores";
 
-	import Button from "./ui/Button.svelte";
 	import Input from "./ui/Input.svelte";
-
 	import ManaFilter from "./ManaFilter.svelte";
 	import SearchOptionsModal from "./SearchOptionsModal.svelte";
 	import ViewOptionsModal from "./ViewOptionsModal.svelte";
 	import DisplayNamePromptModal from "./DisplayNamePromptModal.svelte";
 	import ConfirmModal from "./ConfirmModal.svelte";
-	import { settingsStore } from "$lib/stores/settings.svelte.js";
-	import { goto } from "$app/navigation";
-	import { page } from "$app/stores";
+	import DeckHeader from "./DeckHeader.svelte";
 
-	let {} = $props();
 	let showCollectionDropdown = $state(false);
 	let showSearchOptions = $state(false);
 	/** @type {HTMLElement | null} */
@@ -44,18 +35,15 @@
 	let showBudgieDropdown = $state(false);
 	let showViewOptionsModal = $state(false);
 	let showAboutModal = $state(false);
+	let isHoveringFilters = $state(false);
+	let isManaFilterVisible = $state(false);
+	/** @type {any} */
+	let hideTimer = null;
 
-	let hasInitializedView = $state(false);
-
-	$effect(() => {
-		if (authStore.isAuthenticated && authStore.user && !authStore.isLoading && !hasInitializedView) {
-			const defaultView = authStore.user.user_metadata?.default_view;
-			if (defaultView) {
-				settingsStore.deckViewMode = defaultView;
-				hasInitializedView = true;
-			}
-		}
-	});
+	const isDeckPage = $derived(
+		($page.url.pathname.startsWith("/decks/") && Boolean($page.params.id)) ||
+		$page.url.pathname === "/"
+	);
 
 	function handleNewDeck() {
 		showBudgieDropdown = false;
@@ -63,12 +51,6 @@
 		if (typeof window !== "undefined") {
 			window.open("/?new_deck=true", "_blank");
 		}
-	}
-
-	function handleBrowseDecks() {
-		showBudgieDropdown = false;
-		showProfileDropdown = false;
-		goto("/decks");
 	}
 
 	async function handleSignOut() {
@@ -110,7 +92,6 @@
 	/** @param {string} id */
 	function selectCollection(id) {
 		if (id === "new") {
-			// Handle create new
 			alert("Create new collection functionality coming soon!");
 			showCollectionDropdown = false;
 			return;
@@ -119,7 +100,6 @@
 		showCollectionDropdown = false;
 	}
 
-	// Click outside to close
 	/** @param {MouseEvent} e */
 	function handleClickOutside(e) {
 		const target = /** @type {HTMLElement} */ (e.target);
@@ -133,15 +113,6 @@
 			showBudgieDropdown = false;
 		}
 	}
-
-	let isHoveringFilters = $state(false);
-	let isManaFilterVisible = $state(false);
-	/** @type {any} */
-	let hideTimer = null;
-
-	const isFocusedMode = $derived(
-		searchStore.isFocused || searchStore.isExpanded,
-	);
 
 	$effect(() => {
 		const shouldBeVisible =
@@ -164,269 +135,344 @@
 			}
 		}
 	});
+
+	/** @param {KeyboardEvent} e */
+	function handleGlobalKeyDown(e) {
+		const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+		const isInput = ["INPUT", "TEXTAREA", "SELECT"].includes(
+			document.activeElement?.tagName || "",
+		);
+
+		// Cmd + Space or Cmd + K or Ctrl + Space or Ctrl + K
+		if (isCmdOrCtrl && (e.key === " " || e.key.toLowerCase() === "k")) {
+			e.preventDefault();
+			if (!searchStore.isOpen) {
+				searchStore.openSearch();
+			}
+			setTimeout(() => {
+				const inputEl = document.querySelector(".header-search-input input") || document.querySelector(".header-search-input");
+				/** @type {HTMLElement | null} */ (inputEl)?.focus();
+			}, 50);
+			return;
+		}
+
+		// '/' shortcut when not inside an input
+		if (e.key === "/" && !isInput && !isCmdOrCtrl) {
+			e.preventDefault();
+			if (!searchStore.isOpen) {
+				searchStore.openSearch();
+			}
+			setTimeout(() => {
+				const inputEl = document.querySelector(".header-search-input input") || document.querySelector(".header-search-input");
+				/** @type {HTMLElement | null} */ (inputEl)?.focus();
+			}, 50);
+			return;
+		}
+
+		// Escape closes search when search is open
+		if (e.key === "Escape" && searchStore.isOpen) {
+			searchStore.closeSearch();
+		}
+	}
 </script>
 
-<svelte:window onclick={handleClickOutside} />
+<svelte:window onclick={handleClickOutside} onkeydown={handleGlobalKeyDown} />
 
-<header class="app-header">
-	<div class="header-left">
-		<div class="budgie-menu-container">
-			<button
-				class="budgie-trigger"
-				onclick={() => (showBudgieDropdown = !showBudgieDropdown)}
-				aria-expanded={showBudgieDropdown}
-				aria-haspopup="menu"
-			>
-				<span class="logo-text">Budgie</span>
-				<ChevronDown size={14} class="chevron {showBudgieDropdown ? 'open' : ''}" />
-			</button>
-
-			{#if showBudgieDropdown}
-				<div class="budgie-dropdown" transition:fade={{ duration: 150 }}>
-					{#if String($page.url.pathname) === '/'}
-						<a href="/browse" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
-							<FolderOpen size={14} />
-							<span>Browse Decks</span>
-						</a>
-						<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
-							<Palette size={14} />
-							<span>Art Gallery</span>
-						</a>
-					{/if}
-					<button class="menu-item" onclick={() => { showAboutModal = true; showBudgieDropdown = false; }}>
-						<HelpCircle size={14} />
-						<span>About Budgie</span>
-					</button>
-					<a 
-						href="https://scryfall.com/docs/syntax" 
-						target="_blank" 
-						rel="noopener noreferrer" 
-						class="menu-item nav-link"
-						onclick={() => (showBudgieDropdown = false)}
-					>
-						<HelpCircle size={14} />
-						<span>Help</span>
-					</a>
-				</div>
-			{/if}
-		</div>
-
-		{#if String($page.url.pathname) !== '/'}
-			<nav class="nav-links">
-				<a href="/browse" class="nav-item" class:active={$page.url.pathname === '/browse'}>Browse Decks</a>
-				<a href="/gallery" class="nav-item" class:active={$page.url.pathname === '/gallery'}>Art Gallery</a>
-			</nav>
-		{/if}
-
-		{#if String($page.url.pathname) === '/' || ($page.url.pathname.startsWith('/decks/') && $page.params.id)}
-			<div class="search-bar">
-				<div
-					class="search-input-group"
-					class:is-focused={searchStore.isFocused}
+{#if isDeckPage && !searchStore.isOpen}
+	<!-- Single Unified Top Bar when Search is Closed -->
+	<DeckHeader isTopBar={true} />
+{:else}
+	<!-- Search Bar Top Row (when Search is Open or on non-deck pages) -->
+	<header class="app-header">
+		<div class="header-left">
+			{#if isDeckPage && searchStore.isOpen}
+				<button
+					class="close-search-btn"
+					onclick={() => searchStore.closeSearch()}
+					aria-label="Close search (Esc)"
+					title="Close search (Esc)"
 				>
-					<div class="collection-selector">
-						<button
-							class="collection-trigger"
-							onclick={() =>
-								(showCollectionDropdown = !showCollectionDropdown)}
-							aria-expanded={showCollectionDropdown}
-							aria-haspopup="listbox"
-						>
-							<div class="collection-value">
-								<span class="value-text"
-									>{collectionButtonText}</span
-								>
-								<ChevronDown
-									size={14}
-									class="chevron {showCollectionDropdown
-										? 'open'
-										: ''}"
-								/>
-							</div>
-						</button>
+					<ChevronUp size={16} />
+				</button>
+			{/if}
 
-						{#if showCollectionDropdown}
-							<div class="collection-menu">
-								{#each collections as item}
-									{#if item.divider}
-										<div class="menu-divider"></div>
-									{:else}
-										<button
-											class="menu-item"
-											class:active={searchStore.collection ===
-												item.id}
-											class:disabled={item.disabled}
-											onclick={() =>
-												!item.disabled &&
-												item.id &&
-												selectCollection(item.id)}
-											disabled={item.disabled}
-										>
-											{item.label}
-										</button>
-									{/if}
-								{/each}
-							</div>
-						{/if}
-					</div>
+			{#if !isDeckPage}
+				<div class="budgie-menu-container">
+					<button
+						class="budgie-trigger"
+						onclick={() => (showBudgieDropdown = !showBudgieDropdown)}
+						aria-expanded={showBudgieDropdown}
+						aria-haspopup="menu"
+					>
+						<span class="logo-text">Budgie</span>
+						<ChevronDown size={14} class="chevron {showBudgieDropdown ? 'open' : ''}" />
+					</button>
 
-					<div class="search-input-wrapper">
-						<Search size={14} class="search-icon" />
-						<Input
-							placeholder=""
-							class="header-search-input"
-							bind:value={searchStore.query}
-							onfocus={() => searchStore.setFocus(true)}
-							onblur={() => searchStore.setFocus(false)}
-							onkeydown={(/** @type {KeyboardEvent} */ e) => {
-								if (e.key === "Escape") {
-									// @ts-ignore
-									e.currentTarget.blur();
-								}
-							}}
-						/>
-						{#if searchStore.query !== ""}
-							<button
-								class="search-action-btn"
-								title="Clear search"
-								onclick={() => (searchStore.query = "")}
-								onmousedown={(e) => e.preventDefault()}
-								transition:fade={{ duration: 150 }}
-							>
-								<X size={14} />
+					{#if showBudgieDropdown}
+						<div class="budgie-dropdown" transition:fade={{ duration: 150 }}>
+							<a href="/decks" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+								<FolderOpen size={14} />
+								<span>Browse Decks</span>
+							</a>
+							<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+								<Palette size={14} />
+								<span>Art Gallery</span>
+							</a>
+							<button class="menu-item" onclick={() => { showAboutModal = true; showBudgieDropdown = false; }}>
+								<HelpCircle size={14} />
+								<span>About Budgie</span>
 							</button>
-						{:else if showHelpIcon}
 							<a
 								href="https://scryfall.com/docs/syntax"
 								target="_blank"
 								rel="noopener noreferrer"
-								class="search-action-btn"
-								title="Scryfall Search Syntax Guide"
-								onmousedown={(e) => e.preventDefault()}
-								transition:fade={{ duration: 150 }}
+								class="menu-item nav-link"
+								onclick={() => (showBudgieDropdown = false)}
 							>
 								<HelpCircle size={14} />
+								<span>Help</span>
 							</a>
-						{/if}
-					</div>
-
-					<div class="search-divider"></div>
-
-					<button
-						bind:this={searchSettingsBtn}
-						class="search-settings-btn"
-						class:active={showSearchOptions}
-						onclick={() => (showSearchOptions = !showSearchOptions)}
-						aria-label="Search Settings"
-						title="Search Settings"
-					>
-						<SlidersHorizontal size={15} />
-					</button>
-				</div>
-			</div>
-
-			<SearchOptionsModal
-				bind:isOpen={showSearchOptions}
-				triggerElement={searchSettingsBtn}
-			/>
-
-			{#if isManaFilterVisible}
-				<div
-					role="presentation"
-					in:slide={{ axis: "x", duration: 200, delay: 150 }}
-					out:slide={{ axis: "x", duration: 200 }}
-					onmouseenter={() => (isHoveringFilters = true)}
-					onmouseleave={() => (isHoveringFilters = false)}
-					class="mana-filter-wrapper"
-				>
-					<div
-						in:fade={{ duration: 100, delay: 250 }}
-						out:fade={{ duration: 100 }}
-					>
-						<ManaFilter />
-					</div>
-				</div>
-			{/if}
-		{/if}
-	</div>
-
-	<div class="header-right">
-		<div class="user-auth-bug">
-			{#if authStore.isLoading}
-				<div class="auth-loading-spinner spinner"></div>
-			{:else}
-				{#if authStore.isAuthenticated && authStore.user}
-					{#if String($page.url.pathname) !== '/'}
-						<nav class="nav-links" style="margin-right: 1.25rem;">
-							<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>Your Decks</a>
-						</nav>
+						</div>
 					{/if}
-					<div class="profile-menu-container">
-						<button 
-							class="profile-trigger" 
-							onclick={() => showProfileDropdown = !showProfileDropdown}
-							aria-expanded={showProfileDropdown}
-							aria-haspopup="menu"
-							aria-label="User menu"
-						>
-							<span class="user-name">{authStore.user.user_metadata?.display_name || authStore.user.email?.split('@')[0]}</span>
-							<ChevronDown size={14} class="chevron {showProfileDropdown ? 'open' : ''}" />
-						</button>
+				</div>
 
-						{#if showProfileDropdown}
-							<div class="profile-dropdown" transition:fade={{ duration: 150 }}>
-								<div class="dropdown-header">
-									<span class="dropdown-email">{authStore.user.email}</span>
-									{#if authStore.user.app_metadata?.provider}
-										<span class="provider-badge">{authStore.user.app_metadata.provider}</span>
-									{/if}
+				<nav class="nav-links">
+					<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>Browse Decks</a>
+					<a href="/gallery" class="nav-item" class:active={$page.url.pathname === '/gallery'}>Art Gallery</a>
+				</nav>
+			{/if}
+
+			{#if isDeckPage && searchStore.isOpen}
+				<div class="search-bar">
+					<div
+						class="search-input-group"
+						class:is-focused={searchStore.isFocused}
+					>
+						<div class="collection-selector">
+							<button
+								class="collection-trigger"
+								onclick={() => (showCollectionDropdown = !showCollectionDropdown)}
+								aria-expanded={showCollectionDropdown}
+								aria-haspopup="listbox"
+							>
+								<div class="collection-value">
+									<span class="value-text">{collectionButtonText}</span>
+									<ChevronDown size={14} class="chevron {showCollectionDropdown ? 'open' : ''}" />
 								</div>
-								<div class="menu-divider"></div>
-								<button class="menu-item" onclick={handleNewDeck}>
-									<PlusCircle size={14} />
-									<span>New Deck</span>
+							</button>
+
+							{#if showCollectionDropdown}
+								<div class="collection-menu" transition:fly={{ y: 4, duration: 150 }}>
+									{#each collections as item}
+										{#if item.divider}
+											<div class="menu-divider"></div>
+										{:else}
+											<button
+												class="menu-item"
+												class:active={searchStore.collection === item.id}
+												class:disabled={item.disabled}
+												onclick={() => !item.disabled && item.id && selectCollection(item.id)}
+												disabled={item.disabled}
+											>
+												{item.label}
+											</button>
+										{/if}
+									{/each}
+								</div>
+							{/if}
+						</div>
+
+						<div class="search-input-wrapper">
+							<Search size={14} class="search-icon" />
+							<Input
+								placeholder="Search cards (e.g. t:creature cmc<=3)..."
+								class="header-search-input"
+								bind:value={searchStore.query}
+								onfocus={() => searchStore.setFocus(true)}
+								onblur={() => searchStore.setFocus(false)}
+								onkeydown={(/** @type {KeyboardEvent} */ e) => {
+									if (e.key === "Escape") {
+										searchStore.closeSearch();
+									}
+								}}
+							/>
+							{#if searchStore.query !== ""}
+								<button
+									class="search-action-btn"
+									title="Clear search"
+									onclick={() => (searchStore.query = "")}
+									onmousedown={(e) => e.preventDefault()}
+									transition:fade={{ duration: 150 }}
+								>
+									<X size={14} />
 								</button>
-								<a href="/decks" class="menu-item nav-link" onclick={() => (showProfileDropdown = false)}>
-									<FolderOpen size={14} />
-									<span>Your Decks</span>
+							{:else if showHelpIcon}
+								<a
+									href="https://scryfall.com/docs/syntax"
+									target="_blank"
+									rel="noopener noreferrer"
+									class="search-action-btn"
+									title="Scryfall Search Syntax Guide"
+									onmousedown={(e) => e.preventDefault()}
+									transition:fade={{ duration: 150 }}
+								>
+									<HelpCircle size={14} />
 								</a>
-								<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
-									<SettingsIcon size={14} />
-									<span>Settings</span>
-								</button>
-								<div class="menu-divider"></div>
-								<button class="menu-item destructive" onclick={handleSignOut}>
-									<LogOut size={14} />
-									<span>Log Out</span>
-								</button>
-							</div>
-						{/if}
+							{/if}
+						</div>
+
+						<div class="search-divider"></div>
+
+						<button
+							bind:this={searchSettingsBtn}
+							class="search-settings-btn"
+							class:active={showSearchOptions}
+							onclick={() => (showSearchOptions = !showSearchOptions)}
+							aria-label="Search Settings"
+							title="Search Settings"
+						>
+							<SlidersHorizontal size={15} />
+						</button>
 					</div>
-				{:else}
-					<a href="/login?redirectTo={encodeURIComponent($page.url.pathname)}" class="profile-trigger font-semibold" style="text-decoration: none;" aria-label="Log In">
-						<span class="user-name">Log In</span>
-					</a>
+				</div>
+
+				<SearchOptionsModal
+					bind:isOpen={showSearchOptions}
+					triggerElement={searchSettingsBtn}
+				/>
+
+				{#if isManaFilterVisible}
+					<div
+						role="presentation"
+						in:slide={{ axis: "x", duration: 200, delay: 100 }}
+						out:slide={{ axis: "x", duration: 150 }}
+						onmouseenter={() => (isHoveringFilters = true)}
+						onmouseleave={() => (isHoveringFilters = false)}
+						class="mana-filter-wrapper"
+					>
+						<div in:fade={{ duration: 100, delay: 150 }} out:fade={{ duration: 100 }}>
+							<ManaFilter />
+						</div>
+					</div>
 				{/if}
 			{/if}
 		</div>
-	</div>
-</header>
+
+		<div class="header-right">
+			{#if isDeckPage && searchStore.isOpen}
+				<div class="budgie-menu-container">
+					<button
+						class="budgie-trigger"
+						onclick={() => (showBudgieDropdown = !showBudgieDropdown)}
+						aria-expanded={showBudgieDropdown}
+						aria-haspopup="menu"
+					>
+						<span class="logo-text">Budgie</span>
+						<ChevronDown size={14} class="chevron {showBudgieDropdown ? 'open' : ''}" />
+					</button>
+
+					{#if showBudgieDropdown}
+						<div class="budgie-dropdown" transition:fade={{ duration: 150 }}>
+							<a href="/decks" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+								<FolderOpen size={14} />
+								<span>Browse Decks</span>
+							</a>
+							<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+								<Palette size={14} />
+								<span>Art Gallery</span>
+							</a>
+							<button class="menu-item" onclick={() => { showAboutModal = true; showBudgieDropdown = false; }}>
+								<HelpCircle size={14} />
+								<span>About Budgie</span>
+							</button>
+							<a
+								href="https://scryfall.com/docs/syntax"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="menu-item nav-link"
+								onclick={() => (showBudgieDropdown = false)}
+							>
+								<HelpCircle size={14} />
+								<span>Help</span>
+							</a>
+						</div>
+					{/if}
+				</div>
+			{/if}
+
+			<div class="user-auth-bug">
+				{#if authStore.isLoading}
+					<div class="auth-loading-spinner spinner"></div>
+				{:else}
+					{#if authStore.isAuthenticated && authStore.user}
+						<div class="profile-menu-container">
+							<button
+								class="profile-trigger"
+								onclick={() => (showProfileDropdown = !showProfileDropdown)}
+								aria-expanded={showProfileDropdown}
+								aria-haspopup="menu"
+								aria-label="User menu"
+							>
+								<span class="user-name">
+									{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0]}
+								</span>
+								<ChevronDown size={14} class="chevron {showProfileDropdown ? 'open' : ''}" />
+							</button>
+
+							{#if showProfileDropdown}
+								<div class="profile-dropdown" transition:fade={{ duration: 150 }}>
+									<div class="dropdown-header">
+										<span class="dropdown-email">{authStore.user.email}</span>
+									</div>
+									<div class="menu-divider"></div>
+									<button class="menu-item" onclick={handleNewDeck}>
+										<PlusCircle size={14} />
+										<span>New Deck</span>
+									</button>
+									<a href="/decks" class="menu-item nav-link" onclick={() => (showProfileDropdown = false)}>
+										<FolderOpen size={14} />
+										<span>Your Decks</span>
+									</a>
+									<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
+										<SettingsIcon size={14} />
+										<span>Settings</span>
+									</button>
+									<div class="menu-divider"></div>
+									<button class="menu-item destructive" onclick={handleSignOut}>
+										<LogOut size={14} />
+										<span>Log Out</span>
+									</button>
+								</div>
+							{/if}
+						</div>
+					{:else}
+						<a
+							href="/login?redirectTo={encodeURIComponent($page.url.pathname)}"
+							class="profile-trigger font-semibold"
+							style="text-decoration: none;"
+							aria-label="Log In"
+						>
+							<span class="user-name">Log In</span>
+						</a>
+					{/if}
+				{/if}
+			</div>
+		</div>
+	</header>
+{/if}
 
 <ViewOptionsModal bind:isOpen={showViewOptionsModal} triggerElement={null} />
 <DisplayNamePromptModal />
 <ConfirmModal />
 
 {#if showAboutModal}
-	<div 
-		class="about-backdrop" 
-		onclick={(e) => { if (e.target === e.currentTarget) showAboutModal = false; }} 
-		role="presentation" 
+	<div
+		class="about-backdrop"
+		onclick={(e) => { if (e.target === e.currentTarget) showAboutModal = false; }}
+		role="presentation"
 		transition:fade={{ duration: 150 }}
 	>
-		<div 
-			class="about-card" 
-			transition:fly={{ y: 10, duration: 200 }}
-		>
+		<div class="about-card" transition:fly={{ y: 10, duration: 200 }}>
 			<div class="about-header">
 				<h3>About Budgie</h3>
 				<button class="close-btn" onclick={() => (showAboutModal = false)}>
@@ -446,7 +492,7 @@
 
 <style>
 	.app-header {
-		height: 56px;
+		height: 52px;
 		padding: 0 1.25rem;
 		background: var(--bg-panel);
 		border-bottom: 1px solid hsl(var(--border) / 0.5);
@@ -455,13 +501,36 @@
 		justify-content: space-between;
 		z-index: 1000;
 		backdrop-filter: blur(12px);
+		user-select: none;
 	}
 
 	.header-left {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
+		gap: 0.625rem;
 		flex: 1;
+		min-width: 0;
+	}
+
+	.close-search-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		border-radius: var(--radius-sm);
+		background: hsl(var(--muted) / 0.3);
+		border: 1px solid hsl(var(--border) / 0.6);
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		transition: all 0.15s ease;
+		flex-shrink: 0;
+	}
+
+	.close-search-btn:hover {
+		background: hsl(var(--accent) / 0.6);
+		color: hsl(var(--foreground));
+		border-color: hsl(var(--primary) / 0.5);
 	}
 
 	.logo-text {
@@ -479,8 +548,8 @@
 		align-items: center;
 		background-color: hsl(var(--muted) / 0.3);
 		border: 1px solid hsl(var(--border) / 0.6);
-		border-radius: var(--radius);
-		height: 38px;
+		border-radius: var(--radius-md);
+		height: 36px;
 		transition: all 0.2s ease;
 		padding: 2px;
 	}
@@ -488,7 +557,7 @@
 	.search-input-group.is-focused {
 		background-color: hsl(var(--background));
 		border-color: hsl(var(--primary));
-		box-shadow: 0 0 0 4px hsl(var(--primary) / 0.1);
+		box-shadow: 0 0 0 3px hsl(var(--primary) / 0.12);
 	}
 
 	.collection-selector {
@@ -502,14 +571,14 @@
 		height: 100%;
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
-		padding: 0 0.875rem;
+		gap: 0.5rem;
+		padding: 0 0.75rem;
 		background: none;
 		border: none;
 		cursor: pointer;
 		color: hsl(var(--foreground));
 		transition: background-color 0.2s;
-		border-radius: var(--radius) 0 0 var(--radius);
+		border-radius: var(--radius-sm) 0 0 var(--radius-sm);
 	}
 
 	.collection-trigger:hover {
@@ -519,20 +588,11 @@
 	.collection-value {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.4rem;
 		font-size: 0.8125rem;
 		font-weight: 600;
 		color: hsl(var(--foreground));
 		white-space: nowrap;
-	}
-
-	.collection-value :global(.chevron) {
-		opacity: 0.5;
-		transition: transform 0.2s;
-	}
-
-	.collection-value :global(.chevron.open) {
-		transform: rotate(180deg);
 	}
 
 	.collection-menu {
@@ -554,8 +614,8 @@
 	.menu-item {
 		width: 100%;
 		text-align: left;
-		padding: 8px 12px;
-		font-size: 0.875rem;
+		padding: 7px 12px;
+		font-size: 0.8125rem;
 		font-weight: 500;
 		color: hsl(var(--muted-foreground));
 		background: none;
@@ -563,16 +623,20 @@
 		border-radius: var(--radius-sm);
 		cursor: pointer;
 		transition: all 0.15s;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 	}
 
 	.menu-item.active {
 		background: hsla(var(--primary-hsl), 0.1);
 		color: hsl(var(--primary));
+		font-weight: 600;
 	}
 
 	.menu-item:hover:not(.disabled) {
 		background: hsl(var(--primary));
-		color: white;
+		color: white !important;
 	}
 
 	.menu-item.disabled {
@@ -596,7 +660,7 @@
 
 	:global(.search-input-wrapper .search-icon) {
 		position: absolute;
-		left: 0.875rem;
+		left: 0.75rem;
 		color: hsl(var(--muted-foreground));
 		pointer-events: none;
 		z-index: 10;
@@ -608,22 +672,20 @@
 	}
 
 	:global(.header-search-input) {
-		padding-left: 2.5rem !important;
-		padding-right: 2.5rem !important;
+		padding-left: 2.25rem !important;
+		padding-right: 2.25rem !important;
 		background-color: transparent !important;
 		border: none !important;
 		border-radius: 0 !important;
-		height: 34px !important;
-		font-size: 0.875rem !important;
+		height: 32px !important;
+		font-size: 0.8125rem !important;
 		font-weight: 500 !important;
 		box-shadow: none !important;
-		overflow: hidden;
-		text-overflow: ellipsis;
 	}
 
 	.search-action-btn {
 		position: absolute;
-		right: 0.875rem;
+		right: 0.75rem;
 		color: hsl(var(--muted-foreground));
 		display: flex;
 		align-items: center;
@@ -642,36 +704,30 @@
 		transform: scale(1.1);
 	}
 
-	.search-action-btn:active {
-		transform: scale(0.9);
-	}
-
 	.mana-filter-wrapper {
 		display: flex;
 		align-items: center;
 		overflow: hidden;
 		flex-shrink: 0;
 		padding-left: 0.5rem;
-		padding-top: 6px;
-		padding-bottom: 6px;
 	}
 
 	.search-divider {
 		width: 1px;
-		height: 20px;
+		height: 18px;
 		background-color: hsl(var(--border) / 0.5);
 		flex-shrink: 0;
 	}
 
 	.search-settings-btn {
-		width: 36px;
-		height: 36px;
+		width: 32px;
+		height: 32px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		background: none;
 		border: none;
-		border-radius: 0 var(--radius) var(--radius) 0;
+		border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 		color: hsl(var(--muted-foreground));
 		cursor: pointer;
 		transition: all 0.2s;
@@ -687,8 +743,9 @@
 	.header-right {
 		display: flex;
 		align-items: center;
-		gap: 1.25rem;
-		padding-left: 1.25rem;
+		gap: 0.75rem;
+		padding-left: 0.75rem;
+		flex-shrink: 0;
 	}
 
 	.budgie-menu-container {
@@ -700,27 +757,17 @@
 	.budgie-trigger {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.4rem;
 		background: none;
 		border: none;
 		cursor: pointer;
-		padding: 0.375rem 0.75rem;
+		padding: 0.3rem 0.6rem;
 		border-radius: var(--radius-md);
 		transition: background-color 0.2s;
 	}
 
 	.budgie-trigger:hover {
 		background-color: hsl(var(--accent) / 0.4);
-	}
-
-	.budgie-trigger :global(.chevron) {
-		opacity: 0.5;
-		transition: transform 0.2s;
-		color: hsl(var(--foreground));
-	}
-
-	.budgie-trigger :global(.chevron.open) {
-		transform: rotate(180deg);
 	}
 
 	.logo-text {
@@ -734,7 +781,7 @@
 	.budgie-dropdown {
 		position: absolute;
 		top: calc(100% + 6px);
-		left: 0;
+		right: 0;
 		width: 200px;
 		background: hsl(var(--popover));
 		border: 1px solid hsla(var(--border) / 0.6);
@@ -761,28 +808,17 @@
 	.profile-trigger {
 		display: flex;
 		align-items: center;
-		gap: 0.625rem;
+		gap: 0.4rem;
 		background: none;
 		border: none;
 		cursor: pointer;
-		padding: 0.375rem 0.75rem;
+		padding: 0.3rem 0.6rem;
 		border-radius: var(--radius-md);
 		transition: background-color 0.2s;
 	}
 
 	.profile-trigger:hover {
 		background-color: hsl(var(--accent) / 0.4);
-	}
-
-
-
-	.profile-trigger :global(.chevron) {
-		opacity: 0.5;
-		transition: transform 0.2s;
-	}
-
-	.profile-trigger :global(.chevron.open) {
-		transform: rotate(180deg);
 	}
 
 	.profile-dropdown {
@@ -820,39 +856,43 @@
 		flex: 1;
 	}
 
-	.provider-badge {
-		font-size: 0.625rem;
-		font-weight: 700;
-		text-transform: uppercase;
-		background: rgba(255, 255, 255, 0.05);
-		border: 1px solid rgba(255, 255, 255, 0.08);
-		border-radius: var(--radius-sm);
-		padding: 1px 4px;
-		width: max-content;
-		color: var(--text-muted);
-		flex-shrink: 0;
+	.user-name {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
 	}
 
-	.menu-item {
-		width: 100%;
-		text-align: left;
-		padding: 8px 12px;
-		font-size: 0.875rem;
-		font-weight: 500;
-		color: hsl(var(--muted-foreground));
-		background: none;
-		border: none;
-		border-radius: var(--radius-sm);
-		cursor: pointer;
-		transition: all 0.15s;
+	:global(.chevron) {
+		opacity: 0.5;
+		transition: transform 0.2s;
+	}
+
+	:global(.chevron.open) {
+		transform: rotate(180deg);
+	}
+
+	.nav-links {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 1.5rem;
+		margin-left: 0.5rem;
 	}
 
-	.menu-item:hover {
-		background: hsl(var(--primary));
-		color: white !important;
+	.nav-item {
+		color: hsl(var(--muted-foreground));
+		font-size: 0.8125rem;
+		font-weight: 600;
+		text-decoration: none;
+		transition: color 0.15s ease;
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 0.25rem 0;
+	}
+
+	.nav-item:hover,
+	.nav-item.active {
+		color: hsl(var(--foreground));
 	}
 
 	.nav-link {
@@ -876,13 +916,7 @@
 		border-width: 2px;
 	}
 
-	.user-name {
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
-	}
-
-	/* About Modal styling */
+	/* About Modal */
 	.about-backdrop {
 		position: fixed;
 		top: 0;
@@ -933,11 +967,6 @@
 		border-radius: var(--radius-sm);
 	}
 
-	.about-header .close-btn:hover {
-		background: hsl(var(--muted) / 0.4);
-		color: hsl(var(--foreground));
-	}
-
 	.about-body {
 		font-size: 0.875rem;
 		line-height: 1.6;
@@ -947,38 +976,10 @@
 		gap: 0.75rem;
 	}
 
-	.about-body p {
-		margin: 0;
-	}
-
 	.about-footer {
 		margin-top: 0.5rem;
 		font-size: 0.75rem;
 		color: hsl(var(--muted-foreground));
 		text-align: right;
-	}
-
-	.nav-links {
-		display: flex;
-		align-items: center;
-		gap: 1.5rem;
-		margin-left: 0.5rem;
-	}
-
-	.nav-item {
-		color: hsl(var(--muted-foreground));
-		font-size: 0.8125rem;
-		font-weight: 600;
-		text-decoration: none;
-		transition: color 0.15s ease;
-		background: none;
-		border: none;
-		cursor: pointer;
-		padding: 0.25rem 0;
-	}
-
-	.nav-item:hover,
-	.nav-item.active {
-		color: hsl(var(--foreground));
 	}
 </style>

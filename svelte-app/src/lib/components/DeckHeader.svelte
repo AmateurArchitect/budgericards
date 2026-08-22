@@ -2,42 +2,49 @@
 	import { onMount, untrack } from "svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
+	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
+	import { authStore } from "$lib/stores/auth.svelte.js";
+	import { goto } from "$app/navigation";
+	import { page } from "$app/stores";
 	import {
-		LayoutGrid,
-		SortAsc,
-		Clock,
-		Eye,
 		Image,
-		DollarSign,
 		ChevronDown,
 		StretchHorizontal,
 		StretchVertical,
 		MoreVertical,
-		SquareSplitVertical,
 		Table,
 		Check,
 		List,
 		Layers,
-		Cloud,
 		CloudOff,
 		RefreshCw,
 		BarChart2,
 		Settings,
+		Search,
+		FolderOpen,
+		Palette,
+		HelpCircle,
+		PlusCircle,
+		LogOut,
+		Settings as SettingsIcon,
 	} from "lucide-svelte";
 	import Button from "./ui/Button.svelte";
-	import Input from "./ui/Input.svelte";
-	import Badge from "./ui/Badge.svelte";
 	import ManaSymbol from "./ui/ManaSymbol.svelte";
 	import DeckOptionsModal from "./DeckOptionsModal.svelte";
 	import ViewOptionsModal from "./ViewOptionsModal.svelte";
 	import { fade, fly } from "svelte/transition";
-	import { cubicOut, backOut } from "svelte/easing";
 	import { horizontalSlide } from "$lib/utils/transitions.js";
-	import { authStore } from "$lib/stores/auth.svelte.js";
+
+	/** @type {{ isTopBar?: boolean }} */
+	let { isTopBar = false } = $props();
 
 	let showDeckOptionsModal = $state(false);
 	let showViewOptionsModal = $state(false);
+	let showBudgieDropdown = $state(false);
+	let showProfileDropdown = $state(false);
+	let showAboutModal = $state(false);
+
 	/** @type {HTMLElement | null} */
 	let viewOptionsBtn = $state(null);
 	/** @type {HTMLElement | null} */
@@ -86,14 +93,11 @@
 		isDragOverArt = false;
 		if (!e.dataTransfer) return;
 
-		const internalData = e.dataTransfer.getData(
-			"application/x-budgericard",
-		);
+		const internalData = e.dataTransfer.getData("application/x-budgericard");
 		if (internalData) {
 			try {
 				const data = JSON.parse(internalData);
-				const meta =
-					deckStore.metadata[data.name.toLowerCase()] || data.card;
+				const meta = deckStore.metadata[data.name.toLowerCase()] || data.card;
 				if (meta) {
 					const art =
 						meta.image_uris?.art_crop ||
@@ -112,7 +116,6 @@
 			const doc = new DOMParser().parseFromString(html, "text/html");
 			const img = doc.querySelector("img");
 			if (img && img.src) {
-				// If it's a Scryfall image, try to get the art crop
 				if (img.src.includes("cards.scryfall.io")) {
 					const art = img.src
 						.replace("/normal/", "/art_crop/")
@@ -138,23 +141,15 @@
 		return ["W", "U", "B", "R", "G"].filter((c) => colors.has(c));
 	});
 
-	const colorMap = {
-		W: { bg: "#f8f6d8", icon: "󰄯" },
-		U: { bg: "#c1d7e9", icon: "󰄯" },
-		B: { bg: "#bab1ab", icon: "󰄯" },
-		R: { bg: "#e49977", icon: "󰄯" },
-		G: { bg: "#a3c095", icon: "󰄯" },
-	};
-
 	let showBoardDropdown = $state(false);
 	const columns = [
-		{ id: "cmc", label: "Mana Value" },
-		{ id: "creature", label: "Creature/Non-Creature" },
-		{ id: "type", label: "Type" },
-		{ id: "color", label: "Color" },
-		{ id: "primarytag", label: "Primary Tag" },
-		{ id: "freeform", label: "Freeform" },
-		{ id: "none", label: "None" },
+		{ id: "cmc", label: "Mana Value", shortLabel: "MV" },
+		{ id: "creature", label: "Creature/Non-Creature", shortLabel: "Creature" },
+		{ id: "type", label: "Type", shortLabel: "Type" },
+		{ id: "color", label: "Color", shortLabel: "Color" },
+		{ id: "primarytag", label: "Primary Tag", shortLabel: "Tag" },
+		{ id: "freeform", label: "Freeform", shortLabel: "Freeform" },
+		{ id: "none", label: "None", shortLabel: "None" },
 	];
 
 	const visibleGroupings = $derived(
@@ -163,15 +158,17 @@
 			: columns.filter((c) => c.id !== "freeform"),
 	);
 
+	const curGroupingCol = $derived(
+		columns.find((c) => c.id === deckStore.grouping)
+	);
+
 	$effect(() => {
-		// Read values we want to react to
 		const viewMode = settingsStore.deckViewMode;
 		const grouping = deckStore.grouping;
 		const sorting = deckStore.sorting;
 		const sortIds = visibleSorts.map((s) => s.id);
 
 		untrack(() => {
-			// 1. Sanitize grouping for Stacks View
 			if (viewMode === "stacks") {
 				if (
 					deckStore.grouping === "none" ||
@@ -181,17 +178,10 @@
 				}
 			}
 
-			// 2. Sanitize sorting for the current view mode (if current sort is not available)
-			if (
-				!sortIds.includes(deckStore.sorting) &&
-				sortIds.length > 0
-			) {
-				deckStore.sorting = sortIds.includes("color")
-					? "color"
-					: sortIds[0];
+			if (!sortIds.includes(deckStore.sorting) && sortIds.length > 0) {
+				deckStore.sorting = sortIds.includes("color") ? "color" : sortIds[0];
 			}
 
-			// 3. Resolve grouping/sorting clash (never allow set to same value)
 			if (
 				deckStore.grouping === deckStore.sorting &&
 				deckStore.grouping !== "none" &&
@@ -285,8 +275,6 @@
 		if (id !== "freeform") {
 			deckStore.lastNaturalGrouping = id;
 		} else {
-			// If we are switching to freeform, make sure lastNaturalGrouping is captured
-			// from whatever the current non-freeform grouping was.
 			if (deckStore.grouping !== "freeform") {
 				deckStore.lastNaturalGrouping = deckStore.grouping;
 			}
@@ -295,7 +283,6 @@
 		deckStore.grouping = id;
 		showColumnsDropdown = false;
 
-		// Auto-reset sorting if it matches the new grouping
 		if (deckStore.sorting === id) {
 			deckStore.sorting = defaultSorts[id] || "color";
 		}
@@ -307,7 +294,6 @@
 		deckStore.sortAscending = id !== "price" && id !== "added";
 		showSortDropdown = false;
 
-		// Auto-reset grouping if it matches the new sorting
 		if (deckStore.grouping === id) {
 			/** @type {Record<string, string>} */
 			const defaultGroupings = {
@@ -332,6 +318,42 @@
 		showBoardDropdown = false;
 	}
 
+	function handleNewDeck() {
+		showBudgieDropdown = false;
+		showProfileDropdown = false;
+		if (typeof window !== "undefined") {
+			window.open("/?new_deck=true", "_blank");
+		}
+	}
+
+	async function handleSignOut() {
+		showProfileDropdown = false;
+		await authStore.signOut();
+	}
+
+	/** @param {MouseEvent} e */
+	function handleDocumentClick(e) {
+		const target = /** @type {HTMLElement} */ (e.target);
+		if (!target.closest(".board-dropdown-container")) {
+			showBoardDropdown = false;
+		}
+		if (!target.closest(".grouping-container")) {
+			showColumnsDropdown = false;
+		}
+		if (!target.closest(".sort-container")) {
+			showSortDropdown = false;
+		}
+		if (!target.closest(".table-cols-container")) {
+			showTableColumnsDropdown = false;
+		}
+		if (!target.closest(".budgie-menu-container")) {
+			showBudgieDropdown = false;
+		}
+		if (!target.closest(".profile-menu-container")) {
+			showProfileDropdown = false;
+		}
+	}
+
 	onMount(() => {
 		/** @param {KeyboardEvent} e */
 		const handleGlobalKeydown = (e) => {
@@ -351,7 +373,9 @@
 	});
 </script>
 
-<div class="deck-header">
+<svelte:window onclick={handleDocumentClick} />
+
+<div class="deck-header" class:is-top-bar={isTopBar}>
 	<div class="deck-info-wrapper">
 		<div
 			class="deck-info"
@@ -370,6 +394,7 @@
 				}
 			}}
 			aria-label="Open deck options"
+			title="Click to edit deck options"
 		>
 			<div
 				class="deck-art-drop-zone"
@@ -390,138 +415,104 @@
 						/>
 					{:else}
 						<div class="deck-art-placeholder">
-							<Image size={24} class="placeholder-icon" />
+							<Image size={18} class="placeholder-icon" />
 						</div>
 					{/if}
 				</div>
 			</div>
 
-			<div class="name-container">
-				<div class="deck-title-row">
+			<div class="name-and-meta-row">
+				<div class="deck-title-wrapper" title={deckStore.name || "Untitled Deck"}>
 					{#if !deckStore.name || deckStore.name === "Untitled Deck"}
-						<h2 class="unnamed-prompt">Untitled Deck</h2>
-						<span class="draft-badge">Unsaved Draft</span>
+						<span class="unnamed-prompt">Untitled Deck</span>
+						<span class="draft-badge">Draft</span>
 					{:else}
-						<h2>{deckStore.name}</h2>
+						<span class="deck-title-text">{deckStore.name}</span>
 					{/if}
 				</div>
 
-				<div class="deck-meta">
-					{#if colorIdentity().length > 0}
-						<div class="deck-colors">
-							{#each colorIdentity() as col}
-								<ManaSymbol
-									symbol={col}
-									size="18px"
-									className="color-identity-dot"
-								/>
+				{#if colorIdentity().length > 0}
+					<div class="deck-colors">
+						{#each colorIdentity() as col}
+							<ManaSymbol
+								symbol={col}
+								size="15px"
+								className="color-identity-dot"
+							/>
+						{/each}
+					</div>
+				{/if}
+
+				<div class="board-dropdown-container">
+					<button
+						class="board-dropdown-trigger"
+						onclick={(e) => {
+							e.stopPropagation();
+							showBoardDropdown = !showBoardDropdown;
+						}}
+						aria-expanded={showBoardDropdown}
+						aria-haspopup="listbox"
+					>
+						<span class="board-label">
+							{deckStore.currentBoardCount} Card {boards.find((b) => b.id === deckStore.activeBoard)?.label}
+						</span>
+						<ChevronDown size={13} class="chevron {showBoardDropdown ? 'open' : ''}" />
+					</button>
+
+					{#if showBoardDropdown}
+						<div class="board-dropdown-menu" transition:fly={{ y: 4, duration: 150 }}>
+							{#each boards as board}
+								<button
+									class="dropdown-item"
+									class:active={deckStore.activeBoard === board.id}
+									onclick={(e) => {
+										e.stopPropagation();
+										selectBoard(board.id);
+									}}
+								>
+									<span class="item-label">{board.label}</span>
+									<span class="item-count">
+										{board.id === "mainboard"
+											? deckStore.mainboard.length + deckStore.commander.length + deckStore.companion.length
+											: deckStore[board.id].length}
+									</span>
+								</button>
 							{/each}
 						</div>
 					{/if}
+				</div>
 
-					<div class="board-dropdown-container">
-						<button
-							class="board-dropdown-trigger"
-							onclick={(e) => {
-								e.stopPropagation();
-								showBoardDropdown = !showBoardDropdown;
-							}}
-							aria-expanded={showBoardDropdown}
-							aria-haspopup="listbox"
-						>
-							<span class="count"
-								>{deckStore.currentBoardCount}</span
-							>
-							<span class="label"
-								>Card {boards.find(
-									(b) => b.id === deckStore.activeBoard,
-								)?.label}</span
-							>
-							<ChevronDown
-								size={14}
-								class="chevron {showBoardDropdown
-									? 'open'
-									: ''}"
-							/>
-						</button>
+				{#if deckStore.activeBoard === 'maybeboard' && deckStore.maybeboard.length >= 80}
+					<button
+						class="maybeboard-warning-btn"
+						class:full={deckStore.maybeboard.length === 100}
+						onclick={(e) => {
+							e.stopPropagation();
+							interactionStore.maybeboardCleanupModal.isOpen = true;
+						}}
+						title="Maybeboard is near or at limit. Click to clean up."
+					>
+						<span class="warning-icon">⚠️</span>
+						<span class="warning-text">{deckStore.maybeboard.length}/100</span>
+					</button>
+				{/if}
 
-						{#if showBoardDropdown}
-							<div
-								class="dropdown-backdrop"
-								role="presentation"
-								onclick={(e) => {
-									e.stopPropagation();
-									showBoardDropdown = false;
-								}}
-							></div>
-							<div class="board-dropdown-menu">
-								{#each boards as board}
-									<button
-										class="dropdown-item"
-										class:active={deckStore.activeBoard ===
-											board.id}
-										onclick={(e) => {
-											e.stopPropagation();
-											selectBoard(board.id);
-										}}
-									>
-										<span class="item-label"
-											>{board.label}</span
-										>
-										<span class="item-count"
-											>{board.id === "mainboard"
-												? deckStore.mainboard.length +
-													deckStore.commander.length +
-													deckStore.companion.length
-												: deckStore[board.id]
-														.length}</span
-										>
-									</button>
-								{/each}
-							</div>
+				{#if authStore.isAuthenticated && (deckStore.syncState.isSyncing || deckStore.syncState.error)}
+					<div class="sync-indicator-container">
+						{#if deckStore.syncState.isSyncing}
+							<span class="sync-status is-syncing" title="Syncing with cloud...">
+								<RefreshCw size={11} class="icon animate-spin" />
+							</span>
+						{:else if deckStore.syncState.error}
+							<span class="sync-status has-error" title={deckStore.syncState.error}>
+								<CloudOff size={11} class="icon" />
+							</span>
 						{/if}
 					</div>
-
-					{#if deckStore.activeBoard === 'maybeboard' && deckStore.maybeboard.length >= 80}
-						<button
-							class="maybeboard-warning-btn"
-							class:full={deckStore.maybeboard.length === 100}
-							onclick={() => interactionStore.maybeboardCleanupModal.isOpen = true}
-							title="Maybeboard is near or at limit. Click to clean up."
-						>
-							<span class="warning-icon">⚠️</span>
-							<span class="warning-text">{deckStore.maybeboard.length}/100</span>
-							<span class="cleanup-link">Clean Up</span>
-						</button>
-					{/if}
-
-					{#if authStore.isAuthenticated && (deckStore.syncState.isSyncing || deckStore.syncState.error)}
-						<div class="sync-indicator-container">
-							{#if deckStore.syncState.isSyncing}
-								<span
-									class="sync-status is-syncing"
-									title="Syncing with cloud..."
-								>
-									<RefreshCw
-										size={11}
-										class="icon animate-spin"
-									/>
-									<span>Syncing...</span>
-								</span>
-							{:else if deckStore.syncState.error}
-								<span
-									class="sync-status has-error"
-									title={deckStore.syncState.error}
-								>
-									<CloudOff size={11} class="icon" />
-									<span>Error</span>
-								</span>
-							{/if}
-						</div>
-					{/if}
-				</div>
+				{/if}
 			</div>
 		</div>
+
 		<DeckOptionsModal
 			bind:isOpen={showDeckOptionsModal}
 			fallbackArt={deckImage()}
@@ -529,11 +520,12 @@
 		/>
 	</div>
 
-	<div class="deck-controls">
+	<div class="deck-controls-right">
 		{#if settingsStore.deckViewMode === "list" && deckStore.isImportDirty}
 			<div class="import-mode-actions">
 				<Button
 					variant="outline"
+					size="sm"
 					class="cancel-btn"
 					onclick={() => deckStore.cancelImport()}
 				>
@@ -541,6 +533,7 @@
 				</Button>
 				<Button
 					variant="default"
+					size="sm"
 					class="save-btn"
 					onclick={() => deckStore.saveImport()}
 				>
@@ -548,406 +541,412 @@
 				</Button>
 			</div>
 		{:else}
-			<div class="header-select-group">
-				<span class="group-label">LAYOUT</span>
-				<div class="toggle-group">
-					<div class="group-content">
-						<Button
-							variant={settingsStore.deckViewMode === "stacks"
-								? "toggle-active"
-								: "ghost"}
-							size="icon"
-							class="display-toggle-btn"
-							onclick={() =>
-								(settingsStore.deckViewMode = "stacks")}
-							title="Stacks View"
-						>
-							<Layers size={14} />
-						</Button>
-						<Button
-							variant={settingsStore.deckViewMode === "table"
-								? "toggle-active"
-								: "ghost"}
-							size="icon"
-							class="display-toggle-btn"
-							onclick={() =>
-								(settingsStore.deckViewMode = "table")}
-							title="Table View"
-						>
-							<Table size={14} />
-						</Button>
-						<Button
-							variant={settingsStore.deckViewMode === "list"
-								? "toggle-active"
-								: "ghost"}
-							size="icon"
-							class="display-toggle-btn"
-							onclick={() =>
-								(settingsStore.deckViewMode = "list")}
-							title="List View"
-						>
-							<List size={14} />
-						</Button>
-						<Button
-							variant={settingsStore.deckViewMode === "spoiler"
-								? "toggle-active"
-								: "ghost"}
-							size="icon"
-							class="display-toggle-btn"
-							onclick={() =>
-								(settingsStore.deckViewMode = "spoiler")}
-							title="Spoiler View"
-						>
-							<Image size={14} />
-						</Button>
-						<Button
-							variant={settingsStore.deckViewMode === "stats"
-								? "toggle-active"
-								: "ghost"}
-							size="icon"
-							class="display-toggle-btn"
-							onclick={() =>
-								(settingsStore.deckViewMode = "stats")}
-							title="Stats View"
-						>
-							<BarChart2 size={14} />
-						</Button>
-						<Button
-							variant={settingsStore.deckViewMode === "settings"
-								? "toggle-active"
-								: "ghost"}
-							size="icon"
-							class="display-toggle-btn"
-							onclick={() =>
-								(settingsStore.deckViewMode = "settings")}
-							title="Settings"
-						>
-							<Settings size={14} />
-						</Button>
-					</div>
-				</div>
+			<!-- View Mode Segmented Controls -->
+			<div class="view-mode-group">
+				<Button
+					variant={settingsStore.deckViewMode === "stacks" ? "toggle-active" : "ghost"}
+					size="icon"
+					class="view-toggle-btn"
+					onclick={() => (settingsStore.deckViewMode = "stacks")}
+					title="Stacks View"
+				>
+					<Layers size={15} />
+				</Button>
+				<Button
+					variant={settingsStore.deckViewMode === "list" ? "toggle-active" : "ghost"}
+					size="icon"
+					class="view-toggle-btn"
+					onclick={() => (settingsStore.deckViewMode = "list")}
+					title="List / Text View"
+				>
+					<List size={15} />
+				</Button>
+				<Button
+					variant={settingsStore.deckViewMode === "spoiler" ? "toggle-active" : "ghost"}
+					size="icon"
+					class="view-toggle-btn"
+					onclick={() => (settingsStore.deckViewMode = "spoiler")}
+					title="Spoiler View"
+				>
+					<Image size={15} />
+				</Button>
+				<Button
+					variant={settingsStore.deckViewMode === "table" ? "toggle-active" : "ghost"}
+					size="icon"
+					class="view-toggle-btn"
+					onclick={() => (settingsStore.deckViewMode = "table")}
+					title="Table View"
+				>
+					<Table size={15} />
+				</Button>
+				<Button
+					variant={settingsStore.deckViewMode === "stats" ? "toggle-active" : "ghost"}
+					size="icon"
+					class="view-toggle-btn"
+					onclick={() => (settingsStore.deckViewMode = "stats")}
+					title="Stats View"
+				>
+					<BarChart2 size={15} />
+				</Button>
+				<Button
+					variant={settingsStore.deckViewMode === "settings" ? "toggle-active" : "ghost"}
+					size="icon"
+					class="view-toggle-btn"
+					onclick={() => (settingsStore.deckViewMode = "settings")}
+					title="Settings"
+				>
+					<Settings size={15} />
+				</Button>
 			</div>
 
-			<div class="action-buttons">
-				{#if settingsStore.deckViewMode === "stats"}
-					<div class="header-select-group">
-						<span class="group-label">STATS PANELS</span>
-						<div class="toggle-group">
-							<div class="group-content">
-								<Button
-									variant={settingsStore.statsSubTab === "dashboard" ? "toggle-active" : "ghost"}
-									onclick={() => settingsStore.statsSubTab = "dashboard"}
-									title="Analytics Dashboard"
-									size="sm"
-									class="display-toggle-btn stats-tab-btn"
-								>
-									Dashboard
-								</Button>
-								<Button
-									variant={settingsStore.statsSubTab === "sample-hand" ? "toggle-active" : "ghost"}
-									onclick={() => settingsStore.statsSubTab = "sample-hand"}
-									title="Sample Hand Drawer"
-									size="sm"
-									class="display-toggle-btn stats-tab-btn"
-								>
-									Sample Hand
-								</Button>
-								<Button
-									variant={settingsStore.statsSubTab === "tokens" ? "toggle-active" : "ghost"}
-									onclick={() => settingsStore.statsSubTab = "tokens"}
-									title="Required Tokens"
-									size="sm"
-									class="display-toggle-btn stats-tab-btn"
-								>
-									Tokens
-								</Button>
-								<Button
-									variant={settingsStore.statsSubTab === "combos" ? "toggle-active" : "ghost"}
-									onclick={() => settingsStore.statsSubTab = "combos"}
-									title="Matched Combos"
-									size="sm"
-									class="display-toggle-btn stats-tab-btn"
-								>
-									Combos
-								</Button>
-							</div>
-						</div>
-					</div>
-				{:else if settingsStore.deckViewMode !== "settings" && settingsStore.deckViewMode !== "list"}
-					<!-- Grouping Dropdown (Renamed from Columns) -->
-					<div class="header-select-group">
-						<span class="group-label">GROUPING</span>
-						<div class="header-select-container">
-							<button
-								class="header-select-trigger"
-								onclick={() =>
-									(showColumnsDropdown =
-										!showColumnsDropdown)}
-								aria-expanded={showColumnsDropdown}
-								aria-haspopup="listbox"
-							>
-								<span class="trigger-value"
-									>{columns.find(
-										(c) => c.id === deckStore.grouping,
-									)?.label}</span
-								>
-								<ChevronDown
-									size={14}
-									class="trigger-chevron {showColumnsDropdown
-										? 'open'
-										: ''}"
-								/>
-							</button>
+			<!-- Grouping Dropdown -->
+			{#if settingsStore.deckViewMode !== "settings" && settingsStore.deckViewMode !== "list" && settingsStore.deckViewMode !== "stats"}
+				<div class="grouping-container">
+					<button
+						class="header-select-trigger"
+						onclick={(e) => {
+							e.stopPropagation();
+							showColumnsDropdown = !showColumnsDropdown;
+						}}
+						aria-expanded={showColumnsDropdown}
+						aria-haspopup="listbox"
+						title="Group cards by"
+					>
+						<span class="trigger-value full-label">{curGroupingCol?.label || "Grouping"}</span>
+						<span class="trigger-value short-label">{curGroupingCol?.shortLabel || curGroupingCol?.label || "Grouping"}</span>
+						<ChevronDown size={13} class="chevron {showColumnsDropdown ? 'open' : ''}" />
+					</button>
 
-							{#if showColumnsDropdown}
-								<div
-									class="dropdown-backdrop"
-									role="presentation"
+					{#if showColumnsDropdown}
+						<div class="header-select-menu" transition:fly={{ y: 4, duration: 150 }}>
+							{#each visibleGroupings as col}
+								<button
+									class="select-item"
+									class:active={deckStore.grouping === col.id}
 									onclick={(e) => {
 										e.stopPropagation();
-										showColumnsDropdown = false;
+										selectGrouping(col.id);
 									}}
-									in:fade={{ duration: 200 }}
-									out:fade={{ duration: 150 }}
-								></div>
-								<div
-									class="header-select-menu"
-									in:fly={{ y: 5, duration: 250 }}
-									out:fly={{ y: 5, duration: 200 }}
 								>
-									{#each visibleGroupings as col}
-										<button
-											class="select-item"
-											class:active={deckStore.grouping ===
-												col.id}
-											onclick={() =>
-												selectGrouping(col.id)}
-										>
-											{col.label}
-										</button>
-									{/each}
-								</div>
-							{/if}
-						</div>
-					</div>
-
-					<!-- Columns multi-select dropdown (visible only in table view) -->
-					{#if settingsStore.deckViewMode === "table"}
-						<div
-							class="header-select-group"
-							in:horizontalSlide={{ duration: 400, delay: 300 }}
-							out:horizontalSlide={{ duration: 300 }}
-						>
-							<span class="group-label">COLUMNS</span>
-							<div class="header-select-container">
-								<button
-									class="header-select-trigger"
-									onclick={() =>
-										(showTableColumnsDropdown =
-											!showTableColumnsDropdown)}
-									aria-expanded={showTableColumnsDropdown}
-									aria-haspopup="listbox"
-								>
-									<span class="trigger-value">
-										{settingsStore.visibleColumns.length === 8
-											? "All"
-											: `${settingsStore.visibleColumns.length} Selected`}
-									</span>
-									<ChevronDown
-										size={14}
-										class="trigger-chevron {showTableColumnsDropdown
-											? 'open'
-											: ''}"
-									/>
+									{col.label}
 								</button>
-
-								{#if showTableColumnsDropdown}
-									<div
-										class="dropdown-backdrop"
-										role="presentation"
-										onclick={(e) => {
-											e.stopPropagation();
-											showTableColumnsDropdown = false;
-										}}
-										in:fade={{ duration: 200 }}
-										out:fade={{ duration: 150 }}
-									></div>
-									<div
-										class="header-select-menu"
-										in:fly={{ y: 5, duration: 250 }}
-										out:fly={{ y: 5, duration: 200 }}
-									>
-										{#each toggleableColumns as col}
-											<button
-												class="select-item multi-select-item"
-												class:active={settingsStore.visibleColumns.includes(
-													col.id,
-												)}
-												onclick={(e) => {
-													e.stopPropagation();
-													toggleTableColumn(col.id);
-												}}
-											>
-												<div class="checkbox-indicator">
-													{#if settingsStore.visibleColumns.includes(col.id)}
-														<Check size={10} />
-													{/if}
-												</div>
-												<span>{col.label}</span>
-											</button>
-										{/each}
-									</div>
-								{/if}
-							</div>
+							{/each}
 						</div>
 					{/if}
+				</div>
 
-					{#if (settingsStore.deckViewMode === "stacks" && deckStore.grouping !== "freeform") || settingsStore.deckViewMode === "spoiler"}
-						<div
-							class="header-select-group"
-							style="position: relative;"
-							in:horizontalSlide={{ duration: 400, delay: 300 }}
-							out:horizontalSlide={{ duration: 300 }}
+				<!-- Split View Modifier Button -->
+				{#if (settingsStore.deckViewMode === "stacks" && deckStore.grouping !== "freeform") || settingsStore.deckViewMode === "spoiler"}
+					<Button
+						variant={deckStore.splitView ? "toggle-active" : "ghost"}
+						size="icon"
+						class="modifier-btn {deckStore.splitView ? 'bg-secondary' : ''}"
+						onclick={() => (deckStore.splitView = !deckStore.splitView)}
+						title={settingsStore.deckViewMode === "spoiler"
+							? "Toggle Category Dividers"
+							: deckStore.grouping === "type"
+								? "Toggle Type Split View (Creatures / Non-Creatures)"
+								: "Toggle Spell / Land Row Split View"}
+					>
+						{#if settingsStore.deckViewMode === "spoiler"}
+							<StretchHorizontal size={15} />
+						{:else if deckStore.grouping === "type"}
+							<StretchVertical size={15} />
+						{:else}
+							<StretchHorizontal size={15} />
+						{/if}
+					</Button>
+				{/if}
+
+				<!-- Table Columns Multi-select -->
+				{#if settingsStore.deckViewMode === "table"}
+					<div class="table-cols-container">
+						<button
+							class="header-select-trigger"
+							onclick={(e) => {
+								e.stopPropagation();
+								showTableColumnsDropdown = !showTableColumnsDropdown;
+							}}
+							aria-expanded={showTableColumnsDropdown}
+							aria-haspopup="listbox"
+							title="Toggle visible columns"
 						>
-							<span class="group-label" style="visibility: hidden;"
-								>SPLIT</span
-							>
-							<Button
-								variant={deckStore.splitView
-									? "toggle-active"
-									: "ghost"}
-								size="icon"
-								class="split-view-btn {deckStore.splitView
-									? 'bg-secondary'
-									: ''}"
-								onclick={() =>
-									(deckStore.splitView = !deckStore.splitView)}
-								title={settingsStore.deckViewMode === "spoiler"
-									? "Toggle Category Dividers"
-									: deckStore.grouping === "type"
-										? "Toggle Type Split View (Creatures / Non-Creatures)"
-										: "Toggle Spell / Land Row Split View"}
-							>
-								{#if settingsStore.deckViewMode === "spoiler"}
-									<StretchHorizontal size={16} />
-								{:else if deckStore.grouping === "type"}
-									<StretchVertical size={16} />
-								{:else}
-									<StretchHorizontal size={16} />
-								{/if}
-							</Button>
-						</div>
-					{/if}
+							<span class="trigger-value">
+								{settingsStore.visibleColumns.length === 8
+									? "All Cols"
+									: `${settingsStore.visibleColumns.length} Cols`}
+							</span>
+							<ChevronDown size={13} class="chevron {showTableColumnsDropdown ? 'open' : ''}" />
+						</button>
 
-					<!-- Sort Dropdown -->
-					<div class="header-select-group">
-						<span class="group-label">SORT</span>
-						<div class="sort-group-container">
-							<div class="header-select-container">
-								<button
-									class="header-select-trigger"
-									onclick={() =>
-										(showSortDropdown = !showSortDropdown)}
-									aria-expanded={showSortDropdown}
-									aria-haspopup="listbox"
-								>
-									<span class="trigger-value"
-										>{visibleSorts.find(
-											(s) => s.id === deckStore.sorting,
-										)?.label || "Color"}</span
-									>
-									<ChevronDown
-										size={14}
-										class="trigger-chevron {showSortDropdown
-											? 'open'
-											: ''}"
-									/>
-								</button>
-
-								{#if showSortDropdown}
-									<div
-										class="dropdown-backdrop"
-										role="presentation"
+						{#if showTableColumnsDropdown}
+							<div class="header-select-menu" transition:fly={{ y: 4, duration: 150 }}>
+								{#each toggleableColumns as col}
+									<button
+										class="select-item multi-select-item"
+										class:active={settingsStore.visibleColumns.includes(col.id)}
 										onclick={(e) => {
 											e.stopPropagation();
-											showSortDropdown = false;
+											toggleTableColumn(col.id);
 										}}
-										in:fade={{ duration: 200 }}
-										out:fade={{ duration: 150 }}
-									></div>
-									<div
-										class="header-select-menu"
-										in:fly={{ y: 5, duration: 250 }}
-										out:fly={{ y: 5, duration: 200 }}
 									>
-										{#each visibleSorts.filter((s) => s.id !== deckStore.grouping) as sort}
-											<button
-												class="select-item"
-												class:active={deckStore.sorting ===
-													sort.id}
-												onclick={() =>
-													selectSorting(sort.id)}
-											>
-												{sort.label}
-											</button>
-										{/each}
-									</div>
-								{/if}
+										<div class="checkbox-indicator">
+											{#if settingsStore.visibleColumns.includes(col.id)}
+												<Check size={10} />
+											{/if}
+										</div>
+										<span>{col.label}</span>
+									</button>
+								{/each}
 							</div>
-						</div>
+						{/if}
 					</div>
 				{/if}
 
-				{#if settingsStore.deckViewMode !== "settings" && settingsStore.deckViewMode !== "list"}
-					<div class="header-select-group" style="position: relative;">
-						<span class="group-label" style="visibility: hidden;"
-							>OPT</span
-						>
-						<Button
-							variant={showViewOptionsModal
-								? "toggle-active"
-								: "ghost"}
-							size="icon"
-						class="view-options-btn"
+				<!-- View Options Modal Trigger -->
+				<div class="view-options-container">
+					<Button
+						variant={showViewOptionsModal ? "toggle-active" : "ghost"}
+						size="icon"
+						class="modifier-btn"
 						bind:el={viewOptionsBtn}
-						onclick={() => (showViewOptionsModal = true)}
+						onclick={(e) => {
+							e.stopPropagation();
+							showViewOptionsModal = true;
+						}}
 						title="View Options"
 					>
-						<MoreVertical size={16} />
+						<MoreVertical size={15} />
 					</Button>
 					<ViewOptionsModal
 						bind:isOpen={showViewOptionsModal}
 						triggerElement={viewOptionsBtn}
 					/>
 				</div>
-				{/if}
+			{/if}
+
+			{#if settingsStore.deckViewMode === "stats"}
+				<div class="stats-subtabs-group">
+					<Button
+						variant={settingsStore.statsSubTab === "dashboard" ? "toggle-active" : "ghost"}
+						onclick={() => (settingsStore.statsSubTab = "dashboard")}
+						size="sm"
+						class="stats-tab-btn"
+					>
+						Dashboard
+					</Button>
+					<Button
+						variant={settingsStore.statsSubTab === "sample-hand" ? "toggle-active" : "ghost"}
+						onclick={() => (settingsStore.statsSubTab = "sample-hand")}
+						size="sm"
+						class="stats-tab-btn"
+					>
+						Sample Hand
+					</Button>
+					<Button
+						variant={settingsStore.statsSubTab === "tokens" ? "toggle-active" : "ghost"}
+						onclick={() => (settingsStore.statsSubTab = "tokens")}
+						size="sm"
+						class="stats-tab-btn"
+					>
+						Tokens
+					</Button>
+					<Button
+						variant={settingsStore.statsSubTab === "combos" ? "toggle-active" : "ghost"}
+						onclick={() => (settingsStore.statsSubTab = "combos")}
+						size="sm"
+						class="stats-tab-btn"
+					>
+						Combos
+					</Button>
+				</div>
+			{/if}
+		{/if}
+
+		<!-- Global Top-Bar Items (Rendered when this is the top bar) -->
+		{#if isTopBar}
+			<div class="global-nav-group">
+				<!-- Budgie Dropdown -->
+				<div class="budgie-menu-container">
+					<button
+						class="nav-dropdown-trigger"
+						onclick={(e) => {
+							e.stopPropagation();
+							showBudgieDropdown = !showBudgieDropdown;
+						}}
+						aria-expanded={showBudgieDropdown}
+						aria-haspopup="menu"
+						title="Budgie Menu"
+					>
+						<span class="brand-text">Budgie</span>
+						<ChevronDown size={13} class="chevron {showBudgieDropdown ? 'open' : ''}" />
+					</button>
+
+					{#if showBudgieDropdown}
+						<div class="nav-dropdown-menu" transition:fade={{ duration: 120 }}>
+							<a href="/decks" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+								<FolderOpen size={14} />
+								<span>Browse Decks</span>
+							</a>
+							<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+								<Palette size={14} />
+								<span>Art Gallery</span>
+							</a>
+							<button class="menu-item" onclick={() => { showAboutModal = true; showBudgieDropdown = false; }}>
+								<HelpCircle size={14} />
+								<span>About Budgie</span>
+							</button>
+							<a
+								href="https://scryfall.com/docs/syntax"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="menu-item nav-link"
+								onclick={() => (showBudgieDropdown = false)}
+							>
+								<HelpCircle size={14} />
+								<span>Syntax Help</span>
+							</a>
+						</div>
+					{/if}
+				</div>
+
+				<!-- User Profile Dropdown -->
+				<div class="profile-menu-container">
+					{#if authStore.isAuthenticated && authStore.user}
+						<button
+							class="nav-dropdown-trigger user-trigger"
+							onclick={(e) => {
+								e.stopPropagation();
+								showProfileDropdown = !showProfileDropdown;
+							}}
+							aria-expanded={showProfileDropdown}
+							aria-haspopup="menu"
+							aria-label="User menu"
+							title={authStore.user.email}
+						>
+							<span class="user-name nav-label">
+								{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0]}
+							</span>
+							<ChevronDown size={13} class="chevron {showProfileDropdown ? 'open' : ''}" />
+						</button>
+
+						{#if showProfileDropdown}
+							<div class="nav-dropdown-menu profile-menu" transition:fade={{ duration: 120 }}>
+								<div class="dropdown-header">
+									<span class="dropdown-email">{authStore.user.email}</span>
+								</div>
+								<div class="menu-divider"></div>
+								<button class="menu-item" onclick={handleNewDeck}>
+									<PlusCircle size={14} />
+									<span>New Deck</span>
+								</button>
+								<a href="/decks" class="menu-item nav-link" onclick={() => (showProfileDropdown = false)}>
+									<FolderOpen size={14} />
+									<span>Your Decks</span>
+								</a>
+								<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
+									<SettingsIcon size={14} />
+									<span>Settings</span>
+								</button>
+								<div class="menu-divider"></div>
+								<button class="menu-item destructive" onclick={handleSignOut}>
+									<LogOut size={14} />
+									<span>Log Out</span>
+								</button>
+							</div>
+						{/if}
+					{:else}
+						<a
+							href="/login?redirectTo={encodeURIComponent($page.url.pathname)}"
+							class="nav-dropdown-trigger font-semibold"
+							style="text-decoration: none;"
+							aria-label="Log In"
+						>
+							<span class="user-name">Log In</span>
+						</a>
+					{/if}
+				</div>
+
+				<!-- Search Trigger Button -->
+				<button
+					class="search-trigger-btn"
+					onclick={() => searchStore.openSearch()}
+					aria-label="Search cards (⌘Space / ⌘K)"
+					title="Search cards (⌘Space / ⌘K)"
+				>
+					<Search size={14} class="search-trigger-icon" />
+					<span class="search-trigger-text">Search</span>
+					<kbd class="search-trigger-kbd">⌘Space</kbd>
+				</button>
 			</div>
 		{/if}
 	</div>
 </div>
 
+{#if showAboutModal}
+	<div
+		class="about-backdrop"
+		onclick={(e) => { if (e.target === e.currentTarget) showAboutModal = false; }}
+		role="presentation"
+		transition:fade={{ duration: 150 }}
+	>
+		<div class="about-card" transition:fly={{ y: 10, duration: 200 }}>
+			<div class="about-header">
+				<h3>About Budgie</h3>
+				<button class="close-btn" onclick={() => (showAboutModal = false)}>
+					&times;
+				</button>
+			</div>
+			<div class="about-body">
+				<p><strong>Budgie</strong> is a fast, beautiful Magic: The Gathering deckbuilder built for rapid brewing and gorgeous visual sorting.</p>
+				<p>Syncs seamlessly with cloud storage and local database caching.</p>
+				<div class="about-footer">
+					<span>Version 1.0.0</span>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
+
 <style>
 	.deck-header {
-		height: 88px;
+		height: 48px;
 		background: hsl(var(--background));
-		border-bottom: 1px solid hsl(var(--border));
+		border-bottom: 1px solid hsl(var(--border) / 0.6);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 1.25rem;
+		padding: 0 1rem;
 		position: relative;
 		z-index: 20;
+		box-sizing: border-box;
+		user-select: none;
+	}
+
+	.deck-header.is-top-bar {
+		height: 52px;
+		background: var(--bg-panel, hsl(var(--background)));
+		backdrop-filter: blur(12px);
+		border-bottom: 1px solid hsl(var(--border) / 0.5);
+	}
+
+	.deck-info-wrapper {
+		display: flex;
+		align-items: center;
+		min-width: 0;
+		flex-shrink: 1;
 	}
 
 	.deck-info {
 		display: flex;
 		align-items: center;
-		gap: 1rem;
-		padding: 0.5rem 2rem 0.5rem 0.75rem;
-		margin-left: -0.75rem;
-		border-radius: var(--radius);
+		gap: 0.625rem;
+		padding: 0.25rem 0.5rem;
+		margin-left: -0.5rem;
+		border-radius: var(--radius-md);
 		cursor: pointer;
-		transition: background-color 0.2s ease;
+		transition: background-color 0.15s ease;
+		min-width: 0;
 	}
 
 	.deck-info:hover {
@@ -956,40 +955,27 @@
 
 	.deck-art-drop-zone {
 		position: relative;
-		padding: 0.75rem;
-		margin: -0.75rem;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: var(--radius-lg);
-		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-		z-index: 5;
+		border-radius: var(--radius-sm);
+		transition: all 0.2s ease;
+		flex-shrink: 0;
 	}
 
 	.deck-art-drop-zone.drag-over {
-		background: hsl(var(--primary) / 0.1);
+		background: hsl(var(--primary) / 0.2);
 	}
 
 	.card-preview-slot {
-		width: 80px;
-		height: 56px;
+		width: 38px;
+		height: 28px;
 		position: relative;
-		border-radius: var(--radius);
+		border-radius: 4px;
 		overflow: hidden;
-		box-shadow:
-			0 4px 12px rgba(0, 0, 0, 0.5),
-			inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-		transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-		background: hsl(var(--muted) / 0.1);
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+		background: hsl(var(--muted) / 0.2);
 		pointer-events: none;
-	}
-
-	.deck-art-drop-zone.drag-over .card-preview-slot {
-		transform: scale(1.1);
-		box-shadow:
-			0 12px 32px rgba(0, 0, 0, 0.7),
-			0 0 0 2px hsl(var(--primary));
-		background: hsl(var(--primary) / 0.2);
 	}
 
 	.deck-art {
@@ -1002,85 +988,71 @@
 	.deck-art-placeholder {
 		width: 100%;
 		height: 100%;
-		background: #1a1a1a;
+		background: #18181b;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		color: hsl(var(--muted-foreground) / 0.2);
+		color: hsl(var(--muted-foreground) / 0.4);
 	}
 
-	.name-container {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.deck-title-row {
+	.name-and-meta-row {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+		min-width: 0;
+		white-space: nowrap;
+	}
+
+	.deck-title-wrapper {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		min-width: 0;
+	}
+
+	.deck-title-text {
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+		letter-spacing: -0.01em;
+		max-width: 220px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.unnamed-prompt {
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: hsl(var(--foreground) / 0.5);
+	}
+
+	.draft-badge {
+		font-size: 0.6rem;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		background: hsl(35 92% 50% / 0.15);
+		color: hsl(35 92% 65%);
+		border: 1px solid hsl(35 92% 50% / 0.3);
+		padding: 0.05rem 0.25rem;
+		border-radius: 3px;
+		font-weight: 600;
+		line-height: 1;
 	}
 
 	.deck-colors {
-		display: flex;
-		gap: 0.15em;
+		display: inline-flex;
 		align-items: center;
+		gap: 0.15rem;
 	}
 
 	:global(.color-identity-dot) {
-		font-size: 0.875rem;
+		font-size: 0.8125rem;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		border-radius: 50%;
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-	}
-
-	.name-container h2 {
-		margin: 0;
-		font-size: 1rem;
-		font-weight: 600;
-		letter-spacing: -0.02em;
-		line-height: 1;
-	}
-
-	.name-container h2.unnamed-prompt {
-		color: hsl(var(--foreground) / 0.45);
-		transition: color 0.15s ease;
-	}
-
-	.deck-info:hover .unnamed-prompt {
-		color: hsl(var(--foreground) / 0.75);
-	}
-
-	.draft-badge {
-		font-size: 0.625rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		background: hsl(35 92% 50% / 0.12);
-		color: hsl(35 92% 65%);
-		border: 1px solid hsl(35 92% 50% / 0.25);
-		padding: 0.1rem 0.35rem;
-		border-radius: 4px;
-		font-weight: 600;
-		display: inline-flex;
-		align-items: center;
-		line-height: 1;
-	}
-
-	:global(.deck-name-input) {
-		font-size: 1rem !important;
-		font-weight: 600 !important;
-		height: 28px !important;
-		width: auto !important;
-		min-width: 180px !important;
-	}
-
-	.deck-meta {
-		display: flex;
-		align-items: center;
-		margin-top: 0.25rem;
-		gap: 0.75rem;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 	}
 
 	.board-dropdown-container {
@@ -1090,400 +1062,474 @@
 	.board-dropdown-trigger {
 		background: none;
 		border: none;
-		padding: 0;
+		padding: 0.2rem 0.35rem;
 		display: flex;
 		align-items: center;
-		gap: 0.25rem;
+		gap: 0.2rem;
 		color: hsl(var(--muted-foreground));
 		font-size: 0.8125rem;
 		font-weight: 500;
-		line-height: 1;
 		cursor: pointer;
-		transition: color 0.2s;
+		border-radius: var(--radius-sm);
+		transition: all 0.15s ease;
 	}
 
 	.board-dropdown-trigger:hover {
 		color: hsl(var(--foreground));
-	}
-
-	.board-dropdown-trigger :global(.chevron) {
-		transition: transform 0.2s;
-		opacity: 0.5;
-		margin-left: 0.25rem;
-		align-self: center;
-	}
-
-	.board-dropdown-trigger :global(.chevron.open) {
-		transform: rotate(180deg);
+		background: hsl(var(--muted) / 0.4);
 	}
 
 	.board-dropdown-menu {
 		position: absolute;
 		top: calc(100% + 4px);
 		left: 0;
+		width: 170px;
+		background: hsl(var(--popover));
+		border: 1px solid hsl(var(--border) / 0.6);
+		border-radius: var(--radius-md);
+		box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+		padding: 4px;
 		z-index: 100;
-		background: hsla(var(--popover) / 0.85);
-		backdrop-filter: blur(20px) saturate(180%);
-		-webkit-backdrop-filter: blur(20px) saturate(180%);
-		border: 1px solid hsla(var(--border) / 0.6);
-		border-radius: var(--radius-lg);
-		padding: 5px;
-		min-width: 140px;
-		box-shadow:
-			0 15px 35px -5px rgba(0, 0, 0, 0.5),
-			0 0 0 1px hsla(255, 100%, 100%, 0.04);
 		display: flex;
 		flex-direction: column;
-		gap: 1px;
+		gap: 2px;
 	}
 
 	.dropdown-item {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 2rem;
+		padding: 6px 10px;
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
 		background: none;
 		border: none;
-		padding: 6px 12px;
-		text-align: left;
-		font-size: 0.875rem;
-		color: var(--text-secondary);
-		border-radius: var(--radius);
+		border-radius: var(--radius-sm);
 		cursor: pointer;
-		transition: all 0.1s;
-	}
-
-	.dropdown-item .item-count {
-		font-size: 0.75rem;
-		opacity: 0.5;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.dropdown-item.active {
-		background: hsl(var(--primary) / 0.12);
-		color: hsl(var(--foreground));
+		transition: all 0.15s ease;
 	}
 
 	.dropdown-item:hover {
-		background: hsl(var(--primary) / 0.9);
-		color: white;
-	}
-
-	.deck-controls {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-	}
-
-	.toggle-group {
-		display: flex;
-		align-items: center;
-		background: hsl(var(--muted) / 0.5);
-		padding: 2px;
-		border-radius: var(--radius);
-		border: 1px solid hsl(var(--border));
-		height: 36px;
-	}
-
-	.group-label {
-		font-size: 10px;
-		color: hsl(var(--muted-foreground));
-		font-weight: 700;
-		letter-spacing: 0.05em;
-		text-transform: uppercase;
-	}
-
-	.group-content {
-		display: flex;
-		gap: 1px;
-	}
-
-	:global(.display-toggle-btn) {
-		width: 30px !important;
-		height: 30px !important;
-		padding: 0 !important;
-		border-radius: calc(var(--radius) - 3px) !important;
-		color: hsl(var(--muted-foreground)) !important;
-	}
-
-	.action-buttons {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-	}
-
-	.header-select-group {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.header-select-container {
-		position: relative;
-	}
-
-	.header-select-trigger {
-		height: 36px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.5rem;
-		padding: 0 0.75rem;
-		background: hsl(var(--muted) / 0.5);
-		border: 1px solid hsl(var(--border));
-		border-radius: var(--radius);
-		color: hsl(var(--foreground));
-		font-size: 0.8125rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition: all 0.2s;
-		user-select: none;
-		min-width: 130px;
-	}
-
-	.header-select-trigger:hover {
-		background: hsl(var(--muted) / 0.8);
-		border-color: hsl(var(--border) / 1);
-	}
-
-	:global(.sort-icon) {
-		opacity: 0.6;
-		margin-right: 0.25rem;
-	}
-
-	.trigger-value {
-		flex: 1;
-		text-align: left;
-	}
-
-	:global(.trigger-chevron) {
-		opacity: 0.5;
-		transition: transform 0.2s;
-	}
-
-	:global(.trigger-chevron.open) {
-		transform: rotate(180deg);
-	}
-
-	.header-select-menu {
-		position: absolute;
-		top: calc(100% + 4px);
-		left: 0;
-		min-width: 180px;
-		width: max-content;
-		background: hsla(var(--popover) / 0.85);
-		backdrop-filter: blur(20px) saturate(180%);
-		-webkit-backdrop-filter: blur(20px) saturate(180%);
-		border: 1px solid hsla(var(--border) / 0.6);
-		border-radius: var(--radius-lg);
-		box-shadow:
-			0 15px 35px -5px rgba(0, 0, 0, 0.5),
-			0 0 0 1px hsla(255, 100%, 100%, 0.04);
-		padding: 5px;
-		z-index: 100;
-		display: flex;
-		flex-direction: column;
-		gap: 1px;
-	}
-
-	.select-item {
-		width: 100%;
-		text-align: left;
-		padding: 6px 12px;
-		font-size: 0.875rem;
-		font-weight: 500;
-		color: var(--text-secondary);
-		background: none;
-		border: none;
-		border-radius: var(--radius);
-		cursor: pointer;
-		white-space: nowrap;
-		transition: all 0.1s;
-	}
-
-	.select-item.active {
-		background: hsl(var(--primary) / 0.12);
-		color: hsl(var(--foreground));
-	}
-
-	.select-item:hover {
-		background: hsl(var(--primary) / 0.9);
-		color: white;
-	}
-
-	:global(.split-view-btn),
-	:global(.view-options-btn) {
-		height: 36px !important;
-		width: 36px !important;
-		border-radius: var(--radius) !important;
-		background: hsl(var(--muted) / 0.5) !important;
-		border: 1px solid hsl(var(--border)) !important;
-		color: hsl(var(--muted-foreground)) !important;
-	}
-
-	:global(.split-view-btn:hover),
-	:global(.view-options-btn:hover) {
-		background: hsl(var(--muted) / 0.8) !important;
-		color: hsl(var(--foreground)) !important;
-	}
-
-	:global(.split-view-btn.bg-secondary),
-	:global(.view-options-btn.bg-secondary) {
-		color: hsl(var(--foreground)) !important;
-		border-color: hsl(var(--border) / 1) !important;
-	}
-
-	.sort-group-container {
-		display: flex;
-		align-items: center;
-		gap: 0.25rem;
-	}
-
-	.board-dropdown-menu .item-count {
-		color: hsl(var(--muted-foreground));
-		font-variant-numeric: tabular-nums;
-	}
-
-	.dropdown-backdrop {
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100vw;
-		height: 100vh;
-		z-index: 90;
-	}
-
-	.deck-info-wrapper {
-		position: relative;
-	}
-
-	.multi-select-item {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-
-	.checkbox-indicator {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 14px;
-		height: 14px;
-		border-radius: var(--radius-sm);
-		border: 1px solid hsl(var(--border));
-		background: transparent;
-		flex-shrink: 0;
-		color: currentColor;
-	}
-
-	.select-item.active .checkbox-indicator {
 		background: hsl(var(--primary));
-		border-color: hsl(var(--primary));
 		color: white;
 	}
 
-	.select-item:hover .checkbox-indicator {
-		border-color: white;
-	}
-
-	.sync-indicator-container {
-		display: flex;
-		align-items: center;
-		padding-left: 0.75rem;
-		border-left: 1px solid hsl(var(--border) / 0.5);
-		height: 14px;
-	}
-
-	.sync-status {
-		display: flex;
-		align-items: center;
-		gap: 0.375rem;
-		font-size: 0.75rem;
-		font-weight: 500;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.sync-status.is-syncing {
-		color: hsl(var(--muted-foreground));
-	}
-
-	.sync-status.has-error {
-		color: #f87171;
-	}
-
-	.sync-status :global(.icon) {
-		opacity: 0.8;
-	}
-
-	@keyframes spin {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	:global(.animate-spin) {
-		animation: spin 1s linear infinite;
-	}
-
-	.import-mode-actions {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 0.75rem;
-		width: 280px;
-		align-items: center;
-	}
-
-	.import-mode-actions :global(.cancel-btn),
-	.import-mode-actions :global(.save-btn) {
-		width: 100%;
-		height: 36px;
-		font-size: 0.8125rem;
+	.dropdown-item.active {
+		background: hsl(var(--primary) / 0.15);
+		color: hsl(var(--primary));
 		font-weight: 600;
+	}
+
+	.item-count {
+		font-size: 0.75rem;
+		opacity: 0.8;
 	}
 
 	.maybeboard-warning-btn {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.375rem;
-		padding: 3px 8px;
-		background: hsla(38, 92%, 50%, 0.1);
-		border: 1px solid hsla(38, 92%, 50%, 0.4);
-		color: #eab308;
-		border-radius: var(--radius-sm, 4px);
+		gap: 0.2rem;
+		background: hsl(35 92% 50% / 0.15);
+		color: hsl(35 92% 65%);
+		border: 1px solid hsl(35 92% 50% / 0.3);
+		padding: 0.1rem 0.35rem;
+		border-radius: 4px;
 		font-size: 0.75rem;
-		font-weight: 700;
 		cursor: pointer;
+	}
+
+	.sync-indicator-container {
+		display: inline-flex;
+		align-items: center;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.deck-controls-right {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-shrink: 0;
+	}
+
+	.view-mode-group {
+		display: inline-flex;
+		align-items: center;
+		background: hsl(var(--muted) / 0.3);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: var(--radius-md);
+		padding: 2px;
+		gap: 1px;
+	}
+
+	:global(.view-toggle-btn) {
+		height: 28px !important;
+		width: 28px !important;
+		padding: 0 !important;
+		border-radius: 4px !important;
+		color: hsl(var(--muted-foreground)) !important;
+	}
+
+	:global(.view-toggle-btn:hover) {
+		color: hsl(var(--foreground)) !important;
+		background: hsl(var(--muted) / 0.5) !important;
+	}
+
+	.grouping-container,
+	.table-cols-container,
+	.view-options-container {
+		position: relative;
+	}
+
+	.header-select-trigger {
+		height: 30px;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0 0.5rem;
+		background: hsl(var(--muted) / 0.3);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: var(--radius-md);
+		color: hsl(var(--foreground) / 0.85);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		white-space: nowrap;
+	}
+
+	.header-select-trigger:hover {
+		background: hsl(var(--muted) / 0.5);
+		color: hsl(var(--foreground));
+	}
+
+	.header-select-menu {
+		position: absolute;
+		top: calc(100% + 4px);
+		right: 0;
+		min-width: 150px;
+		background: hsl(var(--popover));
+		border: 1px solid hsl(var(--border) / 0.6);
+		border-radius: var(--radius-md);
+		box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+		padding: 4px;
+		z-index: 100;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.select-item {
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		gap: 0.5rem;
+		width: 100%;
+		text-align: left;
+		padding: 6px 10px;
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
+		background: none;
+		border: none;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.select-item:hover {
+		background: hsl(var(--primary));
+		color: white;
+	}
+
+	.select-item.active {
+		background: hsl(var(--primary) / 0.15);
+		color: hsl(var(--primary));
+		font-weight: 600;
+	}
+
+	.checkbox-indicator {
+		width: 14px;
+		height: 14px;
+		border: 1px solid hsl(var(--border));
+		border-radius: 3px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: hsl(var(--background));
+	}
+
+	:global(.modifier-btn) {
+		height: 30px !important;
+		width: 30px !important;
+		padding: 0 !important;
+		border-radius: var(--radius-md) !important;
+		color: hsl(var(--muted-foreground)) !important;
+		border: 1px solid hsl(var(--border) / 0.5) !important;
+		background: hsl(var(--muted) / 0.3) !important;
+	}
+
+	:global(.modifier-btn:hover) {
+		color: hsl(var(--foreground)) !important;
+		background: hsl(var(--muted) / 0.5) !important;
+	}
+
+	.global-nav-group {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-left: 0.25rem;
+		padding-left: 0.5rem;
+		border-left: 1px solid hsl(var(--border) / 0.5);
+	}
+
+	.budgie-menu-container,
+	.profile-menu-container {
+		position: relative;
+	}
+
+	.nav-dropdown-trigger {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 0.3rem 0.5rem;
+		border-radius: var(--radius-sm);
+		color: hsl(var(--foreground) / 0.85);
+		font-size: 0.8125rem;
+		font-weight: 600;
+		transition: background-color 0.15s ease;
+		white-space: nowrap;
+	}
+
+	.nav-dropdown-trigger:hover {
+		background-color: hsl(var(--muted) / 0.4);
+		color: hsl(var(--foreground));
+	}
+
+	.brand-text {
+		font-weight: 700;
+		letter-spacing: -0.02em;
+	}
+
+	.nav-dropdown-menu {
+		position: absolute;
+		top: calc(100% + 4px);
+		right: 0;
+		width: 190px;
+		background: hsl(var(--popover));
+		border: 1px solid hsl(var(--border) / 0.6);
+		border-radius: var(--radius-md);
+		box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+		padding: 4px;
+		z-index: 1000;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.dropdown-header {
+		padding: 6px 10px;
+	}
+
+	.dropdown-email {
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		display: block;
+	}
+
+	.menu-item {
+		width: 100%;
+		text-align: left;
+		padding: 6px 10px;
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
+		background: none;
+		border: none;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		transition: all 0.15s ease;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		text-decoration: none;
+	}
+
+	.menu-item:hover {
+		background: hsl(var(--primary));
+		color: white !important;
+	}
+
+	.menu-item.destructive {
+		color: #f87171;
+	}
+
+	.menu-item.destructive:hover {
+		background: #ef4444 !important;
+		color: white !important;
+	}
+
+	.menu-divider {
+		height: 1px;
+		background: hsl(var(--border) / 0.4);
+		margin: 3px 6px;
+	}
+
+	.search-trigger-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		background: hsl(var(--primary) / 0.12);
+		border: 1px solid hsl(var(--primary) / 0.3);
+		color: hsl(var(--foreground));
+		padding: 0.28rem 0.65rem;
+		border-radius: var(--radius-md);
+		font-size: 0.8125rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		white-space: nowrap;
+	}
+
+	.search-trigger-btn:hover {
+		background: hsl(var(--primary) / 0.22);
+		border-color: hsl(var(--primary) / 0.6);
+		box-shadow: 0 0 12px hsl(var(--primary) / 0.25);
+		transform: translateY(-1px);
+	}
+
+	.search-trigger-icon {
+		color: hsl(var(--primary));
+	}
+
+	.search-trigger-kbd {
+		font-size: 0.625rem;
+		padding: 0.1rem 0.3rem;
+		background: hsl(var(--background) / 0.7);
+		border: 1px solid hsl(var(--border));
+		border-radius: 3px;
+		color: hsl(var(--muted-foreground));
+		font-family: inherit;
 		line-height: 1;
-		transition: all 0.15s;
+		font-weight: 500;
 	}
 
-	.maybeboard-warning-btn:hover {
-		background: hsla(38, 92%, 50%, 0.25);
-		border-color: hsla(38, 92%, 50%, 0.6);
-		box-shadow: 0 0 10px hsla(38, 92%, 50%, 0.2);
+	.stats-subtabs-group {
+		display: inline-flex;
+		gap: 2px;
 	}
 
-	.maybeboard-warning-btn.full {
-		background: hsla(var(--destructive-hsl), 0.1);
-		border-color: hsla(var(--destructive-hsl), 0.4);
-		color: hsl(var(--destructive));
+	:global(.stats-tab-btn) {
+		height: 28px !important;
+		font-size: 0.75rem !important;
+		padding: 0 0.5rem !important;
 	}
 
-	.maybeboard-warning-btn.full:hover {
-		background: hsla(var(--destructive-hsl), 0.25);
-		border-color: hsla(var(--destructive-hsl), 0.6);
-		box-shadow: 0 0 10px hsla(var(--destructive-hsl), 0.2);
+	.chevron {
+		opacity: 0.6;
+		transition: transform 0.15s ease;
 	}
 
-	.warning-icon {
+	.chevron.open {
+		transform: rotate(180deg);
+	}
+
+	/* Responsive Breakpoint Adaptations */
+	@media (max-width: 1250px) {
+		.full-label { display: none; }
+		.short-label { display: inline; }
+		.deck-title-text { max-width: 150px; }
+	}
+
+	@media (min-width: 1251px) {
+		.full-label { display: inline; }
+		.short-label { display: none; }
+	}
+
+	@media (max-width: 1100px) {
+		.nav-label { display: none; }
+		.search-trigger-kbd { display: none; }
+		.deck-title-text { max-width: 120px; }
+	}
+
+	@media (max-width: 950px) {
+		.search-trigger-text { display: none; }
+		.search-trigger-btn { padding: 0.35rem 0.45rem; }
+		.board-label { display: none; }
+	}
+
+	/* About Modal */
+	.about-backdrop {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100vw;
+		height: 100vh;
+		background: rgba(0, 0, 0, 0.6);
+		backdrop-filter: blur(4px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 10000;
+	}
+
+	.about-card {
+		background: hsl(var(--popover) / 0.95);
+		backdrop-filter: blur(16px);
+		border: 1px solid hsl(var(--border) / 0.6);
+		border-radius: var(--radius-lg);
+		width: 380px;
+		padding: 1.5rem;
+		box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.about-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		border-bottom: 1px solid hsl(var(--border) / 0.4);
+		padding-bottom: 0.5rem;
+	}
+
+	.about-header h3 {
+		margin: 0;
+		font-size: 1.125rem;
+		font-weight: 700;
+	}
+
+	.about-header .close-btn {
+		background: none;
+		border: none;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		font-size: 1.25rem;
+		padding: 2px 6px;
+		border-radius: var(--radius-sm);
+	}
+
+	.about-body {
 		font-size: 0.875rem;
+		line-height: 1.6;
+		color: hsl(var(--foreground));
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
 	}
 
-	.cleanup-link {
-		text-decoration: underline;
-		margin-left: 2px;
+	.about-footer {
+		margin-top: 0.5rem;
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+		text-align: right;
 	}
 </style>

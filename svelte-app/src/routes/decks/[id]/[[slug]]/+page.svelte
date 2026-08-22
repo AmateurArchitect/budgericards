@@ -16,7 +16,6 @@
 	import { Loader } from "lucide-svelte";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { searchStore } from "$lib/stores/search.svelte.js";
-	import EmptyDeckState from "$lib/components/EmptyDeckState.svelte";
 	import StatsView from "$lib/components/StatsView.svelte";
 	import SettingsView from "$lib/components/SettingsView.svelte";
 	import { page } from "$app/stores";
@@ -28,15 +27,6 @@
 		priceStore.load();
 		isHydrated = true;
 	});
-
-	const showEmptyState = $derived(
-		isHydrated &&
-		deckStore.isEmptyStateActive &&
-		settingsStore.deckViewMode !== "list" &&
-		settingsStore.deckViewMode !== "settings" &&
-		settingsStore.deckViewMode !== "stats" &&
-		searchStore.query.trim() === ""
-	);
 
 	// Reactively select the deck whenever the ID in the URL changes
 	$effect(() => {
@@ -199,30 +189,34 @@
 	style={Object.entries(layoutStore.cssVariables).map(([k, v]) => `${k}: ${v}`).join("; ")}
 >
 	<main class="app-layout">
-		{#if showEmptyState}
-			<EmptyDeckState />
-		{:else}
-			<SearchPanel />
-			
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div class="deck-area" onclick={handleDeckAreaClick}>
-				<DeckHeader />
-				{#if settingsStore.deckViewMode === 'list'}
-					<ImportView />
-				{:else if settingsStore.deckViewMode === 'table'}
-					<TableView />
-				{:else if settingsStore.deckViewMode === 'spoiler'}
-					<SpoilerView />
-				{:else if settingsStore.deckViewMode === 'stats'}
-					<StatsView />
-				{:else if settingsStore.deckViewMode === 'settings'}
-					<SettingsView />
-				{:else}
-					<StacksView />
-				{/if}
+		{#if searchStore.isOpen}
+			<div class="search-panel-container" transition:slide={{ duration: 250 }}>
+				<SearchPanel />
 			</div>
 		{/if}
+		
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="deck-area" onclick={handleDeckAreaClick}>
+			{#if searchStore.isOpen}
+				<div class="lower-deck-header" transition:slide={{ duration: 200 }}>
+					<DeckHeader isTopBar={false} />
+				</div>
+			{/if}
+			{#if settingsStore.deckViewMode === 'list'}
+				<ImportView />
+			{:else if settingsStore.deckViewMode === 'table'}
+				<TableView />
+			{:else if settingsStore.deckViewMode === 'spoiler'}
+				<SpoilerView />
+			{:else if settingsStore.deckViewMode === 'stats'}
+				<StatsView />
+			{:else if settingsStore.deckViewMode === 'settings'}
+				<SettingsView />
+			{:else}
+				<StacksView />
+			{/if}
+		</div>
 	</main>
 
 	<MaybeboardCleanupModal bind:isOpen={interactionStore.maybeboardCleanupModal.isOpen} />

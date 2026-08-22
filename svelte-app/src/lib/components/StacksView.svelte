@@ -1,8 +1,10 @@
 <script>
 	import { onMount } from "svelte";
 	import { flip } from "svelte/animate";
+	import { fade } from "svelte/transition";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
+	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { layoutStore } from "$lib/stores/layout.svelte.js";
 	import {
@@ -800,6 +802,16 @@
 	aria-label="Deck stacks view"
 	data-board={deckStore.activeBoard}
 >
+	{#if deckStore.currentBoardCount === 0}
+		<div class="deck-empty-state-canvas" in:fade={{ duration: 150 }}>
+			<div class="deck-empty-content">
+				<p class="empty-state-text">
+					To get started, <button class="empty-action-link" onclick={() => (settingsStore.deckViewMode = 'list')}>paste a decklist</button> or <button class="empty-action-link" onclick={() => searchStore.openSearch()}>search for cards</button>
+				</p>
+			</div>
+		</div>
+	{/if}
+
 	<div class="scroll-spacer-left"></div>
 
 	<div
@@ -2025,5 +2037,50 @@
 		color: hsl(var(--muted-foreground));
 		margin: 0;
 		text-wrap: balance;
+	}
+
+	.deck-empty-state-canvas {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: none;
+		z-index: 10;
+		padding: 2rem;
+	}
+
+	.deck-empty-content {
+		pointer-events: auto;
+		background: hsl(var(--card) / 0.4);
+		border: 1px dashed hsl(var(--border) / 0.8);
+		border-radius: var(--radius-lg);
+		padding: 1.75rem 2.5rem;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+		backdrop-filter: blur(8px);
+	}
+
+	.empty-state-text {
+		margin: 0;
+		font-size: 0.9375rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
+		text-align: center;
+	}
+
+	.empty-action-link {
+		background: none;
+		border: none;
+		padding: 0;
+		color: hsl(var(--primary));
+		font-weight: 600;
+		cursor: pointer;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		transition: opacity 0.15s ease;
+	}
+
+	.empty-action-link:hover {
+		opacity: 0.8;
 	}
 </style>

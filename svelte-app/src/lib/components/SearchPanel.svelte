@@ -108,8 +108,8 @@
 		}
 	}
 
-	// The Stage: Container expands if searching or results exist
-	const isExpanded = $derived(searchStore.isExpanded);
+	// The Stage: Container expands if searchStore is open
+	const isExpanded = $derived(searchStore.isOpen);
 
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 

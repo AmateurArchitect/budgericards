@@ -1,6 +1,7 @@
 <script>
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
+	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { layoutStore } from "$lib/stores/layout.svelte.js";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { getGroupedCategories } from "$lib/layouts/grouping.svelte.js";
@@ -207,12 +208,12 @@
 	style="--spoiler-cols: {gridGeometry.numColumns}; --card-width: {gridGeometry.cardWidth}px; --spoiler-gap: {gridGeometry.gap}px;"
 >
 	{#if groupedCategories.length === 0}
-		<div class="empty-state" in:fade={{ duration: 400 }}>
-			<div class="empty-card-illusion">
-				<Layers size={40} class="empty-icon" />
+		<div class="empty-state" in:fade={{ duration: 150 }}>
+			<div class="deck-empty-content">
+				<p class="empty-state-text">
+					To get started, <button class="empty-action-link" onclick={() => (settingsStore.deckViewMode = 'list')}>paste a decklist</button> or <button class="empty-action-link" onclick={() => searchStore.openSearch()}>search for cards</button>
+				</p>
 			</div>
-			<h3>Your visual board is empty</h3>
-			<p>Drag and drop cards here or shift-click from Search results to build your deck list visually!</p>
 		</div>
 	{:else}
 		{#snippet card(/** @type {any} */ item)}
@@ -593,47 +594,37 @@
 		color: hsl(var(--muted-foreground));
 	}
 
-	.empty-card-illusion {
-		width: 100px;
-		height: 140px;
-		border: 2px dashed hsl(var(--border) / 0.8);
+	.deck-empty-content {
+		pointer-events: auto;
+		background: hsl(var(--card) / 0.4);
+		border: 1px dashed hsl(var(--border) / 0.8);
 		border-radius: var(--radius-lg);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: hsl(var(--muted) / 0.05);
-		box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
-		transform: rotate(-3deg);
-		transition: all 0.3s ease;
+		padding: 1.75rem 2.5rem;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+		backdrop-filter: blur(8px);
 	}
 
-	.empty-state:hover .empty-card-illusion {
-		transform: rotate(0deg) scale(1.05);
-		border-color: hsl(var(--primary) / 0.5);
-		background: hsl(var(--muted) / 0.1);
-		color: hsl(var(--foreground));
+	.empty-state-text {
+		margin: 0;
+		font-size: 0.9375rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
+		text-align: center;
 	}
 
-	:global(.empty-icon) {
-		opacity: 0.3;
-		transition: opacity 0.3s ease;
-	}
-
-	.empty-state:hover :global(.empty-icon) {
-		opacity: 0.6;
-	}
-
-	.empty-state h3 {
-		font-size: 1.125rem;
+	.empty-action-link {
+		background: none;
+		border: none;
+		padding: 0;
+		color: hsl(var(--primary));
 		font-weight: 600;
-		color: hsl(var(--foreground));
-		margin: 0;
+		cursor: pointer;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		transition: opacity 0.15s ease;
 	}
 
-	.empty-state p {
-		font-size: 0.875rem;
-		max-width: 320px;
-		line-height: 1.5;
-		margin: 0;
+	.empty-action-link:hover {
+		opacity: 0.8;
 	}
 </style>
