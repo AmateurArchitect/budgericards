@@ -48,7 +48,7 @@
 	});
 
 	const rightCurvedPathD = $derived(() => {
-		const w = sortBtnWidth || 50;
+		const w = sortBtnWidth || 54;
 		return `M 13.33 0.5 L ${w - 6} 0.5 A 5.5 5.5 0 0 1 ${w - 0.5} 6 L ${w - 0.5} 30 A 5.5 5.5 0 0 1 ${w - 6} 35.5 L 13.33 35.5 A 22 22 0 0 0 13.33 0.5 Z`;
 	});
 
@@ -686,7 +686,7 @@
 		background: hsl(var(--muted) / 0.5);
 		border: 1px solid hsl(var(--border));
 		border-radius: 9999px;
-		padding: 0 0.5rem 0 0.85rem;
+		padding: 0 0.75rem 0 0.85rem;
 		gap: 0.4rem;
 		transition: all 0.2s ease;
 		box-sizing: border-box;
@@ -721,7 +721,7 @@
 	}
 
 	:global(.header-search-input) {
-		padding: 0 1.75rem 0 0 !important;
+		padding: 0 2rem 0 0 !important;
 		background-color: transparent !important;
 		border: none !important;
 		border-radius: 0 !important;
@@ -734,7 +734,7 @@
 
 	.search-action-btn {
 		position: absolute;
-		right: 0.25rem;
+		right: 0.5rem;
 		color: hsl(var(--muted-foreground));
 		display: flex;
 		align-items: center;
@@ -776,12 +776,12 @@
 		position: relative;
 		z-index: 1;
 		height: 36px;
-		width: 50px;
+		width: 54px;
 		margin-left: -18px;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		padding: 0 0.4rem 0 1.4rem;
+		padding: 0 0.5rem 0 1.65rem;
 		background: transparent;
 		border: none;
 		color: hsl(var(--muted-foreground));
