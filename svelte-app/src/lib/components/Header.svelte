@@ -143,8 +143,8 @@
 			document.activeElement?.tagName || "",
 		);
 
-		// Cmd + Space or Cmd + K or Ctrl + Space or Ctrl + K
-		if (isCmdOrCtrl && (e.key === " " || e.key.toLowerCase() === "k")) {
+		// Cmd+F, Cmd+K, Cmd+Space, Ctrl+F, Ctrl+K, Ctrl+Space
+		if (isCmdOrCtrl && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "k" || e.key === " ")) {
 			e.preventDefault();
 			if (!searchStore.isOpen) {
 				searchStore.openSearch();

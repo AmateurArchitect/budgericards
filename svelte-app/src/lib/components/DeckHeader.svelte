@@ -873,12 +873,15 @@
 				<button
 					class="search-trigger-btn"
 					onclick={() => searchStore.openSearch()}
-					aria-label="Search cards (⌘Space / ⌘K)"
-					title="Search cards (⌘Space / ⌘K)"
+					aria-label="Search cards (⌘F or /)"
+					title="Search cards (⌘F or /)"
 				>
 					<Search size={14} class="search-trigger-icon" />
 					<span class="search-trigger-text">Search</span>
-					<kbd class="search-trigger-kbd">⌘Space</kbd>
+					<div class="shortcut-keycaps">
+						<kbd class="key-cap">⌘</kbd>
+						<kbd class="key-cap">F</kbd>
+					</div>
 				</button>
 			</div>
 		{/if}
@@ -1426,16 +1429,36 @@
 		color: hsl(var(--primary));
 	}
 
-	.search-trigger-kbd {
-		font-size: 0.6875rem;
-		padding: 0.15rem 0.35rem;
-		background: hsl(var(--background) / 0.7);
-		border: 1px solid hsl(var(--border));
-		border-radius: 3px;
-		color: hsl(var(--muted-foreground));
+	.shortcut-keycaps {
+		display: inline-flex;
+		align-items: center;
+		gap: 2px;
+	}
+
+	.key-cap {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 16px;
+		height: 16px;
+		padding: 0 3px;
 		font-family: inherit;
+		font-size: 10px;
+		font-weight: 600;
+		color: hsl(var(--muted-foreground));
+		background: hsl(var(--background) / 0.7);
+		border: 1px solid hsl(var(--border) / 0.8);
+		border-radius: var(--radius-sm, 4px);
+		box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 		line-height: 1;
-		font-weight: 500;
+		user-select: none;
+		transition: all 0.15s ease;
+	}
+
+	.search-trigger-btn:hover .key-cap {
+		border-color: hsl(var(--primary) / 0.4);
+		color: hsl(var(--foreground));
+		background: hsl(var(--background));
 	}
 
 	.stats-subtabs-group {
