@@ -516,15 +516,16 @@
 
 <style>
 	.app-header {
-		height: 52px;
-		padding: 0 1.25rem;
+		height: 76px;
+		padding: 20px;
 		background: transparent;
-		border-bottom: 1px solid hsl(var(--border) / 0.5);
+		border-bottom: 1px solid hsl(var(--border));
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		z-index: 1000;
 		user-select: none;
+		box-sizing: border-box;
 	}
 
 	.header-left {
