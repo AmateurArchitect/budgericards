@@ -1014,7 +1014,7 @@
 
 	.deck-title-text, .unnamed-prompt {
 		margin: 0;
-		font-size: 1.0625rem;
+		font-size: 16px;
 		font-weight: 600;
 		line-height: 1.25;
 		color: hsl(var(--foreground));
@@ -1202,7 +1202,7 @@
 		border: 1px solid hsl(var(--border) / 0.5);
 		border-radius: var(--radius-md);
 		color: hsl(var(--foreground) / 0.85);
-		font-size: 0.875rem;
+		font-size: 13px;
 		font-weight: 500;
 		cursor: pointer;
 		transition: all 0.15s ease;
@@ -1312,7 +1312,7 @@
 		padding: 0 0.65rem;
 		border-radius: var(--radius-md);
 		color: hsl(var(--foreground) / 0.85);
-		font-size: 0.875rem;
+		font-size: 13px;
 		font-weight: 600;
 		transition: background-color 0.15s ease;
 		white-space: nowrap;
@@ -1363,7 +1363,7 @@
 		width: 100%;
 		text-align: left;
 		padding: 6px 10px;
-		font-size: 0.8125rem;
+		font-size: 13px;
 		font-weight: 500;
 		color: hsl(var(--muted-foreground));
 		background: none;
@@ -1407,7 +1407,7 @@
 		color: hsl(var(--foreground));
 		padding: 0 0.85rem;
 		border-radius: var(--radius-md);
-		font-size: 0.875rem;
+		font-size: 13px;
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.15s ease;

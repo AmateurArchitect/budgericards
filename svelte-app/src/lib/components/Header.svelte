@@ -772,7 +772,7 @@
 	.logo-text {
 		color: hsl(var(--foreground));
 		font-weight: 700;
-		font-size: 0.9375rem;
+		font-size: 13px;
 		white-space: nowrap;
 		letter-spacing: -0.02em;
 	}
