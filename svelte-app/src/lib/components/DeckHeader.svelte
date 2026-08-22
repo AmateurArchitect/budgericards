@@ -912,13 +912,13 @@
 
 <style>
 	.deck-header {
-		height: 76px;
+		height: 96px;
 		background: transparent;
 		border-bottom: 1px solid hsl(var(--border) / 0.6);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 1.25rem;
+		padding: 0 12px;
 		position: relative;
 		z-index: 20;
 		box-sizing: border-box;
@@ -926,7 +926,7 @@
 	}
 
 	.deck-header.is-top-bar {
-		height: 76px;
+		height: 96px;
 		background: transparent;
 		backdrop-filter: none;
 		border-bottom: 1px solid hsl(var(--border) / 0.5);
@@ -943,9 +943,9 @@
 		display: flex;
 		align-items: center;
 		gap: 0.875rem;
-		padding: 0.35rem 0.65rem;
-		margin-left: -0.65rem;
-		border-radius: var(--radius-md);
+		padding: 8px;
+		margin: 0;
+		border-radius: var(--radius-lg, 8px);
 		cursor: pointer;
 		transition: background-color 0.15s ease;
 		min-width: 0;
@@ -1001,7 +1001,7 @@
 	.name-and-meta-column {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: 0.35rem;
 		min-width: 0;
 	}
 
@@ -1014,9 +1014,9 @@
 
 	.deck-title-text, .unnamed-prompt {
 		margin: 0;
-		font-size: 1rem;
+		font-size: 1.0625rem;
 		font-weight: 600;
-		line-height: 1.2;
+		line-height: 1.25;
 		color: hsl(var(--foreground));
 		letter-spacing: -0.015em;
 		max-width: 280px;
@@ -1157,7 +1157,7 @@
 	.deck-controls-right {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.625rem;
 		flex-shrink: 0;
 	}
 
@@ -1169,11 +1169,13 @@
 		border-radius: var(--radius-md);
 		padding: 2px;
 		gap: 1px;
+		height: 36px;
+		box-sizing: border-box;
 	}
 
 	:global(.view-toggle-btn) {
-		height: 28px !important;
-		width: 28px !important;
+		height: 30px !important;
+		width: 30px !important;
 		padding: 0 !important;
 		border-radius: 4px !important;
 		color: hsl(var(--muted-foreground)) !important;
@@ -1191,20 +1193,21 @@
 	}
 
 	.header-select-trigger {
-		height: 30px;
+		height: 36px;
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		padding: 0 0.5rem;
+		padding: 0 0.75rem;
 		background: hsl(var(--muted) / 0.3);
 		border: 1px solid hsl(var(--border) / 0.5);
 		border-radius: var(--radius-md);
 		color: hsl(var(--foreground) / 0.85);
-		font-size: 0.8125rem;
+		font-size: 0.875rem;
 		font-weight: 500;
 		cursor: pointer;
 		transition: all 0.15s ease;
 		white-space: nowrap;
+		box-sizing: border-box;
 	}
 
 	.header-select-trigger:hover {
@@ -1269,13 +1272,14 @@
 	}
 
 	:global(.modifier-btn) {
-		height: 30px !important;
-		width: 30px !important;
+		height: 36px !important;
+		width: 36px !important;
 		padding: 0 !important;
 		border-radius: var(--radius-md) !important;
 		color: hsl(var(--muted-foreground)) !important;
 		border: 1px solid hsl(var(--border) / 0.5) !important;
 		background: hsl(var(--muted) / 0.3) !important;
+		box-sizing: border-box !important;
 	}
 
 	:global(.modifier-btn:hover) {
@@ -1298,19 +1302,21 @@
 	}
 
 	.nav-dropdown-trigger {
+		height: 36px;
 		display: flex;
 		align-items: center;
 		gap: 0.35rem;
 		background: none;
 		border: none;
 		cursor: pointer;
-		padding: 0.3rem 0.5rem;
-		border-radius: var(--radius-sm);
+		padding: 0 0.65rem;
+		border-radius: var(--radius-md);
 		color: hsl(var(--foreground) / 0.85);
-		font-size: 0.8125rem;
+		font-size: 0.875rem;
 		font-weight: 600;
 		transition: background-color 0.15s ease;
 		white-space: nowrap;
+		box-sizing: border-box;
 	}
 
 	.nav-dropdown-trigger:hover {
@@ -1392,19 +1398,21 @@
 	}
 
 	.search-trigger-btn {
+		height: 36px;
 		display: flex;
 		align-items: center;
-		gap: 0.45rem;
+		gap: 0.5rem;
 		background: hsl(var(--primary) / 0.12);
 		border: 1px solid hsl(var(--primary) / 0.3);
 		color: hsl(var(--foreground));
-		padding: 0.28rem 0.65rem;
+		padding: 0 0.85rem;
 		border-radius: var(--radius-md);
-		font-size: 0.8125rem;
+		font-size: 0.875rem;
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.15s ease;
 		white-space: nowrap;
+		box-sizing: border-box;
 	}
 
 	.search-trigger-btn:hover {
@@ -1419,8 +1427,8 @@
 	}
 
 	.search-trigger-kbd {
-		font-size: 0.625rem;
-		padding: 0.1rem 0.3rem;
+		font-size: 0.6875rem;
+		padding: 0.15rem 0.35rem;
 		background: hsl(var(--background) / 0.7);
 		border: 1px solid hsl(var(--border));
 		border-radius: 3px;
@@ -1436,9 +1444,9 @@
 	}
 
 	:global(.stats-tab-btn) {
-		height: 28px !important;
-		font-size: 0.75rem !important;
-		padding: 0 0.5rem !important;
+		height: 36px !important;
+		font-size: 0.8125rem !important;
+		padding: 0 0.75rem !important;
 	}
 
 	:global(.chevron) {
