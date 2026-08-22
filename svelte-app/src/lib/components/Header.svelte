@@ -678,14 +678,13 @@
 		box-sizing: border-box;
 	}
 
-	.search-input-group:hover {
+	.search-input-group:hover:not(.is-focused) {
 		background: hsl(var(--muted) / 0.8);
 	}
 
 	.search-input-group.is-focused {
-		background: hsl(var(--background));
-		border-color: hsl(var(--primary));
-		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+		background: hsl(var(--muted) / 0.85);
+		border-color: hsl(var(--foreground) / 0.3);
 		z-index: 3;
 	}
 
