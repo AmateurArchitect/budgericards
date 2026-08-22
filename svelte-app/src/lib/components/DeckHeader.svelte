@@ -28,7 +28,7 @@
 		PlusCircle,
 		LogOut,
 		Settings as SettingsIcon,
-		Filter,
+		ArrowUpDown,
 	} from "lucide-svelte";
 	import Button from "./ui/Button.svelte";
 	import ManaSymbol from "./ui/ManaSymbol.svelte";
@@ -45,7 +45,7 @@
 	let showBudgieDropdown = $state(false);
 	let showProfileDropdown = $state(false);
 	let showAboutModal = $state(false);
-	let showDisplayFilter = $state(false);
+	let showDisplaySort = $state(false);
 
 	/** @type {HTMLElement | null} */
 	let viewOptionsBtn = $state(null);
@@ -662,17 +662,17 @@
 					</Button>
 				{/if}
 
-				<!-- Display Filter Button (to the right of split view toggle) -->
+				<!-- Display Sort Button (to the right of split view toggle) -->
 				{#if ["stacks", "spoiler", "table"].includes(settingsStore.deckViewMode)}
 					<Button
-						variant={showDisplayFilter ? "toggle-active" : "ghost"}
+						variant={showDisplaySort ? "toggle-active" : "ghost"}
 						size="icon"
-						class="modifier-btn {showDisplayFilter ? 'bg-secondary' : ''}"
-						onclick={() => (showDisplayFilter = !showDisplayFilter)}
-						title="Filter Cards"
-						aria-label="Filter Cards"
+						class="modifier-btn {showDisplaySort ? 'bg-secondary' : ''}"
+						onclick={() => (showDisplaySort = !showDisplaySort)}
+						title="Sort Displayed Cards"
+						aria-label="Sort Displayed Cards"
 					>
-						<Filter size={15} />
+						<ArrowUpDown size={15} />
 					</Button>
 				{/if}
 

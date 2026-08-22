@@ -12,7 +12,7 @@
 		Palette,
 		FolderOpen,
 		Settings as SettingsIcon,
-		ListFilter,
+		ArrowUpDown,
 		Columns2,
 	} from "lucide-svelte";
 	import { searchStore } from "$lib/stores/search.svelte.js";
@@ -36,14 +36,20 @@
 	let showBudgieDropdown = $state(false);
 	let showViewOptionsModal = $state(false);
 	let showAboutModal = $state(false);
-	let showSearchResultsFilter = $state(false);
+	let showSearchSort = $state(false);
 	let isVerticalLayout = $state(false);
 	let collectionWidth = $state(0);
+	let sortBtnWidth = $state(0);
 
 	const curvedPathD = $derived(() => {
 		const w = collectionWidth || 150;
 		const cutX = Math.round((w - 13.33) * 100) / 100;
 		return `M 6 0.5 L ${cutX} 0.5 A 22 22 0 0 0 ${cutX} 35.5 L 6 35.5 A 5.5 5.5 0 0 1 0.5 30 L 0.5 6 A 5.5 5.5 0 0 1 6 0.5 Z`;
+	});
+
+	const rightCurvedPathD = $derived(() => {
+		const w = sortBtnWidth || 42;
+		return `M 13.33 0.5 L ${w - 6} 0.5 A 5.5 5.5 0 0 1 ${w - 0.5} 6 L ${w - 0.5} 30 A 5.5 5.5 0 0 1 ${w - 6} 35.5 L 13.33 35.5 A 22 22 0 0 0 13.33 0.5 Z`;
 	});
 
 	$effect(() => {
@@ -239,7 +245,7 @@
 
 			{#if isDeckPage && searchStore.isOpen}
 				<div class="search-bar">
-					<!-- Interlocking Curved Search Container -->
+					<!-- Interlocking Curved Search Container (3-piece matching system) -->
 					<div class="search-input-combo">
 						<div class="collection-selector">
 							<button
@@ -336,18 +342,26 @@
 								<SlidersHorizontal size={14} />
 							</button>
 						</div>
-					</div>
 
-					<!-- Filter Search Results Tool Button -->
-					<button
-						class="search-tool-btn"
-						class:active={showSearchResultsFilter}
-						onclick={() => (showSearchResultsFilter = !showSearchResultsFilter)}
-						aria-label="Filter search results"
-						title="Filter search results"
-					>
-						<ListFilter size={15} />
-					</button>
+						<!-- Sort Search Results Tool Button with Left Concave Cutout -->
+						<button
+							class="search-sort-btn"
+							class:active={showSearchSort}
+							bind:clientWidth={sortBtnWidth}
+							onclick={() => (showSearchSort = !showSearchSort)}
+							aria-label="Sort search results"
+							title="Sort search results"
+						>
+							<svg
+								class="curved-bg"
+								viewBox="0 0 {sortBtnWidth || 42} 36"
+								preserveAspectRatio="none"
+							>
+								<path d={rightCurvedPathD()} />
+							</svg>
+							<ArrowUpDown size={14} />
+						</button>
+					</div>
 
 					<!-- Switch to Vertical Layout Button -->
 					<button
@@ -756,6 +770,42 @@
 	.search-settings-btn.active {
 		background: hsl(var(--muted));
 		color: hsl(var(--foreground));
+	}
+
+	.search-sort-btn {
+		position: relative;
+		z-index: 1;
+		height: 36px;
+		width: 42px;
+		margin-left: -18px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0 0.35rem 0 1rem;
+		background: transparent;
+		border: none;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		transition: color 0.15s ease;
+		box-sizing: border-box;
+		flex-shrink: 0;
+	}
+
+	.search-sort-btn:hover {
+		color: hsl(var(--foreground));
+	}
+
+	.search-sort-btn:hover .curved-bg path {
+		fill: hsl(var(--muted) / 0.8);
+	}
+
+	.search-sort-btn.active {
+		color: hsl(var(--primary));
+	}
+
+	.search-sort-btn.active .curved-bg path {
+		fill: hsla(var(--primary-hsl), 0.15);
+		stroke: hsl(var(--primary));
 	}
 
 	.search-tool-btn {
