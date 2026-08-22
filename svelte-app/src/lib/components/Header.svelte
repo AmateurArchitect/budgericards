@@ -38,6 +38,13 @@
 	let showAboutModal = $state(false);
 	let showSearchResultsFilter = $state(false);
 	let isVerticalLayout = $state(false);
+	let collectionWidth = $state(0);
+
+	const curvedPathD = $derived(() => {
+		const w = collectionWidth || 150;
+		const cutX = Math.round((w - 13.33) * 100) / 100;
+		return `M 6 0.5 L ${cutX} 0.5 A 22 22 0 0 0 ${cutX} 35.5 L 6 35.5 A 5.5 5.5 0 0 1 0.5 30 L 0.5 6 A 5.5 5.5 0 0 1 6 0.5 Z`;
+	});
 
 	$effect(() => {
 		if (searchStore.isOpen) {
@@ -237,10 +244,18 @@
 						<div class="collection-selector">
 							<button
 								class="collection-trigger"
+								bind:clientWidth={collectionWidth}
 								onclick={() => (showCollectionDropdown = !showCollectionDropdown)}
 								aria-expanded={showCollectionDropdown}
 								aria-haspopup="listbox"
 							>
+								<svg
+									class="curved-bg"
+									viewBox="0 0 {collectionWidth || 150} 36"
+									preserveAspectRatio="none"
+								>
+									<path d={curvedPathD()} />
+								</svg>
 								<span class="value-text">{collectionButtonText}</span>
 								<ChevronDown size={13} class="chevron {showCollectionDropdown ? 'open' : ''}" />
 							</button>
@@ -554,26 +569,41 @@
 	}
 
 	.collection-trigger {
+		position: relative;
 		height: 36px;
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		padding: 0 1.25rem 0 0.85rem;
-		background: hsl(var(--muted) / 0.5);
-		border: 1px solid hsl(var(--border));
-		border-right: none;
-		border-radius: var(--radius) 0 0 var(--radius);
+		padding: 0 1.65rem 0 0.85rem;
+		background: transparent;
+		border: none;
 		color: hsl(var(--foreground));
 		font-size: 13px;
 		font-weight: 500;
 		cursor: pointer;
-		transition: background-color 0.15s ease;
 		white-space: nowrap;
 		box-sizing: border-box;
 	}
 
-	.collection-trigger:hover {
-		background: hsl(var(--muted) / 0.8);
+	.curved-bg {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+		z-index: -1;
+		overflow: visible;
+	}
+
+	.curved-bg path {
+		fill: hsl(var(--muted) / 0.5);
+		stroke: hsl(var(--border));
+		stroke-width: 1;
+		transition: fill 0.15s ease, stroke 0.15s ease;
+	}
+
+	.collection-trigger:hover .curved-bg path {
+		fill: hsl(var(--muted) / 0.8);
 	}
 
 	.collection-menu {
@@ -637,15 +667,19 @@
 		display: flex;
 		align-items: center;
 		flex: 1;
-		margin-left: -10px;
+		margin-left: -18px;
 		height: 36px;
-		background: #18181b;
+		background: hsl(var(--muted) / 0.5);
 		border: 1px solid hsl(var(--border));
 		border-radius: 9999px;
 		padding: 0 0.35rem 0 0.75rem;
 		gap: 0.4rem;
 		transition: all 0.2s ease;
 		box-sizing: border-box;
+	}
+
+	.search-input-group:hover {
+		background: hsl(var(--muted) / 0.8);
 	}
 
 	.search-input-group.is-focused {
