@@ -12,6 +12,8 @@
 		Palette,
 		FolderOpen,
 		Settings as SettingsIcon,
+		ListFilter,
+		Columns2,
 	} from "lucide-svelte";
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { authStore } from "$lib/stores/auth.svelte.js";
@@ -20,7 +22,6 @@
 	import { page } from "$app/stores";
 
 	import Input from "./ui/Input.svelte";
-	import ManaFilter from "./ManaFilter.svelte";
 	import SearchOptionsModal from "./SearchOptionsModal.svelte";
 	import ViewOptionsModal from "./ViewOptionsModal.svelte";
 	import DisplayNamePromptModal from "./DisplayNamePromptModal.svelte";
@@ -35,10 +36,8 @@
 	let showBudgieDropdown = $state(false);
 	let showViewOptionsModal = $state(false);
 	let showAboutModal = $state(false);
-	let isHoveringFilters = $state(false);
-	let isManaFilterVisible = $state(false);
-	/** @type {any} */
-	let hideTimer = null;
+	let showSearchResultsFilter = $state(false);
+	let isVerticalLayout = $state(false);
 
 	const isDeckPage = $derived(
 		($page.url.pathname.startsWith("/decks/") && Boolean($page.params.id)) ||
@@ -114,27 +113,7 @@
 		}
 	}
 
-	$effect(() => {
-		const shouldBeVisible =
-			searchStore.isFocused ||
-			searchStore.isExpanded ||
-			isHoveringFilters;
 
-		if (shouldBeVisible) {
-			if (hideTimer) {
-				clearTimeout(hideTimer);
-				hideTimer = null;
-			}
-			isManaFilterVisible = true;
-		} else {
-			if (isManaFilterVisible && !hideTimer) {
-				hideTimer = setTimeout(() => {
-					isManaFilterVisible = false;
-					hideTimer = null;
-				}, 3000);
-			}
-		}
-	});
 
 	/** @param {KeyboardEvent} e */
 	function handleGlobalKeyDown(e) {
@@ -244,46 +223,46 @@
 
 			{#if isDeckPage && searchStore.isOpen}
 				<div class="search-bar">
+					<!-- Collection Dropdown Selector -->
+					<div class="collection-selector">
+						<button
+							class="collection-trigger"
+							onclick={() => (showCollectionDropdown = !showCollectionDropdown)}
+							aria-expanded={showCollectionDropdown}
+							aria-haspopup="listbox"
+						>
+							<span class="value-text">{collectionButtonText}</span>
+							<ChevronDown size={13} class="chevron {showCollectionDropdown ? 'open' : ''}" />
+						</button>
+
+						{#if showCollectionDropdown}
+							<div class="collection-menu" transition:fly={{ y: 4, duration: 150 }}>
+								{#each collections as item}
+									{#if item.divider}
+										<div class="menu-divider"></div>
+									{:else}
+										<button
+											class="menu-item"
+											class:active={searchStore.collection === item.id}
+											class:disabled={item.disabled}
+											onclick={() => !item.disabled && item.id && selectCollection(item.id)}
+											disabled={item.disabled}
+										>
+											{item.label}
+										</button>
+									{/if}
+								{/each}
+							</div>
+						{/if}
+					</div>
+
+					<!-- Rounded Pill Search Input -->
 					<div
 						class="search-input-group"
 						class:is-focused={searchStore.isFocused}
 					>
-						<div class="collection-selector">
-							<button
-								class="collection-trigger"
-								onclick={() => (showCollectionDropdown = !showCollectionDropdown)}
-								aria-expanded={showCollectionDropdown}
-								aria-haspopup="listbox"
-							>
-								<div class="collection-value">
-									<span class="value-text">{collectionButtonText}</span>
-									<ChevronDown size={14} class="chevron {showCollectionDropdown ? 'open' : ''}" />
-								</div>
-							</button>
-
-							{#if showCollectionDropdown}
-								<div class="collection-menu" transition:fly={{ y: 4, duration: 150 }}>
-									{#each collections as item}
-										{#if item.divider}
-											<div class="menu-divider"></div>
-										{:else}
-											<button
-												class="menu-item"
-												class:active={searchStore.collection === item.id}
-												class:disabled={item.disabled}
-												onclick={() => !item.disabled && item.id && selectCollection(item.id)}
-												disabled={item.disabled}
-											>
-												{item.label}
-											</button>
-										{/if}
-									{/each}
-								</div>
-							{/if}
-						</div>
-
+						<Search size={14} class="search-icon" />
 						<div class="search-input-wrapper">
-							<Search size={14} class="search-icon" />
 							<Input
 								placeholder="Search cards (e.g. t:creature cmc<=3)..."
 								class="header-search-input"
@@ -321,8 +300,6 @@
 							{/if}
 						</div>
 
-						<div class="search-divider"></div>
-
 						<button
 							bind:this={searchSettingsBtn}
 							class="search-settings-btn"
@@ -331,30 +308,37 @@
 							aria-label="Search Settings"
 							title="Search Settings"
 						>
-							<SlidersHorizontal size={15} />
+							<SlidersHorizontal size={14} />
 						</button>
 					</div>
+
+					<!-- Filter Search Results Tool Button -->
+					<button
+						class="search-tool-btn"
+						class:active={showSearchResultsFilter}
+						onclick={() => (showSearchResultsFilter = !showSearchResultsFilter)}
+						aria-label="Filter search results"
+						title="Filter search results"
+					>
+						<ListFilter size={15} />
+					</button>
+
+					<!-- Switch to Vertical Layout Button -->
+					<button
+						class="search-tool-btn"
+						class:active={isVerticalLayout}
+						onclick={() => (isVerticalLayout = !isVerticalLayout)}
+						aria-label="Switch to vertical layout"
+						title="Switch to vertical layout"
+					>
+						<Columns2 size={15} />
+					</button>
 				</div>
 
 				<SearchOptionsModal
 					bind:isOpen={showSearchOptions}
 					triggerElement={searchSettingsBtn}
 				/>
-
-				{#if isManaFilterVisible}
-					<div
-						role="presentation"
-						in:slide={{ axis: "x", duration: 200, delay: 100 }}
-						out:slide={{ axis: "x", duration: 150 }}
-						onmouseenter={() => (isHoveringFilters = true)}
-						onmouseleave={() => (isHoveringFilters = false)}
-						class="mana-filter-wrapper"
-					>
-						<div in:fade={{ duration: 100, delay: 150 }} out:fade={{ duration: 100 }}>
-							<ManaFilter />
-						</div>
-					</div>
-				{/if}
 			{/if}
 		</div>
 
@@ -515,21 +499,21 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 32px;
-		height: 32px;
-		border-radius: var(--radius-sm);
-		background: hsl(var(--muted) / 0.3);
-		border: 1px solid hsl(var(--border) / 0.6);
+		width: 36px;
+		height: 36px;
+		border-radius: var(--radius);
+		background: hsl(var(--muted) / 0.5);
+		border: 1px solid hsl(var(--border));
 		color: hsl(var(--muted-foreground));
 		cursor: pointer;
 		transition: all 0.15s ease;
+		box-sizing: border-box;
 		flex-shrink: 0;
 	}
 
 	.close-search-btn:hover {
-		background: hsl(var(--accent) / 0.6);
+		background: hsl(var(--muted) / 0.8);
 		color: hsl(var(--foreground));
-		border-color: hsl(var(--primary) / 0.5);
 	}
 
 	.logo-text {
@@ -537,74 +521,51 @@
 	}
 
 	.search-bar {
-		flex: 1;
-		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-		min-width: 0;
-	}
-
-	.search-input-group {
 		display: flex;
 		align-items: center;
-		background-color: hsl(var(--muted) / 0.3);
-		border: 1px solid hsl(var(--border) / 0.6);
-		border-radius: var(--radius-md);
-		height: 36px;
-		transition: all 0.2s ease;
-		padding: 2px;
-	}
-
-	.search-input-group.is-focused {
-		background-color: hsl(var(--background));
-		border-color: hsl(var(--primary));
-		box-shadow: 0 0 0 3px hsl(var(--primary) / 0.12);
+		gap: 0.5rem;
+		flex: 1;
+		min-width: 0;
 	}
 
 	.collection-selector {
 		position: relative;
-		height: 100%;
-		border-right: 1px solid hsl(var(--border) / 0.5);
 		flex-shrink: 0;
 	}
 
 	.collection-trigger {
-		height: 100%;
-		display: flex;
+		height: 36px;
+		display: inline-flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.35rem;
 		padding: 0 0.75rem;
-		background: none;
-		border: none;
-		cursor: pointer;
+		background: hsl(var(--muted) / 0.5);
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
 		color: hsl(var(--foreground));
-		transition: background-color 0.2s;
-		border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+		font-size: 13px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background-color 0.15s ease;
+		white-space: nowrap;
+		box-sizing: border-box;
 	}
 
 	.collection-trigger:hover {
-		background-color: hsl(var(--accent) / 0.4);
-	}
-
-	.collection-value {
-		display: flex;
-		align-items: center;
-		gap: 0.4rem;
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
-		white-space: nowrap;
+		background: hsl(var(--muted) / 0.8);
 	}
 
 	.collection-menu {
 		position: absolute;
-		top: calc(100% + 6px);
+		top: calc(100% + 4px);
 		left: 0;
-		width: 240px;
+		width: 220px;
 		background: hsl(var(--popover));
-		border: 1px solid hsla(var(--border) / 0.6);
-		border-radius: var(--radius-lg);
-		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-		padding: 6px;
-		z-index: 100;
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius-md);
+		box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+		padding: 4px;
+		z-index: 1000;
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
@@ -613,15 +574,15 @@
 	.menu-item {
 		width: 100%;
 		text-align: left;
-		padding: 7px 12px;
-		font-size: 0.8125rem;
+		padding: 6px 10px;
+		font-size: 13px;
 		font-weight: 500;
 		color: hsl(var(--muted-foreground));
 		background: none;
 		border: none;
 		border-radius: var(--radius-sm);
 		cursor: pointer;
-		transition: all 0.15s;
+		transition: all 0.15s ease;
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
@@ -645,8 +606,31 @@
 
 	.menu-divider {
 		height: 1px;
-		background: hsla(var(--border) / 0.3);
-		margin: 4px 8px;
+		background: hsl(var(--border) / 0.4);
+		margin: 3px 6px;
+	}
+
+	.search-input-group {
+		position: relative;
+		display: flex;
+		align-items: center;
+		flex: 1;
+		max-width: 440px;
+		min-width: 160px;
+		height: 36px;
+		background: hsl(var(--muted) / 0.5);
+		border: 1px solid hsl(var(--border));
+		border-radius: 9999px;
+		padding: 0 0.35rem 0 0.75rem;
+		gap: 0.4rem;
+		transition: all 0.2s ease;
+		box-sizing: border-box;
+	}
+
+	.search-input-group.is-focused {
+		background: hsl(var(--background));
+		border-color: hsl(var(--primary));
+		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
 	}
 
 	.search-input-wrapper {
@@ -657,86 +641,94 @@
 		min-width: 0;
 	}
 
-	:global(.search-input-wrapper .search-icon) {
-		position: absolute;
-		left: 0.75rem;
+	:global(.search-icon) {
 		color: hsl(var(--muted-foreground));
-		pointer-events: none;
-		z-index: 10;
-		transition: color 0.2s ease;
+		flex-shrink: 0;
+		transition: color 0.15s ease;
 	}
 
-	.is-focused :global(.search-input-wrapper .search-icon) {
-		color: hsl(var(--primary));
+	.is-focused :global(.search-icon) {
+		color: hsl(var(--foreground));
 	}
 
 	:global(.header-search-input) {
-		padding-left: 2.25rem !important;
-		padding-right: 2.25rem !important;
+		padding: 0 1.5rem 0 0 !important;
 		background-color: transparent !important;
 		border: none !important;
 		border-radius: 0 !important;
-		height: 32px !important;
-		font-size: 0.8125rem !important;
+		height: 34px !important;
+		font-size: 13px !important;
 		font-weight: 500 !important;
+		color: hsl(var(--foreground)) !important;
 		box-shadow: none !important;
 	}
 
 	.search-action-btn {
 		position: absolute;
-		right: 0.75rem;
+		right: 0;
 		color: hsl(var(--muted-foreground));
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		transition: all 0.2s;
+		transition: all 0.15s ease;
 		z-index: 20;
 		cursor: pointer;
-		pointer-events: auto;
 		background: none;
 		border: none;
 		padding: 0;
 	}
 
 	.search-action-btn:hover {
-		color: hsl(var(--primary));
-		transform: scale(1.1);
-	}
-
-	.mana-filter-wrapper {
-		display: flex;
-		align-items: center;
-		overflow: hidden;
-		flex-shrink: 0;
-		padding-left: 0.5rem;
-	}
-
-	.search-divider {
-		width: 1px;
-		height: 18px;
-		background-color: hsl(var(--border) / 0.5);
-		flex-shrink: 0;
+		color: hsl(var(--foreground));
 	}
 
 	.search-settings-btn {
-		width: 32px;
-		height: 32px;
+		width: 28px;
+		height: 28px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		background: none;
 		border: none;
-		border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+		border-radius: 9999px;
 		color: hsl(var(--muted-foreground));
 		cursor: pointer;
-		transition: all 0.2s;
+		transition: all 0.15s ease;
 		flex-shrink: 0;
 	}
 
 	.search-settings-btn:hover,
 	.search-settings-btn.active {
-		background-color: hsl(var(--accent) / 0.5);
+		background: hsl(var(--muted));
 		color: hsl(var(--foreground));
+	}
+
+	.search-tool-btn {
+		height: 36px;
+		width: 36px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+		background: hsl(var(--muted) / 0.5);
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		transition: all 0.15s ease;
+		box-sizing: border-box;
+		flex-shrink: 0;
+	}
+
+	.search-tool-btn:hover {
+		background: hsl(var(--muted) / 0.8);
+		color: hsl(var(--foreground));
+	}
+
+	.search-tool-btn.active {
+		background: hsl(var(--primary) / 0.15);
+		border-color: hsl(var(--primary));
+		color: hsl(var(--primary));
 	}
 
 	.header-right {

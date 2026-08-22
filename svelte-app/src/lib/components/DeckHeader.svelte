@@ -28,6 +28,7 @@
 		PlusCircle,
 		LogOut,
 		Settings as SettingsIcon,
+		Filter,
 	} from "lucide-svelte";
 	import Button from "./ui/Button.svelte";
 	import ManaSymbol from "./ui/ManaSymbol.svelte";
@@ -44,6 +45,7 @@
 	let showBudgieDropdown = $state(false);
 	let showProfileDropdown = $state(false);
 	let showAboutModal = $state(false);
+	let showDisplayFilter = $state(false);
 
 	/** @type {HTMLElement | null} */
 	let viewOptionsBtn = $state(null);
@@ -657,6 +659,20 @@
 						{:else}
 							<StretchHorizontal size={15} />
 						{/if}
+					</Button>
+				{/if}
+
+				<!-- Display Filter Button (to the right of split view toggle) -->
+				{#if ["stacks", "spoiler", "table"].includes(settingsStore.deckViewMode)}
+					<Button
+						variant={showDisplayFilter ? "toggle-active" : "ghost"}
+						size="icon"
+						class="modifier-btn {showDisplayFilter ? 'bg-secondary' : ''}"
+						onclick={() => (showDisplayFilter = !showDisplayFilter)}
+						title="Filter Cards"
+						aria-label="Filter Cards"
+					>
+						<Filter size={15} />
 					</Button>
 				{/if}
 
