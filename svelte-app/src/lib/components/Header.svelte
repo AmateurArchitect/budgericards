@@ -39,6 +39,15 @@
 	let showSearchResultsFilter = $state(false);
 	let isVerticalLayout = $state(false);
 
+	$effect(() => {
+		if (searchStore.isOpen) {
+			setTimeout(() => {
+				const inputEl = document.querySelector(".header-search-input input") || document.querySelector(".header-search-input");
+				/** @type {HTMLElement | null} */ (inputEl)?.focus();
+			}, 60);
+		}
+	});
+
 	const isDeckPage = $derived(
 		($page.url.pathname.startsWith("/decks/") && Boolean($page.params.id)) ||
 		$page.url.pathname === "/"
@@ -223,93 +232,95 @@
 
 			{#if isDeckPage && searchStore.isOpen}
 				<div class="search-bar">
-					<!-- Collection Dropdown Selector -->
-					<div class="collection-selector">
-						<button
-							class="collection-trigger"
-							onclick={() => (showCollectionDropdown = !showCollectionDropdown)}
-							aria-expanded={showCollectionDropdown}
-							aria-haspopup="listbox"
-						>
-							<span class="value-text">{collectionButtonText}</span>
-							<ChevronDown size={13} class="chevron {showCollectionDropdown ? 'open' : ''}" />
-						</button>
+					<!-- Interlocking Curved Search Container -->
+					<div class="search-input-combo">
+						<div class="collection-selector">
+							<button
+								class="collection-trigger"
+								onclick={() => (showCollectionDropdown = !showCollectionDropdown)}
+								aria-expanded={showCollectionDropdown}
+								aria-haspopup="listbox"
+							>
+								<span class="value-text">{collectionButtonText}</span>
+								<ChevronDown size={13} class="chevron {showCollectionDropdown ? 'open' : ''}" />
+							</button>
 
-						{#if showCollectionDropdown}
-							<div class="collection-menu" transition:fly={{ y: 4, duration: 150 }}>
-								{#each collections as item}
-									{#if item.divider}
-										<div class="menu-divider"></div>
-									{:else}
-										<button
-											class="menu-item"
-											class:active={searchStore.collection === item.id}
-											class:disabled={item.disabled}
-											onclick={() => !item.disabled && item.id && selectCollection(item.id)}
-											disabled={item.disabled}
-										>
-											{item.label}
-										</button>
-									{/if}
-								{/each}
-							</div>
-						{/if}
-					</div>
-
-					<!-- Rounded Pill Search Input -->
-					<div
-						class="search-input-group"
-						class:is-focused={searchStore.isFocused}
-					>
-						<Search size={14} class="search-icon" />
-						<div class="search-input-wrapper">
-							<Input
-								placeholder="Search cards (e.g. t:creature cmc<=3)..."
-								class="header-search-input"
-								bind:value={searchStore.query}
-								onfocus={() => searchStore.setFocus(true)}
-								onblur={() => searchStore.setFocus(false)}
-								onkeydown={(/** @type {KeyboardEvent} */ e) => {
-									if (e.key === "Escape") {
-										searchStore.closeSearch();
-									}
-								}}
-							/>
-							{#if searchStore.query !== ""}
-								<button
-									class="search-action-btn"
-									title="Clear search"
-									onclick={() => (searchStore.query = "")}
-									onmousedown={(e) => e.preventDefault()}
-									transition:fade={{ duration: 150 }}
-								>
-									<X size={14} />
-								</button>
-							{:else if showHelpIcon}
-								<a
-									href="https://scryfall.com/docs/syntax"
-									target="_blank"
-									rel="noopener noreferrer"
-									class="search-action-btn"
-									title="Scryfall Search Syntax Guide"
-									onmousedown={(e) => e.preventDefault()}
-									transition:fade={{ duration: 150 }}
-								>
-									<HelpCircle size={14} />
-								</a>
+							{#if showCollectionDropdown}
+								<div class="collection-menu" transition:fly={{ y: 4, duration: 150 }}>
+									{#each collections as item}
+										{#if item.divider}
+											<div class="menu-divider"></div>
+										{:else}
+											<button
+												class="menu-item"
+												class:active={searchStore.collection === item.id}
+												class:disabled={item.disabled}
+												onclick={() => !item.disabled && item.id && selectCollection(item.id)}
+												disabled={item.disabled}
+											>
+												{item.label}
+											</button>
+										{/if}
+									{/each}
+								</div>
 							{/if}
 						</div>
 
-						<button
-							bind:this={searchSettingsBtn}
-							class="search-settings-btn"
-							class:active={showSearchOptions}
-							onclick={() => (showSearchOptions = !showSearchOptions)}
-							aria-label="Search Settings"
-							title="Search Settings"
+						<!-- Rounded Pill Search Input -->
+						<div
+							class="search-input-group"
+							class:is-focused={searchStore.isFocused}
 						>
-							<SlidersHorizontal size={14} />
-						</button>
+							<Search size={14} class="search-icon" />
+							<div class="search-input-wrapper">
+								<Input
+									placeholder="Search cards (e.g. t:creature cmc<=3)..."
+									class="header-search-input"
+									bind:value={searchStore.query}
+									onfocus={() => searchStore.setFocus(true)}
+									onblur={() => searchStore.setFocus(false)}
+									onkeydown={(/** @type {KeyboardEvent} */ e) => {
+										if (e.key === "Escape") {
+											searchStore.closeSearch();
+										}
+									}}
+								/>
+								{#if searchStore.query !== ""}
+									<button
+										class="search-action-btn"
+										title="Clear search"
+										onclick={() => (searchStore.query = "")}
+										onmousedown={(e) => e.preventDefault()}
+										transition:fade={{ duration: 150 }}
+									>
+										<X size={14} />
+									</button>
+								{:else if showHelpIcon}
+									<a
+										href="https://scryfall.com/docs/syntax"
+										target="_blank"
+										rel="noopener noreferrer"
+										class="search-action-btn"
+										title="Scryfall Search Syntax Guide"
+										onmousedown={(e) => e.preventDefault()}
+										transition:fade={{ duration: 150 }}
+									>
+										<HelpCircle size={14} />
+									</a>
+								{/if}
+							</div>
+
+							<button
+								bind:this={searchSettingsBtn}
+								class="search-settings-btn"
+								class:active={showSearchOptions}
+								onclick={() => (showSearchOptions = !showSearchOptions)}
+								aria-label="Search Settings"
+								title="Search Settings"
+							>
+								<SlidersHorizontal size={14} />
+							</button>
+						</div>
 					</div>
 
 					<!-- Filter Search Results Tool Button -->
@@ -528,8 +539,17 @@
 		min-width: 0;
 	}
 
+	.search-input-combo {
+		display: flex;
+		align-items: center;
+		flex: 1;
+		max-width: 480px;
+		min-width: 200px;
+	}
+
 	.collection-selector {
 		position: relative;
+		z-index: 1;
 		flex-shrink: 0;
 	}
 
@@ -538,10 +558,11 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		padding: 0 0.75rem;
+		padding: 0 1.25rem 0 0.85rem;
 		background: hsl(var(--muted) / 0.5);
 		border: 1px solid hsl(var(--border));
-		border-radius: var(--radius);
+		border-right: none;
+		border-radius: var(--radius) 0 0 var(--radius);
 		color: hsl(var(--foreground));
 		font-size: 13px;
 		font-weight: 500;
@@ -612,13 +633,13 @@
 
 	.search-input-group {
 		position: relative;
+		z-index: 2;
 		display: flex;
 		align-items: center;
 		flex: 1;
-		max-width: 440px;
-		min-width: 160px;
+		margin-left: -10px;
 		height: 36px;
-		background: hsl(var(--muted) / 0.5);
+		background: #18181b;
 		border: 1px solid hsl(var(--border));
 		border-radius: 9999px;
 		padding: 0 0.35rem 0 0.75rem;
@@ -631,6 +652,7 @@
 		background: hsl(var(--background));
 		border-color: hsl(var(--primary));
 		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+		z-index: 3;
 	}
 
 	.search-input-wrapper {

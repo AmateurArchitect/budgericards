@@ -888,7 +888,13 @@
 				<!-- Search Trigger Button -->
 				<button
 					class="search-trigger-btn"
-					onclick={() => searchStore.openSearch()}
+					onclick={() => {
+						searchStore.openSearch();
+						setTimeout(() => {
+							const inputEl = document.querySelector(".header-search-input input") || document.querySelector(".header-search-input");
+							/** @type {HTMLElement | null} */ (inputEl)?.focus();
+						}, 50);
+					}}
 					aria-label="Card search (⌘/ or /)"
 					title="Card Search (⌘/ or /)"
 				>
