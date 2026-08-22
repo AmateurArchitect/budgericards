@@ -1409,8 +1409,8 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 0.85rem;
-		background: hsl(var(--muted) / 0.65);
-		border: 1px solid hsl(var(--border) / 0.95);
+		background: hsl(var(--muted) / 0.35);
+		border: 1px solid hsl(var(--border) / 0.6);
 		color: hsl(var(--muted-foreground));
 		padding: 0 0.65rem 0 0.85rem;
 		border-radius: 9999px;
@@ -1418,14 +1418,12 @@
 		transition: all 0.15s ease;
 		white-space: nowrap;
 		box-sizing: border-box;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 	}
 
 	.search-trigger-btn:hover {
-		background: hsl(var(--muted) / 0.9);
-		border-color: hsl(var(--foreground) / 0.25);
+		background: hsl(var(--muted) / 0.55);
+		border-color: hsl(var(--border));
 		color: hsl(var(--foreground));
-		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 	}
 
 	.search-trigger-left {
@@ -1453,33 +1451,35 @@
 	.shortcut-keycaps {
 		display: inline-flex;
 		align-items: center;
-		gap: 2px;
+		gap: 3px;
 	}
 
 	.key-cap {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		min-width: 16px;
-		height: 16px;
-		padding: 0 3px;
-		font-family: inherit;
-		font-size: 10px;
+		min-width: 18px;
+		height: 18px;
+		padding: 0 4px;
+		font-family: system-ui, -apple-system, sans-serif;
+		font-size: 11px;
 		font-weight: 600;
-		color: hsl(var(--muted-foreground));
-		background: hsl(var(--background) / 0.7);
+		color: hsl(var(--foreground) / 0.75);
+		background: hsl(var(--muted) / 0.75);
 		border: 1px solid hsl(var(--border) / 0.8);
 		border-radius: var(--radius-sm, 4px);
-		box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+		box-shadow:
+			0 1px 0 hsla(var(--border) / 0.6),
+			inset 0 1px 0 hsla(255, 100%, 100%, 0.04);
 		line-height: 1;
 		user-select: none;
-		transition: all 0.15s ease;
+		transition: all 0.1s ease;
 	}
 
 	.search-trigger-btn:hover .key-cap {
 		border-color: hsl(var(--border));
 		color: hsl(var(--foreground));
-		background: hsl(var(--background));
+		background: hsl(var(--muted));
 	}
 
 	.stats-subtabs-group {
