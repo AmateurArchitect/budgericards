@@ -919,7 +919,7 @@
 	.deck-header {
 		height: 96px;
 		background: transparent;
-		border-bottom: 1px solid hsl(var(--border) / 0.6);
+		border-bottom: 1px solid hsl(var(--border));
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -934,7 +934,7 @@
 		height: 96px;
 		background: transparent;
 		backdrop-filter: none;
-		border-bottom: 1px solid hsl(var(--border) / 0.5);
+		border-bottom: 1px solid hsl(var(--border));
 	}
 
 	.deck-info-wrapper {
@@ -1169,9 +1169,9 @@
 	.view-mode-group {
 		display: inline-flex;
 		align-items: center;
-		background: hsl(var(--muted) / 0.3);
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-md);
+		background: hsl(var(--muted) / 0.5);
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
 		padding: 2px;
 		gap: 1px;
 		height: 36px;
@@ -1188,7 +1188,7 @@
 
 	:global(.view-toggle-btn:hover) {
 		color: hsl(var(--foreground)) !important;
-		background: hsl(var(--muted) / 0.5) !important;
+		background: hsl(var(--muted) / 0.8) !important;
 	}
 
 	.grouping-container,
@@ -1203,9 +1203,9 @@
 		align-items: center;
 		gap: 0.35rem;
 		padding: 0 0.75rem;
-		background: hsl(var(--muted) / 0.3);
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-md);
+		background: hsl(var(--muted) / 0.5);
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
 		color: hsl(var(--foreground) / 0.85);
 		font-size: 13px;
 		font-weight: 500;
@@ -1216,7 +1216,7 @@
 	}
 
 	.header-select-trigger:hover {
-		background: hsl(var(--muted) / 0.5);
+		background: hsl(var(--muted) / 0.8);
 		color: hsl(var(--foreground));
 	}
 
@@ -1226,7 +1226,7 @@
 		right: 0;
 		min-width: 150px;
 		background: hsl(var(--popover));
-		border: 1px solid hsl(var(--border) / 0.6);
+		border: 1px solid hsl(var(--border));
 		border-radius: var(--radius-md);
 		box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
 		padding: 4px;
@@ -1280,16 +1280,16 @@
 		height: 36px !important;
 		width: 36px !important;
 		padding: 0 !important;
-		border-radius: var(--radius-md) !important;
+		border-radius: var(--radius) !important;
 		color: hsl(var(--muted-foreground)) !important;
-		border: 1px solid hsl(var(--border) / 0.5) !important;
-		background: hsl(var(--muted) / 0.3) !important;
+		border: 1px solid hsl(var(--border)) !important;
+		background: hsl(var(--muted) / 0.5) !important;
 		box-sizing: border-box !important;
 	}
 
 	:global(.modifier-btn:hover) {
 		color: hsl(var(--foreground)) !important;
-		background: hsl(var(--muted) / 0.5) !important;
+		background: hsl(var(--muted) / 0.8) !important;
 	}
 
 	.global-nav-group {
@@ -1298,7 +1298,7 @@
 		gap: 0.5rem;
 		margin-left: 0.25rem;
 		padding-left: 0.5rem;
-		border-left: 1px solid hsl(var(--border) / 0.5);
+		border-left: 1px solid hsl(var(--border));
 	}
 
 	.budgie-menu-container,
@@ -1325,7 +1325,7 @@
 	}
 
 	.nav-dropdown-trigger:hover {
-		background-color: hsl(var(--muted) / 0.4);
+		background-color: hsl(var(--muted) / 0.5);
 		color: hsl(var(--foreground));
 	}
 
@@ -1340,7 +1340,7 @@
 		right: 0;
 		width: 190px;
 		background: hsl(var(--popover));
-		border: 1px solid hsl(var(--border) / 0.6);
+		border: 1px solid hsl(var(--border));
 		border-radius: var(--radius-md);
 		box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
 		padding: 4px;
@@ -1409,8 +1409,8 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 0.85rem;
-		background: hsl(var(--muted) / 0.35);
-		border: 1px solid hsl(var(--border) / 0.6);
+		background: hsl(var(--muted) / 0.5);
+		border: 1px solid hsl(var(--border));
 		color: hsl(var(--muted-foreground));
 		padding: 0 0.65rem 0 0.85rem;
 		border-radius: 9999px;
@@ -1421,7 +1421,7 @@
 	}
 
 	.search-trigger-btn:hover {
-		background: hsl(var(--muted) / 0.55);
+		background: hsl(var(--muted) / 0.8);
 		border-color: hsl(var(--border));
 		color: hsl(var(--foreground));
 	}
@@ -1465,8 +1465,8 @@
 		font-size: 11px;
 		font-weight: 600;
 		color: hsl(var(--foreground) / 0.75);
-		background: hsl(var(--muted) / 0.75);
-		border: 1px solid hsl(var(--border) / 0.8);
+		background: hsl(var(--muted) / 0.8);
+		border: 1px solid hsl(var(--border));
 		border-radius: var(--radius-sm, 4px);
 		box-shadow:
 			0 1px 0 hsla(var(--border) / 0.6),
