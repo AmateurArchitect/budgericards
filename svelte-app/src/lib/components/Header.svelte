@@ -494,13 +494,12 @@
 	.app-header {
 		height: 52px;
 		padding: 0 1.25rem;
-		background: var(--bg-panel);
+		background: transparent;
 		border-bottom: 1px solid hsl(var(--border) / 0.5);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		z-index: 1000;
-		backdrop-filter: blur(12px);
 		user-select: none;
 	}
 

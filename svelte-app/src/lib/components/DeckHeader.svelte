@@ -712,7 +712,7 @@
 						size="icon"
 						class="modifier-btn"
 						bind:el={viewOptionsBtn}
-						onclick={(e) => {
+						onclick={(/** @type {MouseEvent} */ e) => {
 							e.stopPropagation();
 							showViewOptionsModal = true;
 						}}
@@ -913,7 +913,7 @@
 <style>
 	.deck-header {
 		height: 76px;
-		background: hsl(var(--background));
+		background: transparent;
 		border-bottom: 1px solid hsl(var(--border) / 0.6);
 		display: flex;
 		align-items: center;
@@ -927,8 +927,8 @@
 
 	.deck-header.is-top-bar {
 		height: 76px;
-		background: var(--bg-panel, hsl(var(--background)));
-		backdrop-filter: blur(12px);
+		background: transparent;
+		backdrop-filter: none;
 		border-bottom: 1px solid hsl(var(--border) / 0.5);
 	}
 
@@ -960,7 +960,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: var(--radius-sm);
+		border-radius: 6px;
 		transition: all 0.2s ease;
 		flex-shrink: 0;
 	}
@@ -973,7 +973,7 @@
 		width: 88px;
 		height: 56px;
 		position: relative;
-		border-radius: var(--radius-sm);
+		border-radius: 6px;
 		overflow: hidden;
 		box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 		background: hsl(var(--muted) / 0.2);
@@ -983,6 +983,7 @@
 	.deck-art {
 		width: 100%;
 		height: 100%;
+		border-radius: 6px;
 		object-fit: cover;
 		pointer-events: none;
 	}
@@ -1413,7 +1414,7 @@
 		transform: translateY(-1px);
 	}
 
-	.search-trigger-icon {
+	:global(.search-trigger-icon) {
 		color: hsl(var(--primary));
 	}
 
@@ -1440,12 +1441,12 @@
 		padding: 0 0.5rem !important;
 	}
 
-	.chevron {
+	:global(.chevron) {
 		opacity: 0.6;
 		transition: transform 0.15s ease;
 	}
 
-	.chevron.open {
+	:global(.chevron.open) {
 		transform: rotate(180deg);
 	}
 
