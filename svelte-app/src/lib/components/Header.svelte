@@ -139,12 +139,12 @@
 	/** @param {KeyboardEvent} e */
 	function handleGlobalKeyDown(e) {
 		const isCmdOrCtrl = e.metaKey || e.ctrlKey;
-		const isInput = ["INPUT", "TEXTAREA", "SELECT"].includes(
-			document.activeElement?.tagName || "",
-		);
+		const target = /** @type {HTMLElement | null} */ (document.activeElement);
+		const isInput = ["INPUT", "TEXTAREA", "SELECT"].includes(target?.tagName || "") || target?.isContentEditable;
+		const isModalOpen = document.querySelector(".modal-backdrop, .about-backdrop, [role='dialog']") !== null;
 
-		// Cmd+F, Cmd+K, Cmd+Space, Ctrl+F, Ctrl+K, Ctrl+Space
-		if (isCmdOrCtrl && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "k" || e.key === " ")) {
+		// Primary: Cmd + / or Ctrl + / (and Cmd + K / Cmd + Space as secondary fallbacks)
+		if (isCmdOrCtrl && (e.key === "/" || e.key.toLowerCase() === "k" || e.key === " ")) {
 			e.preventDefault();
 			if (!searchStore.isOpen) {
 				searchStore.openSearch();
@@ -156,8 +156,8 @@
 			return;
 		}
 
-		// '/' shortcut when not inside an input
-		if (e.key === "/" && !isInput && !isCmdOrCtrl) {
+		// Fallback: '/' shortcut when NOT typing inside any input and NOT inside an open modal
+		if (e.key === "/" && !isInput && !isCmdOrCtrl && !isModalOpen) {
 			e.preventDefault();
 			if (!searchStore.isOpen) {
 				searchStore.openSearch();

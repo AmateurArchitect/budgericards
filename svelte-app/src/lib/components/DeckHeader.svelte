@@ -873,14 +873,14 @@
 				<button
 					class="search-trigger-btn"
 					onclick={() => searchStore.openSearch()}
-					aria-label="Search cards (⌘F or /)"
-					title="Search cards (⌘F or /)"
+					aria-label="Search cards (⌘/ or /)"
+					title="Search cards (⌘/ or /)"
 				>
 					<Search size={14} class="search-trigger-icon" />
 					<span class="search-trigger-text">Search</span>
 					<div class="shortcut-keycaps">
 						<kbd class="key-cap">⌘</kbd>
-						<kbd class="key-cap">F</kbd>
+						<kbd class="key-cap">/</kbd>
 					</div>
 				</button>
 			</div>
