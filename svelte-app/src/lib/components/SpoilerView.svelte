@@ -596,35 +596,34 @@
 
 	.deck-empty-content {
 		pointer-events: auto;
-		background: hsl(var(--card) / 0.4);
-		border: 1px dashed hsl(var(--border) / 0.8);
-		border-radius: var(--radius-lg);
-		padding: 1.75rem 2.5rem;
-		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-		backdrop-filter: blur(8px);
+		background: none;
+		border: none;
+		box-shadow: none;
+		backdrop-filter: none;
+		padding: 0;
 	}
 
 	.empty-state-text {
 		margin: 0;
 		font-size: 0.9375rem;
-		font-weight: 500;
+		font-weight: 400;
 		color: hsl(var(--muted-foreground));
 		text-align: center;
+		letter-spacing: -0.01em;
 	}
 
 	.empty-action-link {
 		background: none;
 		border: none;
 		padding: 0;
-		color: hsl(var(--primary));
-		font-weight: 600;
+		color: hsl(var(--foreground) / 0.85);
+		font-weight: 500;
 		cursor: pointer;
-		text-decoration: underline;
-		text-underline-offset: 3px;
-		transition: opacity 0.15s ease;
+		text-decoration: none;
+		transition: color 0.15s ease;
 	}
 
 	.empty-action-link:hover {
-		opacity: 0.8;
+		color: hsl(var(--foreground));
 	}
 </style>
