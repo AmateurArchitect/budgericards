@@ -421,95 +421,97 @@
 				</div>
 			</div>
 
-			<div class="name-and-meta-row">
+			<div class="name-and-meta-column">
 				<div class="deck-title-wrapper" title={deckStore.name || "Untitled Deck"}>
 					{#if !deckStore.name || deckStore.name === "Untitled Deck"}
-						<span class="unnamed-prompt">Untitled Deck</span>
+						<h2 class="unnamed-prompt">Untitled Deck</h2>
 						<span class="draft-badge">Draft</span>
 					{:else}
-						<span class="deck-title-text">{deckStore.name}</span>
+						<h2 class="deck-title-text">{deckStore.name}</h2>
 					{/if}
 				</div>
 
-				{#if colorIdentity().length > 0}
-					<div class="deck-colors">
-						{#each colorIdentity() as col}
-							<ManaSymbol
-								symbol={col}
-								size="15px"
-								className="color-identity-dot"
-							/>
-						{/each}
-					</div>
-				{/if}
-
-				<div class="board-dropdown-container">
-					<button
-						class="board-dropdown-trigger"
-						onclick={(e) => {
-							e.stopPropagation();
-							showBoardDropdown = !showBoardDropdown;
-						}}
-						aria-expanded={showBoardDropdown}
-						aria-haspopup="listbox"
-					>
-						<span class="board-label">
-							{deckStore.currentBoardCount} Card {boards.find((b) => b.id === deckStore.activeBoard)?.label}
-						</span>
-						<ChevronDown size={13} class="chevron {showBoardDropdown ? 'open' : ''}" />
-					</button>
-
-					{#if showBoardDropdown}
-						<div class="board-dropdown-menu" transition:fly={{ y: 4, duration: 150 }}>
-							{#each boards as board}
-								<button
-									class="dropdown-item"
-									class:active={deckStore.activeBoard === board.id}
-									onclick={(e) => {
-										e.stopPropagation();
-										selectBoard(board.id);
-									}}
-								>
-									<span class="item-label">{board.label}</span>
-									<span class="item-count">
-										{board.id === "mainboard"
-											? deckStore.mainboard.length + deckStore.commander.length + deckStore.companion.length
-											: deckStore[board.id].length}
-									</span>
-								</button>
+				<div class="deck-meta-row">
+					{#if colorIdentity().length > 0}
+						<div class="deck-colors">
+							{#each colorIdentity() as col}
+								<ManaSymbol
+									symbol={col}
+									size="16px"
+									className="color-identity-dot"
+								/>
 							{/each}
 						</div>
 					{/if}
-				</div>
 
-				{#if deckStore.activeBoard === 'maybeboard' && deckStore.maybeboard.length >= 80}
-					<button
-						class="maybeboard-warning-btn"
-						class:full={deckStore.maybeboard.length === 100}
-						onclick={(e) => {
-							e.stopPropagation();
-							interactionStore.maybeboardCleanupModal.isOpen = true;
-						}}
-						title="Maybeboard is near or at limit. Click to clean up."
-					>
-						<span class="warning-icon">⚠️</span>
-						<span class="warning-text">{deckStore.maybeboard.length}/100</span>
-					</button>
-				{/if}
+					<div class="board-dropdown-container">
+						<button
+							class="board-dropdown-trigger"
+							onclick={(e) => {
+								e.stopPropagation();
+								showBoardDropdown = !showBoardDropdown;
+							}}
+							aria-expanded={showBoardDropdown}
+							aria-haspopup="listbox"
+						>
+							<span class="board-label">
+								{deckStore.currentBoardCount} Card {boards.find((b) => b.id === deckStore.activeBoard)?.label}
+							</span>
+							<ChevronDown size={13} class="chevron {showBoardDropdown ? 'open' : ''}" />
+						</button>
 
-				{#if authStore.isAuthenticated && (deckStore.syncState.isSyncing || deckStore.syncState.error)}
-					<div class="sync-indicator-container">
-						{#if deckStore.syncState.isSyncing}
-							<span class="sync-status is-syncing" title="Syncing with cloud...">
-								<RefreshCw size={11} class="icon animate-spin" />
-							</span>
-						{:else if deckStore.syncState.error}
-							<span class="sync-status has-error" title={deckStore.syncState.error}>
-								<CloudOff size={11} class="icon" />
-							</span>
+						{#if showBoardDropdown}
+							<div class="board-dropdown-menu" transition:fly={{ y: 4, duration: 150 }}>
+								{#each boards as board}
+									<button
+										class="dropdown-item"
+										class:active={deckStore.activeBoard === board.id}
+										onclick={(e) => {
+											e.stopPropagation();
+											selectBoard(board.id);
+										}}
+									>
+										<span class="item-label">{board.label}</span>
+										<span class="item-count">
+											{board.id === "mainboard"
+												? deckStore.mainboard.length + deckStore.commander.length + deckStore.companion.length
+												: deckStore[board.id].length}
+										</span>
+									</button>
+								{/each}
+							</div>
 						{/if}
 					</div>
-				{/if}
+
+					{#if deckStore.activeBoard === 'maybeboard' && deckStore.maybeboard.length >= 80}
+						<button
+							class="maybeboard-warning-btn"
+							class:full={deckStore.maybeboard.length === 100}
+							onclick={(e) => {
+								e.stopPropagation();
+								interactionStore.maybeboardCleanupModal.isOpen = true;
+							}}
+							title="Maybeboard is near or at limit. Click to clean up."
+						>
+							<span class="warning-icon">⚠️</span>
+							<span class="warning-text">{deckStore.maybeboard.length}/100</span>
+						</button>
+					{/if}
+
+					{#if authStore.isAuthenticated && (deckStore.syncState.isSyncing || deckStore.syncState.error)}
+						<div class="sync-indicator-container">
+							{#if deckStore.syncState.isSyncing}
+								<span class="sync-status is-syncing" title="Syncing with cloud...">
+									<RefreshCw size={11} class="icon animate-spin" />
+								</span>
+							{:else if deckStore.syncState.error}
+								<span class="sync-status has-error" title={deckStore.syncState.error}>
+									<CloudOff size={11} class="icon" />
+								</span>
+							{/if}
+						</div>
+					{/if}
+				</div>
 			</div>
 		</div>
 
@@ -910,13 +912,13 @@
 
 <style>
 	.deck-header {
-		height: 48px;
+		height: 76px;
 		background: hsl(var(--background));
 		border-bottom: 1px solid hsl(var(--border) / 0.6);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 1rem;
+		padding: 0 1.25rem;
 		position: relative;
 		z-index: 20;
 		box-sizing: border-box;
@@ -924,7 +926,7 @@
 	}
 
 	.deck-header.is-top-bar {
-		height: 52px;
+		height: 76px;
 		background: var(--bg-panel, hsl(var(--background)));
 		backdrop-filter: blur(12px);
 		border-bottom: 1px solid hsl(var(--border) / 0.5);
@@ -940,9 +942,9 @@
 	.deck-info {
 		display: flex;
 		align-items: center;
-		gap: 0.625rem;
-		padding: 0.25rem 0.5rem;
-		margin-left: -0.5rem;
+		gap: 0.875rem;
+		padding: 0.35rem 0.65rem;
+		margin-left: -0.65rem;
 		border-radius: var(--radius-md);
 		cursor: pointer;
 		transition: background-color 0.15s ease;
@@ -968,12 +970,12 @@
 	}
 
 	.card-preview-slot {
-		width: 38px;
-		height: 28px;
+		width: 88px;
+		height: 56px;
 		position: relative;
-		border-radius: 4px;
+		border-radius: var(--radius-sm);
 		overflow: hidden;
-		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+		box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 		background: hsl(var(--muted) / 0.2);
 		pointer-events: none;
 	}
@@ -995,35 +997,34 @@
 		color: hsl(var(--muted-foreground) / 0.4);
 	}
 
-	.name-and-meta-row {
+	.name-and-meta-column {
 		display: flex;
-		align-items: center;
-		gap: 0.5rem;
+		flex-direction: column;
+		gap: 0.25rem;
 		min-width: 0;
-		white-space: nowrap;
 	}
 
 	.deck-title-wrapper {
 		display: flex;
 		align-items: center;
-		gap: 0.35rem;
+		gap: 0.4rem;
 		min-width: 0;
 	}
 
-	.deck-title-text {
-		font-size: 0.875rem;
+	.deck-title-text, .unnamed-prompt {
+		margin: 0;
+		font-size: 1rem;
 		font-weight: 600;
+		line-height: 1.2;
 		color: hsl(var(--foreground));
-		letter-spacing: -0.01em;
-		max-width: 220px;
+		letter-spacing: -0.015em;
+		max-width: 280px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
 	.unnamed-prompt {
-		font-size: 0.875rem;
-		font-weight: 600;
 		color: hsl(var(--foreground) / 0.5);
 	}
 
@@ -1038,6 +1039,13 @@
 		border-radius: 3px;
 		font-weight: 600;
 		line-height: 1;
+	}
+
+	.deck-meta-row {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		white-space: nowrap;
 	}
 
 	.deck-colors {
@@ -1062,10 +1070,10 @@
 	.board-dropdown-trigger {
 		background: none;
 		border: none;
-		padding: 0.2rem 0.35rem;
+		padding: 0.15rem 0.3rem;
 		display: flex;
 		align-items: center;
-		gap: 0.2rem;
+		gap: 0.25rem;
 		color: hsl(var(--muted-foreground));
 		font-size: 0.8125rem;
 		font-weight: 500;
