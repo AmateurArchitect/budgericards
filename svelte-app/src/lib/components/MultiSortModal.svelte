@@ -58,6 +58,9 @@
 	/** @type {Array<{ type: string, direction: string }>} */
 	let draftSorts = $state([]);
 	let showDefaultDetails = $state(false);
+	let isAddMenuOpen = $state(false);
+	/** @type {HTMLElement | null} */
+	let addContainerRef = $state(null);
 
 	// Drag and drop state
 	/** @type {number | null} */
@@ -73,6 +76,7 @@
 		if (isOpen) {
 			untrack(() => {
 				showDefaultDetails = false;
+				isAddMenuOpen = false;
 				draggedIndex = null;
 				dropTarget = null;
 
@@ -93,6 +97,7 @@
 
 	function close() {
 		isOpen = false;
+		isAddMenuOpen = false;
 		if (onClose) onClose();
 	}
 
@@ -109,7 +114,11 @@
 		if (e.key === "Escape") {
 			e.preventDefault();
 			e.stopPropagation();
-			close();
+			if (isAddMenuOpen) {
+				isAddMenuOpen = false;
+			} else {
+				close();
+			}
 		} else if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
 			const targetEl = /** @type {HTMLElement | null} */ (e.target);
 			if (targetEl?.tagName !== "BUTTON" && targetEl?.tagName !== "SELECT") {
@@ -119,12 +128,10 @@
 		}
 	}
 
-	function addSortTier() {
-		// Find first unused criteria
-		const usedTypes = new Set(draftSorts.map((s) => s.type));
-		const nextUnused = availableCriteria.find((c) => !usedTypes.has(c.id));
-		const nextType = nextUnused ? nextUnused.id : (target === "deck" ? "added" : "cmc");
-		draftSorts = [...draftSorts, { type: nextType, direction: "default" }];
+	/** @param {string} type */
+	function addSortTierWithCriterion(type) {
+		draftSorts = [...draftSorts, { type, direction: "default" }];
+		isAddMenuOpen = false;
 	}
 
 	/** @param {number} index */
@@ -210,7 +217,14 @@
 	const canAddMore = $derived(draftSorts.length < availableCriteria.length);
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window
+	onkeydown={handleKeydown}
+	onclick={(e) => {
+		if (isAddMenuOpen && addContainerRef && !addContainerRef.contains(/** @type {Node} */ (e.target))) {
+			isAddMenuOpen = false;
+		}
+	}}
+/>
 
 {#if isOpen}
 	<div use:portal class="modal-portal-wrapper">
@@ -382,15 +396,34 @@
 				{/each}
 
 				<!-- Full Width Add Sort Button placed directly above Default Sort Row -->
-				<div class="add-sort-inline-container">
+				<div class="add-sort-inline-container" bind:this={addContainerRef}>
 					<button
+						type="button"
 						class="add-tier-btn"
-						onclick={addSortTier}
+						class:is-active={isAddMenuOpen}
+						onclick={() => (isAddMenuOpen = !isAddMenuOpen)}
 						disabled={!canAddMore}
+						aria-haspopup="true"
+						aria-expanded={isAddMenuOpen}
 					>
 						<Plus size={14} />
 						<span>Add Sort</span>
+						<ChevronDown size={13} class={`add-chevron ${isAddMenuOpen ? "rotate" : ""}`} />
 					</button>
+
+					{#if isAddMenuOpen && canAddMore}
+						<div class="add-sort-dropdown-menu custom-scrollbar" in:scale={{ duration: 100, start: 0.95 }}>
+							{#each availableCriteria.filter((c) => !draftSorts.some((s) => s.type === c.id)) as crit}
+								<button
+									type="button"
+									class="add-sort-menu-item"
+									onclick={() => addSortTierWithCriterion(crit.id)}
+								>
+									<span class="menu-item-label">{crit.label}</span>
+								</button>
+							{/each}
+						</div>
+					{/if}
 				</div>
 
 				<!-- Base Default Sort Row (Collapsed vs Expanded) -->
@@ -958,10 +991,11 @@
 		background: hsl(var(--destructive) / 0.15);
 	}
 
-	/* Full-Width Add Sort Button */
+	/* Full-Width Add Sort Button & Dropdown Menu */
 	.add-sort-inline-container {
+		position: relative;
 		display: flex;
-		align-items: center;
+		flex-direction: column;
 		width: 100%;
 		padding: 0.15rem 0.25rem;
 		box-sizing: border-box;
@@ -986,7 +1020,8 @@
 		box-sizing: border-box;
 	}
 
-	.add-tier-btn:hover:not(:disabled) {
+	.add-tier-btn:hover:not(:disabled),
+	.add-tier-btn.is-active {
 		background: hsl(var(--primary) / 0.16);
 		border-color: hsl(var(--primary) / 0.7);
 	}
@@ -994,6 +1029,54 @@
 	.add-tier-btn:disabled {
 		opacity: 0.4;
 		cursor: not-allowed;
+	}
+
+	:global(.add-chevron) {
+		margin-left: 2px;
+		transition: transform 0.15s ease;
+	}
+
+	:global(.add-chevron.rotate) {
+		transform: rotate(180deg);
+	}
+
+	.add-sort-dropdown-menu {
+		position: absolute;
+		top: calc(100% + 4px);
+		left: 0.25rem;
+		right: 0.25rem;
+		background: hsl(var(--card));
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
+		box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.5), 0 0 1px 1px hsl(var(--border) / 0.5);
+		padding: 4px;
+		z-index: 50;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		max-height: 220px;
+		overflow-y: auto;
+	}
+
+	.add-sort-menu-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 8px 12px;
+		background: transparent;
+		border: none;
+		border-radius: 4px;
+		color: hsl(var(--foreground));
+		font-size: 0.85rem;
+		font-weight: 500;
+		cursor: pointer;
+		text-align: left;
+		transition: background 0.12s ease, color 0.12s ease;
+	}
+
+	.add-sort-menu-item:hover {
+		background: hsl(var(--muted));
+		color: hsl(var(--primary));
 	}
 
 	/* Default Sort Trigger Button (Collapsed) */
