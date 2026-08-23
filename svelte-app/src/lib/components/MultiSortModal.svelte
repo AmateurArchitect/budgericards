@@ -429,11 +429,10 @@
 
 						<!-- Step 1: Color Category -->
 						<div class="sort-rule-row default-readonly-row">
-							{#if draftSorts.length === 0}
-								<span class="rule-label rule-label-start">Sort by</span>
-							{:else}
-								<span class="rule-label finally-label">and finally by</span>
-							{/if}
+							<div class="default-drag-placeholder"></div>
+							<span class="rule-label">
+								{draftSorts.length === 0 ? "Sort by" : "then by"}
+							</span>
 							<div class="readonly-field-box">
 								<span>Color Category</span>
 							</div>
@@ -486,8 +485,7 @@
 
 						<!-- Step 4: Alphabetical -->
 						<div class="sort-rule-row default-readonly-row">
-							<div class="default-drag-placeholder"></div>
-							<span class="rule-label">then by</span>
+							<span class="rule-label finally-label">and finally by</span>
 							<div class="readonly-field-box">
 								<span>Alphabetical (Name)</span>
 							</div>
