@@ -559,8 +559,10 @@
 
 	.app-header.search-open .header-right {
 		flex: 1;
-		justify-content: flex-end;
-		padding-left: 1rem;
+		display: flex;
+		align-items: center;
+		padding-left: 1.5rem;
+		min-width: 0;
 	}
 
 	.header-left .budgie-dropdown,
@@ -605,7 +607,6 @@
 	.search-bar {
 		display: flex;
 		align-items: center;
-		justify-content: flex-end;
 		gap: 0.5rem;
 		flex: 1;
 		min-width: 0;
@@ -615,8 +616,7 @@
 		display: flex;
 		align-items: center;
 		flex: 1;
-		max-width: 480px;
-		min-width: 240px;
+		min-width: 200px;
 	}
 
 	.collection-selector {
