@@ -49,6 +49,19 @@
 	let showAboutModal = $state(false);
 	let showDisplaySort = $state(false);
 
+	const isCustomDeckSortActive = $derived(() => {
+		const sorts = deckStore.activeSorts;
+		if (!sorts || sorts.length === 0) return false;
+		if (sorts.length !== 4) return true;
+		const expected = ["color-cat", "color-id", "cmc", "name"];
+		for (let i = 0; i < 4; i++) {
+			if (sorts[i].type !== expected[i] || sorts[i].direction !== "default") {
+				return true;
+			}
+		}
+		return false;
+	});
+
 	/** @type {HTMLElement | null} */
 	let viewOptionsBtn = $state(null);
 	/** @type {HTMLElement | null} */
@@ -773,11 +786,11 @@
 				<!-- Display Sort Button (to the right of split view toggle) -->
 				{#if ["stacks", "spoiler", "table"].includes(settingsStore.deckViewMode)}
 					<Button
-						variant={showDisplaySort ? "toggle-active" : "ghost"}
+						variant={showDisplaySort || isCustomDeckSortActive() ? "toggle-active" : "ghost"}
 						size="icon"
-						class="modifier-btn {showDisplaySort ? 'bg-secondary' : ''}"
+						class="modifier-btn {isCustomDeckSortActive() ? 'custom-sort-active' : (showDisplaySort ? 'bg-secondary' : '')}"
 						onclick={() => (showDisplaySort = !showDisplaySort)}
-						title="Sort Displayed Cards"
+						title={isCustomDeckSortActive() ? "Custom sorting active (click to configure)" : "Sort Displayed Cards"}
 						aria-label="Sort Displayed Cards"
 					>
 						<ArrowDownWideNarrow size={15} />
@@ -1338,6 +1351,17 @@
 	:global(.modifier-btn:hover) {
 		color: hsl(var(--foreground)) !important;
 		background: hsl(var(--muted) / 0.8) !important;
+	}
+
+	:global(.modifier-btn.custom-sort-active) {
+		color: hsl(var(--primary)) !important;
+		background: hsl(var(--primary) / 0.15) !important;
+		border-color: hsl(var(--primary) / 0.45) !important;
+	}
+
+	:global(.modifier-btn.custom-sort-active:hover) {
+		background: hsl(var(--primary) / 0.25) !important;
+		border-color: hsl(var(--primary) / 0.7) !important;
 	}
 
 	.global-nav-group-left {

@@ -22,7 +22,7 @@
 	} = $props();
 
 	/** @type {Array<{ id: string, label: string }>} */
-	const availableCriteria = [
+	const availableCriteria = $derived([
 		{ id: "color-cat", label: "Color Category" },
 		{ id: "color-id", label: "Color Identity" },
 		{ id: "cmc", label: "Mana Value" },
@@ -30,7 +30,8 @@
 		{ id: "type", label: "Card Type" },
 		{ id: "price", label: "Price" },
 		{ id: "rarity", label: "Rarity" },
-	];
+		...(target === "deck" ? [{ id: "added", label: "Recently Added" }] : []),
+	]);
 
 	/** @type {Record<string, { default: string, reverse: string }>} */
 	const directionLabels = {
@@ -41,6 +42,7 @@
 		type: { default: "A to Z", reverse: "Z to A" },
 		price: { default: "Low to High", reverse: "High to Low" },
 		rarity: { default: "Common to Mythic", reverse: "Mythic to Common" },
+		added: { default: "Newest First", reverse: "Oldest First" },
 	};
 
 	/** @type {Array<{ type: string, direction: string }>} */

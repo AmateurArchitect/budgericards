@@ -429,7 +429,7 @@ function getSubtype(typeLine) {
  */
 function compare(a, b, factor) {
 	if (factor === "name") return a.name.localeCompare(b.name);
-	if (factor === "added") return a.addedAt - b.addedAt;
+	if (factor === "added" || factor === "recent") return (b.addedAt || 0) - (a.addedAt || 0);
 	if (factor === "price") return a.price - b.price;
 	if (factor === "cmc") {
 		const aIsLand = (a.type || "").toLowerCase().includes("land");
