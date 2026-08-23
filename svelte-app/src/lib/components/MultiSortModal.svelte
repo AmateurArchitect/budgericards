@@ -388,7 +388,10 @@
 							title="View default fallback sort order"
 						>
 							<span class="default-trigger-title">Default Sort Order</span>
-							<ChevronDown size={14} class="default-chevron" />
+							<div class="default-action-pill">
+								<span class="default-action-text">Show</span>
+								<ChevronDown size={13} class="default-chevron" />
+							</div>
 						</button>
 					</div>
 				{:else}
@@ -909,6 +912,27 @@
 
 	.default-trigger-title {
 		font-size: 0.85rem;
+		font-weight: 500;
+	}
+
+	.default-action-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+		background: hsl(var(--muted) / 0.5);
+		padding: 2px 7px 2px 9px;
+		border-radius: 4px;
+		transition: all 0.15s ease;
+	}
+
+	.default-sort-trigger-btn:hover .default-action-pill {
+		background: hsl(var(--muted) / 0.85);
+		color: hsl(var(--foreground));
+	}
+
+	.default-action-text {
 		font-weight: 500;
 	}
 
