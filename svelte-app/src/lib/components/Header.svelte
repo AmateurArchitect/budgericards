@@ -54,6 +54,16 @@
 		return `M 13.33 0.5 L ${w - 6} 0.5 A 5.5 5.5 0 0 1 ${w - 0.5} 6 L ${w - 0.5} 30 A 5.5 5.5 0 0 1 ${w - 6} 35.5 L 13.33 35.5 A 22 22 0 0 0 13.33 0.5 Z`;
 	});
 
+	const searchPlaceholders = ["Lightning Bolt", "is:commander id=gw"];
+	let placeholderIndex = $state(0);
+
+	$effect(() => {
+		const interval = setInterval(() => {
+			placeholderIndex = (placeholderIndex + 1) % searchPlaceholders.length;
+		}, 4000);
+		return () => clearInterval(interval);
+	});
+
 	$effect(() => {
 		if (searchStore.isOpen) {
 			setTimeout(() => {
@@ -390,7 +400,7 @@
 							<Search size={14} class="search-icon" />
 							<div class="search-input-wrapper">
 								<Input
-									placeholder="Search cards..."
+									placeholder={searchPlaceholders[placeholderIndex]}
 									class="header-search-input"
 									bind:value={searchStore.query}
 									onfocus={() => searchStore.setFocus(true)}

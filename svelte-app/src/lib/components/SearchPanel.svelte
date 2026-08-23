@@ -190,7 +190,7 @@
 								{:else if searchStore.collection === "maybeboard" && deckStore.maybeboard.length === 0}
 									Maybeboard Empty
 								{:else if !["sideboard", "maybeboard"].includes(searchStore.collection)}
-									The void hungers for cards...
+									Search for a card name or try using Scryfall syntax.
 								{/if}
 							</div>
 						{:else if searchStore.query.length < 3}
