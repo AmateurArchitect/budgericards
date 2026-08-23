@@ -517,8 +517,16 @@
 					</div>
 				{/each}
 
-				<!-- Full Width Add Sort Button placed directly above Default Sort Row -->
-				<div class="add-sort-inline-container">
+				<!-- Add Sort Button aligned with row controls -->
+				<div class="sort-rule-row add-sort-row">
+					{#if draftSorts.length === 0}
+						<span class="rule-label rule-label-start invisible-label">Sort by</span>
+					{:else if draftSorts.length === 1}
+						<span class="rule-label rule-label-single invisible-label">then by</span>
+					{:else}
+						<span class="rule-label finally-label invisible-label">and finally by</span>
+					{/if}
+
 					<button
 						type="button"
 						bind:this={addBtnRef}
@@ -1215,22 +1223,23 @@
 		background: hsl(var(--destructive) / 0.15);
 	}
 
-	/* Full-Width Add Sort Button */
-	.add-sort-inline-container {
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		width: 100%;
-		padding: 0.15rem 0.25rem;
-		box-sizing: border-box;
+	.invisible-label {
+		visibility: hidden;
+		user-select: none;
+		pointer-events: none;
+	}
+
+	.add-sort-row {
+		margin-top: 0.05rem;
+		margin-bottom: 0.05rem;
 	}
 
 	.add-tier-btn {
+		flex: 1;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		gap: 0.45rem;
-		width: 100%;
 		height: 36px;
 		background: hsl(var(--primary) / 0.08);
 		border: 1px dashed hsl(var(--primary) / 0.4);
