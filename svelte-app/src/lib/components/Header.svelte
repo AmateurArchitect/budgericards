@@ -36,9 +36,10 @@
 	let showBudgieDropdown = $state(false);
 	let showViewOptionsModal = $state(false);
 	let showAboutModal = $state(false);
+	let showSearchSort = $state(false);
 	let isVerticalLayout = $state(false);
 	let collectionWidth = $state(0);
-	let searchSettingsBtnWidth = $state(0);
+	let sortBtnWidth = $state(0);
 
 	const curvedPathD = $derived(() => {
 		const w = collectionWidth || 150;
@@ -47,7 +48,7 @@
 	});
 
 	const rightCurvedPathD = $derived(() => {
-		const w = searchSettingsBtnWidth || 54;
+		const w = sortBtnWidth || 54;
 		return `M 13.33 0.5 L ${w - 6} 0.5 A 5.5 5.5 0 0 1 ${w - 0.5} 6 L ${w - 0.5} 30 A 5.5 5.5 0 0 1 ${w - 6} 35.5 L 13.33 35.5 A 22 22 0 0 0 13.33 0.5 Z`;
 	});
 
@@ -393,26 +394,37 @@
 							</div>
 						</div>
 
-						<!-- Search Settings / Options Tool Button with Left Concave Cutout -->
+						<!-- Sort Search Results Tool Button with Left Concave Cutout -->
 						<button
-							bind:this={searchSettingsBtn}
-							class="search-settings-curved-btn"
-							class:active={showSearchOptions}
-							bind:clientWidth={searchSettingsBtnWidth}
-							onclick={() => (showSearchOptions = !showSearchOptions)}
-							aria-label="Search Settings"
-							title="Search Settings"
+							class="search-sort-btn"
+							class:active={showSearchSort}
+							bind:clientWidth={sortBtnWidth}
+							onclick={() => (showSearchSort = !showSearchSort)}
+							aria-label="Sort search results"
+							title="Sort search results"
 						>
 							<svg
 								class="curved-bg"
-								viewBox="0 0 {searchSettingsBtnWidth || 54} 36"
+								viewBox="0 0 {sortBtnWidth || 54} 36"
 								preserveAspectRatio="none"
 							>
 								<path d={rightCurvedPathD()} />
 							</svg>
-							<SlidersHorizontal size={14} />
+							<ArrowUpDown size={14} />
 						</button>
 					</div>
+
+					<!-- Search Settings / Options Tool Button (Outside search container) -->
+					<button
+						bind:this={searchSettingsBtn}
+						class="search-tool-btn"
+						class:active={showSearchOptions}
+						onclick={() => (showSearchOptions = !showSearchOptions)}
+						aria-label="Search Settings"
+						title="Search Settings"
+					>
+						<SlidersHorizontal size={15} />
+					</button>
 
 					<!-- Collapse Search Button (Right side) -->
 					<button
@@ -783,7 +795,7 @@
 		color: hsl(var(--foreground));
 	}
 
-	.search-settings-curved-btn {
+	.search-sort-btn {
 		position: relative;
 		z-index: 1;
 		height: 36px;
@@ -802,19 +814,19 @@
 		flex-shrink: 0;
 	}
 
-	.search-settings-curved-btn:hover {
+	.search-sort-btn:hover {
 		color: hsl(var(--foreground));
 	}
 
-	.search-settings-curved-btn:hover .curved-bg path {
+	.search-sort-btn:hover .curved-bg path {
 		fill: hsl(var(--muted) / 0.8);
 	}
 
-	.search-settings-curved-btn.active {
+	.search-sort-btn.active {
 		color: hsl(var(--primary));
 	}
 
-	.search-settings-curved-btn.active .curved-bg path {
+	.search-sort-btn.active .curved-bg path {
 		fill: hsla(var(--primary-hsl), 0.15);
 		stroke: hsl(var(--primary));
 	}
