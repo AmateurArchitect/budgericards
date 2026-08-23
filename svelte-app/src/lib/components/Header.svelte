@@ -296,6 +296,17 @@
 		<div class="header-right">
 			{#if isDeckPage && searchStore.isOpen}
 				<div class="search-bar">
+					<!-- Switch to Vertical Layout Button -->
+					<button
+						class="search-tool-btn"
+						class:active={isVerticalLayout}
+						onclick={() => (isVerticalLayout = !isVerticalLayout)}
+						aria-label="Switch to vertical layout"
+						title="Switch to vertical layout"
+					>
+						<Columns2 size={15} />
+					</button>
+
 					<!-- Interlocking Curved Search Container (3-piece matching system) -->
 					<div class="search-input-combo">
 						<div class="collection-selector">
@@ -413,17 +424,6 @@
 							<ArrowUpDown size={14} />
 						</button>
 					</div>
-
-					<!-- Switch to Vertical Layout Button -->
-					<button
-						class="search-tool-btn"
-						class:active={isVerticalLayout}
-						onclick={() => (isVerticalLayout = !isVerticalLayout)}
-						aria-label="Switch to vertical layout"
-						title="Switch to vertical layout"
-					>
-						<Columns2 size={15} />
-					</button>
 
 					<!-- Collapse Search Button (Right side) -->
 					<button
@@ -605,6 +605,7 @@
 	.search-bar {
 		display: flex;
 		align-items: center;
+		justify-content: flex-end;
 		gap: 0.5rem;
 		flex: 1;
 		min-width: 0;
@@ -615,7 +616,7 @@
 		align-items: center;
 		flex: 1;
 		max-width: 480px;
-		min-width: 200px;
+		min-width: 240px;
 	}
 
 	.collection-selector {
