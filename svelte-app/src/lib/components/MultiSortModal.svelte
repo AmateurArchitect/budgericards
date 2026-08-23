@@ -1,7 +1,8 @@
 <script>
 	import { fade, scale } from "svelte/transition";
-	import { X, Trash2, Plus, RotateCcw, ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-svelte";
+	import { X, Trash2, Plus, RotateCcw, ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronDown } from "lucide-svelte";
 	import Button from "./ui/Button.svelte";
+	import ManaSymbol from "./ui/ManaSymbol.svelte";
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 
@@ -191,12 +192,14 @@
 			<!-- Sort Tier Rows Scrollable Container -->
 			<div class="sort-rules-list custom-scrollbar">
 				{#each draftSorts as rule, idx (idx)}
-					<div class="sort-rule-row">
-						<span class="rule-label">
-							{idx === 0 ? "Sort by" : "then by"}
-						</span>
+					<div class="sort-rule-row" class:single-row={draftSorts.length === 1}>
+						{#if draftSorts.length > 1}
+							<span class="rule-label">
+								{idx === 0 ? "Sort by" : "then by"}
+							</span>
+						{/if}
 
-						<!-- Field Selector -->
+						<!-- Field Selector with Custom Chevron -->
 						<div class="select-wrapper">
 							<select
 								bind:value={rule.type}
@@ -207,9 +210,10 @@
 									<option value={crit.id}>{crit.label}</option>
 								{/each}
 							</select>
+							<ChevronDown size={14} class="select-chevron" />
 						</div>
 
-						<!-- Direction Toggle Button with Label -->
+						<!-- Direction Toggle Button with Custom Symbols / Text -->
 						<button
 							type="button"
 							class="direction-toggle-btn"
@@ -221,14 +225,52 @@
 						>
 							{#if rule.direction === "default"}
 								<ArrowDownWideNarrow size={14} class="dir-icon" />
-								<span class="dir-text">{directionLabels[rule.type]?.default || "Ascending"}</span>
 							{:else}
 								<ArrowUpNarrowWide size={14} class="dir-icon" />
-								<span class="dir-text">{directionLabels[rule.type]?.reverse || "Descending"}</span>
+							{/if}
+
+							<!-- Mana Symbols for WUBRG / GRBUW -->
+							{#if rule.type === "color-cat" || rule.type === "color-id"}
+								<div class="mana-symbols-group">
+									{#if rule.direction === "default"}
+										<ManaSymbol symbol="w" size="14px" />
+										<ManaSymbol symbol="u" size="14px" />
+										<ManaSymbol symbol="b" size="14px" />
+										<ManaSymbol symbol="r" size="14px" />
+										<ManaSymbol symbol="g" size="14px" />
+									{:else}
+										<ManaSymbol symbol="g" size="14px" />
+										<ManaSymbol symbol="r" size="14px" />
+										<ManaSymbol symbol="b" size="14px" />
+										<ManaSymbol symbol="u" size="14px" />
+										<ManaSymbol symbol="w" size="14px" />
+									{/if}
+								</div>
+							{:else if rule.type === "rarity"}
+								<!-- Rarity Badges -->
+								<div class="rarity-badges-group">
+									{#if rule.direction === "default"}
+										<span class="rarity-badge common" title="Common">C</span>
+										<span class="rarity-badge uncommon" title="Uncommon">U</span>
+										<span class="rarity-badge rare" title="Rare">R</span>
+										<span class="rarity-badge mythic" title="Mythic">M</span>
+									{:else}
+										<span class="rarity-badge mythic" title="Mythic">M</span>
+										<span class="rarity-badge rare" title="Rare">R</span>
+										<span class="rarity-badge uncommon" title="Uncommon">U</span>
+										<span class="rarity-badge common" title="Common">C</span>
+									{/if}
+								</div>
+							{:else}
+								<span class="dir-text">
+									{rule.direction === "default"
+										? (directionLabels[rule.type]?.default || "Ascending")
+										: (directionLabels[rule.type]?.reverse || "Descending")}
+								</span>
 							{/if}
 						</button>
 
-						<!-- Delete Tier Button -->
+						<!-- Delete Tier Button (only rendered when > 1 tier) -->
 						{#if draftSorts.length > 1}
 							<button
 								class="delete-tier-btn"
@@ -238,8 +280,6 @@
 							>
 								<Trash2 size={16} />
 							</button>
-						{:else}
-							<div class="delete-placeholder"></div>
 						{/if}
 					</div>
 				{/each}
@@ -309,7 +349,7 @@
 	.modal-dialog {
 		position: relative;
 		width: 100%;
-		max-width: 620px;
+		max-width: 600px;
 		max-height: min(90vh, 680px);
 		background: hsl(var(--card));
 		border: 1px solid hsl(var(--border));
@@ -415,6 +455,10 @@
 		border-bottom: none;
 	}
 
+	.sort-rule-row.single-row {
+		gap: 0.75rem;
+	}
+
 	.rule-label {
 		font-size: 0.875rem;
 		font-weight: 500;
@@ -425,20 +469,26 @@
 	}
 
 	.select-wrapper {
+		position: relative;
 		flex: 1;
 		min-width: 150px;
+		display: flex;
+		align-items: center;
 	}
 
 	.sort-select {
 		width: 100%;
 		height: 36px;
+		appearance: none;
+		-webkit-appearance: none;
+		-moz-appearance: none;
 		background: hsl(var(--muted) / 0.5);
 		border: 1px solid hsl(var(--border));
 		border-radius: var(--radius);
 		color: hsl(var(--foreground));
 		font-size: 0.875rem;
 		font-weight: 500;
-		padding: 0 10px;
+		padding: 0 32px 0 12px;
 		cursor: pointer;
 		outline: none;
 		transition: border-color 0.15s ease, background 0.15s ease;
@@ -459,13 +509,22 @@
 		color: hsl(var(--card-foreground));
 	}
 
+	:global(.select-chevron) {
+		position: absolute;
+		right: 11px;
+		top: 50%;
+		transform: translateY(-50%);
+		pointer-events: none;
+		color: hsl(var(--muted-foreground));
+	}
+
 	/* Direction Toggle Button */
 	.direction-toggle-btn {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.5rem;
 		height: 36px;
-		min-width: 142px;
+		min-width: 136px;
 		padding: 0 12px 0 10px;
 		background: hsl(var(--muted) / 0.5);
 		border: 1px solid hsl(var(--border));
@@ -479,6 +538,10 @@
 		user-select: none;
 		flex-shrink: 0;
 		justify-content: flex-start;
+	}
+
+	.sort-rule-row.single-row .direction-toggle-btn {
+		min-width: 140px;
 	}
 
 	.direction-toggle-btn:hover {
@@ -501,6 +564,58 @@
 		white-space: nowrap;
 	}
 
+	/* Mana Symbols Group in Direction Button */
+	.mana-symbols-group {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+	}
+
+	/* Rarity Badges Group in Direction Button */
+	.rarity-badges-group {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+	}
+
+	.rarity-badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 16px;
+		height: 16px;
+		border-radius: 3px;
+		font-size: 10px;
+		font-weight: 700;
+		line-height: 1;
+		font-family: var(--font-mono, monospace);
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+	}
+
+	.rarity-badge.common {
+		background: #475569;
+		color: #f8fafc;
+		border: 1px solid #64748b;
+	}
+
+	.rarity-badge.uncommon {
+		background: #64748b;
+		color: #f8fafc;
+		border: 1px solid #94a3b8;
+	}
+
+	.rarity-badge.rare {
+		background: #b45309;
+		color: #fef08a;
+		border: 1px solid #f59e0b;
+	}
+
+	.rarity-badge.mythic {
+		background: #c2410c;
+		color: #ffedd5;
+		border: 1px solid #ea580c;
+	}
+
 	.delete-tier-btn {
 		background: transparent;
 		border: none;
@@ -518,11 +633,6 @@
 	.delete-tier-btn:hover {
 		color: hsl(var(--destructive-foreground, #ef4444));
 		background: hsl(var(--destructive) / 0.15);
-	}
-
-	.delete-placeholder {
-		width: 28px;
-		flex-shrink: 0;
 	}
 
 	/* Add & Reset Actions Row */
@@ -615,9 +725,8 @@
 		.sort-rule-row {
 			flex-wrap: wrap;
 		}
-		.direction-radio-group {
+		.direction-toggle-btn {
 			width: 100%;
-			padding-left: 58px;
 		}
 	}
 </style>
