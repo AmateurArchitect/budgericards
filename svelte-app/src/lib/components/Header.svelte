@@ -1068,11 +1068,6 @@
 
 	:global(.chevron) {
 		opacity: 0.5;
-		transition: transform 0.2s;
-	}
-
-	:global(.chevron.open) {
-		transform: rotate(180deg);
 	}
 
 	.nav-links {

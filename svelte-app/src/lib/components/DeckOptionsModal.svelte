@@ -357,11 +357,6 @@
 		align-items: center;
 		justify-content: center;
 		color: hsl(var(--muted-foreground));
-		transition: transform 0.2s ease;
-	}
-
-	.chevron-wrapper.open {
-		transform: rotate(180deg);
 	}
 
 	.dropdown-backdrop {

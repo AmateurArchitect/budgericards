@@ -444,7 +444,7 @@
 								<span class="select-value-text">
 									{availableCriteria.find((c) => c.id === rule.type)?.label || rule.type}
 								</span>
-								<ChevronDown size={14} class={`select-chevron ${openFieldMenuIndex === idx ? "rotate" : ""}`} />
+								<ChevronDown size={14} class="select-chevron" />
 							</button>
 						</div>
 
@@ -534,7 +534,7 @@
 					>
 						<Plus size={14} />
 						<span>Add Sort</span>
-						<ChevronDown size={13} class={`add-chevron ${isAddMenuOpen ? "rotate" : ""}`} />
+						<ChevronDown size={13} class="add-chevron" />
 					</button>
 				</div>
 
@@ -1040,12 +1040,7 @@
 
 	:global(.select-chevron) {
 		color: hsl(var(--muted-foreground));
-		transition: transform 0.15s ease;
 		flex-shrink: 0;
-	}
-
-	:global(.select-chevron.rotate) {
-		transform: rotate(180deg);
 	}
 
 	/* Unified Popover Dropdown Menu */
@@ -1262,11 +1257,6 @@
 
 	:global(.add-chevron) {
 		margin-left: 2px;
-		transition: transform 0.15s ease;
-	}
-
-	:global(.add-chevron.rotate) {
-		transform: rotate(180deg);
 	}
 
 	/* Default Sort Trigger Button (Collapsed) */

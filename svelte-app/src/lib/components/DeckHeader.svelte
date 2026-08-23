@@ -1561,11 +1561,6 @@
 
 	:global(.chevron) {
 		opacity: 0.6;
-		transition: transform 0.15s ease;
-	}
-
-	:global(.chevron.open) {
-		transform: rotate(180deg);
 	}
 
 	/* Responsive Breakpoint Adaptations */
