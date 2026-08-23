@@ -153,6 +153,21 @@
 		};
 	}
 
+	const isDefaultApplied = $derived(() => {
+		if (draftSorts.length !== defaultSortChain.length) return false;
+		for (let i = 0; i < defaultSortChain.length; i++) {
+			if (
+				draftSorts[i].type !== defaultSortChain[i].type ||
+				draftSorts[i].direction !== defaultSortChain[i].direction
+			) {
+				return false;
+			}
+		}
+		return true;
+	});
+
+	const canClearAll = $derived(draftSorts.length > 1);
+	const canResetDefault = $derived(!isDefaultApplied());
 	const modalTitle = $derived(
 		title || (target === "search" ? "Sort Search Results" : "Sort Deck Cards")
 	);
@@ -287,7 +302,7 @@
 				{/each}
 			</div>
 
-			<!-- Add & Reset Tier Row -->
+			<!-- Add & Tier Actions Row -->
 			<div class="tier-actions-row">
 				<button
 					class="add-tier-btn"
@@ -298,31 +313,39 @@
 					<span>Add another sort column</span>
 				</button>
 
-				<button
-					class="reset-defaults-btn"
-					onclick={resetToDefault}
-					title="Reset sort levels to default"
-				>
-					<RotateCcw size={13} />
-					<span>Reset to default</span>
-				</button>
+				<div class="tier-right-actions">
+					{#if canClearAll}
+						<button
+							class="text-action-btn"
+							onclick={clearAll}
+							title="Clear down to a single sort tier"
+						>
+							<Trash2 size={13} />
+							<span>Clear all</span>
+						</button>
+					{/if}
+
+					{#if canResetDefault}
+						<button
+							class="text-action-btn"
+							onclick={resetToDefault}
+							title="Reset sort levels to default"
+						>
+							<RotateCcw size={13} />
+							<span>Reset to default</span>
+						</button>
+					{/if}
+				</div>
 			</div>
 
 			<!-- Footer -->
 			<div class="modal-footer">
-				<div class="footer-left">
-					<Button variant="ghost" onclick={clearAll} class="footer-btn text-muted-btn">
-						Clear All
-					</Button>
-				</div>
-				<div class="footer-right">
-					<Button variant="outline" onclick={close} class="footer-btn cancel-btn">
-						Cancel
-					</Button>
-					<Button variant="default" onclick={applySorts} class="footer-btn apply-btn">
-						Sort
-					</Button>
-				</div>
+				<Button variant="outline" onclick={close} class="footer-btn cancel-btn">
+					Cancel
+				</Button>
+				<Button variant="default" onclick={applySorts} class="footer-btn apply-btn">
+					Sort
+				</Button>
 			</div>
 		</div>
 	</div>
@@ -671,10 +694,16 @@
 		cursor: not-allowed;
 	}
 
-	.reset-defaults-btn {
+	.tier-right-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.65rem;
+	}
+
+	.text-action-btn {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.4rem;
+		gap: 0.35rem;
 		background: transparent;
 		border: none;
 		color: hsl(var(--muted-foreground));
@@ -686,7 +715,7 @@
 		transition: all 0.15s ease;
 	}
 
-	.reset-defaults-btn:hover {
+	.text-action-btn:hover {
 		color: hsl(var(--foreground));
 		background: hsl(var(--muted) / 0.5);
 	}
@@ -695,31 +724,17 @@
 	.modal-footer {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		justify-content: flex-end;
+		gap: 0.75rem;
 		padding-top: 0.85rem;
 		border-top: 1px solid hsl(var(--border) / 0.5);
 		flex-shrink: 0;
-	}
-
-	.footer-left,
-	.footer-right {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
 	}
 
 	:global(.footer-btn) {
 		min-width: 76px;
 		height: 36px;
 		font-weight: 600;
-	}
-
-	:global(.text-muted-btn) {
-		color: hsl(var(--muted-foreground)) !important;
-	}
-
-	:global(.text-muted-btn:hover) {
-		color: hsl(var(--foreground)) !important;
 	}
 
 	/* Responsive tweaks for narrow screens */
