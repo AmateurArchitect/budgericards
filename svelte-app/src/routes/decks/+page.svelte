@@ -355,7 +355,7 @@
 	}
 
 	function handleNewDeckLink() {
-		goto("/?new_deck=true");
+		goto("/decks/new");
 	}
 </script>
 
