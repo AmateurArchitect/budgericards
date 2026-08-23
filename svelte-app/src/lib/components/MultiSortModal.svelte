@@ -96,6 +96,7 @@
 		if (onClose) onClose();
 	}
 
+	/** @param {MouseEvent} e */
 	function handleBackdropClick(e) {
 		if (e.target === e.currentTarget) {
 			close();
@@ -248,6 +249,8 @@
 					<div
 						class="sort-rule-row user-sort-row"
 						class:is-dragging={draggedIndex === idx}
+						role="group"
+						aria-label={`Sort tier ${idx + 1}`}
 						ondragover={(e) => handleDragOver(e, idx)}
 						ondragleave={() => {
 							if (dropTarget?.index === idx) dropTarget = null;
@@ -266,6 +269,9 @@
 						<!-- Drag Handle (draggable only on the handle icon) -->
 						<div
 							class="drag-handle"
+							role="button"
+							tabindex="0"
+							aria-label="Drag to reorder sort priority"
 							title="Drag to reorder sort priority"
 							draggable="true"
 							ondragstart={(e) => {
