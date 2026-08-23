@@ -1331,24 +1331,24 @@
 
 	.nav-dropdown-trigger {
 		height: 36px;
-		display: flex;
+		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		background: none;
-		border: none;
-		cursor: pointer;
-		padding: 0 0.65rem;
-		border-radius: var(--radius-md);
-		color: hsl(var(--foreground) / 0.85);
+		padding: 0 0.75rem;
+		background: hsl(var(--muted) / 0.5);
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
+		color: hsl(var(--foreground));
 		font-size: 13px;
 		font-weight: 600;
-		transition: background-color 0.15s ease;
+		cursor: pointer;
+		transition: all 0.15s ease;
 		white-space: nowrap;
 		box-sizing: border-box;
 	}
 
 	.nav-dropdown-trigger:hover {
-		background-color: hsl(var(--muted) / 0.5);
+		background: hsl(var(--muted) / 0.8);
 		color: hsl(var(--foreground));
 	}
 

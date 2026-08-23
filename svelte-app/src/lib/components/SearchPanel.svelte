@@ -64,6 +64,15 @@
 	/** @type {any[]} */
 	const displayResults = $derived(searchStore.results);
 
+	const isFewResults = $derived(
+		!searchStore.isSearching &&
+		searchStore.query.trim().length > 0 &&
+		searchStore.totalResults > 0 &&
+		searchStore.totalResults <= 8 &&
+		displayResults.length > 0
+	);
+	const topMatch = $derived(isFewResults ? displayResults[0] : null);
+
 	/** @param {WheelEvent} e */
 	function handleWheel(e) {
 		if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
@@ -122,7 +131,7 @@
 	{#if isExpanded}
 		<div transition:slide={{ duration: 300 }} class="expanded-content">
 			<div class="results-marginal-zone">
-				{#if searchStore.isSearching || (searchStore.query.length >= 3 && searchStore.totalResults > 0) || (searchStore.totalResults >= 500 && !searchStore.showLargeSearchOverride)}
+				{#if searchStore.isSearching || (searchStore.query.length >= 3 && searchStore.totalResults > 0) || (searchStore.totalResults >= 500 && !searchStore.showLargeSearchOverride) || (searchStore.totalResults > 0 && searchStore.totalResults <= 8)}
 					<div class="results-marginal" transition:fade={{ duration: 150 }}>
 						{#if searchStore.isSearching}
 							<div class="spinner"></div>
@@ -133,6 +142,13 @@
 								Narrow down your query, or 
 								<button class="override-link-btn" onclick={() => searchStore.overrideLargeSearch()}>search anyway</button>.
 							</span>
+						{:else if isFewResults && topMatch}
+							<div class="marginal-autocomplete-info">
+								<span>Found <span class="count">{searchStore.totalResults}</span> {searchStore.totalResults === 1 ? 'card' : 'cards'}.</span>
+								<span class="autocomplete-hint">
+									Press <kbd class="key-cap">Tab</kbd> or <kbd class="key-cap">↵ Enter</kbd> to add <strong class="card-highlight-name">{topMatch.name}</strong>
+								</span>
+							</div>
 						{:else}
 							<span>Found <span class="count">{searchStore.totalResults}</span> cards{#if searchStore.totalResults >= 500 && searchStore.totalResults > displayResults.length} (showing first {displayResults.length}){/if}.</span>
 						{/if}
@@ -157,6 +173,7 @@
 									: priceStore.getPrice(card.name)}
 								inSearchPanel={true}
 								index={i}
+								isHighlighted={i === 0 && isFewResults}
 							/>
 						</div>
 					{/each}
@@ -306,6 +323,44 @@
 	.results-marginal .count {
 		color: hsl(var(--foreground));
 		font-weight: 600;
+	}
+
+	.marginal-autocomplete-info {
+		display: flex;
+		align-items: center;
+		gap: 0.85rem;
+		flex-wrap: wrap;
+	}
+
+	.autocomplete-hint {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 12px;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.card-highlight-name {
+		color: hsl(var(--foreground));
+		font-weight: 600;
+	}
+
+	.key-cap {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 18px;
+		height: 18px;
+		padding: 0 5px;
+		font-size: 10px;
+		font-family: inherit;
+		font-weight: 600;
+		line-height: 1;
+		color: hsl(var(--foreground) / 0.85);
+		background: hsl(var(--muted) / 0.8);
+		border: 1px solid hsl(var(--border));
+		border-radius: 3px;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 	}
 
 	.large-search-subheader-warning {

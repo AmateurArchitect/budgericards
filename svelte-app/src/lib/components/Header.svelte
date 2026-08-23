@@ -18,6 +18,8 @@
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { authStore } from "$lib/stores/auth.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
+	import { deckStore } from "$lib/stores/deck.svelte.js";
+	import { priceStore } from "$lib/stores/prices.svelte.js";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/stores";
 
@@ -136,6 +138,37 @@
 	}
 
 
+
+	/** @param {any} card */
+	function addSearchCard(card) {
+		if (!card) return;
+		const isLocalBoard = ["sideboard", "maybeboard"].includes(searchStore.collection);
+		const currentBoard = searchStore.collection;
+		const price = searchStore.collection === "scryfall"
+			? (card.prices?.usd ? parseFloat(card.prices.usd) : null)
+			: priceStore.getPrice(card.name);
+
+		if (isLocalBoard) {
+			deckStore.moveCard(card.name, currentBoard, deckStore.activeBoard, card.id, price);
+		} else {
+			let targetBoard = deckStore.activeBoard;
+			const meta = card.type_line ? card : (deckStore.metadata[card.name?.toLowerCase()] || card);
+			const typeLine = (meta.type_line || "").toLowerCase();
+			const oracle = (meta.oracle_text || "").toLowerCase();
+			const facesOracle = (meta.card_faces || []).map((/** @type {any} */ f) => (f.oracle_text || "").toLowerCase()).join(" ");
+			const isLegendaryCreature = typeLine.includes("legendary") && typeLine.includes("creature");
+			const isPlaneswalker = typeLine.includes("planeswalker");
+			const isCompanion = oracle.includes("companion —") || facesOracle.includes("companion —");
+			const isCommanderFormat = ["Commander", "Brawl", "Oathbreaker"].includes(deckStore.format);
+
+			if (isCommanderFormat && deckStore.commander.length === 0 && (isLegendaryCreature || (deckStore.format === "Brawl" && isPlaneswalker))) {
+				targetBoard = "commander";
+			} else if (isCompanion && deckStore.companion.length === 0) {
+				targetBoard = "companion";
+			}
+			deckStore.addCard(card.name, targetBoard, price, card);
+		}
+	}
 
 	/** @param {KeyboardEvent} e */
 	function handleGlobalKeyDown(e) {
@@ -365,6 +398,17 @@
 									onkeydown={(/** @type {KeyboardEvent} */ e) => {
 										if (e.key === "Escape") {
 											searchStore.closeSearch();
+											return;
+										}
+										if ((e.key === "Tab" || e.key === "Enter") && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+											const results = searchStore.results;
+											if (!searchStore.isSearching && results.length > 0 && results.length <= 8 && searchStore.query.trim().length > 0) {
+												e.preventDefault();
+												const topCard = results[0];
+												addSearchCard(topCard);
+												const inputEl = /** @type {HTMLInputElement | null} */ (e.target);
+												inputEl?.select();
+											}
 										}
 									}}
 								/>
@@ -873,20 +917,32 @@
 		align-items: center;
 	}
 
-	.budgie-trigger {
-		display: flex;
+	.budgie-trigger,
+	.profile-trigger,
+	.login-link {
+		height: 36px;
+		display: inline-flex;
 		align-items: center;
-		gap: 0.4rem;
-		background: none;
-		border: none;
+		gap: 0.35rem;
+		padding: 0 0.75rem;
+		background: hsl(var(--muted) / 0.5);
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
+		color: hsl(var(--foreground));
+		font-size: 13px;
+		font-weight: 600;
 		cursor: pointer;
-		padding: 0.3rem 0.6rem;
-		border-radius: var(--radius-md);
-		transition: background-color 0.2s;
+		transition: all 0.15s ease;
+		white-space: nowrap;
+		box-sizing: border-box;
+		text-decoration: none;
 	}
 
-	.budgie-trigger:hover {
-		background-color: hsl(var(--accent) / 0.4);
+	.budgie-trigger:hover,
+	.profile-trigger:hover,
+	.login-link:hover {
+		background: hsl(var(--muted) / 0.8);
+		color: hsl(var(--foreground));
 	}
 
 	.logo-text {
@@ -922,22 +978,6 @@
 		position: relative;
 		display: flex;
 		align-items: center;
-	}
-
-	.profile-trigger {
-		display: flex;
-		align-items: center;
-		gap: 0.4rem;
-		background: none;
-		border: none;
-		cursor: pointer;
-		padding: 0.3rem 0.6rem;
-		border-radius: var(--radius-md);
-		transition: background-color 0.2s;
-	}
-
-	.profile-trigger:hover {
-		background-color: hsl(var(--accent) / 0.4);
 	}
 
 	.profile-dropdown {

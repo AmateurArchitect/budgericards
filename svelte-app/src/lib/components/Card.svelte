@@ -3,8 +3,8 @@
 	import CardArt from "./CardArt.svelte";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 
-	/** @type {{ card: any, price: number | null, inSearchPanel?: boolean, index?: number, onclick?: (e: MouseEvent | KeyboardEvent) => void }} */
-	let { card, price, inSearchPanel = false, index = 0, onclick = undefined } = $props();
+	/** @type {{ card: any, price: number | null, inSearchPanel?: boolean, index?: number, isHighlighted?: boolean, onclick?: (e: MouseEvent | KeyboardEvent) => void }} */
+	let { card, price, inSearchPanel = false, index = 0, isHighlighted = false, onclick = undefined } = $props();
 
 	const priceDisplay = $derived(
 		price !== null ? `$${Number(price).toFixed(2)}` : "Illegal",
@@ -24,6 +24,7 @@
 				class="card-item"
 				class:in-search={inSearchPanel}
 				class:dragging={isDragging}
+				class:is-highlighted={isHighlighted}
 			>
 				<CardArt
 					{card}
@@ -79,6 +80,15 @@
 		width: 100%;
 		cursor: pointer;
 		user-select: none;
+	}
+
+	.card-item.is-highlighted {
+		box-shadow:
+			0 0 0 2px hsl(var(--primary)),
+			0 0 18px -2px hsla(var(--primary-hsl), 0.45),
+			var(--shadow-md),
+			var(--inner-glow);
+		transform: translateY(-4px);
 	}
 
 	.card-item.dragging {
