@@ -944,8 +944,7 @@
 	}
 
 	.budgie-trigger,
-	.profile-trigger,
-	.login-link {
+	.profile-trigger {
 		height: 36px;
 		display: inline-flex;
 		align-items: center;
@@ -965,8 +964,7 @@
 	}
 
 	.budgie-trigger:hover,
-	.profile-trigger:hover,
-	.login-link:hover {
+	.profile-trigger:hover {
 		background: hsl(var(--muted) / 0.8);
 		color: hsl(var(--foreground));
 	}
