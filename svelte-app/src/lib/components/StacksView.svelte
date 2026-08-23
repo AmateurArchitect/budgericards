@@ -1148,7 +1148,7 @@
 											</div>
 										{/each}
 									</div>
-								{:else}
+								{:else if deckStore.currentBoardCount > 0}
 									<div
 										class="ghost-stack"
 										data-stack-id="commanders"
@@ -1334,7 +1334,7 @@
 											</div>
 										{/each}
 									</div>
-								{:else}
+								{:else if deckStore.currentBoardCount > 0}
 									<div
 										class="ghost-stack"
 										data-stack-id="companions"
@@ -1503,11 +1503,6 @@
 								{/each}
 							</div>
 						{/each}
-
-						<!-- Ghost Cards -->
-						{#if column.key !== "Lands" && column.stacks.length === 0}
-							<div class="ghost-card"></div>
-						{/if}
 					{/if}
 				</div>
 			{/each}
