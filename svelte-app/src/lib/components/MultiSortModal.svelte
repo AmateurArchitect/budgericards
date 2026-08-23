@@ -422,8 +422,8 @@
 								onclick={() => (showDefaultDetails = false)}
 								title="Collapse default sort details"
 							>
-								<span>Collapse</span>
-								<ChevronUp size={13} />
+								<span class="default-action-text">Collapse</span>
+								<ChevronUp size={13} class="default-chevron" />
 							</button>
 						</div>
 
@@ -1004,7 +1004,8 @@
 		font-weight: 500;
 	}
 
-	.default-action-pill {
+	.default-action-pill,
+	.collapse-default-btn {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
@@ -1013,10 +1014,13 @@
 		background: hsl(var(--muted) / 0.5);
 		padding: 2px 7px 2px 9px;
 		border-radius: 4px;
+		border: none;
+		cursor: pointer;
 		transition: all 0.15s ease;
 	}
 
-	.default-sort-trigger-btn:hover .default-action-pill {
+	.default-sort-trigger-btn:hover .default-action-pill,
+	.collapse-default-btn:hover {
 		background: hsl(var(--muted) / 0.85);
 		color: hsl(var(--foreground));
 	}
@@ -1056,25 +1060,6 @@
 		color: hsl(var(--muted-foreground));
 		text-transform: uppercase;
 		letter-spacing: 0.03em;
-	}
-
-	.collapse-default-btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.3rem;
-		background: transparent;
-		border: none;
-		color: hsl(var(--muted-foreground));
-		font-size: 0.75rem;
-		cursor: pointer;
-		padding: 2px 4px;
-		border-radius: 4px;
-		transition: all 0.15s ease;
-	}
-
-	.collapse-default-btn:hover {
-		color: hsl(var(--foreground));
-		background: hsl(var(--muted) / 0.4);
 	}
 
 	.default-readonly-row {
