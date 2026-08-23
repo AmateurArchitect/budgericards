@@ -36,10 +36,9 @@
 	let showBudgieDropdown = $state(false);
 	let showViewOptionsModal = $state(false);
 	let showAboutModal = $state(false);
-	let showSearchSort = $state(false);
 	let isVerticalLayout = $state(false);
 	let collectionWidth = $state(0);
-	let sortBtnWidth = $state(0);
+	let searchSettingsBtnWidth = $state(0);
 
 	const curvedPathD = $derived(() => {
 		const w = collectionWidth || 150;
@@ -48,7 +47,7 @@
 	});
 
 	const rightCurvedPathD = $derived(() => {
-		const w = sortBtnWidth || 54;
+		const w = searchSettingsBtnWidth || 54;
 		return `M 13.33 0.5 L ${w - 6} 0.5 A 5.5 5.5 0 0 1 ${w - 0.5} 6 L ${w - 0.5} 30 A 5.5 5.5 0 0 1 ${w - 6} 35.5 L 13.33 35.5 A 22 22 0 0 0 13.33 0.5 Z`;
 	});
 
@@ -357,7 +356,7 @@
 							<Search size={14} class="search-icon" />
 							<div class="search-input-wrapper">
 								<Input
-									placeholder="Search cards (e.g. t:creature cmc<=3)..."
+									placeholder="Search cards..."
 									class="header-search-input"
 									bind:value={searchStore.query}
 									onfocus={() => searchStore.setFocus(true)}
@@ -392,36 +391,26 @@
 									</a>
 								{/if}
 							</div>
-
-							<button
-								bind:this={searchSettingsBtn}
-								class="search-settings-btn"
-								class:active={showSearchOptions}
-								onclick={() => (showSearchOptions = !showSearchOptions)}
-								aria-label="Search Settings"
-								title="Search Settings"
-							>
-								<SlidersHorizontal size={14} />
-							</button>
 						</div>
 
-						<!-- Sort Search Results Tool Button with Left Concave Cutout -->
+						<!-- Search Settings / Options Tool Button with Left Concave Cutout -->
 						<button
-							class="search-sort-btn"
-							class:active={showSearchSort}
-							bind:clientWidth={sortBtnWidth}
-							onclick={() => (showSearchSort = !showSearchSort)}
-							aria-label="Sort search results"
-							title="Sort search results"
+							bind:this={searchSettingsBtn}
+							class="search-settings-curved-btn"
+							class:active={showSearchOptions}
+							bind:clientWidth={searchSettingsBtnWidth}
+							onclick={() => (showSearchOptions = !showSearchOptions)}
+							aria-label="Search Settings"
+							title="Search Settings"
 						>
 							<svg
 								class="curved-bg"
-								viewBox="0 0 {sortBtnWidth || 54} 36"
+								viewBox="0 0 {searchSettingsBtnWidth || 54} 36"
 								preserveAspectRatio="none"
 							>
 								<path d={rightCurvedPathD()} />
 							</svg>
-							<ArrowUpDown size={14} />
+							<SlidersHorizontal size={14} />
 						</button>
 					</div>
 
@@ -764,7 +753,7 @@
 	}
 
 	:global(.header-search-input) {
-		padding: 0 2rem 0 0 !important;
+		padding: 0 1.6rem 0 0 !important;
 		background-color: transparent !important;
 		border: none !important;
 		border-radius: 0 !important;
@@ -777,7 +766,7 @@
 
 	.search-action-btn {
 		position: absolute;
-		right: 0.5rem;
+		right: 0.25rem;
 		color: hsl(var(--muted-foreground));
 		display: flex;
 		align-items: center;
@@ -794,28 +783,7 @@
 		color: hsl(var(--foreground));
 	}
 
-	.search-settings-btn {
-		width: 28px;
-		height: 28px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: none;
-		border: none;
-		border-radius: 9999px;
-		color: hsl(var(--muted-foreground));
-		cursor: pointer;
-		transition: all 0.15s ease;
-		flex-shrink: 0;
-	}
-
-	.search-settings-btn:hover,
-	.search-settings-btn.active {
-		background: hsl(var(--muted));
-		color: hsl(var(--foreground));
-	}
-
-	.search-sort-btn {
+	.search-settings-curved-btn {
 		position: relative;
 		z-index: 1;
 		height: 36px;
@@ -834,19 +802,19 @@
 		flex-shrink: 0;
 	}
 
-	.search-sort-btn:hover {
+	.search-settings-curved-btn:hover {
 		color: hsl(var(--foreground));
 	}
 
-	.search-sort-btn:hover .curved-bg path {
+	.search-settings-curved-btn:hover .curved-bg path {
 		fill: hsl(var(--muted) / 0.8);
 	}
 
-	.search-sort-btn.active {
+	.search-settings-curved-btn.active {
 		color: hsl(var(--primary));
 	}
 
-	.search-sort-btn.active .curved-bg path {
+	.search-settings-curved-btn.active .curved-bg path {
 		fill: hsla(var(--primary-hsl), 0.15);
 		stroke: hsl(var(--primary));
 	}
