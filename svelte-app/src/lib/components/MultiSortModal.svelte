@@ -169,7 +169,7 @@
 	const canClearAll = $derived(draftSorts.length > 1);
 	const canResetDefault = $derived(!isDefaultApplied());
 	const modalTitle = $derived(
-		title || (target === "search" ? "Sort Search Results" : "Sort Deck Cards")
+		title || (target === "search" ? "Sort Search" : "Sort Deck")
 	);
 	const canAddMore = $derived(draftSorts.length < availableCriteria.length);
 </script>
@@ -199,7 +199,7 @@
 			<div class="modal-header">
 				<div class="header-title-group">
 					<h2 id="multisort-title" class="dialog-title">{modalTitle}</h2>
-					<span class="dialog-subtitle">Configure multi-level sorting priority for cards</span>
+					<span class="dialog-subtitle">Choose how your cards are ordered</span>
 				</div>
 				<button class="close-btn" onclick={close} aria-label="Close sort dialog" title="Close (Esc)">
 					<X size={18} />
@@ -310,7 +310,7 @@
 					disabled={!canAddMore}
 				>
 					<Plus size={14} />
-					<span>Add another sort column</span>
+					<span>Add Sort</span>
 				</button>
 
 				<div class="tier-right-actions">
