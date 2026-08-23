@@ -35,6 +35,7 @@
 	import ManaSymbol from "./ui/ManaSymbol.svelte";
 	import DeckOptionsModal from "./DeckOptionsModal.svelte";
 	import ViewOptionsModal from "./ViewOptionsModal.svelte";
+	import MultiSortModal from "./MultiSortModal.svelte";
 	import { fade, fly } from "svelte/transition";
 	import { horizontalSlide } from "$lib/utils/transitions.js";
 
@@ -781,6 +782,10 @@
 					>
 						<ArrowDownWideNarrow size={15} />
 					</Button>
+					<MultiSortModal
+						bind:isOpen={showDisplaySort}
+						target="deck"
+					/>
 				{/if}
 
 				<!-- Table Columns Multi-select -->

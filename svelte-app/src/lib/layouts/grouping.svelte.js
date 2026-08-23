@@ -372,6 +372,19 @@ function createSortFn(sorting) {
 			if (weightDiff !== 0) return weightDiff;
 		}
 
+		// Multi-tier sort support
+		const activeSorts = deckStore.activeSorts;
+		if (activeSorts && activeSorts.length > 0) {
+			for (const sort of activeSorts) {
+				const factor = sort.type === "color-cat" ? "color" : sort.type;
+				const comp = compare(a, b, factor);
+				if (comp !== 0) {
+					return sort.direction === "reverse" ? -comp : comp;
+				}
+			}
+			return a.name.localeCompare(b.name);
+		}
+
 		const primary = compare(a, b, sorting);
 		if (primary !== 0) {
 			return deckStore.sortAscending ? primary : -primary;
@@ -404,7 +417,7 @@ function getPrimaryTypeWeight(typeLine) {
  * @param {string} typeLine
  */
 function getSubtype(typeLine) {
-	const dashIdx = (typeLine || "").indexOf("\u2014"); // em dash
+	const dashIdx = (typeLine || "").indexOf("—"); // em dash
 	if (dashIdx === -1) return "";
 	return (typeLine || "").slice(dashIdx + 1).trim();
 }
@@ -468,10 +481,24 @@ function compare(a, b, factor) {
 		// Same primary type: sort by subtype alphabetically; no subtype sorts first
 		return getSubtype(a.type).localeCompare(getSubtype(b.type));
 	}
+	if (factor === "rarity") {
+		/** @type {Record<string, number>} */
+		const rarityMap = { common: 0, uncommon: 1, rare: 2, mythic: 3, special: 4, bonus: 5 };
+		const aR = (a.card?.rarity || a.rarity || "").toLowerCase();
+		const bR = (b.card?.rarity || b.rarity || "").toLowerCase();
+		return (rarityMap[aR] ?? 0) - (rarityMap[bR] ?? 0);
+	}
+	if (factor === "color-id") {
+		/** @type {Record<string, number>} */
+		const order = { W: 0, U: 1, B: 2, R: 3, G: 4 };
+		const aColors = [...(a.color_identity || a.identity || [])].sort((x, y) => (order[x] ?? 9) - (order[y] ?? 9)).join("");
+		const bColors = [...(b.color_identity || b.identity || [])].sort((x, y) => (order[x] ?? 9) - (order[y] ?? 9)).join("");
+		return aColors.localeCompare(bColors);
+	}
 	if (factor === "qty") return a.quantity - b.quantity;
 	if (factor === "printing")
 		return (a.card?.set || "").localeCompare(b.card?.set || "");
-	if (factor === "color") {
+	if (factor === "color" || factor === "color-cat") {
 		return compareColors(a, b, settingsStore.useColorIdentity);
 	}
 	return 0;

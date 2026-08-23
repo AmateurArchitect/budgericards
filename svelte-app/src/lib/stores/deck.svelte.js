@@ -52,6 +52,7 @@ function createDeckState(initialData = null) {
 	let cachedSorting = null;
 	let cachedSortAscending = null;
 	let cachedSplitView = null;
+	let cachedActiveSorts = null;
 	
 	if (typeof sessionStorage !== 'undefined' && initialData?.id) {
 		cachedActiveBoard = sessionStorage.getItem(`budgericards_activeboard_${initialData.id}`);
@@ -64,6 +65,12 @@ function createDeckState(initialData = null) {
 		const splitViewVal = sessionStorage.getItem(`budgericards_splitview_${initialData.id}`);
 		if (splitViewVal !== null) {
 			cachedSplitView = splitViewVal === 'true';
+		}
+		const sortsVal = sessionStorage.getItem(`budgericards_activesorts_${initialData.id}`);
+		if (sortsVal) {
+			try {
+				cachedActiveSorts = JSON.parse(sortsVal);
+			} catch (e) {}
 		}
 	}
 
@@ -81,6 +88,7 @@ function createDeckState(initialData = null) {
 		sorting: cachedSorting || initialData?.sorting || 'color',
 		sortAscending: cachedSortAscending !== null ? cachedSortAscending : (initialData?.sortAscending !== false),
 		splitView: cachedSplitView !== null ? cachedSplitView : !!initialData?.splitView,
+		activeSorts: cachedActiveSorts || initialData?.activeSorts || [],
 		coverArt: initialData?.coverArt || null,
 		format: initialData?.format || 'List',
 		lastNaturalGrouping: initialData?.lastNaturalGrouping || 'cmc'
@@ -1367,6 +1375,14 @@ function createDeck() {
 			if (typeof sessionStorage !== 'undefined' && activeDeck.deck.id) {
 				sessionStorage.setItem(`budgericards_sortascending_${activeDeck.deck.id}`, String(val));
 			}
+		},
+		get activeSorts() { return activeDeck.deck.activeSorts || []; },
+		set activeSorts(val) { 
+			activeDeck.deck.activeSorts = Array.isArray(val) ? [...val] : []; 
+			if (typeof sessionStorage !== 'undefined' && activeDeck.deck.id) {
+				sessionStorage.setItem(`budgericards_activesorts_${activeDeck.deck.id}`, JSON.stringify(val));
+			}
+			persist(activeDeck);
 		},
 		get splitView() { return activeDeck.deck.splitView; },
 		set splitView(val) { 

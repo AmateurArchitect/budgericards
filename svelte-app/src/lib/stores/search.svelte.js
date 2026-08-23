@@ -800,6 +800,7 @@ function createSearch() {
 		},
 		get filters() { return state.filters; },
 		get activeSorts() { return state.activeSorts; },
+		set activeSorts(val) { state.activeSorts = Array.isArray(val) ? [...val] : []; },
 		get sortLabels() { return sortLabels; },
 		get sortOrderLabels() { return sortOrderLabels; },
 		getDefaultDirection,

@@ -30,6 +30,7 @@
 	import DisplayNamePromptModal from "./DisplayNamePromptModal.svelte";
 	import ConfirmModal from "./ConfirmModal.svelte";
 	import DeckHeader from "./DeckHeader.svelte";
+	import MultiSortModal from "./MultiSortModal.svelte";
 
 	let showCollectionDropdown = $state(false);
 	let showSearchOptions = $state(false);
@@ -510,6 +511,11 @@
 				<SearchOptionsModal
 					bind:isOpen={showSearchOptions}
 					triggerElement={searchSettingsBtn}
+				/>
+
+				<MultiSortModal
+					bind:isOpen={showSearchSort}
+					target="search"
 				/>
 			{:else}
 				<div class="user-auth-bug">
