@@ -184,7 +184,7 @@
 	<DeckHeader isTopBar={true} />
 {:else}
 	<!-- Search Bar Top Row (when Search is Open or on non-deck pages) -->
-	<header class="app-header">
+	<header class="app-header" class:search-open={isDeckPage && searchStore.isOpen}>
 		<div class="header-left">
 			{#if isDeckPage && searchStore.isOpen}
 				<button
@@ -526,6 +526,12 @@
 		z-index: 1000;
 		user-select: none;
 		box-sizing: border-box;
+	}
+
+	.app-header.search-open {
+		border-bottom: none;
+		padding: 20px 20px 0 20px;
+		height: 56px;
 	}
 
 	.header-left {

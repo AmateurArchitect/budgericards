@@ -121,22 +121,24 @@
 	{/if}
 	{#if isExpanded}
 		<div transition:slide={{ duration: 300 }} class="expanded-content">
-			{#if searchStore.isSearching || (searchStore.query.length >= 3 && searchStore.totalResults > 0) || (searchStore.totalResults >= 500 && !searchStore.showLargeSearchOverride)}
-				<div class="results-marginal" transition:fade={{ duration: 150 }}>
-					{#if searchStore.isSearching}
-						<div class="spinner"></div>
-						<span>Searching...</span>
-					{:else if searchStore.totalResults >= 500 && !searchStore.showLargeSearchOverride}
-						<span class="large-search-subheader-warning">
-							Your search matches <span class="count">{searchStore.totalResults}</span> cards. 
-							Narrow down your query, or 
-							<button class="override-link-btn" onclick={() => searchStore.overrideLargeSearch()}>search anyway</button>.
-						</span>
-					{:else}
-						<span>Found <span class="count">{searchStore.totalResults}</span> cards{#if searchStore.totalResults >= 500 && searchStore.totalResults > displayResults.length} (showing first {displayResults.length}){/if}.</span>
-					{/if}
-				</div>
-			{/if}
+			<div class="results-marginal-zone">
+				{#if searchStore.isSearching || (searchStore.query.length >= 3 && searchStore.totalResults > 0) || (searchStore.totalResults >= 500 && !searchStore.showLargeSearchOverride)}
+					<div class="results-marginal" transition:fade={{ duration: 150 }}>
+						{#if searchStore.isSearching}
+							<div class="spinner"></div>
+							<span>Searching...</span>
+						{:else if searchStore.totalResults >= 500 && !searchStore.showLargeSearchOverride}
+							<span class="large-search-subheader-warning">
+								Your search matches <span class="count">{searchStore.totalResults}</span> cards. 
+								Narrow down your query, or 
+								<button class="override-link-btn" onclick={() => searchStore.overrideLargeSearch()}>search anyway</button>.
+							</span>
+						{:else}
+							<span>Found <span class="count">{searchStore.totalResults}</span> cards{#if searchStore.totalResults >= 500 && searchStore.totalResults > displayResults.length} (showing first {displayResults.length}){/if}.</span>
+						{/if}
+					</div>
+				{/if}
+			</div>
 
 			<div bind:this={gridContainer} class="results-grid" onwheel={handleWheel} onscroll={handleScroll}>
 				{#if searchStore.totalResults >= 500 && !searchStore.showLargeSearchOverride}
@@ -282,8 +284,16 @@
 		flex-direction: column;
 	}
 
+	.results-marginal-zone {
+		height: 32px;
+		min-height: 32px;
+		display: flex;
+		align-items: center;
+		padding: 4px 20px 0 20px;
+		box-sizing: border-box;
+	}
+
 	.results-marginal {
-		padding: 16px 20px 4px 20px;
 		font-size: 13px;
 		font-weight: 500;
 		color: hsl(var(--muted-foreground));
@@ -335,7 +345,7 @@
 	.results-grid {
 		display: flex;
 		gap: var(--column-gap);
-		padding: 1rem var(--base-margin) 1.5rem var(--base-margin);
+		padding: 8px var(--base-margin) 1.5rem var(--base-margin);
 		overflow-x: scroll;
 		overflow-y: hidden;
 		align-items: flex-start;
