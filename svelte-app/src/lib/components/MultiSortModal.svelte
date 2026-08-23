@@ -1,5 +1,5 @@
 <script>
-	import { untrack } from "svelte";
+	import { tick, untrack } from "svelte";
 	import { fade, scale, slide } from "svelte/transition";
 	import {
 		X,
@@ -60,7 +60,46 @@
 	let showDefaultDetails = $state(false);
 	let isAddMenuOpen = $state(false);
 	/** @type {HTMLElement | null} */
-	let addContainerRef = $state(null);
+	let addBtnRef = $state(null);
+	/** @type {HTMLElement | null} */
+	let addMenuRef = $state(null);
+	let menuTop = $state(0);
+	let menuLeft = $state(0);
+	let menuWidth = $state(0);
+
+	async function updateAddMenuPosition() {
+		if (!isAddMenuOpen || !addBtnRef) return;
+		await tick();
+		const rect = addBtnRef.getBoundingClientRect();
+		const menuRect = addMenuRef?.getBoundingClientRect() || {
+			width: rect.width,
+			height: 220,
+		};
+
+		menuWidth = rect.width;
+		menuLeft = rect.left;
+
+		const spaceBelow = window.innerHeight - rect.bottom - 10;
+		const spaceAbove = rect.top - 10;
+
+		if (spaceBelow < menuRect.height && spaceAbove > spaceBelow) {
+			menuTop = rect.top - menuRect.height - 4;
+		} else {
+			menuTop = rect.bottom + 4;
+		}
+	}
+
+	$effect(() => {
+		if (isAddMenuOpen) {
+			updateAddMenuPosition();
+			window.addEventListener("resize", updateAddMenuPosition);
+			window.addEventListener("scroll", updateAddMenuPosition, true);
+		}
+		return () => {
+			window.removeEventListener("resize", updateAddMenuPosition);
+			window.removeEventListener("scroll", updateAddMenuPosition, true);
+		};
+	});
 
 	// Drag and drop state
 	/** @type {number | null} */
@@ -220,7 +259,14 @@
 <svelte:window
 	onkeydown={handleKeydown}
 	onclick={(e) => {
-		if (isAddMenuOpen && addContainerRef && !addContainerRef.contains(/** @type {Node} */ (e.target))) {
+		const targetNode = /** @type {Node} */ (e.target);
+		if (
+			isAddMenuOpen &&
+			addBtnRef &&
+			!addBtnRef.contains(targetNode) &&
+			addMenuRef &&
+			!addMenuRef.contains(targetNode)
+		) {
 			isAddMenuOpen = false;
 		}
 	}}
@@ -396,9 +442,10 @@
 				{/each}
 
 				<!-- Full Width Add Sort Button placed directly above Default Sort Row -->
-				<div class="add-sort-inline-container" bind:this={addContainerRef}>
+				<div class="add-sort-inline-container">
 					<button
 						type="button"
+						bind:this={addBtnRef}
 						class="add-tier-btn"
 						class:is-active={isAddMenuOpen}
 						onclick={() => (isAddMenuOpen = !isAddMenuOpen)}
@@ -410,20 +457,6 @@
 						<span>Add Sort</span>
 						<ChevronDown size={13} class={`add-chevron ${isAddMenuOpen ? "rotate" : ""}`} />
 					</button>
-
-					{#if isAddMenuOpen && canAddMore}
-						<div class="add-sort-dropdown-menu custom-scrollbar" in:scale={{ duration: 100, start: 0.95 }}>
-							{#each availableCriteria.filter((c) => !draftSorts.some((s) => s.type === c.id)) as crit}
-								<button
-									type="button"
-									class="add-sort-menu-item"
-									onclick={() => addSortTierWithCriterion(crit.id)}
-								>
-									<span class="menu-item-label">{crit.label}</span>
-								</button>
-							{/each}
-						</div>
-					{/if}
 				</div>
 
 				<!-- Base Default Sort Row (Collapsed vs Expanded) -->
@@ -583,6 +616,27 @@
 				</div>
 			{/if}
 		</div>
+
+		<!-- Portaled Dropdown Menu for Add Sort (Completely immune to scroll container overflow clipping) -->
+		{#if isAddMenuOpen && canAddMore}
+			<div
+				use:portal
+				bind:this={addMenuRef}
+				class="add-sort-dropdown-menu custom-scrollbar"
+				style="position: fixed; top: {menuTop}px; left: {menuLeft}px; width: {menuWidth}px; z-index: 13000;"
+				in:scale={{ duration: 100, start: 0.95 }}
+			>
+				{#each availableCriteria.filter((c) => !draftSorts.some((s) => s.type === c.id)) as crit}
+					<button
+						type="button"
+						class="add-sort-menu-item"
+						onclick={() => addSortTierWithCriterion(crit.id)}
+					>
+						<span class="menu-item-label">{crit.label}</span>
+					</button>
+				{/each}
+			</div>
+		{/if}
 	</div>
 {/if}
 
@@ -1041,21 +1095,17 @@
 	}
 
 	.add-sort-dropdown-menu {
-		position: absolute;
-		top: calc(100% + 4px);
-		left: 0.25rem;
-		right: 0.25rem;
 		background: hsl(var(--card));
 		border: 1px solid hsl(var(--border));
 		border-radius: var(--radius);
-		box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.5), 0 0 1px 1px hsl(var(--border) / 0.5);
+		box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.7), 0 0 1px 1px hsl(var(--border) / 0.7);
 		padding: 4px;
-		z-index: 50;
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
-		max-height: 220px;
+		max-height: 240px;
 		overflow-y: auto;
+		box-sizing: border-box;
 	}
 
 	.add-sort-menu-item {
