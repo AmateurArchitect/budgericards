@@ -20,6 +20,7 @@
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { priceStore } from "$lib/stores/prices.svelte.js";
+	import { toastStore } from "$lib/stores/toast.svelte.js";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/stores";
 
@@ -168,10 +169,23 @@
 			const facesOracle = (meta.card_faces || []).map((/** @type {any} */ f) => (f.oracle_text || "").toLowerCase()).join(" ");
 			const isLegendaryCreature = typeLine.includes("legendary") && typeLine.includes("creature");
 			const isPlaneswalker = typeLine.includes("planeswalker");
+			const canBeCommander = oracle.includes("can be your commander") || facesOracle.includes("can be your commander");
 			const isCompanion = oracle.includes("companion —") || facesOracle.includes("companion —");
 			const isCommanderFormat = ["Commander", "Brawl", "Oathbreaker"].includes(deckStore.format);
 
-			if (isCommanderFormat && deckStore.commander.length === 0 && (isLegendaryCreature || (deckStore.format === "Brawl" && isPlaneswalker))) {
+			const isCommanderCandidate =
+				isLegendaryCreature ||
+				canBeCommander ||
+				(deckStore.format === "Brawl" && isPlaneswalker);
+
+			const isDeckEmpty = deckStore.totalCount === 0;
+			const isFormatUnset = !deckStore.format || deckStore.format === "List" || deckStore.format === "None" || deckStore.format === "Draft";
+
+			if (isDeckEmpty && isFormatUnset && isCommanderCandidate) {
+				deckStore.format = "Commander";
+				targetBoard = "commander";
+				toastStore.show(`Set format to Commander with ${card.name} as your commander.`);
+			} else if (isCommanderFormat && deckStore.commander.length === 0 && isCommanderCandidate) {
 				targetBoard = "commander";
 			} else if (isCompanion && deckStore.companion.length === 0) {
 				targetBoard = "companion";

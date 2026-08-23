@@ -789,6 +789,20 @@ function createDeck() {
 				return instanceId;
 			}
 
+			// If moving from commander to mainboard when the rest of the deck is empty, revert to List format
+			if (fromZone === 'commander' && toZone === 'mainboard') {
+				const mainCount = activeDeck.deck.mainboard?.length || 0;
+				const sideCount = activeDeck.deck.sideboard?.length || 0;
+				const maybeCount = activeDeck.deck.maybeboard?.length || 0;
+				const compCount = activeDeck.deck.companion?.length || 0;
+				const cmdCount = activeDeck.deck.commander?.length || 0;
+
+				if (cmdCount === 1 && mainCount === 0 && sideCount === 0 && maybeCount === 0 && compCount === 0 && activeDeck.deck.format === 'Commander') {
+					activeDeck.deck.format = 'List';
+					toastStore.show('Reverted deck format to List.');
+				}
+			}
+
 			saveHistory(activeDeck);
 			source.splice(index, 1);
 			target.push({
