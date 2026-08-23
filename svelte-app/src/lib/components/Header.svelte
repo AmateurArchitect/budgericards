@@ -57,16 +57,7 @@
 	});
 
 	const isCustomSearchSortActive = $derived(() => {
-		const sorts = searchStore.activeSorts;
-		if (!sorts || sorts.length === 0) return false;
-		if (sorts.length !== 4) return true;
-		const expected = ["color-cat", "color-id", "cmc", "name"];
-		for (let i = 0; i < 4; i++) {
-			if (sorts[i].type !== expected[i] || sorts[i].direction !== "default") {
-				return true;
-			}
-		}
-		return false;
+		return Boolean(searchStore.activeSorts && searchStore.activeSorts.length > 0);
 	});
 
 	const searchPlaceholders = ["Lightning Bolt", "is:commander id=gw"];

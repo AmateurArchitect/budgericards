@@ -1,6 +1,15 @@
 <script>
-	import { fade, scale } from "svelte/transition";
-	import { X, Trash2, Plus, RotateCcw, ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronDown } from "lucide-svelte";
+	import { fade, scale, slide } from "svelte/transition";
+	import {
+		X,
+		Trash2,
+		Plus,
+		ArrowDownWideNarrow,
+		ArrowUpNarrowWide,
+		ChevronDown,
+		ChevronRight,
+		GripVertical,
+	} from "lucide-svelte";
 	import Button from "./ui/Button.svelte";
 	import ManaSymbol from "./ui/ManaSymbol.svelte";
 	import { searchStore } from "$lib/stores/search.svelte.js";
@@ -46,32 +55,29 @@
 	};
 
 	/** @type {Array<{ type: string, direction: string }>} */
-	const defaultSortChain = [
-		{ type: "color-cat", direction: "default" },
-		{ type: "color-id", direction: "default" },
-		{ type: "cmc", direction: "default" },
-		{ type: "name", direction: "default" }
-	];
-
-	/** @type {Array<{ type: string, direction: string }>} */
 	let draftSorts = $state([]);
+	let showDefaultDetails = $state(false);
+
+	// Drag and drop state
+	/** @type {number | null} */
+	let draggedIndex = $state(null);
+	/** @type {number | null} */
+	let dragOverIndex = $state(null);
 
 	// Initialize local draft state whenever modal opens
 	$effect(() => {
 		if (isOpen) {
+			showDefaultDetails = false;
+			draggedIndex = null;
+			dragOverIndex = null;
+
 			if (target === "search") {
 				const current = searchStore.activeSorts;
-				draftSorts = current && current.length > 0
-					? current.map(s => ({ ...s }))
-					: defaultSortChain.map(s => ({ ...s }));
+				draftSorts = current ? current.map((s) => ({ ...s })) : [];
 			} else {
 				// Deck mode
 				const current = deckStore.activeSorts;
-				if (current && current.length > 0) {
-					draftSorts = current.map((/** @type {any} */ s) => ({ ...s }));
-				} else {
-					draftSorts = defaultSortChain.map(s => ({ ...s }));
-				}
+				draftSorts = current ? current.map((/** @type {any} */ s) => ({ ...s })) : [];
 			}
 		}
 	});
@@ -105,26 +111,31 @@
 
 	function addSortTier() {
 		// Find first unused criteria
-		const usedTypes = new Set(draftSorts.map(s => s.type));
-		const nextUnused = availableCriteria.find(c => !usedTypes.has(c.id));
-		const nextType = nextUnused ? nextUnused.id : "name";
+		const usedTypes = new Set(draftSorts.map((s) => s.type));
+		const nextUnused = availableCriteria.find((c) => !usedTypes.has(c.id));
+		const nextType = nextUnused ? nextUnused.id : (target === "deck" ? "added" : "cmc");
 		draftSorts = [...draftSorts, { type: nextType, direction: "default" }];
 	}
 
 	/** @param {number} index */
 	function removeSortTier(index) {
 		draftSorts = draftSorts.filter((_, i) => i !== index);
-		if (draftSorts.length === 0) {
-			draftSorts = [{ type: "color-cat", direction: "default" }];
-		}
-	}
-
-	function resetToDefault() {
-		draftSorts = defaultSortChain.map(s => ({ ...s }));
 	}
 
 	function clearAll() {
-		draftSorts = [{ type: "name", direction: "default" }];
+		draftSorts = [];
+	}
+
+	/**
+	 * @param {number} fromIndex
+	 * @param {number} toIndex
+	 */
+	function reorderSorts(fromIndex, toIndex) {
+		if (fromIndex === toIndex || toIndex < 0 || toIndex >= draftSorts.length) return;
+		const updated = [...draftSorts];
+		const [movedItem] = updated.splice(fromIndex, 1);
+		updated.splice(toIndex, 0, movedItem);
+		draftSorts = updated;
 	}
 
 	function applySorts() {
@@ -138,6 +149,9 @@
 				const primary = draftSorts[0];
 				deckStore.sorting = primary.type === "color-cat" ? "color" : primary.type;
 				deckStore.sortAscending = primary.direction === "default";
+			} else {
+				deckStore.sorting = "color";
+				deckStore.sortAscending = true;
 			}
 		}
 		close();
@@ -153,23 +167,8 @@
 		};
 	}
 
-	const isDefaultApplied = $derived(() => {
-		if (draftSorts.length !== defaultSortChain.length) return false;
-		for (let i = 0; i < defaultSortChain.length; i++) {
-			if (
-				draftSorts[i].type !== defaultSortChain[i].type ||
-				draftSorts[i].direction !== defaultSortChain[i].direction
-			) {
-				return false;
-			}
-		}
-		return true;
-	});
-
-	const canClearAll = $derived(draftSorts.length > 1);
-	const canResetDefault = $derived(!isDefaultApplied());
 	const modalTitle = $derived(
-		title || (target === "search" ? "Sort Search" : "Sort Deck")
+		title || (target === "search" ? "Sort Search" : "Sort Deck"),
 	);
 	const canAddMore = $derived(draftSorts.length < availableCriteria.length);
 </script>
@@ -206,15 +205,50 @@
 				</button>
 			</div>
 
-			<!-- Sort Tier Rows Scrollable Container -->
+			<!-- Sort Rules Container -->
 			<div class="sort-rules-list custom-scrollbar">
+				<!-- User-Configured Drag-and-Drop Sort Rows -->
 				{#each draftSorts as rule, idx (idx)}
-					<div class="sort-rule-row" class:single-row={draftSorts.length === 1}>
-						{#if draftSorts.length > 1}
-							<span class="rule-label">
-								{idx === 0 ? "Sort by" : "then by"}
-							</span>
-						{/if}
+					<div
+						class="sort-rule-row user-sort-row"
+						class:is-drag-over={dragOverIndex === idx && draggedIndex !== idx}
+						class:is-dragging={draggedIndex === idx}
+						draggable="true"
+						ondragstart={(e) => {
+							draggedIndex = idx;
+							if (e.dataTransfer) {
+								e.dataTransfer.effectAllowed = "move";
+								e.dataTransfer.setData("text/plain", String(idx));
+							}
+						}}
+						ondragover={(e) => {
+							e.preventDefault();
+							dragOverIndex = idx;
+						}}
+						ondragleave={() => {
+							if (dragOverIndex === idx) dragOverIndex = null;
+						}}
+						ondrop={(e) => {
+							e.preventDefault();
+							if (draggedIndex !== null && draggedIndex !== idx) {
+								reorderSorts(draggedIndex, idx);
+							}
+							draggedIndex = null;
+							dragOverIndex = null;
+						}}
+						ondragend={() => {
+							draggedIndex = null;
+							dragOverIndex = null;
+						}}
+					>
+						<!-- Drag Handle -->
+						<div class="drag-handle" title="Drag to reorder sort priority">
+							<GripVertical size={14} />
+						</div>
+
+						<span class="rule-label">
+							{idx === 0 ? "Sort by" : "then by"}
+						</span>
 
 						<!-- Field Selector with Custom Chevron -->
 						<div class="select-wrapper">
@@ -238,7 +272,7 @@
 								rule.direction = rule.direction === "default" ? "reverse" : "default";
 							}}
 							title="Click to toggle sort direction"
-							aria-label={`Sort direction: ${rule.direction === 'default' ? directionLabels[rule.type]?.default : directionLabels[rule.type]?.reverse}`}
+							aria-label={`Sort direction: ${rule.direction === "default" ? directionLabels[rule.type]?.default : directionLabels[rule.type]?.reverse}`}
 						>
 							{#if rule.direction === "default"}
 								<ArrowDownWideNarrow size={14} class="dir-icon" />
@@ -287,19 +321,93 @@
 							{/if}
 						</button>
 
-						<!-- Delete Tier Button (only rendered when > 1 tier) -->
-						{#if draftSorts.length > 1}
-							<button
-								class="delete-tier-btn"
-								onclick={() => removeSortTier(idx)}
-								title="Remove this sort level"
-								aria-label="Remove this sort level"
-							>
-								<Trash2 size={16} />
-							</button>
-						{/if}
+						<!-- Delete Tier Button -->
+						<button
+							class="delete-tier-btn"
+							onclick={() => removeSortTier(idx)}
+							title="Remove this sort level"
+							aria-label="Remove this sort level"
+						>
+							<Trash2 size={16} />
+						</button>
 					</div>
 				{/each}
+
+				<!-- Permanent Base: Default Sort Row -->
+				<div class="default-sort-container">
+					<div
+						class="sort-rule-row default-sort-row"
+						onclick={() => (showDefaultDetails = !showDefaultDetails)}
+						role="button"
+						tabindex="0"
+						onkeydown={(e) => {
+							if (e.key === "Enter" || e.key === " ") {
+								e.preventDefault();
+								showDefaultDetails = !showDefaultDetails;
+							}
+						}}
+						title="Default MTG tie-breaker order (always applied at lowest level)"
+					>
+						<div class="default-drag-placeholder"></div>
+
+						<span class="rule-label">
+							{draftSorts.length === 0 ? "Sort by" : "then by"}
+						</span>
+
+						<div class="default-sort-content">
+							<div class="default-summary">
+								<span class="default-badge">Default MTG Order</span>
+								<span class="default-hint-text">Color &rarr; Identity &rarr; Mana Value &rarr; Name</span>
+							</div>
+
+							<div class="expand-indicator">
+								{#if showDefaultDetails}
+									<ChevronDown size={14} />
+								{:else}
+									<ChevronRight size={14} />
+								{/if}
+							</div>
+						</div>
+					</div>
+
+					<!-- Expanded Read-only Details of Default Fallback Sort Chain -->
+					{#if showDefaultDetails}
+						<div class="default-details-panel" transition:slide={{ duration: 150 }}>
+							<div class="default-step">
+								<span class="step-num">1.</span>
+								<span class="step-label">Color Category</span>
+								<div class="mana-symbols-group">
+									<ManaSymbol symbol="w" size="13px" />
+									<ManaSymbol symbol="u" size="13px" />
+									<ManaSymbol symbol="b" size="13px" />
+									<ManaSymbol symbol="r" size="13px" />
+									<ManaSymbol symbol="g" size="13px" />
+								</div>
+							</div>
+							<div class="default-step">
+								<span class="step-num">2.</span>
+								<span class="step-label">Color Identity</span>
+								<div class="mana-symbols-group">
+									<ManaSymbol symbol="w" size="13px" />
+									<ManaSymbol symbol="u" size="13px" />
+									<ManaSymbol symbol="b" size="13px" />
+									<ManaSymbol symbol="r" size="13px" />
+									<ManaSymbol symbol="g" size="13px" />
+								</div>
+							</div>
+							<div class="default-step">
+								<span class="step-num">3.</span>
+								<span class="step-label">Mana Value</span>
+								<span class="step-val">Low to High</span>
+							</div>
+							<div class="default-step">
+								<span class="step-num">4.</span>
+								<span class="step-label">Alphabetical</span>
+								<span class="step-val">A to Z</span>
+							</div>
+						</div>
+					{/if}
+				</div>
 			</div>
 
 			<!-- Add & Tier Actions Row -->
@@ -314,25 +422,14 @@
 				</button>
 
 				<div class="tier-right-actions">
-					{#if canClearAll}
+					{#if draftSorts.length > 0}
 						<button
 							class="text-action-btn"
 							onclick={clearAll}
-							title="Clear down to a single sort tier"
+							title="Clear all custom sort levels"
 						>
 							<Trash2 size={13} />
 							<span>Clear all</span>
-						</button>
-					{/if}
-
-					{#if canResetDefault}
-						<button
-							class="text-action-btn"
-							onclick={resetToDefault}
-							title="Reset sort levels to default"
-						>
-							<RotateCcw size={13} />
-							<span>Reset to default</span>
 						</button>
 					{/if}
 				</div>
@@ -441,7 +538,7 @@
 	.sort-rules-list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: 0.55rem;
 		overflow-y: auto;
 		overflow-x: hidden;
 		max-height: 48vh;
@@ -470,25 +567,60 @@
 	.sort-rule-row {
 		display: flex;
 		align-items: center;
-		gap: 0.85rem;
-		padding: 0.4rem 0;
-		border-bottom: 1px solid hsl(var(--border) / 0.35);
-		flex-shrink: 0;
-	}
-
-	.sort-rule-row:last-child {
-		border-bottom: none;
-	}
-
-	.sort-rule-row.single-row {
 		gap: 0.75rem;
+		padding: 0.35rem 0.5rem;
+		border-radius: var(--radius);
+		border: 1px solid transparent;
+		flex-shrink: 0;
+		transition: all 0.15s ease;
+	}
+
+	.user-sort-row {
+		background: hsl(var(--muted) / 0.25);
+		border-color: hsl(var(--border) / 0.4);
+		cursor: grab;
+	}
+
+	.user-sort-row:hover {
+		background: hsl(var(--muted) / 0.45);
+		border-color: hsl(var(--border) / 0.7);
+	}
+
+	.user-sort-row.is-dragging {
+		opacity: 0.45;
+		cursor: grabbing;
+	}
+
+	.user-sort-row.is-drag-over {
+		border-color: hsl(var(--primary));
+		background: hsl(var(--primary) / 0.1);
+	}
+
+	.drag-handle {
+		color: hsl(var(--muted-foreground) / 0.5);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: grab;
+		padding: 2px;
+		flex-shrink: 0;
+		transition: color 0.15s ease;
+	}
+
+	.user-sort-row:hover .drag-handle {
+		color: hsl(var(--muted-foreground));
+	}
+
+	.default-drag-placeholder {
+		width: 18px;
+		flex-shrink: 0;
 	}
 
 	.rule-label {
 		font-size: 0.875rem;
 		font-weight: 500;
 		color: hsl(var(--muted-foreground));
-		width: 58px;
+		width: 54px;
 		flex-shrink: 0;
 		white-space: nowrap;
 	}
@@ -496,7 +628,7 @@
 	.select-wrapper {
 		position: relative;
 		flex: 1;
-		min-width: 150px;
+		min-width: 140px;
 		display: flex;
 		align-items: center;
 	}
@@ -507,7 +639,7 @@
 		appearance: none;
 		-webkit-appearance: none;
 		-moz-appearance: none;
-		background: hsl(var(--muted) / 0.5);
+		background: hsl(var(--card));
 		border: 1px solid hsl(var(--border));
 		border-radius: var(--radius);
 		color: hsl(var(--foreground));
@@ -551,7 +683,7 @@
 		height: 36px;
 		min-width: 136px;
 		padding: 0 12px 0 10px;
-		background: hsl(var(--muted) / 0.5);
+		background: hsl(var(--card));
 		border: 1px solid hsl(var(--border));
 		border-radius: var(--radius);
 		color: hsl(var(--foreground));
@@ -563,10 +695,6 @@
 		user-select: none;
 		flex-shrink: 0;
 		justify-content: flex-start;
-	}
-
-	.sort-rule-row.single-row .direction-toggle-btn {
-		min-width: 140px;
 	}
 
 	.direction-toggle-btn:hover {
@@ -660,6 +788,100 @@
 		background: hsl(var(--destructive) / 0.15);
 	}
 
+	/* Default Sort Container & Row */
+	.default-sort-container {
+		display: flex;
+		flex-direction: column;
+		border-radius: var(--radius);
+		background: hsl(var(--muted) / 0.15);
+		border: 1px dashed hsl(var(--border) / 0.6);
+	}
+
+	.default-sort-row {
+		cursor: pointer;
+		user-select: none;
+	}
+
+	.default-sort-row:hover {
+		background: hsl(var(--muted) / 0.3);
+	}
+
+	.default-sort-content {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0 4px;
+		min-width: 0;
+	}
+
+	.default-summary {
+		display: flex;
+		align-items: center;
+		gap: 0.65rem;
+		min-width: 0;
+	}
+
+	.default-badge {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: hsl(var(--foreground) / 0.85);
+		background: hsl(var(--muted) / 0.7);
+		padding: 3px 8px;
+		border-radius: 4px;
+		border: 1px solid hsl(var(--border) / 0.5);
+		white-space: nowrap;
+	}
+
+	.default-hint-text {
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.expand-indicator {
+		color: hsl(var(--muted-foreground));
+		display: flex;
+		align-items: center;
+		padding: 4px;
+	}
+
+	/* Expanded Details Panel */
+	.default-details-panel {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+		gap: 0.5rem;
+		padding: 0.5rem 0.75rem 0.75rem 4.75rem;
+		border-top: 1px dashed hsl(var(--border) / 0.4);
+		background: hsl(var(--muted) / 0.08);
+	}
+
+	.default-step {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.step-num {
+		font-weight: 700;
+		color: hsl(var(--primary));
+		font-size: 0.7rem;
+	}
+
+	.step-label {
+		font-weight: 500;
+		color: hsl(var(--foreground) / 0.8);
+	}
+
+	.step-val {
+		color: hsl(var(--muted-foreground));
+		font-size: 0.7rem;
+	}
+
 	/* Add & Reset Actions Row */
 	.tier-actions-row {
 		display: flex;
@@ -744,6 +966,9 @@
 		}
 		.direction-toggle-btn {
 			width: 100%;
+		}
+		.default-details-panel {
+			padding-left: 0.75rem;
 		}
 	}
 </style>

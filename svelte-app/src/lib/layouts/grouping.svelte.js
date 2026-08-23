@@ -372,7 +372,7 @@ function createSortFn(sorting) {
 			if (weightDiff !== 0) return weightDiff;
 		}
 
-		// Multi-tier sort support
+		// 1. Explicit User Multi-tier Sorts
 		const activeSorts = deckStore.activeSorts;
 		if (activeSorts && activeSorts.length > 0) {
 			for (const sort of activeSorts) {
@@ -382,12 +382,13 @@ function createSortFn(sorting) {
 					return sort.direction === "reverse" ? -comp : comp;
 				}
 			}
-			return a.name.localeCompare(b.name);
 		}
 
-		const primary = compare(a, b, sorting);
-		if (primary !== 0) {
-			return deckStore.sortAscending ? primary : -primary;
+		// 2. Default Fallback Sort Chain (Color -> Color Identity -> CMC -> Name)
+		const fallbackSorts = ["color", "color-id", "cmc", "name"];
+		for (const factor of fallbackSorts) {
+			const comp = compare(a, b, factor);
+			if (comp !== 0) return comp;
 		}
 		return a.name.localeCompare(b.name);
 	};
