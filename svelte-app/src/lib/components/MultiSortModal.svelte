@@ -386,11 +386,12 @@
 				{#if !showDefaultDetails}
 					<!-- Collapsed View: Clean Trigger Line -->
 					<div class="sort-rule-row default-collapsed-row">
-						<div class="default-drag-placeholder"></div>
-
-						<span class="rule-label">
-							{draftSorts.length === 0 ? "Sort by" : "then by"}
-						</span>
+						{#if draftSorts.length === 0}
+							<div class="default-drag-placeholder"></div>
+							<span class="rule-label">Sort by</span>
+						{:else}
+							<span class="rule-label finally-label">finally by</span>
+						{/if}
 
 						<button
 							type="button"
@@ -423,10 +424,12 @@
 
 						<!-- Step 1: Color Category -->
 						<div class="sort-rule-row default-readonly-row">
-							<div class="default-drag-placeholder"></div>
-							<span class="rule-label">
-								{draftSorts.length === 0 ? "Sort by" : "then by"}
-							</span>
+							{#if draftSorts.length === 0}
+								<div class="default-drag-placeholder"></div>
+								<span class="rule-label">Sort by</span>
+							{:else}
+								<span class="rule-label finally-label">finally by</span>
+							{/if}
 							<div class="readonly-field-box">
 								<span>Color Category</span>
 							</div>
@@ -745,6 +748,12 @@
 		width: 54px;
 		flex-shrink: 0;
 		white-space: nowrap;
+		text-align: right;
+	}
+
+	.finally-label {
+		width: 84px;
+		text-align: right;
 	}
 
 	.select-wrapper {
