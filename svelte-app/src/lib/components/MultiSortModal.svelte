@@ -359,6 +359,18 @@
 					{/if}
 				{/each}
 
+				<!-- Add Sort Button placed directly above Default Sort Row -->
+				<div class="add-sort-inline-container">
+					<button
+						class="add-tier-btn"
+						onclick={addSortTier}
+						disabled={!canAddMore}
+					>
+						<Plus size={14} />
+						<span>Add Sort</span>
+					</button>
+				</div>
+
 				<!-- Base Default Sort Row (Collapsed vs Expanded) -->
 				{#if !showDefaultDetails}
 					<!-- Collapsed View: Clean Trigger Line -->
@@ -383,7 +395,7 @@
 					<!-- Expanded View: Read-Only Rows Matching Custom Rows Layout -->
 					<div class="default-expanded-container" transition:slide={{ duration: 160 }}>
 						<div class="default-expanded-header">
-							<span class="default-header-title">Default Sort Order (Read-only tie-breaker)</span>
+							<span class="default-header-title">Default Sort Order</span>
 							<button
 								type="button"
 								class="collapse-default-btn"
@@ -468,21 +480,13 @@
 				{/if}
 			</div>
 
-			<!-- Add & Tier Actions Row -->
-			<div class="tier-actions-row">
-				<button
-					class="add-tier-btn"
-					onclick={addSortTier}
-					disabled={!canAddMore}
-				>
-					<Plus size={14} />
-					<span>Add Sort</span>
-				</button>
-
-				<div class="tier-right-actions">
+			<!-- Footer -->
+			<div class="modal-footer">
+				<div class="footer-left">
 					{#if draftSorts.length > 0}
 						<button
-							class="text-action-btn"
+							type="button"
+							class="text-action-btn footer-clear-btn"
 							onclick={clearAll}
 							title="Clear all custom sort levels"
 						>
@@ -491,16 +495,15 @@
 						</button>
 					{/if}
 				</div>
-			</div>
 
-			<!-- Footer -->
-			<div class="modal-footer">
-				<Button variant="outline" onclick={close} class="footer-btn cancel-btn">
-					Cancel
-				</Button>
-				<Button variant="default" onclick={applySorts} class="footer-btn apply-btn">
-					Sort
-				</Button>
+				<div class="footer-right">
+					<Button variant="outline" onclick={close} class="footer-btn cancel-btn">
+						Cancel
+					</Button>
+					<Button variant="default" onclick={applySorts} class="footer-btn apply-btn">
+						Sort
+					</Button>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -998,13 +1001,10 @@
 		flex-shrink: 0;
 	}
 
-	/* Add & Reset Actions Row */
-	.tier-actions-row {
+	.add-sort-inline-container {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		padding-top: 0.15rem;
-		flex-shrink: 0;
+		padding: 0.15rem 0.4rem;
 	}
 
 	.add-tier-btn {
@@ -1032,12 +1032,6 @@
 		cursor: not-allowed;
 	}
 
-	.tier-right-actions {
-		display: flex;
-		align-items: center;
-		gap: 0.65rem;
-	}
-
 	.text-action-btn {
 		display: inline-flex;
 		align-items: center;
@@ -1062,11 +1056,17 @@
 	.modal-footer {
 		display: flex;
 		align-items: center;
-		justify-content: flex-end;
-		gap: 0.75rem;
+		justify-content: space-between;
 		padding-top: 0.85rem;
 		border-top: 1px solid hsl(var(--border) / 0.5);
 		flex-shrink: 0;
+	}
+
+	.footer-left,
+	.footer-right {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
 	}
 
 	:global(.footer-btn) {
