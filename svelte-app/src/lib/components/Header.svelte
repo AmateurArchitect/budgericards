@@ -280,7 +280,7 @@
 			<!-- Budgie Menu Container -->
 			<div class="budgie-menu-container">
 				<button
-					class="brand-btn"
+					class="budgie-trigger"
 					onclick={() => {
 						showBudgieDropdown = !showBudgieDropdown;
 						if (showBudgieDropdown) closeAllDropdowns("budgie");

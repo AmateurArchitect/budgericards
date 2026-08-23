@@ -751,7 +751,7 @@
 			{#if settingsStore.deckViewMode !== "settings" && settingsStore.deckViewMode !== "list" && settingsStore.deckViewMode !== "stats"}
 				<div class="grouping-container">
 					<button
-						class="custom-select-trigger"
+						class="header-select-trigger grouping-trigger"
 						onclick={(e) => {
 							e.stopPropagation();
 							showColumnsDropdown = !showColumnsDropdown;
@@ -830,7 +830,7 @@
 				{#if settingsStore.deckViewMode === "table"}
 					<div class="table-cols-container">
 						<button
-							class="custom-select-trigger"
+							class="header-select-trigger"
 							onclick={(e) => {
 								e.stopPropagation();
 								showTableColumnsDropdown = !showTableColumnsDropdown;
