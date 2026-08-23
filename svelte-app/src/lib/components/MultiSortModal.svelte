@@ -64,6 +64,9 @@
 	/** @type {{ index: number, position: 'top' | 'bottom' } | null} */
 	let dropTarget = $state(null);
 
+	/** @type {string} */
+	let initialSortsJson = $state("[]");
+
 	// Initialize local draft state whenever modal opens
 	$effect(() => {
 		if (isOpen) {
@@ -71,16 +74,19 @@
 			draggedIndex = null;
 			dropTarget = null;
 
+			let current = [];
 			if (target === "search") {
-				const current = searchStore.activeSorts;
-				draftSorts = current ? current.map((s) => ({ ...s })) : [];
+				current = searchStore.activeSorts || [];
 			} else {
 				// Deck mode
-				const current = deckStore.activeSorts;
-				draftSorts = current ? current.map((/** @type {any} */ s) => ({ ...s })) : [];
+				current = deckStore.activeSorts || [];
 			}
+			draftSorts = current.map((/** @type {any} */ s) => ({ ...s }));
+			initialSortsJson = JSON.stringify(draftSorts);
 		}
 	});
+
+	const hasChanged = $derived(JSON.stringify(draftSorts) !== initialSortsJson);
 
 	function close() {
 		isOpen = false;
@@ -482,31 +488,33 @@
 				{/if}
 			</div>
 
-			<!-- Footer -->
-			<div class="modal-footer">
-				<div class="footer-left">
-					{#if draftSorts.length > 0}
-						<button
-							type="button"
-							class="text-action-btn footer-clear-btn"
-							onclick={clearAll}
-							title="Clear all custom sort levels"
-						>
-							<Trash2 size={13} />
-							<span>Clear all</span>
-						</button>
-					{/if}
-				</div>
+			<!-- Footer (only shown once changes have been made) -->
+			{#if hasChanged}
+				<div class="modal-footer" transition:slide={{ duration: 150 }}>
+					<div class="footer-left">
+						{#if draftSorts.length > 0}
+							<button
+								type="button"
+								class="text-action-btn footer-clear-btn"
+								onclick={clearAll}
+								title="Clear all custom sort levels"
+							>
+								<Trash2 size={13} />
+								<span>Clear all</span>
+							</button>
+						{/if}
+					</div>
 
-				<div class="footer-right">
-					<Button variant="outline" onclick={close} class="footer-btn cancel-btn">
-						Cancel
-					</Button>
-					<Button variant="default" onclick={applySorts} class="footer-btn apply-btn">
-						Sort
-					</Button>
+					<div class="footer-right">
+						<Button variant="outline" onclick={close} class="footer-btn cancel-btn">
+							Cancel
+						</Button>
+						<Button variant="default" onclick={applySorts} class="footer-btn apply-btn">
+							Sort
+						</Button>
+					</div>
 				</div>
-			</div>
+			{/if}
 		</div>
 	</div>
 {/if}
