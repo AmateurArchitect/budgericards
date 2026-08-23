@@ -1,4 +1,5 @@
 <script>
+	import { untrack } from "svelte";
 	import { fade, scale, slide } from "svelte/transition";
 	import {
 		X,
@@ -67,22 +68,24 @@
 	/** @type {string} */
 	let initialSortsJson = $state("[]");
 
-	// Initialize local draft state whenever modal opens
+	// Initialize local draft state ONLY when modal transitions from closed to open
 	$effect(() => {
 		if (isOpen) {
-			showDefaultDetails = false;
-			draggedIndex = null;
-			dropTarget = null;
+			untrack(() => {
+				showDefaultDetails = false;
+				draggedIndex = null;
+				dropTarget = null;
 
-			let current = [];
-			if (target === "search") {
-				current = searchStore.activeSorts || [];
-			} else {
-				// Deck mode
-				current = deckStore.activeSorts || [];
-			}
-			draftSorts = current.map((/** @type {any} */ s) => ({ ...s }));
-			initialSortsJson = JSON.stringify(draftSorts);
+				let current = [];
+				if (target === "search") {
+					current = searchStore.activeSorts || [];
+				} else {
+					// Deck mode
+					current = deckStore.activeSorts || [];
+				}
+				draftSorts = current.map((/** @type {any} */ s) => ({ ...s }));
+				initialSortsJson = JSON.stringify(draftSorts);
+			});
 		}
 	});
 
@@ -245,23 +248,11 @@
 					<div
 						class="sort-rule-row user-sort-row"
 						class:is-dragging={draggedIndex === idx}
-						draggable="true"
-						ondragstart={(e) => {
-							draggedIndex = idx;
-							if (e.dataTransfer) {
-								e.dataTransfer.effectAllowed = "move";
-								e.dataTransfer.setData("text/plain", String(idx));
-							}
-						}}
 						ondragover={(e) => handleDragOver(e, idx)}
 						ondragleave={() => {
 							if (dropTarget?.index === idx) dropTarget = null;
 						}}
 						ondrop={handleDrop}
-						ondragend={() => {
-							draggedIndex = null;
-							dropTarget = null;
-						}}
 					>
 						<!-- Absolute Drop Indicator Line (Zero layout shift) -->
 						{#if dropTarget && dropTarget.index === idx && draggedIndex !== idx}
@@ -272,8 +263,23 @@
 							></div>
 						{/if}
 
-						<!-- Drag Handle -->
-						<div class="drag-handle" title="Drag to reorder sort priority">
+						<!-- Drag Handle (draggable only on the handle icon) -->
+						<div
+							class="drag-handle"
+							title="Drag to reorder sort priority"
+							draggable="true"
+							ondragstart={(e) => {
+								draggedIndex = idx;
+								if (e.dataTransfer) {
+									e.dataTransfer.effectAllowed = "move";
+									e.dataTransfer.setData("text/plain", String(idx));
+								}
+							}}
+							ondragend={() => {
+								draggedIndex = null;
+								dropTarget = null;
+							}}
+						>
 							<GripVertical size={14} />
 						</div>
 
@@ -537,10 +543,13 @@
 		background: rgba(0, 0, 0, 0.72);
 		backdrop-filter: blur(8px);
 		-webkit-backdrop-filter: blur(8px);
+		z-index: 1;
 	}
 
 	.modal-dialog {
 		position: relative;
+		z-index: 2;
+		pointer-events: auto;
 		width: 100%;
 		max-width: 600px;
 		max-height: min(90vh, 680px);
