@@ -36,4 +36,13 @@ We already have UI that hints at this feature in the table view, but we want to 
  - Visual Spoiler Default size is 50% instead of 75%.
  - Clicking save from the list view returns the user to the last used view besires the list view, with fallback of the default deck view. If the default deck view is the list view, then clicking save keeps you on the list view.
 
+### Automatic Behavior & Toast Backlog
+ - **Companion Routing Toast**: Toast when automatically routing a card with `companion —` into the dedicated Companion slot (*"Set [Card Name] as your companion."*).
+ - **Format Change Safety Toast**: Toast when switching from Commander to a 60-card format (*"Moved commander to mainboard for [Format] format."*).
+ - **Auto-Sync / Offline Reconnect Toast**: Toast when offline edits are synced back to Supabase upon restoring connectivity (*"Synced offline changes to cloud."*).
+ - **Shared Deck Forking Toast**: Toast when an anonymous or non-owner user starts editing a public deck (*"Created editable copy of shared deck in local drafts."*).
+ - **Maybeboard De-duplication Toast**: Toast when adding an existing maybeboard card (*"[Card Name] already in maybeboard (updated timestamp)."*).
+ - **Decklist Cleanup Toast**: Toast when importing a list where unrecognized lines or invalid formatting were stripped (*"Imported [X] cards (skipped [Y] unrecognized lines)."*).
+
+
  

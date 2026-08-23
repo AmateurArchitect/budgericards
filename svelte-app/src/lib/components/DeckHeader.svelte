@@ -1245,12 +1245,12 @@
 		gap: 0.45rem;
 	}
 
-	.grouping-icon {
+	:global(.grouping-icon) {
 		color: hsl(var(--muted-foreground));
 		flex-shrink: 0;
 	}
 
-	.grouping-trigger:hover .grouping-icon {
+	.grouping-trigger:hover :global(.grouping-icon) {
 		color: hsl(var(--foreground));
 	}
 
