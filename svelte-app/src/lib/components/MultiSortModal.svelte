@@ -233,14 +233,9 @@
 			</div>
 
 			<!-- Sort Rules Container -->
-			<div class="sort-rules-list custom-scrollbar">
+			<div class="sort-rules-list custom-scrollbar" class:is-drag-active={draggedIndex !== null}>
 				<!-- User-Configured Drag-and-Drop Sort Rows -->
 				{#each draftSorts as rule, idx (idx)}
-					<!-- Top Drop Indicator Line -->
-					{#if dropTarget && dropTarget.index === idx && dropTarget.position === "top" && draggedIndex !== idx}
-						<div class="drop-indicator-line"></div>
-					{/if}
-
 					<div
 						class="sort-rule-row user-sort-row"
 						class:is-dragging={draggedIndex === idx}
@@ -262,6 +257,15 @@
 							dropTarget = null;
 						}}
 					>
+						<!-- Absolute Drop Indicator Line (Zero layout shift) -->
+						{#if dropTarget && dropTarget.index === idx && draggedIndex !== idx}
+							<div
+								class="drop-indicator-line"
+								class:pos-top={dropTarget.position === "top"}
+								class:pos-bottom={dropTarget.position === "bottom"}
+							></div>
+						{/if}
+
 						<!-- Drag Handle -->
 						<div class="drag-handle" title="Drag to reorder sort priority">
 							<GripVertical size={14} />
@@ -352,14 +356,9 @@
 							<Trash2 size={16} />
 						</button>
 					</div>
-
-					<!-- Bottom Drop Indicator Line -->
-					{#if dropTarget && dropTarget.index === idx && dropTarget.position === "bottom" && draggedIndex !== idx}
-						<div class="drop-indicator-line"></div>
-					{/if}
 				{/each}
 
-				<!-- Add Sort Button placed directly above Default Sort Row -->
+				<!-- Full Width Add Sort Button placed directly above Default Sort Row -->
 				<div class="add-sort-inline-container">
 					<button
 						class="add-tier-btn"
@@ -602,12 +601,17 @@
 	.sort-rules-list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.4rem;
+		gap: 0.35rem;
 		overflow-y: auto;
 		overflow-x: hidden;
 		max-height: 50vh;
-		padding: 2px 6px 2px 2px;
+		padding: 4px 6px 4px 4px;
 		margin-right: -6px;
+		transition: gap 0.18s ease;
+	}
+
+	.sort-rules-list.is-drag-active {
+		gap: 0.65rem;
 	}
 
 	/* Custom Sleek Scrollbar */
@@ -628,15 +632,25 @@
 		background: hsl(var(--muted-foreground) / 0.5);
 	}
 
-	/* Drop Indicator Line */
+	/* Absolute Drop Indicator Line (Zero Reflow) */
 	.drop-indicator-line {
+		position: absolute;
+		left: 4px;
+		right: 4px;
 		height: 2px;
 		background: hsl(var(--primary));
 		border-radius: 2px;
-		margin: 2px 6px;
-		position: relative;
-		box-shadow: 0 0 6px hsl(var(--primary) / 0.8);
-		flex-shrink: 0;
+		pointer-events: none;
+		z-index: 20;
+		box-shadow: 0 0 8px hsl(var(--primary));
+	}
+
+	.drop-indicator-line.pos-top {
+		top: -4px;
+	}
+
+	.drop-indicator-line.pos-bottom {
+		bottom: -4px;
 	}
 
 	.drop-indicator-line::before,
@@ -652,15 +666,16 @@
 	}
 
 	.drop-indicator-line::before {
-		left: -3px;
+		left: -2px;
 	}
 
 	.drop-indicator-line::after {
-		right: -3px;
+		right: -2px;
 	}
 
 	/* Sort Rule Row (Unboxed clean styling) */
 	.sort-rule-row {
+		position: relative;
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
@@ -678,7 +693,7 @@
 	}
 
 	.user-sort-row.is-dragging {
-		opacity: 0.3;
+		opacity: 0.25;
 	}
 
 	.drag-handle {
@@ -883,6 +898,44 @@
 		background: hsl(var(--destructive) / 0.15);
 	}
 
+	/* Full-Width Add Sort Button */
+	.add-sort-inline-container {
+		display: flex;
+		align-items: center;
+		width: 100%;
+		padding: 0.15rem 0.25rem;
+		box-sizing: border-box;
+	}
+
+	.add-tier-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.45rem;
+		width: 100%;
+		height: 36px;
+		background: hsl(var(--primary) / 0.08);
+		border: 1px dashed hsl(var(--primary) / 0.4);
+		border-radius: var(--radius);
+		padding: 0 1rem;
+		color: hsl(var(--primary));
+		font-size: 0.85rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		box-sizing: border-box;
+	}
+
+	.add-tier-btn:hover:not(:disabled) {
+		background: hsl(var(--primary) / 0.16);
+		border-color: hsl(var(--primary) / 0.7);
+	}
+
+	.add-tier-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
 	/* Default Sort Trigger Button (Collapsed) */
 	.default-collapsed-row {
 		margin-top: 0.1rem;
@@ -1023,37 +1076,6 @@
 		font-size: 0.85rem;
 		font-weight: 500;
 		flex-shrink: 0;
-	}
-
-	.add-sort-inline-container {
-		display: flex;
-		align-items: center;
-		padding: 0.15rem 0.4rem;
-	}
-
-	.add-tier-btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45rem;
-		background: hsl(var(--primary) / 0.08);
-		border: 1px solid hsl(var(--primary) / 0.3);
-		border-radius: var(--radius);
-		padding: 0.45rem 0.85rem;
-		color: hsl(var(--primary));
-		font-size: 0.85rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.15s ease;
-	}
-
-	.add-tier-btn:hover:not(:disabled) {
-		background: hsl(var(--primary) / 0.16);
-		border-color: hsl(var(--primary) / 0.5);
-	}
-
-	.add-tier-btn:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
 	}
 
 	.text-action-btn {
