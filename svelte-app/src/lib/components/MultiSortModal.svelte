@@ -1,6 +1,6 @@
 <script>
 	import { fade, scale } from "svelte/transition";
-	import { X, Trash2, Plus } from "lucide-svelte";
+	import { X, Trash2, Plus, RotateCcw } from "lucide-svelte";
 	import Button from "./ui/Button.svelte";
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
@@ -22,25 +22,33 @@
 
 	/** @type {Array<{ id: string, label: string }>} */
 	const availableCriteria = [
-		{ id: "cmc", label: "Mana Value" },
 		{ id: "color-cat", label: "Color Category" },
 		{ id: "color-id", label: "Color Identity" },
-		{ id: "price", label: "Price" },
+		{ id: "cmc", label: "Mana Value" },
 		{ id: "name", label: "Alphabetical (Name)" },
 		{ id: "type", label: "Card Type" },
+		{ id: "price", label: "Price" },
 		{ id: "rarity", label: "Rarity" },
 	];
 
 	/** @type {Record<string, { default: string, reverse: string }>} */
 	const directionLabels = {
-		cmc: { default: "Low to High", reverse: "High to Low" },
 		"color-cat": { default: "WUBRG", reverse: "GRBUW" },
 		"color-id": { default: "WUBRG", reverse: "GRBUW" },
-		price: { default: "Low to High", reverse: "High to Low" },
+		cmc: { default: "Low to High", reverse: "High to Low" },
 		name: { default: "A to Z", reverse: "Z to A" },
 		type: { default: "A to Z", reverse: "Z to A" },
+		price: { default: "Low to High", reverse: "High to Low" },
 		rarity: { default: "Common to Mythic", reverse: "Mythic to Common" },
 	};
+
+	/** @type {Array<{ type: string, direction: string }>} */
+	const defaultSortChain = [
+		{ type: "color-cat", direction: "default" },
+		{ type: "color-id", direction: "default" },
+		{ type: "cmc", direction: "default" },
+		{ type: "name", direction: "default" }
+	];
 
 	/** @type {Array<{ type: string, direction: string }>} */
 	let draftSorts = $state([]);
@@ -50,19 +58,16 @@
 		if (isOpen) {
 			if (target === "search") {
 				const current = searchStore.activeSorts;
-				draftSorts = current.length > 0
+				draftSorts = current && current.length > 0
 					? current.map(s => ({ ...s }))
-					: [{ type: "color-cat", direction: "default" }];
+					: defaultSortChain.map(s => ({ ...s }));
 			} else {
 				// Deck mode
 				const current = deckStore.activeSorts;
 				if (current && current.length > 0) {
 					draftSorts = current.map((/** @type {any} */ s) => ({ ...s }));
 				} else {
-					const single = deckStore.sorting || "color";
-					const mapSingle = single === "color" ? "color-cat" : single;
-					const dir = deckStore.sortAscending ? "default" : "reverse";
-					draftSorts = [{ type: mapSingle, direction: dir }];
+					draftSorts = defaultSortChain.map(s => ({ ...s }));
 				}
 			}
 		}
@@ -88,7 +93,7 @@
 			close();
 		} else if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
 			const targetEl = /** @type {HTMLElement | null} */ (e.target);
-			if (targetEl?.tagName !== "BUTTON") {
+			if (targetEl?.tagName !== "BUTTON" && targetEl?.tagName !== "SELECT") {
 				e.preventDefault();
 				applySorts();
 			}
@@ -109,6 +114,14 @@
 		if (draftSorts.length === 0) {
 			draftSorts = [{ type: "color-cat", direction: "default" }];
 		}
+	}
+
+	function resetToDefault() {
+		draftSorts = defaultSortChain.map(s => ({ ...s }));
+	}
+
+	function clearAll() {
+		draftSorts = [{ type: "name", direction: "default" }];
 	}
 
 	function applySorts() {
@@ -166,14 +179,17 @@
 		>
 			<!-- Header -->
 			<div class="modal-header">
-				<h2 id="multisort-title" class="dialog-title">{modalTitle}</h2>
+				<div class="header-title-group">
+					<h2 id="multisort-title" class="dialog-title">{modalTitle}</h2>
+					<span class="dialog-subtitle">Configure multi-level sorting priority for cards</span>
+				</div>
 				<button class="close-btn" onclick={close} aria-label="Close sort dialog" title="Close (Esc)">
 					<X size={18} />
 				</button>
 			</div>
 
-			<!-- Sort Tier Rows -->
-			<div class="sort-rules-list">
+			<!-- Sort Tier Rows Scrollable Container -->
+			<div class="sort-rules-list custom-scrollbar">
 				{#each draftSorts as rule, idx (idx)}
 					<div class="sort-rule-row">
 						<span class="rule-label">
@@ -203,7 +219,6 @@
 									bind:group={rule.direction}
 									class="radio-input"
 								/>
-								<span class="radio-custom"></span>
 								<span class="radio-text">
 									{directionLabels[rule.type]?.default || "Ascending"}
 								</span>
@@ -217,7 +232,6 @@
 									bind:group={rule.direction}
 									class="radio-input"
 								/>
-								<span class="radio-custom"></span>
 								<span class="radio-text">
 									{directionLabels[rule.type]?.reverse || "Descending"}
 								</span>
@@ -241,8 +255,8 @@
 				{/each}
 			</div>
 
-			<!-- Add another sort column button -->
-			<div class="add-tier-container">
+			<!-- Add & Reset Tier Row -->
+			<div class="tier-actions-row">
 				<button
 					class="add-tier-btn"
 					onclick={addSortTier}
@@ -251,16 +265,32 @@
 					<Plus size={14} />
 					<span>Add another sort column</span>
 				</button>
+
+				<button
+					class="reset-defaults-btn"
+					onclick={resetToDefault}
+					title="Reset sort levels to default"
+				>
+					<RotateCcw size={13} />
+					<span>Reset to default</span>
+				</button>
 			</div>
 
 			<!-- Footer -->
 			<div class="modal-footer">
-				<Button variant="outline" onclick={close} class="footer-btn cancel-btn">
-					Cancel
-				</Button>
-				<Button variant="default" onclick={applySorts} class="footer-btn apply-btn">
-					Sort
-				</Button>
+				<div class="footer-left">
+					<Button variant="ghost" onclick={clearAll} class="footer-btn text-muted-btn">
+						Clear All
+					</Button>
+				</div>
+				<div class="footer-right">
+					<Button variant="outline" onclick={close} class="footer-btn cancel-btn">
+						Cancel
+					</Button>
+					<Button variant="default" onclick={applySorts} class="footer-btn apply-btn">
+						Sort
+					</Button>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -281,7 +311,7 @@
 	.modal-backdrop {
 		position: absolute;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.68);
+		background: rgba(0, 0, 0, 0.72);
 		backdrop-filter: blur(8px);
 		-webkit-backdrop-filter: blur(8px);
 	}
@@ -289,25 +319,34 @@
 	.modal-dialog {
 		position: relative;
 		width: 100%;
-		max-width: 540px;
+		max-width: 620px;
+		max-height: min(90vh, 680px);
 		background: hsl(var(--card));
 		border: 1px solid hsl(var(--border));
 		border-radius: 12px;
-		box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5), 0 0 1px 1px hsl(var(--border) / 0.5);
+		box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.6), 0 0 1px 1px hsl(var(--border) / 0.5);
 		padding: 1.5rem 1.75rem;
 		color: hsl(var(--card-foreground));
 		display: flex;
 		flex-direction: column;
-		gap: 1.25rem;
+		gap: 1.15rem;
 		outline: none;
 		box-sizing: border-box;
+		overflow: hidden;
 	}
 
 	.modal-header {
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		justify-content: space-between;
-		padding-bottom: 0.5rem;
+		padding-bottom: 0.25rem;
+		flex-shrink: 0;
+	}
+
+	.header-title-group {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
 	}
 
 	.dialog-title {
@@ -318,17 +357,24 @@
 		letter-spacing: -0.015em;
 	}
 
+	.dialog-subtitle {
+		font-size: 0.8125rem;
+		color: hsl(var(--muted-foreground));
+	}
+
 	.close-btn {
 		background: transparent;
 		border: none;
 		color: hsl(var(--muted-foreground));
 		cursor: pointer;
-		padding: 4px;
+		padding: 6px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		border-radius: 6px;
 		transition: all 0.15s ease;
+		margin-top: -4px;
+		margin-right: -4px;
 	}
 
 	.close-btn:hover {
@@ -340,15 +386,39 @@
 	.sort-rules-list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.85rem;
+		gap: 0.75rem;
+		overflow-y: auto;
+		overflow-x: hidden;
+		max-height: 48vh;
+		padding-right: 6px;
+		margin-right: -6px;
+	}
+
+	/* Custom Sleek Scrollbar */
+	.custom-scrollbar::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	.custom-scrollbar::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.custom-scrollbar::-webkit-scrollbar-thumb {
+		background: hsl(var(--muted) / 0.8);
+		border-radius: 4px;
+	}
+
+	.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+		background: hsl(var(--muted-foreground) / 0.5);
 	}
 
 	.sort-rule-row {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
-		padding: 0.35rem 0;
-		border-bottom: 1px solid hsl(var(--border) / 0.4);
+		gap: 0.85rem;
+		padding: 0.4rem 0;
+		border-bottom: 1px solid hsl(var(--border) / 0.35);
+		flex-shrink: 0;
 	}
 
 	.sort-rule-row:last-child {
@@ -356,23 +426,23 @@
 	}
 
 	.rule-label {
-		font-size: 0.9rem;
+		font-size: 0.875rem;
 		font-weight: 500;
 		color: hsl(var(--muted-foreground));
-		width: 62px;
+		width: 58px;
 		flex-shrink: 0;
 		white-space: nowrap;
 	}
 
 	.select-wrapper {
 		flex: 1;
-		min-width: 140px;
+		min-width: 150px;
 	}
 
 	.sort-select {
 		width: 100%;
 		height: 36px;
-		background: hsl(var(--muted) / 0.6);
+		background: hsl(var(--muted) / 0.5);
 		border: 1px solid hsl(var(--border));
 		border-radius: var(--radius);
 		color: hsl(var(--foreground));
@@ -385,7 +455,7 @@
 	}
 
 	.sort-select:hover {
-		background: hsl(var(--muted) / 0.9);
+		background: hsl(var(--muted) / 0.8);
 		border-color: hsl(var(--border));
 	}
 
@@ -403,14 +473,14 @@
 	.direction-radio-group {
 		display: flex;
 		align-items: center;
-		gap: 1rem;
+		gap: 1.15rem;
 		flex-shrink: 0;
 	}
 
 	.radio-label {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.4rem;
+		gap: 0.45rem;
 		font-size: 0.85rem;
 		font-weight: 500;
 		color: hsl(var(--foreground));
@@ -419,7 +489,7 @@
 	}
 
 	.radio-input {
-		accent-color: #107c41; /* Google Sheets green accent */
+		accent-color: hsl(var(--primary)); /* Budgericards primary blue */
 		cursor: pointer;
 		width: 16px;
 		height: 16px;
@@ -445,8 +515,8 @@
 	}
 
 	.delete-tier-btn:hover {
-		color: hsl(var(--destructive));
-		background: hsl(var(--destructive) / 0.12);
+		color: hsl(var(--destructive-foreground, #ef4444));
+		background: hsl(var(--destructive) / 0.15);
 	}
 
 	.delete-placeholder {
@@ -454,37 +524,33 @@
 		flex-shrink: 0;
 	}
 
-	/* Add Tier Button */
-	.add-tier-container {
+	/* Add & Reset Actions Row */
+	.tier-actions-row {
 		display: flex;
 		align-items: center;
-		padding-top: 0.25rem;
+		justify-content: space-between;
+		padding-top: 0.15rem;
+		flex-shrink: 0;
 	}
 
 	.add-tier-btn {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.5rem;
-		background: transparent;
-		border: 1px solid hsl(var(--border));
+		gap: 0.45rem;
+		background: hsl(var(--primary) / 0.08);
+		border: 1px solid hsl(var(--primary) / 0.3);
 		border-radius: var(--radius);
-		padding: 0.5rem 0.9rem;
-		color: #107c41; /* Green accent matching Google Sheets */
-		font-size: 0.875rem;
+		padding: 0.45rem 0.85rem;
+		color: hsl(var(--primary));
+		font-size: 0.85rem;
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.15s ease;
 	}
 
-	:global(.dark) .add-tier-btn {
-		color: #4ade80;
-		border-color: rgba(74, 222, 128, 0.25);
-		background: rgba(74, 222, 128, 0.05);
-	}
-
 	.add-tier-btn:hover:not(:disabled) {
-		background: rgba(74, 222, 128, 0.12);
-		border-color: rgba(74, 222, 128, 0.45);
+		background: hsl(var(--primary) / 0.16);
+		border-color: hsl(var(--primary) / 0.5);
 	}
 
 	.add-tier-btn:disabled {
@@ -492,29 +558,65 @@
 		cursor: not-allowed;
 	}
 
+	.reset-defaults-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		background: transparent;
+		border: none;
+		color: hsl(var(--muted-foreground));
+		font-size: 0.8125rem;
+		font-weight: 500;
+		cursor: pointer;
+		padding: 4px 6px;
+		border-radius: 4px;
+		transition: all 0.15s ease;
+	}
+
+	.reset-defaults-btn:hover {
+		color: hsl(var(--foreground));
+		background: hsl(var(--muted) / 0.5);
+	}
+
 	/* Footer */
 	.modal-footer {
 		display: flex;
 		align-items: center;
-		justify-content: flex-end;
-		gap: 0.75rem;
-		padding-top: 0.75rem;
+		justify-content: space-between;
+		padding-top: 0.85rem;
 		border-top: 1px solid hsl(var(--border) / 0.5);
+		flex-shrink: 0;
+	}
+
+	.footer-left,
+	.footer-right {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
 	}
 
 	:global(.footer-btn) {
-		min-width: 80px;
-		height: 38px;
+		min-width: 76px;
+		height: 36px;
 		font-weight: 600;
 	}
 
-	:global(.apply-btn) {
-		background-color: #107c41 !important;
-		color: #ffffff !important;
-		border: none !important;
+	:global(.text-muted-btn) {
+		color: hsl(var(--muted-foreground)) !important;
 	}
 
-	:global(.apply-btn:hover) {
-		background-color: #0c6334 !important;
+	:global(.text-muted-btn:hover) {
+		color: hsl(var(--foreground)) !important;
+	}
+
+	/* Responsive tweaks for narrow screens */
+	@media (max-width: 560px) {
+		.sort-rule-row {
+			flex-wrap: wrap;
+		}
+		.direction-radio-group {
+			width: 100%;
+			padding-left: 58px;
+		}
 	}
 </style>
