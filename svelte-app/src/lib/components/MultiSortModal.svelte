@@ -10,6 +10,7 @@
 		ChevronDown,
 		ChevronUp,
 		GripVertical,
+		Check,
 	} from "lucide-svelte";
 	import Button from "./ui/Button.svelte";
 	import ManaSymbol from "./ui/ManaSymbol.svelte";
@@ -58,6 +59,8 @@
 	/** @type {Array<{ type: string, direction: string }>} */
 	let draftSorts = $state([]);
 	let showDefaultDetails = $state(false);
+
+	// Add Sort dropdown state
 	let isAddMenuOpen = $state(false);
 	/** @type {HTMLElement | null} */
 	let addBtnRef = $state(null);
@@ -66,6 +69,17 @@
 	let menuTop = $state(0);
 	let menuLeft = $state(0);
 	let menuWidth = $state(0);
+
+	// Criterion field dropdown state
+	/** @type {number | null} */
+	let openFieldMenuIndex = $state(null);
+	/** @type {Record<number, HTMLElement>} */
+	let fieldBtnRefs = $state({});
+	/** @type {HTMLElement | null} */
+	let fieldMenuRef = $state(null);
+	let fieldMenuTop = $state(0);
+	let fieldMenuLeft = $state(0);
+	let fieldMenuWidth = $state(0);
 
 	async function updateAddMenuPosition() {
 		if (!isAddMenuOpen || !addBtnRef) return;
@@ -101,6 +115,42 @@
 		};
 	});
 
+	async function updateFieldMenuPosition() {
+		if (openFieldMenuIndex === null || !fieldBtnRefs[openFieldMenuIndex]) return;
+		await tick();
+		const triggerEl = fieldBtnRefs[openFieldMenuIndex];
+		if (!triggerEl) return;
+		const rect = triggerEl.getBoundingClientRect();
+		const menuRect = fieldMenuRef?.getBoundingClientRect() || {
+			width: rect.width,
+			height: 220,
+		};
+
+		fieldMenuWidth = Math.max(rect.width, 180);
+		fieldMenuLeft = rect.left;
+
+		const spaceBelow = window.innerHeight - rect.bottom - 10;
+		const spaceAbove = rect.top - 10;
+
+		if (spaceBelow < menuRect.height && spaceAbove > spaceBelow) {
+			fieldMenuTop = rect.top - menuRect.height - 4;
+		} else {
+			fieldMenuTop = rect.bottom + 4;
+		}
+	}
+
+	$effect(() => {
+		if (openFieldMenuIndex !== null) {
+			updateFieldMenuPosition();
+			window.addEventListener("resize", updateFieldMenuPosition);
+			window.addEventListener("scroll", updateFieldMenuPosition, true);
+		}
+		return () => {
+			window.removeEventListener("resize", updateFieldMenuPosition);
+			window.removeEventListener("scroll", updateFieldMenuPosition, true);
+		};
+	});
+
 	// Drag and drop state
 	/** @type {number | null} */
 	let draggedIndex = $state(null);
@@ -116,6 +166,7 @@
 			untrack(() => {
 				showDefaultDetails = false;
 				isAddMenuOpen = false;
+				openFieldMenuIndex = null;
 				draggedIndex = null;
 				dropTarget = null;
 
@@ -137,6 +188,7 @@
 	function close() {
 		isOpen = false;
 		isAddMenuOpen = false;
+		openFieldMenuIndex = null;
 		if (onClose) onClose();
 	}
 
@@ -153,7 +205,9 @@
 		if (e.key === "Escape") {
 			e.preventDefault();
 			e.stopPropagation();
-			if (isAddMenuOpen) {
+			if (openFieldMenuIndex !== null) {
+				openFieldMenuIndex = null;
+			} else if (isAddMenuOpen) {
 				isAddMenuOpen = false;
 			} else {
 				close();
@@ -175,10 +229,13 @@
 
 	/** @param {number} index */
 	function removeSortTier(index) {
+		if (openFieldMenuIndex === index) openFieldMenuIndex = null;
 		draftSorts = draftSorts.filter((_, i) => i !== index);
 	}
 
 	function clearAll() {
+		openFieldMenuIndex = null;
+		isAddMenuOpen = false;
 		draftSorts = [];
 	}
 
@@ -269,6 +326,17 @@
 		) {
 			isAddMenuOpen = false;
 		}
+		if (openFieldMenuIndex !== null) {
+			const currentBtn = fieldBtnRefs[openFieldMenuIndex];
+			if (
+				currentBtn &&
+				!currentBtn.contains(targetNode) &&
+				fieldMenuRef &&
+				!fieldMenuRef.contains(targetNode)
+			) {
+				openFieldMenuIndex = null;
+			}
+		}
 	}}
 />
 
@@ -358,18 +426,26 @@
 							{idx === 0 ? "Sort by" : "then by"}
 						</span>
 
-						<!-- Field Selector with Custom Chevron -->
+						<!-- Custom Unified Field Selector -->
 						<div class="select-wrapper">
-							<select
-								bind:value={rule.type}
-								class="sort-select"
+							<button
+								type="button"
+								bind:this={fieldBtnRefs[idx]}
+								class="custom-select-trigger"
+								class:is-active={openFieldMenuIndex === idx}
+								onclick={() => {
+									openFieldMenuIndex = openFieldMenuIndex === idx ? null : idx;
+									isAddMenuOpen = false;
+								}}
+								aria-haspopup="listbox"
+								aria-expanded={openFieldMenuIndex === idx}
 								aria-label={idx === 0 ? "Primary sort criterion" : `Sort criterion level ${idx + 1}`}
 							>
-								{#each availableCriteria as crit}
-									<option value={crit.id}>{crit.label}</option>
-								{/each}
-							</select>
-							<ChevronDown size={14} class="select-chevron" />
+								<span class="select-value-text">
+									{availableCriteria.find((c) => c.id === rule.type)?.label || rule.type}
+								</span>
+								<ChevronDown size={14} class={`select-chevron ${openFieldMenuIndex === idx ? "rotate" : ""}`} />
+							</button>
 						</div>
 
 						<!-- Direction Toggle Button with Custom Symbols / Text -->
@@ -448,7 +524,10 @@
 						bind:this={addBtnRef}
 						class="add-tier-btn"
 						class:is-active={isAddMenuOpen}
-						onclick={() => (isAddMenuOpen = !isAddMenuOpen)}
+						onclick={() => {
+							isAddMenuOpen = !isAddMenuOpen;
+							openFieldMenuIndex = null;
+						}}
 						disabled={!canAddMore}
 						aria-haspopup="true"
 						aria-expanded={isAddMenuOpen}
@@ -474,7 +553,11 @@
 						<button
 							type="button"
 							class="default-sort-trigger-btn"
-							onclick={() => (showDefaultDetails = true)}
+							onclick={() => {
+								showDefaultDetails = true;
+								isAddMenuOpen = false;
+								openFieldMenuIndex = null;
+							}}
 							title="View default fallback sort order"
 						>
 							<span class="default-trigger-title">Default Sort Order</span>
@@ -617,22 +700,54 @@
 			{/if}
 		</div>
 
-		<!-- Portaled Dropdown Menu for Add Sort (Completely immune to scroll container overflow clipping) -->
+		<!-- Portaled Dropdown Menu for Add Sort -->
 		{#if isAddMenuOpen && canAddMore}
 			<div
 				use:portal
 				bind:this={addMenuRef}
-				class="add-sort-dropdown-menu custom-scrollbar"
+				class="unified-dropdown-menu custom-scrollbar"
 				style="position: fixed; top: {menuTop}px; left: {menuLeft}px; width: {menuWidth}px; z-index: 13000;"
 				in:scale={{ duration: 100, start: 0.95 }}
 			>
 				{#each availableCriteria.filter((c) => !draftSorts.some((s) => s.type === c.id)) as crit}
 					<button
 						type="button"
-						class="add-sort-menu-item"
+						class="unified-menu-item"
 						onclick={() => addSortTierWithCriterion(crit.id)}
 					>
 						<span class="menu-item-label">{crit.label}</span>
+					</button>
+				{/each}
+			</div>
+		{/if}
+
+		<!-- Portaled Dropdown Menu for Field Criterion Selection -->
+		{#if openFieldMenuIndex !== null && draftSorts[openFieldMenuIndex]}
+			{@const activeRule = draftSorts[openFieldMenuIndex]}
+			<div
+				use:portal
+				bind:this={fieldMenuRef}
+				class="unified-dropdown-menu custom-scrollbar"
+				style="position: fixed; top: {fieldMenuTop}px; left: {fieldMenuLeft}px; width: {fieldMenuWidth}px; z-index: 13000;"
+				in:scale={{ duration: 100, start: 0.95 }}
+			>
+				{#each availableCriteria as crit}
+					{@const isSelected = activeRule.type === crit.id}
+					{@const isUsedElsewhere = draftSorts.some((s, i) => i !== openFieldMenuIndex && s.type === crit.id)}
+					<button
+						type="button"
+						class="unified-menu-item"
+						class:active={isSelected}
+						disabled={isUsedElsewhere}
+						onclick={() => {
+							activeRule.type = crit.id;
+							openFieldMenuIndex = null;
+						}}
+					>
+						<span class="menu-item-label">{crit.label}</span>
+						{#if isSelected}
+							<Check size={14} class="menu-check-icon" />
+						{/if}
 					</button>
 				{/each}
 			</div>
@@ -885,46 +1000,105 @@
 		align-items: center;
 	}
 
-	.sort-select {
+	.custom-select-trigger {
 		width: 100%;
 		height: 36px;
-		appearance: none;
-		-webkit-appearance: none;
-		-moz-appearance: none;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 		background: hsl(var(--muted) / 0.4);
 		border: 1px solid hsl(var(--border) / 0.8);
 		border-radius: var(--radius);
 		color: hsl(var(--foreground));
 		font-size: 0.875rem;
 		font-weight: 500;
-		padding: 0 32px 0 12px;
+		padding: 0 10px 0 12px;
 		cursor: pointer;
 		outline: none;
 		transition: border-color 0.12s ease, background 0.12s ease;
+		box-sizing: border-box;
+		text-align: left;
 	}
 
-	.sort-select:hover {
+	.custom-select-trigger:hover,
+	.custom-select-trigger.is-active {
 		background: hsl(var(--muted) / 0.7);
 		border-color: hsl(var(--border));
 	}
 
-	.sort-select:focus {
+	.custom-select-trigger:focus-visible {
 		border-color: hsl(var(--primary));
 		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
 	}
 
-	.sort-select option {
-		background: hsl(var(--card));
-		color: hsl(var(--card-foreground));
+	.select-value-text {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	:global(.select-chevron) {
-		position: absolute;
-		right: 11px;
-		top: 50%;
-		transform: translateY(-50%);
-		pointer-events: none;
 		color: hsl(var(--muted-foreground));
+		transition: transform 0.15s ease;
+		flex-shrink: 0;
+	}
+
+	:global(.select-chevron.rotate) {
+		transform: rotate(180deg);
+	}
+
+	/* Unified Popover Dropdown Menu */
+	.unified-dropdown-menu {
+		background: hsl(var(--popover));
+		border: 1px solid hsla(var(--border) / 0.6);
+		border-radius: var(--radius-lg, 8px);
+		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.55);
+		padding: 4px;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		max-height: 240px;
+		overflow-y: auto;
+		box-sizing: border-box;
+	}
+
+	.unified-menu-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 6px 10px;
+		background: transparent;
+		border: none;
+		border-radius: var(--radius-sm, 4px);
+		color: hsl(var(--muted-foreground));
+		font-size: 13px;
+		font-weight: 500;
+		cursor: pointer;
+		text-align: left;
+		transition: background 0.12s ease, color 0.12s ease;
+		box-sizing: border-box;
+		width: 100%;
+	}
+
+	.unified-menu-item:hover:not(:disabled) {
+		background: hsl(var(--primary));
+		color: white;
+	}
+
+	.unified-menu-item.active {
+		background: hsl(var(--primary) / 0.15);
+		color: hsl(var(--primary));
+		font-weight: 600;
+	}
+
+	.unified-menu-item:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	:global(.menu-check-icon) {
+		color: currentColor;
+		flex-shrink: 0;
 	}
 
 	/* Direction Toggle Button */
@@ -1045,7 +1219,7 @@
 		background: hsl(var(--destructive) / 0.15);
 	}
 
-	/* Full-Width Add Sort Button & Dropdown Menu */
+	/* Full-Width Add Sort Button */
 	.add-sort-inline-container {
 		position: relative;
 		display: flex;
@@ -1092,41 +1266,6 @@
 
 	:global(.add-chevron.rotate) {
 		transform: rotate(180deg);
-	}
-
-	.add-sort-dropdown-menu {
-		background: hsl(var(--card));
-		border: 1px solid hsl(var(--border));
-		border-radius: var(--radius);
-		box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.7), 0 0 1px 1px hsl(var(--border) / 0.7);
-		padding: 4px;
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		max-height: 240px;
-		overflow-y: auto;
-		box-sizing: border-box;
-	}
-
-	.add-sort-menu-item {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 8px 12px;
-		background: transparent;
-		border: none;
-		border-radius: 4px;
-		color: hsl(var(--foreground));
-		font-size: 0.85rem;
-		font-weight: 500;
-		cursor: pointer;
-		text-align: left;
-		transition: background 0.12s ease, color 0.12s ease;
-	}
-
-	.add-sort-menu-item:hover {
-		background: hsl(var(--muted));
-		color: hsl(var(--primary));
 	}
 
 	/* Default Sort Trigger Button (Collapsed) */

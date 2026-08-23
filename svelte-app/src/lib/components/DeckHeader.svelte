@@ -540,6 +540,7 @@
 						onclick={(e) => {
 							e.stopPropagation();
 							showBudgieDropdown = !showBudgieDropdown;
+							if (showBudgieDropdown) showProfileDropdown = false;
 						}}
 						aria-expanded={showBudgieDropdown}
 						aria-haspopup="menu"
@@ -585,6 +586,7 @@
 							onclick={(e) => {
 								e.stopPropagation();
 								showProfileDropdown = !showProfileDropdown;
+								if (showProfileDropdown) showBudgieDropdown = false;
 							}}
 							aria-expanded={showProfileDropdown}
 							aria-haspopup="menu"
@@ -1400,7 +1402,8 @@
 	.nav-dropdown-menu {
 		position: absolute;
 		top: calc(100% + 4px);
-		right: 0;
+		left: 0;
+		right: auto;
 		width: 190px;
 		background: hsl(var(--popover));
 		border: 1px solid hsl(var(--border));

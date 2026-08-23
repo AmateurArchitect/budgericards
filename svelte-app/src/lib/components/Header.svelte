@@ -253,12 +253,15 @@
 			<!-- Budgie Menu Container -->
 			<div class="budgie-menu-container">
 				<button
-					class="budgie-trigger"
-					onclick={() => (showBudgieDropdown = !showBudgieDropdown)}
+					class="brand-btn"
+					onclick={() => {
+						showBudgieDropdown = !showBudgieDropdown;
+						if (showBudgieDropdown) showProfileDropdown = false;
+					}}
 					aria-expanded={showBudgieDropdown}
 					aria-haspopup="menu"
-				>
-					<span class="logo-text">Budgie</span>
+					title="Budgie Menu"
+				>	<span class="logo-text">Budgie</span>
 					<ChevronDown size={14} class="chevron {showBudgieDropdown ? 'open' : ''}" />
 				</button>
 
@@ -300,7 +303,10 @@
 							<div class="profile-menu-container">
 								<button
 									class="profile-trigger"
-									onclick={() => (showProfileDropdown = !showProfileDropdown)}
+									onclick={() => {
+										showProfileDropdown = !showProfileDropdown;
+										if (showProfileDropdown) showBudgieDropdown = false;
+									}}
 									aria-expanded={showProfileDropdown}
 									aria-haspopup="menu"
 									aria-label="User menu"
@@ -530,7 +536,10 @@
 							<div class="profile-menu-container">
 								<button
 									class="profile-trigger"
-									onclick={() => (showProfileDropdown = !showProfileDropdown)}
+									onclick={() => {
+										showProfileDropdown = !showProfileDropdown;
+										if (showProfileDropdown) showBudgieDropdown = false;
+									}}
 									aria-expanded={showProfileDropdown}
 									aria-haspopup="menu"
 									aria-label="User menu"
@@ -990,7 +999,8 @@
 	.budgie-dropdown {
 		position: absolute;
 		top: calc(100% + 6px);
-		right: 0;
+		left: 0;
+		right: auto;
 		width: 200px;
 		background: hsl(var(--popover));
 		border: 1px solid hsla(var(--border) / 0.6);
@@ -1017,7 +1027,8 @@
 	.profile-dropdown {
 		position: absolute;
 		top: calc(100% + 6px);
-		right: 0;
+		left: 0;
+		right: auto;
 		width: 220px;
 		background: hsl(var(--popover));
 		border: 1px solid hsla(var(--border) / 0.6);
