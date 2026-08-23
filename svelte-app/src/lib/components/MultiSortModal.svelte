@@ -1,6 +1,6 @@
 <script>
 	import { fade, scale } from "svelte/transition";
-	import { X, Trash2, Plus, RotateCcw } from "lucide-svelte";
+	import { X, Trash2, Plus, RotateCcw, ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-svelte";
 	import Button from "./ui/Button.svelte";
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
@@ -209,34 +209,24 @@
 							</select>
 						</div>
 
-						<!-- Direction Radios -->
-						<div class="direction-radio-group">
-							<label class="radio-label">
-								<input
-									type="radio"
-									name={`sort-dir-${idx}`}
-									value="default"
-									bind:group={rule.direction}
-									class="radio-input"
-								/>
-								<span class="radio-text">
-									{directionLabels[rule.type]?.default || "Ascending"}
-								</span>
-							</label>
-
-							<label class="radio-label">
-								<input
-									type="radio"
-									name={`sort-dir-${idx}`}
-									value="reverse"
-									bind:group={rule.direction}
-									class="radio-input"
-								/>
-								<span class="radio-text">
-									{directionLabels[rule.type]?.reverse || "Descending"}
-								</span>
-							</label>
-						</div>
+						<!-- Direction Toggle Button with Label -->
+						<button
+							type="button"
+							class="direction-toggle-btn"
+							onclick={() => {
+								rule.direction = rule.direction === "default" ? "reverse" : "default";
+							}}
+							title="Click to toggle sort direction"
+							aria-label={`Sort direction: ${rule.direction === 'default' ? directionLabels[rule.type]?.default : directionLabels[rule.type]?.reverse}`}
+						>
+							{#if rule.direction === "default"}
+								<ArrowDownWideNarrow size={14} class="dir-icon" />
+								<span class="dir-text">{directionLabels[rule.type]?.default || "Ascending"}</span>
+							{:else}
+								<ArrowUpNarrowWide size={14} class="dir-icon" />
+								<span class="dir-text">{directionLabels[rule.type]?.reverse || "Descending"}</span>
+							{/if}
+						</button>
 
 						<!-- Delete Tier Button -->
 						{#if draftSorts.length > 1}
@@ -469,34 +459,45 @@
 		color: hsl(var(--card-foreground));
 	}
 
-	/* Direction Radios */
-	.direction-radio-group {
-		display: flex;
+	/* Direction Toggle Button */
+	.direction-toggle-btn {
+		display: inline-flex;
 		align-items: center;
-		gap: 1.15rem;
+		gap: 0.5rem;
+		height: 36px;
+		min-width: 142px;
+		padding: 0 12px 0 10px;
+		background: hsl(var(--muted) / 0.5);
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
+		color: hsl(var(--foreground));
+		font-size: 0.85rem;
+		font-weight: 500;
+		cursor: pointer;
+		outline: none;
+		transition: all 0.15s ease;
+		user-select: none;
+		flex-shrink: 0;
+		justify-content: flex-start;
+	}
+
+	.direction-toggle-btn:hover {
+		background: hsl(var(--muted) / 0.9);
+		border-color: hsl(var(--border));
+		color: hsl(var(--primary));
+	}
+
+	.direction-toggle-btn:focus-visible {
+		border-color: hsl(var(--primary));
+		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+	}
+
+	:global(.dir-icon) {
+		color: hsl(var(--primary));
 		flex-shrink: 0;
 	}
 
-	.radio-label {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45rem;
-		font-size: 0.85rem;
-		font-weight: 500;
-		color: hsl(var(--foreground));
-		cursor: pointer;
-		user-select: none;
-	}
-
-	.radio-input {
-		accent-color: hsl(var(--primary)); /* Budgericards primary blue */
-		cursor: pointer;
-		width: 16px;
-		height: 16px;
-		margin: 0;
-	}
-
-	.radio-text {
+	.dir-text {
 		white-space: nowrap;
 	}
 
