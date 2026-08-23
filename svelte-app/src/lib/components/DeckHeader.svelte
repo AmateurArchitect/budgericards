@@ -28,7 +28,8 @@
 		PlusCircle,
 		LogOut,
 		Settings as SettingsIcon,
-		ArrowUpDown,
+		ArrowDownWideNarrow,
+		LayoutGrid,
 	} from "lucide-svelte";
 	import Button from "./ui/Button.svelte";
 	import ManaSymbol from "./ui/ManaSymbol.svelte";
@@ -712,7 +713,7 @@
 			{#if settingsStore.deckViewMode !== "settings" && settingsStore.deckViewMode !== "list" && settingsStore.deckViewMode !== "stats"}
 				<div class="grouping-container">
 					<button
-						class="header-select-trigger"
+						class="header-select-trigger grouping-trigger"
 						onclick={(e) => {
 							e.stopPropagation();
 							showColumnsDropdown = !showColumnsDropdown;
@@ -721,6 +722,7 @@
 						aria-haspopup="listbox"
 						title="Group cards by"
 					>
+						<LayoutGrid size={14} class="grouping-icon" />
 						<span class="trigger-value full-label">{curGroupingCol?.label || "Grouping"}</span>
 						<span class="trigger-value short-label">{curGroupingCol?.shortLabel || curGroupingCol?.label || "Grouping"}</span>
 						<ChevronDown size={13} class="chevron {showColumnsDropdown ? 'open' : ''}" />
@@ -777,7 +779,7 @@
 						title="Sort Displayed Cards"
 						aria-label="Sort Displayed Cards"
 					>
-						<ArrowUpDown size={15} />
+						<ArrowDownWideNarrow size={15} />
 					</Button>
 				{/if}
 
@@ -1224,8 +1226,8 @@
 		height: 36px;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.35rem;
-		padding: 0 0.75rem;
+		gap: 0.45rem;
+		padding: 0 10px;
 		background: hsl(var(--muted) / 0.5);
 		border: 1px solid hsl(var(--border));
 		border-radius: var(--radius);
@@ -1236,6 +1238,24 @@
 		transition: all 0.15s ease;
 		white-space: nowrap;
 		box-sizing: border-box;
+	}
+
+	.grouping-trigger {
+		padding: 0 9px 0 10px;
+		gap: 0.45rem;
+	}
+
+	.grouping-icon {
+		color: hsl(var(--muted-foreground));
+		flex-shrink: 0;
+	}
+
+	.grouping-trigger:hover .grouping-icon {
+		color: hsl(var(--foreground));
+	}
+
+	.table-cols-container .header-select-trigger {
+		padding: 0 9px 0 13px;
 	}
 
 	.header-select-trigger:hover {
@@ -1334,7 +1354,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		padding: 0 0.75rem;
+		padding: 0 9px 0 13px;
 		background: hsl(var(--muted) / 0.5);
 		border: 1px solid hsl(var(--border));
 		border-radius: var(--radius);

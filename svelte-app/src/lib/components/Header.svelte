@@ -12,8 +12,8 @@
 		Palette,
 		FolderOpen,
 		Settings as SettingsIcon,
-		ArrowUpDown,
-		Columns2,
+		ArrowDownWideNarrow,
+		PanelLeft,
 	} from "lucide-svelte";
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { authStore } from "$lib/stores/auth.svelte.js";
@@ -337,7 +337,7 @@
 						aria-label="Switch to vertical layout"
 						title="Switch to vertical layout"
 					>
-						<Columns2 size={15} />
+						<PanelLeft size={15} />
 					</button>
 
 					<!-- Interlocking Curved Search Container (3-piece matching system) -->
@@ -454,7 +454,7 @@
 							>
 								<path d={rightCurvedPathD()} />
 							</svg>
-							<ArrowUpDown size={14} />
+							<ArrowDownWideNarrow size={14} />
 						</button>
 					</div>
 
@@ -676,7 +676,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		padding: 0 1.65rem 0 0.85rem;
+		padding: 0 1.65rem 0 1.05rem;
 		background: transparent;
 		border: none;
 		color: hsl(var(--foreground));
@@ -924,7 +924,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		padding: 0 0.75rem;
+		padding: 0 9px 0 13px;
 		background: hsl(var(--muted) / 0.5);
 		border: 1px solid hsl(var(--border));
 		border-radius: var(--radius);
