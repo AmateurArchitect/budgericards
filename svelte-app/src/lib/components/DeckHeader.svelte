@@ -326,6 +326,36 @@
 		showBoardDropdown = false;
 	}
 
+	/** @param {string} except */
+	function closeAllDropdowns(except = "") {
+		if (except !== "board") showBoardDropdown = false;
+		if (except !== "grouping") showColumnsDropdown = false;
+		if (except !== "sort") showSortDropdown = false;
+		if (except !== "tableCols") showTableColumnsDropdown = false;
+		if (except !== "budgie") showBudgieDropdown = false;
+		if (except !== "profile") showProfileDropdown = false;
+	}
+
+	/** @param {HTMLElement} node */
+	function smartAlign(node) {
+		function align() {
+			node.style.left = "0";
+			node.style.right = "auto";
+			const rect = node.getBoundingClientRect();
+			if (rect.right > window.innerWidth - 10) {
+				node.style.left = "auto";
+				node.style.right = "0";
+			}
+		}
+		align();
+		window.addEventListener("resize", align);
+		return {
+			destroy() {
+				window.removeEventListener("resize", align);
+			},
+		};
+	}
+
 	function handleNewDeck() {
 		showBudgieDropdown = false;
 		showProfileDropdown = false;
@@ -458,6 +488,7 @@
 							onclick={(e) => {
 								e.stopPropagation();
 								showBoardDropdown = !showBoardDropdown;
+								if (showBoardDropdown) closeAllDropdowns("board");
 							}}
 							aria-expanded={showBoardDropdown}
 							aria-haspopup="listbox"
@@ -465,11 +496,11 @@
 							<span class="board-label">
 								{deckStore.currentBoardCount} Card {boards.find((b) => b.id === deckStore.activeBoard)?.label}
 							</span>
-							<ChevronDown size={13} class="chevron {showBoardDropdown ? 'open' : ''}" />
+							<ChevronDown size={13} class="chevron" />
 						</button>
 
 						{#if showBoardDropdown}
-							<div class="board-dropdown-menu" transition:fly={{ y: 4, duration: 150 }}>
+							<div class="board-dropdown-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
 								{#each boards as board}
 									<button
 										class="dropdown-item"
@@ -540,18 +571,18 @@
 						onclick={(e) => {
 							e.stopPropagation();
 							showBudgieDropdown = !showBudgieDropdown;
-							if (showBudgieDropdown) showProfileDropdown = false;
+							if (showBudgieDropdown) closeAllDropdowns("budgie");
 						}}
 						aria-expanded={showBudgieDropdown}
 						aria-haspopup="menu"
 						title="Budgie Menu"
 					>
 						<span class="brand-text">Budgie</span>
-						<ChevronDown size={13} class="chevron {showBudgieDropdown ? 'open' : ''}" />
+						<ChevronDown size={13} class="chevron" />
 					</button>
 
 					{#if showBudgieDropdown}
-						<div class="nav-dropdown-menu" transition:fade={{ duration: 120 }}>
+						<div class="nav-dropdown-menu" use:smartAlign transition:fade={{ duration: 120 }}>
 							<a href="/decks" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
 								<FolderOpen size={14} />
 								<span>Browse Decks</span>
@@ -586,7 +617,7 @@
 							onclick={(e) => {
 								e.stopPropagation();
 								showProfileDropdown = !showProfileDropdown;
-								if (showProfileDropdown) showBudgieDropdown = false;
+								if (showProfileDropdown) closeAllDropdowns("profile");
 							}}
 							aria-expanded={showProfileDropdown}
 							aria-haspopup="menu"
@@ -596,11 +627,11 @@
 							<span class="user-name nav-label">
 								{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0]}
 							</span>
-							<ChevronDown size={13} class="chevron {showProfileDropdown ? 'open' : ''}" />
+							<ChevronDown size={13} class="chevron" />
 						</button>
 
 						{#if showProfileDropdown}
-							<div class="nav-dropdown-menu profile-menu" transition:fade={{ duration: 120 }}>
+							<div class="nav-dropdown-menu profile-menu" use:smartAlign transition:fade={{ duration: 120 }}>
 								<div class="dropdown-header">
 									<span class="dropdown-email">{authStore.user.email}</span>
 								</div>
@@ -720,10 +751,11 @@
 			{#if settingsStore.deckViewMode !== "settings" && settingsStore.deckViewMode !== "list" && settingsStore.deckViewMode !== "stats"}
 				<div class="grouping-container">
 					<button
-						class="header-select-trigger grouping-trigger"
+						class="custom-select-trigger"
 						onclick={(e) => {
 							e.stopPropagation();
 							showColumnsDropdown = !showColumnsDropdown;
+							if (showColumnsDropdown) closeAllDropdowns("grouping");
 						}}
 						aria-expanded={showColumnsDropdown}
 						aria-haspopup="listbox"
@@ -732,11 +764,11 @@
 						<LayoutGrid size={14} class="grouping-icon" />
 						<span class="trigger-value full-label">{curGroupingCol?.label || "Grouping"}</span>
 						<span class="trigger-value short-label">{curGroupingCol?.shortLabel || curGroupingCol?.label || "Grouping"}</span>
-						<ChevronDown size={13} class="chevron {showColumnsDropdown ? 'open' : ''}" />
+						<ChevronDown size={13} class="chevron" />
 					</button>
 
 					{#if showColumnsDropdown}
-						<div class="header-select-menu" transition:fly={{ y: 4, duration: 150 }}>
+						<div class="header-select-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
 							{#each visibleGroupings as col}
 								<button
 									class="select-item"
@@ -798,10 +830,11 @@
 				{#if settingsStore.deckViewMode === "table"}
 					<div class="table-cols-container">
 						<button
-							class="header-select-trigger"
+							class="custom-select-trigger"
 							onclick={(e) => {
 								e.stopPropagation();
 								showTableColumnsDropdown = !showTableColumnsDropdown;
+								if (showTableColumnsDropdown) closeAllDropdowns("tableCols");
 							}}
 							aria-expanded={showTableColumnsDropdown}
 							aria-haspopup="listbox"
@@ -812,11 +845,11 @@
 									? "All Cols"
 									: `${settingsStore.visibleColumns.length} Cols`}
 							</span>
-							<ChevronDown size={13} class="chevron {showTableColumnsDropdown ? 'open' : ''}" />
+							<ChevronDown size={13} class="chevron" />
 						</button>
 
 						{#if showTableColumnsDropdown}
-							<div class="header-select-menu" transition:fly={{ y: 4, duration: 150 }}>
+							<div class="header-select-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
 								{#each toggleableColumns as col}
 									<button
 										class="select-item multi-select-item"

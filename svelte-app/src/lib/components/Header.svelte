@@ -139,6 +139,33 @@
 		showCollectionDropdown = false;
 	}
 
+	/** @param {string} except */
+	function closeAllDropdowns(except = "") {
+		if (except !== "collection") showCollectionDropdown = false;
+		if (except !== "profile") showProfileDropdown = false;
+		if (except !== "budgie") showBudgieDropdown = false;
+	}
+
+	/** @param {HTMLElement} node */
+	function smartAlign(node) {
+		function align() {
+			node.style.left = "0";
+			node.style.right = "auto";
+			const rect = node.getBoundingClientRect();
+			if (rect.right > window.innerWidth - 10) {
+				node.style.left = "auto";
+				node.style.right = "0";
+			}
+		}
+		align();
+		window.addEventListener("resize", align);
+		return {
+			destroy() {
+				window.removeEventListener("resize", align);
+			},
+		};
+	}
+
 	/** @param {MouseEvent} e */
 	function handleClickOutside(e) {
 		const target = /** @type {HTMLElement} */ (e.target);
@@ -256,17 +283,18 @@
 					class="brand-btn"
 					onclick={() => {
 						showBudgieDropdown = !showBudgieDropdown;
-						if (showBudgieDropdown) showProfileDropdown = false;
+						if (showBudgieDropdown) closeAllDropdowns("budgie");
 					}}
 					aria-expanded={showBudgieDropdown}
 					aria-haspopup="menu"
 					title="Budgie Menu"
-				>	<span class="logo-text">Budgie</span>
-					<ChevronDown size={14} class="chevron {showBudgieDropdown ? 'open' : ''}" />
+				>
+					<span class="logo-text">Budgie</span>
+					<ChevronDown size={14} class="chevron" />
 				</button>
 
 				{#if showBudgieDropdown}
-					<div class="budgie-dropdown" transition:fade={{ duration: 150 }}>
+					<div class="budgie-dropdown" use:smartAlign transition:fade={{ duration: 150 }}>
 						<a href="/decks" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
 							<FolderOpen size={14} />
 							<span>Browse Decks</span>
@@ -305,7 +333,7 @@
 									class="profile-trigger"
 									onclick={() => {
 										showProfileDropdown = !showProfileDropdown;
-										if (showProfileDropdown) showBudgieDropdown = false;
+										if (showProfileDropdown) closeAllDropdowns("profile");
 									}}
 									aria-expanded={showProfileDropdown}
 									aria-haspopup="menu"
@@ -314,11 +342,11 @@
 									<span class="user-name">
 										{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0]}
 									</span>
-									<ChevronDown size={14} class="chevron {showProfileDropdown ? 'open' : ''}" />
+									<ChevronDown size={14} class="chevron" />
 								</button>
 
 								{#if showProfileDropdown}
-									<div class="profile-dropdown" transition:fade={{ duration: 150 }}>
+									<div class="profile-dropdown" use:smartAlign transition:fade={{ duration: 150 }}>
 										<div class="dropdown-header">
 											<span class="dropdown-email">{authStore.user.email}</span>
 										</div>
@@ -383,7 +411,10 @@
 							<button
 								class="collection-trigger"
 								bind:clientWidth={collectionWidth}
-								onclick={() => (showCollectionDropdown = !showCollectionDropdown)}
+								onclick={() => {
+									showCollectionDropdown = !showCollectionDropdown;
+									if (showCollectionDropdown) closeAllDropdowns("collection");
+								}}
 								aria-expanded={showCollectionDropdown}
 								aria-haspopup="listbox"
 							>
@@ -395,11 +426,11 @@
 									<path d={curvedPathD()} />
 								</svg>
 								<span class="value-text">{collectionButtonText}</span>
-								<ChevronDown size={13} class="chevron {showCollectionDropdown ? 'open' : ''}" />
+								<ChevronDown size={13} class="chevron" />
 							</button>
 
 							{#if showCollectionDropdown}
-								<div class="collection-menu" transition:fly={{ y: 4, duration: 150 }}>
+								<div class="collection-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
 									{#each collections as item}
 										{#if item.divider}
 											<div class="menu-divider"></div>
@@ -538,7 +569,7 @@
 									class="profile-trigger"
 									onclick={() => {
 										showProfileDropdown = !showProfileDropdown;
-										if (showProfileDropdown) showBudgieDropdown = false;
+										if (showProfileDropdown) closeAllDropdowns("profile");
 									}}
 									aria-expanded={showProfileDropdown}
 									aria-haspopup="menu"
@@ -547,11 +578,11 @@
 									<span class="user-name">
 										{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0]}
 									</span>
-									<ChevronDown size={14} class="chevron {showProfileDropdown ? 'open' : ''}" />
+									<ChevronDown size={14} class="chevron" />
 								</button>
 
 								{#if showProfileDropdown}
-									<div class="profile-dropdown" transition:fade={{ duration: 150 }}>
+									<div class="profile-dropdown" use:smartAlign transition:fade={{ duration: 150 }}>
 										<div class="dropdown-header">
 											<span class="dropdown-email">{authStore.user.email}</span>
 										</div>
