@@ -946,7 +946,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 12px;
+		padding: 0 20px;
 		position: relative;
 		z-index: 20;
 		box-sizing: border-box;
@@ -972,7 +972,7 @@
 		align-items: center;
 		gap: 0.875rem;
 		padding: 8px;
-		margin: 0;
+		margin: 0 0 0 -8px;
 		border-radius: var(--radius-lg, 8px);
 		cursor: pointer;
 		transition: background-color 0.15s ease;
