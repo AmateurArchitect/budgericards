@@ -186,63 +186,114 @@
 	<!-- Search Bar Top Row (when Search is Open or on non-deck pages) -->
 	<header class="app-header" class:search-open={isDeckPage && searchStore.isOpen}>
 		<div class="header-left">
-			{#if isDeckPage && searchStore.isOpen}
+			<!-- Budgie Menu Container -->
+			<div class="budgie-menu-container">
 				<button
-					class="close-search-btn"
-					onclick={() => searchStore.closeSearch()}
-					aria-label="Close search (Esc)"
-					title="Close search (Esc)"
+					class="budgie-trigger"
+					onclick={() => (showBudgieDropdown = !showBudgieDropdown)}
+					aria-expanded={showBudgieDropdown}
+					aria-haspopup="menu"
 				>
-					<ChevronUp size={16} />
+					<span class="logo-text">Budgie</span>
+					<ChevronDown size={14} class="chevron {showBudgieDropdown ? 'open' : ''}" />
 				</button>
-			{/if}
 
-			{#if !isDeckPage}
-				<div class="budgie-menu-container">
-					<button
-						class="budgie-trigger"
-						onclick={() => (showBudgieDropdown = !showBudgieDropdown)}
-						aria-expanded={showBudgieDropdown}
-						aria-haspopup="menu"
-					>
-						<span class="logo-text">Budgie</span>
-						<ChevronDown size={14} class="chevron {showBudgieDropdown ? 'open' : ''}" />
-					</button>
+				{#if showBudgieDropdown}
+					<div class="budgie-dropdown" transition:fade={{ duration: 150 }}>
+						<a href="/decks" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+							<FolderOpen size={14} />
+							<span>Browse Decks</span>
+						</a>
+						<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+							<Palette size={14} />
+							<span>Art Gallery</span>
+						</a>
+						<button class="menu-item" onclick={() => { showAboutModal = true; showBudgieDropdown = false; }}>
+							<HelpCircle size={14} />
+							<span>About Budgie</span>
+						</button>
+						<a
+							href="https://scryfall.com/docs/syntax"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="menu-item nav-link"
+							onclick={() => (showBudgieDropdown = false)}
+						>
+							<HelpCircle size={14} />
+							<span>Help</span>
+						</a>
+					</div>
+				{/if}
+			</div>
 
-					{#if showBudgieDropdown}
-						<div class="budgie-dropdown" transition:fade={{ duration: 150 }}>
-							<a href="/decks" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
-								<FolderOpen size={14} />
-								<span>Browse Decks</span>
-							</a>
-							<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
-								<Palette size={14} />
-								<span>Art Gallery</span>
-							</a>
-							<button class="menu-item" onclick={() => { showAboutModal = true; showBudgieDropdown = false; }}>
-								<HelpCircle size={14} />
-								<span>About Budgie</span>
-							</button>
+			<!-- User Profile / Auth on Left when search is open -->
+			{#if isDeckPage && searchStore.isOpen}
+				<div class="user-auth-bug">
+					{#if authStore.isLoading}
+						<div class="auth-loading-spinner spinner"></div>
+					{:else}
+						{#if authStore.isAuthenticated && authStore.user}
+							<div class="profile-menu-container">
+								<button
+									class="profile-trigger"
+									onclick={() => (showProfileDropdown = !showProfileDropdown)}
+									aria-expanded={showProfileDropdown}
+									aria-haspopup="menu"
+									aria-label="User menu"
+								>
+									<span class="user-name">
+										{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0]}
+									</span>
+									<ChevronDown size={14} class="chevron {showProfileDropdown ? 'open' : ''}" />
+								</button>
+
+								{#if showProfileDropdown}
+									<div class="profile-dropdown" transition:fade={{ duration: 150 }}>
+										<div class="dropdown-header">
+											<span class="dropdown-email">{authStore.user.email}</span>
+										</div>
+										<div class="menu-divider"></div>
+										<button class="menu-item" onclick={handleNewDeck}>
+											<PlusCircle size={14} />
+											<span>New Deck</span>
+										</button>
+										<a href="/decks" class="menu-item nav-link" onclick={() => (showProfileDropdown = false)}>
+											<FolderOpen size={14} />
+											<span>Your Decks</span>
+										</a>
+										<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
+											<SettingsIcon size={14} />
+											<span>Settings</span>
+										</button>
+										<div class="menu-divider"></div>
+										<button class="menu-item destructive" onclick={handleSignOut}>
+											<LogOut size={14} />
+											<span>Log Out</span>
+										</button>
+									</div>
+								{/if}
+							</div>
+						{:else}
 							<a
-								href="https://scryfall.com/docs/syntax"
-								target="_blank"
-								rel="noopener noreferrer"
-								class="menu-item nav-link"
-								onclick={() => (showBudgieDropdown = false)}
+								href="/login?redirectTo={encodeURIComponent($page.url.pathname)}"
+								class="profile-trigger font-semibold"
+								style="text-decoration: none;"
+								aria-label="Log In"
 							>
-								<HelpCircle size={14} />
-								<span>Help</span>
+								<span class="user-name">Log In</span>
 							</a>
-						</div>
+						{/if}
 					{/if}
 				</div>
-
+			{:else}
 				<nav class="nav-links">
 					<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>Browse Decks</a>
 					<a href="/gallery" class="nav-item" class:active={$page.url.pathname === '/gallery'}>Art Gallery</a>
 				</nav>
 			{/if}
+		</div>
 
+		<div class="header-right">
 			{#if isDeckPage && searchStore.isOpen}
 				<div class="search-bar">
 					<!-- Interlocking Curved Search Container (3-piece matching system) -->
@@ -354,7 +405,7 @@
 						>
 							<svg
 								class="curved-bg"
-								viewBox="0 0 {sortBtnWidth || 42} 36"
+								viewBox="0 0 {sortBtnWidth || 54} 36"
 								preserveAspectRatio="none"
 							>
 								<path d={rightCurvedPathD()} />
@@ -373,114 +424,81 @@
 					>
 						<Columns2 size={15} />
 					</button>
+
+					<!-- Collapse Search Button (Right side) -->
+					<button
+						class="close-search-btn"
+						onclick={() => searchStore.closeSearch()}
+						aria-label="Close search (Esc)"
+						title="Close search (Esc)"
+					>
+						<ChevronUp size={16} />
+					</button>
 				</div>
 
 				<SearchOptionsModal
 					bind:isOpen={showSearchOptions}
 					triggerElement={searchSettingsBtn}
 				/>
-			{/if}
-		</div>
+			{:else}
+				<div class="user-auth-bug">
+					{#if authStore.isLoading}
+						<div class="auth-loading-spinner spinner"></div>
+					{:else}
+						{#if authStore.isAuthenticated && authStore.user}
+							<div class="profile-menu-container">
+								<button
+									class="profile-trigger"
+									onclick={() => (showProfileDropdown = !showProfileDropdown)}
+									aria-expanded={showProfileDropdown}
+									aria-haspopup="menu"
+									aria-label="User menu"
+								>
+									<span class="user-name">
+										{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0]}
+									</span>
+									<ChevronDown size={14} class="chevron {showProfileDropdown ? 'open' : ''}" />
+								</button>
 
-		<div class="header-right">
-			{#if isDeckPage && searchStore.isOpen}
-				<div class="budgie-menu-container">
-					<button
-						class="budgie-trigger"
-						onclick={() => (showBudgieDropdown = !showBudgieDropdown)}
-						aria-expanded={showBudgieDropdown}
-						aria-haspopup="menu"
-					>
-						<span class="logo-text">Budgie</span>
-						<ChevronDown size={14} class="chevron {showBudgieDropdown ? 'open' : ''}" />
-					</button>
-
-					{#if showBudgieDropdown}
-						<div class="budgie-dropdown" transition:fade={{ duration: 150 }}>
-							<a href="/decks" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
-								<FolderOpen size={14} />
-								<span>Browse Decks</span>
-							</a>
-							<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
-								<Palette size={14} />
-								<span>Art Gallery</span>
-							</a>
-							<button class="menu-item" onclick={() => { showAboutModal = true; showBudgieDropdown = false; }}>
-								<HelpCircle size={14} />
-								<span>About Budgie</span>
-							</button>
+								{#if showProfileDropdown}
+									<div class="profile-dropdown" transition:fade={{ duration: 150 }}>
+										<div class="dropdown-header">
+											<span class="dropdown-email">{authStore.user.email}</span>
+										</div>
+										<div class="menu-divider"></div>
+										<button class="menu-item" onclick={handleNewDeck}>
+											<PlusCircle size={14} />
+											<span>New Deck</span>
+										</button>
+										<a href="/decks" class="menu-item nav-link" onclick={() => (showProfileDropdown = false)}>
+											<FolderOpen size={14} />
+											<span>Your Decks</span>
+										</a>
+										<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
+											<SettingsIcon size={14} />
+											<span>Settings</span>
+										</button>
+										<div class="menu-divider"></div>
+										<button class="menu-item destructive" onclick={handleSignOut}>
+											<LogOut size={14} />
+											<span>Log Out</span>
+										</button>
+									</div>
+								{/if}
+							</div>
+						{:else}
 							<a
-								href="https://scryfall.com/docs/syntax"
-								target="_blank"
-								rel="noopener noreferrer"
-								class="menu-item nav-link"
-								onclick={() => (showBudgieDropdown = false)}
+								href="/login?redirectTo={encodeURIComponent($page.url.pathname)}"
+								class="profile-trigger font-semibold"
+								style="text-decoration: none;"
+								aria-label="Log In"
 							>
-								<HelpCircle size={14} />
-								<span>Help</span>
+								<span class="user-name">Log In</span>
 							</a>
-						</div>
+						{/if}
 					{/if}
 				</div>
 			{/if}
-
-			<div class="user-auth-bug">
-				{#if authStore.isLoading}
-					<div class="auth-loading-spinner spinner"></div>
-				{:else}
-					{#if authStore.isAuthenticated && authStore.user}
-						<div class="profile-menu-container">
-							<button
-								class="profile-trigger"
-								onclick={() => (showProfileDropdown = !showProfileDropdown)}
-								aria-expanded={showProfileDropdown}
-								aria-haspopup="menu"
-								aria-label="User menu"
-							>
-								<span class="user-name">
-									{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0]}
-								</span>
-								<ChevronDown size={14} class="chevron {showProfileDropdown ? 'open' : ''}" />
-							</button>
-
-							{#if showProfileDropdown}
-								<div class="profile-dropdown" transition:fade={{ duration: 150 }}>
-									<div class="dropdown-header">
-										<span class="dropdown-email">{authStore.user.email}</span>
-									</div>
-									<div class="menu-divider"></div>
-									<button class="menu-item" onclick={handleNewDeck}>
-										<PlusCircle size={14} />
-										<span>New Deck</span>
-									</button>
-									<a href="/decks" class="menu-item nav-link" onclick={() => (showProfileDropdown = false)}>
-										<FolderOpen size={14} />
-										<span>Your Decks</span>
-									</a>
-									<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
-										<SettingsIcon size={14} />
-										<span>Settings</span>
-									</button>
-									<div class="menu-divider"></div>
-									<button class="menu-item destructive" onclick={handleSignOut}>
-										<LogOut size={14} />
-										<span>Log Out</span>
-									</button>
-								</div>
-							{/if}
-						</div>
-					{:else}
-						<a
-							href="/login?redirectTo={encodeURIComponent($page.url.pathname)}"
-							class="profile-trigger font-semibold"
-							style="text-decoration: none;"
-							aria-label="Log In"
-						>
-							<span class="user-name">Log In</span>
-						</a>
-					{/if}
-				{/if}
-			</div>
 		</div>
 	</header>
 {/if}
@@ -532,6 +550,23 @@
 		border-bottom: none;
 		padding: 20px 20px 0 20px;
 		height: 56px;
+	}
+
+	.app-header.search-open .header-left {
+		flex: 0 0 auto;
+		gap: 0.5rem;
+	}
+
+	.app-header.search-open .header-right {
+		flex: 1;
+		justify-content: flex-end;
+		padding-left: 1rem;
+	}
+
+	.header-left .budgie-dropdown,
+	.header-left .profile-dropdown {
+		left: 0;
+		right: auto;
 	}
 
 	.header-left {
