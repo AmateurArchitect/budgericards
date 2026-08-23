@@ -218,8 +218,8 @@
 			class="modal-backdrop"
 			role="presentation"
 			onclick={handleBackdropClick}
-			in:fade={{ duration: 150 }}
-			out:fade={{ duration: 120 }}
+			in:fade={{ duration: 120 }}
+			out:fade={{ duration: 100 }}
 		></div>
 
 		<div
@@ -228,8 +228,8 @@
 			aria-modal="true"
 			aria-labelledby="multisort-title"
 			tabindex="-1"
-			in:scale={{ duration: 180, start: 0.95 }}
-			out:scale={{ duration: 120, start: 0.95 }}
+			in:scale={{ duration: 140, start: 0.97 }}
+			out:scale={{ duration: 100, start: 0.97 }}
 		>
 			<!-- Header -->
 			<div class="modal-header">
@@ -420,7 +420,7 @@
 					</div>
 				{:else}
 					<!-- Expanded View: Read-Only Rows Matching Custom Rows Layout -->
-					<div class="default-expanded-container" transition:slide={{ duration: 160 }}>
+					<div class="default-expanded-container" transition:slide={{ duration: 120 }}>
 						<div class="default-expanded-header">
 							<span class="default-header-title">Default Sort Order</span>
 							<button
@@ -436,10 +436,14 @@
 
 						<!-- Step 1: Color Category -->
 						<div class="sort-rule-row default-readonly-row">
-							<div class="default-drag-placeholder"></div>
-							<span class="rule-label">
-								{draftSorts.length === 0 ? "Sort by" : "then by"}
-							</span>
+							{#if draftSorts.length === 0}
+								<span class="rule-label rule-label-start">Sort by</span>
+							{:else if draftSorts.length === 1}
+								<span class="rule-label rule-label-single">then by</span>
+							{:else}
+								<div class="default-drag-placeholder"></div>
+								<span class="rule-label">then by</span>
+							{/if}
 							<div class="readonly-field-box">
 								<span>Color Category</span>
 							</div>
@@ -458,8 +462,12 @@
 
 						<!-- Step 2: Color Identity -->
 						<div class="sort-rule-row default-readonly-row">
-							<div class="default-drag-placeholder"></div>
-							<span class="rule-label">then by</span>
+							{#if draftSorts.length <= 1}
+								<span class="rule-label rule-label-single">then by</span>
+							{:else}
+								<div class="default-drag-placeholder"></div>
+								<span class="rule-label">then by</span>
+							{/if}
 							<div class="readonly-field-box">
 								<span>Color Identity</span>
 							</div>
@@ -478,8 +486,12 @@
 
 						<!-- Step 3: Mana Value -->
 						<div class="sort-rule-row default-readonly-row">
-							<div class="default-drag-placeholder"></div>
-							<span class="rule-label">then by</span>
+							{#if draftSorts.length <= 1}
+								<span class="rule-label rule-label-single">then by</span>
+							{:else}
+								<div class="default-drag-placeholder"></div>
+								<span class="rule-label">then by</span>
+							{/if}
 							<div class="readonly-field-box">
 								<span>Mana Value</span>
 							</div>
@@ -492,7 +504,11 @@
 
 						<!-- Step 4: Alphabetical -->
 						<div class="sort-rule-row default-readonly-row">
-							<span class="rule-label finally-label">and finally by</span>
+							{#if draftSorts.length <= 1}
+								<span class="rule-label rule-label-single">and finally by</span>
+							{:else}
+								<span class="rule-label finally-label">and finally by</span>
+							{/if}
 							<div class="readonly-field-box">
 								<span>Alphabetical (Name)</span>
 							</div>
@@ -508,7 +524,7 @@
 
 			<!-- Footer (only shown once changes have been made) -->
 			{#if hasChanged}
-				<div class="modal-footer" transition:slide={{ duration: 150 }}>
+				<div class="modal-footer" in:fade={{ duration: 120 }}>
 					<div class="footer-left">
 						{#if draftSorts.length > 0}
 							<button
@@ -616,7 +632,7 @@
 		align-items: center;
 		justify-content: center;
 		border-radius: 6px;
-		transition: all 0.15s ease;
+		transition: color 0.12s ease, background 0.12s ease;
 		margin-top: -4px;
 		margin-right: -4px;
 	}
@@ -636,11 +652,10 @@
 		max-height: 50vh;
 		padding: 4px 6px 4px 4px;
 		margin-right: -6px;
-		transition: gap 0.18s ease;
 	}
 
 	.sort-rules-list.is-drag-active {
-		gap: 0.65rem;
+		gap: 0.6rem;
 	}
 
 	/* Custom Sleek Scrollbar */
@@ -713,7 +728,7 @@
 		background: transparent;
 		border: 1px solid transparent;
 		flex-shrink: 0;
-		transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+		transition: background 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
 	}
 
 	.user-sort-row:hover {
@@ -733,7 +748,7 @@
 		cursor: grab;
 		padding: 2px;
 		flex-shrink: 0;
-		transition: color 0.15s ease;
+		transition: color 0.12s ease;
 	}
 
 	.user-sort-row:hover .drag-handle {
@@ -767,12 +782,11 @@
 
 	.rule-label.rule-label-single {
 		width: 96px;
-		text-align: right;
+		text-align: left;
 	}
 
 	.finally-label {
-		width: 106px;
-		margin-left: -22px;
+		width: 84px;
 		text-align: right;
 	}
 
@@ -799,7 +813,7 @@
 		padding: 0 32px 0 12px;
 		cursor: pointer;
 		outline: none;
-		transition: border-color 0.15s ease, background 0.15s ease;
+		transition: border-color 0.12s ease, background 0.12s ease;
 	}
 
 	.sort-select:hover {
@@ -842,7 +856,7 @@
 		font-weight: 500;
 		cursor: pointer;
 		outline: none;
-		transition: all 0.15s ease;
+		transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 		user-select: none;
 		flex-shrink: 0;
 		justify-content: flex-start;
@@ -935,7 +949,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		transition: all 0.15s ease;
+		transition: color 0.12s ease, background 0.12s ease;
 		flex-shrink: 0;
 	}
 
@@ -968,7 +982,7 @@
 		font-size: 0.85rem;
 		font-weight: 600;
 		cursor: pointer;
-		transition: all 0.15s ease;
+		transition: background 0.12s ease, border-color 0.12s ease;
 		box-sizing: border-box;
 	}
 
@@ -999,7 +1013,7 @@
 		border-radius: var(--radius);
 		color: hsl(var(--muted-foreground));
 		cursor: pointer;
-		transition: all 0.15s ease;
+		transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 		outline: none;
 		box-sizing: border-box;
 	}
@@ -1030,7 +1044,7 @@
 		border-radius: 4px;
 		border: none;
 		cursor: pointer;
-		transition: all 0.15s ease;
+		transition: background 0.12s ease, color 0.12s ease;
 		box-sizing: border-box;
 	}
 
@@ -1047,7 +1061,7 @@
 
 	:global(.default-chevron) {
 		color: hsl(var(--muted-foreground));
-		transition: transform 0.15s ease;
+		transition: transform 0.12s ease;
 		flex-shrink: 0;
 	}
 
@@ -1129,7 +1143,7 @@
 		cursor: pointer;
 		padding: 4px 6px;
 		border-radius: 4px;
-		transition: all 0.15s ease;
+		transition: color 0.12s ease, background 0.12s ease;
 	}
 
 	.text-action-btn:hover {
