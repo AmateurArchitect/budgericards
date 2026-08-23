@@ -433,7 +433,7 @@
 						{#if draftSorts.length === 0}
 							<span class="rule-label rule-label-start">Sort by</span>
 						{:else if draftSorts.length === 1}
-							<span class="rule-label rule-label-single">and finally by</span>
+							<span class="rule-label rule-label-single">then by</span>
 						{:else}
 							<span class="rule-label finally-label">and finally by</span>
 						{/if}
@@ -814,7 +814,7 @@
 	}
 
 	.rule-label.rule-label-single {
-		width: 96px;
+		width: 54px;
 		text-align: left;
 	}
 
