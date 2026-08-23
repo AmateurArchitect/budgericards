@@ -7,7 +7,7 @@
 		ArrowDownWideNarrow,
 		ArrowUpNarrowWide,
 		ChevronDown,
-		ChevronRight,
+		ChevronUp,
 		GripVertical,
 	} from "lucide-svelte";
 	import Button from "./ui/Button.svelte";
@@ -61,15 +61,15 @@
 	// Drag and drop state
 	/** @type {number | null} */
 	let draggedIndex = $state(null);
-	/** @type {number | null} */
-	let dragOverIndex = $state(null);
+	/** @type {{ index: number, position: 'top' | 'bottom' } | null} */
+	let dropTarget = $state(null);
 
 	// Initialize local draft state whenever modal opens
 	$effect(() => {
 		if (isOpen) {
 			showDefaultDetails = false;
 			draggedIndex = null;
-			dragOverIndex = null;
+			dropTarget = null;
 
 			if (target === "search") {
 				const current = searchStore.activeSorts;
@@ -136,6 +136,33 @@
 		const [movedItem] = updated.splice(fromIndex, 1);
 		updated.splice(toIndex, 0, movedItem);
 		draftSorts = updated;
+	}
+
+	/**
+	 * @param {DragEvent} e
+	 * @param {number} idx
+	 */
+	function handleDragOver(e, idx) {
+		e.preventDefault();
+		const currentTarget = /** @type {HTMLElement} */ (e.currentTarget);
+		const rect = currentTarget.getBoundingClientRect();
+		const mid = rect.top + rect.height / 2;
+		const pos = e.clientY < mid ? "top" : "bottom";
+		dropTarget = { index: idx, position: pos };
+	}
+
+	/** @param {DragEvent} e */
+	function handleDrop(e) {
+		e.preventDefault();
+		if (draggedIndex !== null && dropTarget !== null) {
+			let targetIdx = dropTarget.position === "top" ? dropTarget.index : dropTarget.index + 1;
+			if (draggedIndex < targetIdx) targetIdx--;
+			if (draggedIndex !== targetIdx && targetIdx >= 0 && targetIdx < draftSorts.length) {
+				reorderSorts(draggedIndex, targetIdx);
+			}
+		}
+		draggedIndex = null;
+		dropTarget = null;
 	}
 
 	function applySorts() {
@@ -209,9 +236,13 @@
 			<div class="sort-rules-list custom-scrollbar">
 				<!-- User-Configured Drag-and-Drop Sort Rows -->
 				{#each draftSorts as rule, idx (idx)}
+					<!-- Top Drop Indicator Line -->
+					{#if dropTarget && dropTarget.index === idx && dropTarget.position === "top" && draggedIndex !== idx}
+						<div class="drop-indicator-line"></div>
+					{/if}
+
 					<div
 						class="sort-rule-row user-sort-row"
-						class:is-drag-over={dragOverIndex === idx && draggedIndex !== idx}
 						class:is-dragging={draggedIndex === idx}
 						draggable="true"
 						ondragstart={(e) => {
@@ -221,24 +252,14 @@
 								e.dataTransfer.setData("text/plain", String(idx));
 							}
 						}}
-						ondragover={(e) => {
-							e.preventDefault();
-							dragOverIndex = idx;
-						}}
+						ondragover={(e) => handleDragOver(e, idx)}
 						ondragleave={() => {
-							if (dragOverIndex === idx) dragOverIndex = null;
+							if (dropTarget?.index === idx) dropTarget = null;
 						}}
-						ondrop={(e) => {
-							e.preventDefault();
-							if (draggedIndex !== null && draggedIndex !== idx) {
-								reorderSorts(draggedIndex, idx);
-							}
-							draggedIndex = null;
-							dragOverIndex = null;
-						}}
+						ondrop={handleDrop}
 						ondragend={() => {
 							draggedIndex = null;
-							dragOverIndex = null;
+							dropTarget = null;
 						}}
 					>
 						<!-- Drag Handle -->
@@ -331,83 +352,120 @@
 							<Trash2 size={16} />
 						</button>
 					</div>
+
+					<!-- Bottom Drop Indicator Line -->
+					{#if dropTarget && dropTarget.index === idx && dropTarget.position === "bottom" && draggedIndex !== idx}
+						<div class="drop-indicator-line"></div>
+					{/if}
 				{/each}
 
-				<!-- Permanent Base: Default Sort Row -->
-				<div class="default-sort-container">
-					<div
-						class="sort-rule-row default-sort-row"
-						onclick={() => (showDefaultDetails = !showDefaultDetails)}
-						role="button"
-						tabindex="0"
-						onkeydown={(e) => {
-							if (e.key === "Enter" || e.key === " ") {
-								e.preventDefault();
-								showDefaultDetails = !showDefaultDetails;
-							}
-						}}
-						title="Default MTG tie-breaker order (always applied at lowest level)"
-					>
+				<!-- Base Default Sort Row (Collapsed vs Expanded) -->
+				{#if !showDefaultDetails}
+					<!-- Collapsed View: Clean Trigger Line -->
+					<div class="sort-rule-row default-collapsed-row">
 						<div class="default-drag-placeholder"></div>
 
 						<span class="rule-label">
 							{draftSorts.length === 0 ? "Sort by" : "then by"}
 						</span>
 
-						<div class="default-sort-content">
-							<div class="default-summary">
-								<span class="default-badge">Default MTG Order</span>
-								<span class="default-hint-text">Color &rarr; Identity &rarr; Mana Value &rarr; Name</span>
-							</div>
+						<button
+							type="button"
+							class="default-sort-trigger-btn"
+							onclick={() => (showDefaultDetails = true)}
+							title="View default fallback sort order"
+						>
+							<span class="default-trigger-title">Default Sort Order</span>
+							<ChevronDown size={14} class="default-chevron" />
+						</button>
+					</div>
+				{:else}
+					<!-- Expanded View: Read-Only Rows Matching Custom Rows Layout -->
+					<div class="default-expanded-container" transition:slide={{ duration: 160 }}>
+						<div class="default-expanded-header">
+							<span class="default-header-title">Default Sort Order (Read-only tie-breaker)</span>
+							<button
+								type="button"
+								class="collapse-default-btn"
+								onclick={() => (showDefaultDetails = false)}
+								title="Collapse default sort details"
+							>
+								<span>Collapse</span>
+								<ChevronUp size={13} />
+							</button>
+						</div>
 
-							<div class="expand-indicator">
-								{#if showDefaultDetails}
-									<ChevronDown size={14} />
-								{:else}
-									<ChevronRight size={14} />
-								{/if}
+						<!-- Step 1: Color Category -->
+						<div class="sort-rule-row default-readonly-row">
+							<div class="default-drag-placeholder"></div>
+							<span class="rule-label">
+								{draftSorts.length === 0 ? "Sort by" : "then by"}
+							</span>
+							<div class="readonly-field-box">
+								<span>Color Category</span>
 							</div>
+							<div class="readonly-direction-box">
+								<ArrowDownWideNarrow size={14} class="dir-icon-muted" />
+								<div class="mana-symbols-group">
+									<ManaSymbol symbol="w" size="14px" />
+									<ManaSymbol symbol="u" size="14px" />
+									<ManaSymbol symbol="b" size="14px" />
+									<ManaSymbol symbol="r" size="14px" />
+									<ManaSymbol symbol="g" size="14px" />
+								</div>
+							</div>
+							<div class="delete-placeholder"></div>
+						</div>
+
+						<!-- Step 2: Color Identity -->
+						<div class="sort-rule-row default-readonly-row">
+							<div class="default-drag-placeholder"></div>
+							<span class="rule-label">then by</span>
+							<div class="readonly-field-box">
+								<span>Color Identity</span>
+							</div>
+							<div class="readonly-direction-box">
+								<ArrowDownWideNarrow size={14} class="dir-icon-muted" />
+								<div class="mana-symbols-group">
+									<ManaSymbol symbol="w" size="14px" />
+									<ManaSymbol symbol="u" size="14px" />
+									<ManaSymbol symbol="b" size="14px" />
+									<ManaSymbol symbol="r" size="14px" />
+									<ManaSymbol symbol="g" size="14px" />
+								</div>
+							</div>
+							<div class="delete-placeholder"></div>
+						</div>
+
+						<!-- Step 3: Mana Value -->
+						<div class="sort-rule-row default-readonly-row">
+							<div class="default-drag-placeholder"></div>
+							<span class="rule-label">then by</span>
+							<div class="readonly-field-box">
+								<span>Mana Value</span>
+							</div>
+							<div class="readonly-direction-box">
+								<ArrowDownWideNarrow size={14} class="dir-icon-muted" />
+								<span class="dir-text">Low to High</span>
+							</div>
+							<div class="delete-placeholder"></div>
+						</div>
+
+						<!-- Step 4: Alphabetical -->
+						<div class="sort-rule-row default-readonly-row">
+							<div class="default-drag-placeholder"></div>
+							<span class="rule-label">then by</span>
+							<div class="readonly-field-box">
+								<span>Alphabetical (Name)</span>
+							</div>
+							<div class="readonly-direction-box">
+								<ArrowDownWideNarrow size={14} class="dir-icon-muted" />
+								<span class="dir-text">A to Z</span>
+							</div>
+							<div class="delete-placeholder"></div>
 						</div>
 					</div>
-
-					<!-- Expanded Read-only Details of Default Fallback Sort Chain -->
-					{#if showDefaultDetails}
-						<div class="default-details-panel" transition:slide={{ duration: 150 }}>
-							<div class="default-step">
-								<span class="step-num">1.</span>
-								<span class="step-label">Color Category</span>
-								<div class="mana-symbols-group">
-									<ManaSymbol symbol="w" size="13px" />
-									<ManaSymbol symbol="u" size="13px" />
-									<ManaSymbol symbol="b" size="13px" />
-									<ManaSymbol symbol="r" size="13px" />
-									<ManaSymbol symbol="g" size="13px" />
-								</div>
-							</div>
-							<div class="default-step">
-								<span class="step-num">2.</span>
-								<span class="step-label">Color Identity</span>
-								<div class="mana-symbols-group">
-									<ManaSymbol symbol="w" size="13px" />
-									<ManaSymbol symbol="u" size="13px" />
-									<ManaSymbol symbol="b" size="13px" />
-									<ManaSymbol symbol="r" size="13px" />
-									<ManaSymbol symbol="g" size="13px" />
-								</div>
-							</div>
-							<div class="default-step">
-								<span class="step-num">3.</span>
-								<span class="step-label">Mana Value</span>
-								<span class="step-val">Low to High</span>
-							</div>
-							<div class="default-step">
-								<span class="step-num">4.</span>
-								<span class="step-label">Alphabetical</span>
-								<span class="step-val">A to Z</span>
-							</div>
-						</div>
-					{/if}
-				</div>
+				{/if}
 			</div>
 
 			<!-- Add & Tier Actions Row -->
@@ -538,11 +596,11 @@
 	.sort-rules-list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.55rem;
+		gap: 0.4rem;
 		overflow-y: auto;
 		overflow-x: hidden;
-		max-height: 48vh;
-		padding-right: 6px;
+		max-height: 50vh;
+		padding: 2px 6px 2px 2px;
 		margin-right: -6px;
 	}
 
@@ -564,40 +622,61 @@
 		background: hsl(var(--muted-foreground) / 0.5);
 	}
 
+	/* Drop Indicator Line */
+	.drop-indicator-line {
+		height: 2px;
+		background: hsl(var(--primary));
+		border-radius: 2px;
+		margin: 2px 6px;
+		position: relative;
+		box-shadow: 0 0 6px hsl(var(--primary) / 0.8);
+		flex-shrink: 0;
+	}
+
+	.drop-indicator-line::before,
+	.drop-indicator-line::after {
+		content: "";
+		position: absolute;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: hsl(var(--primary));
+	}
+
+	.drop-indicator-line::before {
+		left: -3px;
+	}
+
+	.drop-indicator-line::after {
+		right: -3px;
+	}
+
+	/* Sort Rule Row (Unboxed clean styling) */
 	.sort-rule-row {
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
-		padding: 0.35rem 0.5rem;
+		padding: 0.3rem 0.4rem;
 		border-radius: var(--radius);
+		background: transparent;
 		border: 1px solid transparent;
 		flex-shrink: 0;
-		transition: all 0.15s ease;
-	}
-
-	.user-sort-row {
-		background: hsl(var(--muted) / 0.25);
-		border-color: hsl(var(--border) / 0.4);
-		cursor: grab;
+		transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
 	}
 
 	.user-sort-row:hover {
-		background: hsl(var(--muted) / 0.45);
-		border-color: hsl(var(--border) / 0.7);
+		background: hsl(var(--muted) / 0.35);
+		border-color: hsl(var(--border) / 0.45);
 	}
 
 	.user-sort-row.is-dragging {
-		opacity: 0.45;
-		cursor: grabbing;
-	}
-
-	.user-sort-row.is-drag-over {
-		border-color: hsl(var(--primary));
-		background: hsl(var(--primary) / 0.1);
+		opacity: 0.3;
 	}
 
 	.drag-handle {
-		color: hsl(var(--muted-foreground) / 0.5);
+		color: hsl(var(--muted-foreground) / 0.4);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -613,6 +692,11 @@
 
 	.default-drag-placeholder {
 		width: 18px;
+		flex-shrink: 0;
+	}
+
+	.delete-placeholder {
+		width: 28px;
 		flex-shrink: 0;
 	}
 
@@ -639,8 +723,8 @@
 		appearance: none;
 		-webkit-appearance: none;
 		-moz-appearance: none;
-		background: hsl(var(--card));
-		border: 1px solid hsl(var(--border));
+		background: hsl(var(--muted) / 0.4);
+		border: 1px solid hsl(var(--border) / 0.8);
 		border-radius: var(--radius);
 		color: hsl(var(--foreground));
 		font-size: 0.875rem;
@@ -652,7 +736,7 @@
 	}
 
 	.sort-select:hover {
-		background: hsl(var(--muted) / 0.8);
+		background: hsl(var(--muted) / 0.7);
 		border-color: hsl(var(--border));
 	}
 
@@ -683,8 +767,8 @@
 		height: 36px;
 		min-width: 136px;
 		padding: 0 12px 0 10px;
-		background: hsl(var(--card));
-		border: 1px solid hsl(var(--border));
+		background: hsl(var(--muted) / 0.4);
+		border: 1px solid hsl(var(--border) / 0.8);
 		border-radius: var(--radius);
 		color: hsl(var(--foreground));
 		font-size: 0.85rem;
@@ -698,7 +782,7 @@
 	}
 
 	.direction-toggle-btn:hover {
-		background: hsl(var(--muted) / 0.9);
+		background: hsl(var(--muted) / 0.8);
 		border-color: hsl(var(--border));
 		color: hsl(var(--primary));
 	}
@@ -710,6 +794,11 @@
 
 	:global(.dir-icon) {
 		color: hsl(var(--primary));
+		flex-shrink: 0;
+	}
+
+	:global(.dir-icon-muted) {
+		color: hsl(var(--muted-foreground));
 		flex-shrink: 0;
 	}
 
@@ -788,98 +877,125 @@
 		background: hsl(var(--destructive) / 0.15);
 	}
 
-	/* Default Sort Container & Row */
-	.default-sort-container {
-		display: flex;
-		flex-direction: column;
-		border-radius: var(--radius);
-		background: hsl(var(--muted) / 0.15);
-		border: 1px dashed hsl(var(--border) / 0.6);
+	/* Default Sort Trigger Button (Collapsed) */
+	.default-collapsed-row {
+		margin-top: 0.1rem;
 	}
 
-	.default-sort-row {
-		cursor: pointer;
-		user-select: none;
-	}
-
-	.default-sort-row:hover {
-		background: hsl(var(--muted) / 0.3);
-	}
-
-	.default-sort-content {
+	.default-sort-trigger-btn {
 		flex: 1;
+		height: 36px;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 4px;
-		min-width: 0;
-	}
-
-	.default-summary {
-		display: flex;
-		align-items: center;
-		gap: 0.65rem;
-		min-width: 0;
-	}
-
-	.default-badge {
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: hsl(var(--foreground) / 0.85);
-		background: hsl(var(--muted) / 0.7);
-		padding: 3px 8px;
-		border-radius: 4px;
-		border: 1px solid hsl(var(--border) / 0.5);
-		white-space: nowrap;
-	}
-
-	.default-hint-text {
-		font-size: 0.75rem;
+		padding: 0 12px;
+		background: hsl(var(--muted) / 0.2);
+		border: 1px dashed hsl(var(--border) / 0.7);
+		border-radius: var(--radius);
 		color: hsl(var(--muted-foreground));
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		outline: none;
 	}
 
-	.expand-indicator {
-		color: hsl(var(--muted-foreground));
-		display: flex;
-		align-items: center;
-		padding: 4px;
+	.default-sort-trigger-btn:hover {
+		background: hsl(var(--muted) / 0.45);
+		color: hsl(var(--foreground));
+		border-color: hsl(var(--border));
 	}
 
-	/* Expanded Details Panel */
-	.default-details-panel {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-		gap: 0.5rem;
-		padding: 0.5rem 0.75rem 0.75rem 4.75rem;
-		border-top: 1px dashed hsl(var(--border) / 0.4);
-		background: hsl(var(--muted) / 0.08);
-	}
-
-	.default-step {
-		display: flex;
-		align-items: center;
-		gap: 0.35rem;
-		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.step-num {
-		font-weight: 700;
-		color: hsl(var(--primary));
-		font-size: 0.7rem;
-	}
-
-	.step-label {
+	.default-trigger-title {
+		font-size: 0.85rem;
 		font-weight: 500;
-		color: hsl(var(--foreground) / 0.8);
 	}
 
-	.step-val {
+	:global(.default-chevron) {
 		color: hsl(var(--muted-foreground));
-		font-size: 0.7rem;
+		transition: transform 0.15s ease;
+	}
+
+	/* Default Expanded Group */
+	.default-expanded-container {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		padding: 0.5rem 0.25rem 0.6rem 0.25rem;
+		border-radius: var(--radius);
+		background: hsl(var(--muted) / 0.1);
+		border: 1px dashed hsl(var(--border) / 0.5);
+		margin-top: 0.2rem;
+	}
+
+	.default-expanded-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0 0.5rem 0.35rem 0.5rem;
+		border-bottom: 1px solid hsl(var(--border) / 0.3);
+	}
+
+	.default-header-title {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: hsl(var(--muted-foreground));
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+
+	.collapse-default-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		background: transparent;
+		border: none;
+		color: hsl(var(--muted-foreground));
+		font-size: 0.75rem;
+		cursor: pointer;
+		padding: 2px 4px;
+		border-radius: 4px;
+		transition: all 0.15s ease;
+	}
+
+	.collapse-default-btn:hover {
+		color: hsl(var(--foreground));
+		background: hsl(var(--muted) / 0.4);
+	}
+
+	.default-readonly-row {
+		opacity: 0.65;
+		cursor: default;
+		pointer-events: none;
+	}
+
+	.readonly-field-box {
+		flex: 1;
+		min-width: 140px;
+		height: 36px;
+		display: flex;
+		align-items: center;
+		padding: 0 12px;
+		background: hsl(var(--muted) / 0.2);
+		border: 1px solid hsl(var(--border) / 0.4);
+		border-radius: var(--radius);
+		color: hsl(var(--foreground));
+		font-size: 0.85rem;
+		font-weight: 500;
+	}
+
+	.readonly-direction-box {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		height: 36px;
+		min-width: 136px;
+		padding: 0 12px 0 10px;
+		background: hsl(var(--muted) / 0.2);
+		border: 1px solid hsl(var(--border) / 0.4);
+		border-radius: var(--radius);
+		color: hsl(var(--muted-foreground));
+		font-size: 0.85rem;
+		font-weight: 500;
+		flex-shrink: 0;
 	}
 
 	/* Add & Reset Actions Row */
@@ -964,11 +1080,9 @@
 		.sort-rule-row {
 			flex-wrap: wrap;
 		}
-		.direction-toggle-btn {
+		.direction-toggle-btn,
+		.readonly-direction-box {
 			width: 100%;
-		}
-		.default-details-panel {
-			padding-left: 0.75rem;
 		}
 	}
 </style>
