@@ -204,13 +204,15 @@
 		// Primary: Cmd + / or Ctrl + / (and Cmd + K / Cmd + Space as secondary fallbacks)
 		if (isCmdOrCtrl && (e.key === "/" || e.key.toLowerCase() === "k" || e.key === " ")) {
 			e.preventDefault();
-			if (!searchStore.isOpen) {
+			if (searchStore.isOpen) {
+				searchStore.closeSearch();
+			} else {
 				searchStore.openSearch();
+				setTimeout(() => {
+					const inputEl = document.querySelector(".header-search-input input") || document.querySelector(".header-search-input");
+					/** @type {HTMLElement | null} */ (inputEl)?.focus();
+				}, 50);
 			}
-			setTimeout(() => {
-				const inputEl = document.querySelector(".header-search-input input") || document.querySelector(".header-search-input");
-				/** @type {HTMLElement | null} */ (inputEl)?.focus();
-			}, 50);
 			return;
 		}
 
