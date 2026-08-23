@@ -570,18 +570,18 @@
 				{:else}
 					<!-- Expanded View: Read-Only Rows Matching Custom Rows Layout -->
 					<div class="default-expanded-container" transition:slide={{ duration: 120 }}>
-						<div class="default-expanded-header">
+						<button
+							type="button"
+							class="default-expanded-header"
+							onclick={() => (showDefaultDetails = false)}
+							title="Hide default sort details"
+						>
 							<span class="default-header-title">Default Sort Order</span>
-							<button
-								type="button"
-								class="collapse-default-btn"
-								onclick={() => (showDefaultDetails = false)}
-								title="Collapse default sort details"
-							>
-								<span class="default-action-text">Collapse</span>
+							<div class="collapse-default-btn">
+								<span class="default-action-text">Hide</span>
 								<ChevronUp size={13} class="default-chevron" />
-							</button>
-						</div>
+							</div>
+						</button>
 
 						<!-- Step 1: Color Category -->
 						<div class="sort-rule-row default-readonly-row">
@@ -654,9 +654,10 @@
 						<!-- Step 4: Alphabetical -->
 						<div class="sort-rule-row default-readonly-row">
 							{#if draftSorts.length <= 1}
-								<span class="rule-label rule-label-single">and finally by</span>
+								<span class="rule-label rule-label-single">then by</span>
 							{:else}
-								<span class="rule-label finally-label">and finally by</span>
+								<div class="default-drag-placeholder"></div>
+								<span class="rule-label">then by</span>
 							{/if}
 							<div class="readonly-field-box">
 								<span>Alphabetical (Name)</span>
@@ -1355,7 +1356,19 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 0 0 0.4rem 0.5rem;
+		border: none;
 		border-bottom: 1px solid hsl(var(--border) / 0.3);
+		background: transparent;
+		width: 100%;
+		cursor: pointer;
+		outline: none;
+		box-sizing: border-box;
+		text-align: left;
+	}
+
+	.default-expanded-header:hover .collapse-default-btn {
+		background: hsl(var(--muted) / 0.85);
+		color: hsl(var(--foreground));
 	}
 
 	.default-header-title {
