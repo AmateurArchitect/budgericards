@@ -901,6 +901,7 @@ function createDeck() {
 					moveCardInternal(selectedCommander.name, sourceBoard, 'commander', selectedCommander.id, selectedCommander.price);
 					deckState.deck.format = 'Commander';
 				});
+				toastStore.show(`Set format to Commander with ${selectedCommander.name} as your commander.`);
 				console.info(`🎯 Automatically set ${selectedCommander.name} as Commander based on color identity heuristics!`);
 			}
 		}
