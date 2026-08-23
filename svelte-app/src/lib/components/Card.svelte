@@ -84,11 +84,11 @@
 
 	.card-item.is-highlighted {
 		box-shadow:
-			0 0 0 2px hsl(var(--primary)),
-			0 0 18px -2px hsla(var(--primary-hsl), 0.45),
-			var(--shadow-md),
-			var(--inner-glow);
+			0 0 0 2.5px hsl(var(--primary)),
+			0 0 24px -2px hsl(var(--primary) / 0.6),
+			0 8px 24px -4px rgba(0, 0, 0, 0.6);
 		transform: translateY(-4px);
+		z-index: 5;
 	}
 
 	.card-item.dragging {
