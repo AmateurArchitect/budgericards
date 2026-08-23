@@ -266,30 +266,35 @@
 							></div>
 						{/if}
 
-						<!-- Drag Handle (draggable only on the handle icon) -->
-						<div
-							class="drag-handle"
-							role="button"
-							tabindex="0"
-							aria-label="Drag to reorder sort priority"
-							title="Drag to reorder sort priority"
-							draggable="true"
-							ondragstart={(e) => {
-								draggedIndex = idx;
-								if (e.dataTransfer) {
-									e.dataTransfer.effectAllowed = "move";
-									e.dataTransfer.setData("text/plain", String(idx));
-								}
-							}}
-							ondragend={() => {
-								draggedIndex = null;
-								dropTarget = null;
-							}}
-						>
-							<GripVertical size={14} />
-						</div>
+						<!-- Drag Handle (only shown when > 1 sort tier is present) -->
+						{#if draftSorts.length > 1}
+							<div
+								class="drag-handle"
+								role="button"
+								tabindex="0"
+								aria-label="Drag to reorder sort priority"
+								title="Drag to reorder sort priority"
+								draggable="true"
+								ondragstart={(e) => {
+									draggedIndex = idx;
+									if (e.dataTransfer) {
+										e.dataTransfer.effectAllowed = "move";
+										e.dataTransfer.setData("text/plain", String(idx));
+									}
+								}}
+								ondragend={() => {
+									draggedIndex = null;
+									dropTarget = null;
+								}}
+							>
+								<GripVertical size={14} />
+							</div>
+						{/if}
 
-						<span class="rule-label">
+						<span
+							class="rule-label"
+							class:rule-label-single={draftSorts.length === 1}
+						>
 							{idx === 0 ? "Sort by" : "then by"}
 						</span>
 
@@ -394,6 +399,8 @@
 					<div class="sort-rule-row default-collapsed-row">
 						{#if draftSorts.length === 0}
 							<span class="rule-label rule-label-start">Sort by</span>
+						{:else if draftSorts.length === 1}
+							<span class="rule-label rule-label-single">and finally by</span>
 						{:else}
 							<span class="rule-label finally-label">and finally by</span>
 						{/if}
@@ -756,6 +763,11 @@
 	.rule-label.rule-label-start {
 		width: auto;
 		text-align: left;
+	}
+
+	.rule-label.rule-label-single {
+		width: 96px;
+		text-align: right;
 	}
 
 	.finally-label {
