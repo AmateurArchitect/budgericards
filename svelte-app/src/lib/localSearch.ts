@@ -270,10 +270,32 @@ export async function runLocalSearch(
 	let candidates: CleanCard[];
 
 	if (!hasOr) {
+		const nameCond = parseResult.astConditions.find(c => (!c.key || c.key === 'name') && !c.isNegated);
 		const typeCond = parseResult.astConditions.find(c => (c.key === 't' || c.key === 'type') && !c.isNegated);
 		const formatCond = parseResult.astConditions.find(c => (c.key === 'f' || c.key === 'format') && !c.isNegated);
 
-		if (typeCond) {
+		if (nameCond && String(nameCond.value).length >= 2) {
+			const nameVal = String(nameCond.value).toLowerCase();
+			// Fast index prefix search (<1ms)
+			const prefixMatches = await db.cards
+				.where('name')
+				.startsWithIgnoreCase(nameVal)
+				.toArray();
+
+			// Substring / broader match
+			const broader = await db.cards
+				.filter(c => c.name.toLowerCase().includes(nameVal))
+				.toArray();
+
+			const ids = new Set(prefixMatches.map(c => c.id));
+			candidates = [...prefixMatches];
+			for (const c of broader) {
+				if (!ids.has(c.id)) {
+					ids.add(c.id);
+					candidates.push(c);
+				}
+			}
+		} else if (typeCond) {
 			const typeVal = String(typeCond.value);
 			candidates = await db.cards
 				.where('type')

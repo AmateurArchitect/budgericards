@@ -692,7 +692,7 @@ function createSearch() {
 			if (isLocal) {
 				performSearch();
 			} else {
-				const timeout = setTimeout(performSearch, 300);
+				const timeout = setTimeout(performSearch, 100);
 				return () => clearTimeout(timeout);
 			}
 		});
