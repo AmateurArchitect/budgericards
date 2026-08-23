@@ -983,7 +983,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 12px;
+		padding: 0 5px 0 12px;
 		background: hsl(var(--muted) / 0.2);
 		border: 1px dashed hsl(var(--border) / 0.7);
 		border-radius: var(--radius);
@@ -991,6 +991,7 @@
 		cursor: pointer;
 		transition: all 0.15s ease;
 		outline: none;
+		box-sizing: border-box;
 	}
 
 	.default-sort-trigger-btn:hover {
@@ -1008,15 +1009,19 @@
 	.collapse-default-btn {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.35rem;
+		justify-content: center;
+		gap: 4px;
+		height: 24px;
+		padding: 0 8px;
 		font-size: 0.75rem;
+		line-height: 1;
 		color: hsl(var(--muted-foreground));
 		background: hsl(var(--muted) / 0.5);
-		padding: 2px 7px 2px 9px;
 		border-radius: 4px;
 		border: none;
 		cursor: pointer;
 		transition: all 0.15s ease;
+		box-sizing: border-box;
 	}
 
 	.default-sort-trigger-btn:hover .default-action-pill,
@@ -1027,11 +1032,13 @@
 
 	.default-action-text {
 		font-weight: 500;
+		line-height: 1;
 	}
 
 	:global(.default-chevron) {
 		color: hsl(var(--muted-foreground));
 		transition: transform 0.15s ease;
+		flex-shrink: 0;
 	}
 
 	/* Default Expanded Group */
