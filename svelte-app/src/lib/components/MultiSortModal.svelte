@@ -1056,18 +1056,19 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
-		padding: 0.5rem 0.25rem 0.6rem 0.25rem;
+		padding: 5px;
 		border-radius: var(--radius);
 		background: hsl(var(--muted) / 0.1);
 		border: 1px dashed hsl(var(--border) / 0.5);
 		margin-top: 0.2rem;
+		box-sizing: border-box;
 	}
 
 	.default-expanded-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 0.5rem 0.35rem 0.5rem;
+		padding: 0 0 0.4rem 0.5rem;
 		border-bottom: 1px solid hsl(var(--border) / 0.3);
 	}
 
