@@ -393,10 +393,9 @@
 					<!-- Collapsed View: Clean Trigger Line -->
 					<div class="sort-rule-row default-collapsed-row">
 						{#if draftSorts.length === 0}
-							<div class="default-drag-placeholder"></div>
-							<span class="rule-label">Sort by</span>
+							<span class="rule-label rule-label-start">Sort by</span>
 						{:else}
-							<span class="rule-label finally-label">finally by</span>
+							<span class="rule-label finally-label">and finally by</span>
 						{/if}
 
 						<button
@@ -431,10 +430,9 @@
 						<!-- Step 1: Color Category -->
 						<div class="sort-rule-row default-readonly-row">
 							{#if draftSorts.length === 0}
-								<div class="default-drag-placeholder"></div>
-								<span class="rule-label">Sort by</span>
+								<span class="rule-label rule-label-start">Sort by</span>
 							{:else}
-								<span class="rule-label finally-label">finally by</span>
+								<span class="rule-label finally-label">and finally by</span>
 							{/if}
 							<div class="readonly-field-box">
 								<span>Color Category</span>
@@ -757,8 +755,14 @@
 		text-align: right;
 	}
 
+	.rule-label.rule-label-start {
+		width: auto;
+		text-align: left;
+	}
+
 	.finally-label {
-		width: 84px;
+		width: 106px;
+		margin-left: -22px;
 		text-align: right;
 	}
 
