@@ -1345,10 +1345,10 @@
 
 	/* 44px tall Name Box with 25% black bg, 3D divider & 3 inner shadows */
 	.deck-name-box {
+		position: relative;
 		width: 100%;
 		height: 44px;
 		background: rgba(0, 0, 0, 0.25);
-		border-top: 1px solid rgba(0, 0, 0, 0.85);
 		box-shadow:
 			inset 0 0 12px 8px rgba(32, 32, 32, 0.5),
 			inset 0.5px 1px 3px rgba(255, 255, 255, 0.18),
@@ -1359,6 +1359,20 @@
 		gap: 8px;
 		padding: 0 12px;
 		box-sizing: border-box;
+	}
+
+	/* 3D Chiseled Dual-Line Divider: Dark line on top, light line on bottom */
+	.deck-name-box::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 0;
+		border-top: 1px solid rgba(0, 0, 0, 0.95);
+		border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+		pointer-events: none;
+		z-index: 5;
 	}
 
 	.deck-title {
