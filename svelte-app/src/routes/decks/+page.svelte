@@ -1189,7 +1189,7 @@
 	}
 
 	/* 3D Tile Inner Shadows for the Deck Cover */
-	.deck-card::after {
+	.deck-card:not(.create-card)::after {
 		content: "";
 		position: absolute;
 		inset: 0;
@@ -1315,11 +1315,13 @@
 		justify-content: center;
 		aspect-ratio: 4 / 3;
 		border-radius: 6px;
+		box-shadow: none;
 	}
 
 	.deck-card.create-card:hover {
 		border-color: hsl(var(--primary) / 0.8);
 		background: hsl(var(--primary) / 0.04);
+		box-shadow: none;
 	}
 
 	.create-content {
