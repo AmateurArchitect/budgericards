@@ -294,8 +294,7 @@
 			mainboard,
 			sideboard,
 			maybeboard,
-			total:
-				commander + companion + mainboard + sideboard + maybeboard,
+			total: commander + companion + mainboard + sideboard + maybeboard,
 		};
 	}
 
@@ -889,13 +888,15 @@
 					{#if breakdown.commander > 0}
 						<div class="chip">
 							<span class="chip-label">Commander</span>
-							<span class="chip-count">{breakdown.commander}</span>
+							<span class="chip-count">{breakdown.commander}</span
+							>
 						</div>
 					{/if}
 					{#if breakdown.companion > 0}
 						<div class="chip">
 							<span class="chip-label">Companion</span>
-							<span class="chip-count">{breakdown.companion}</span>
+							<span class="chip-count">{breakdown.companion}</span
+							>
 						</div>
 					{/if}
 					<div class="chip">
@@ -905,13 +906,16 @@
 					{#if breakdown.sideboard > 0}
 						<div class="chip">
 							<span class="chip-label">Sideboard</span>
-							<span class="chip-count">{breakdown.sideboard}</span>
+							<span class="chip-count">{breakdown.sideboard}</span
+							>
 						</div>
 					{/if}
 					{#if breakdown.maybeboard > 0}
 						<div class="chip">
 							<span class="chip-label">Maybeboard</span>
-							<span class="chip-count">{breakdown.maybeboard}</span>
+							<span class="chip-count"
+								>{breakdown.maybeboard}</span
+							>
 						</div>
 					{/if}
 				</div>
@@ -1174,8 +1178,7 @@
 		cursor: pointer;
 		background: #141416;
 		border: 1px solid rgba(0, 0, 0, 0.75);
-		box-shadow:
-			0 4px 16px rgba(0, 0, 0, 0.35);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 		transition:
 			transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
 			box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
@@ -1193,15 +1196,14 @@
 		border-radius: inherit;
 		pointer-events: none;
 		box-shadow:
-			inset 0 1px 0 rgba(255, 255, 255, 0.18),
-			inset 0 -1px 0 rgba(0, 0, 0, 0.6);
+			inset 1px 1px 0 rgba(255, 255, 255, 0.18),
+			inset -1px -1px 0 rgba(0, 0, 0, 0.6);
 		z-index: 4;
 	}
 
 	.deck-card:hover {
 		transform: translateY(-2px);
-		box-shadow:
-			0 12px 28px rgba(0, 0, 0, 0.5);
+		box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
 	}
 
 	.deck-card.selected {
