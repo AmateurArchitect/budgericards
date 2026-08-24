@@ -298,6 +298,27 @@
 		};
 	}
 
+	/** @param {any} deck */
+	function getDeckDisplayName(deck) {
+		if (!deck) return "Untitled Deck";
+		if (deck.isDraft) {
+			if (
+				deck.name &&
+				deck.name.trim() !== "" &&
+				deck.name !== "Name & Save This Deck" &&
+				!deck.name.startsWith("Unsaved Deck")
+			) {
+				return deck.name;
+			}
+			const dateVal = deck.metadata?.updatedAt || deck.updated_at;
+			const date = dateVal ? new Date(dateVal) : new Date();
+			const mm = String(date.getMonth() + 1).padStart(2, "0");
+			const dd = String(date.getDate()).padStart(2, "0");
+			return `Unsaved Deck ${mm}/${dd}`;
+		}
+		return deck.name || "Untitled Deck";
+	}
+
 	let sortBy = $state("updated"); // 'updated' | 'name' | 'cards'
 	let groupBy = $state("none"); // 'none' | 'format' | 'colors'
 
@@ -661,6 +682,7 @@
 										class="deck-card"
 										class:selected={selectedDeck?.id ===
 											deck.id}
+										class:is-draft={deck.isDraft}
 										role="button"
 										tabindex="0"
 										onclick={() => handleDeckClick(deck)}
@@ -676,17 +698,31 @@
 											}
 										}}
 									>
-										{#if getDeckCoverArt(deck)}
+										{#if deck.isDraft}
+											<div
+												class="draft-pattern-bg"
+											></div>
+											{#if getDeckCoverArt(deck)}
+												<img
+													src={getDeckCoverArt(deck)}
+													alt=""
+													class="deck-cover-img draft-layer-bottom"
+												/>
+												<img
+													src={getDeckCoverArt(deck)}
+													alt=""
+													class="deck-cover-img draft-layer-top"
+												/>
+											{/if}
+										{:else if getDeckCoverArt(deck)}
 											<img
 												src={getDeckCoverArt(deck)}
 												alt=""
 												class="deck-cover-img"
-												class:draft-img={deck.isDraft}
 											/>
 										{:else}
 											<div
 												class="deck-cover-fallback"
-												class:draft-fallback={deck.isDraft}
 											></div>
 										{/if}
 
@@ -694,15 +730,11 @@
 											<div class="deck-name-box">
 												<span
 													class="deck-title"
-													title={deck.isDraft
-														? deck.name ||
-															"Name & Save This Deck"
-														: deck.name}
+													title={getDeckDisplayName(
+														deck,
+													)}
 												>
-													{deck.isDraft
-														? deck.name ||
-															"Name & Save This Deck"
-														: deck.name}
+													{getDeckDisplayName(deck)}
 												</span>
 												{#if getDeckManaSymbols(deck).length > 0}
 													<div class="deck-mana-pips">
@@ -765,7 +797,21 @@
 		<div class="panel-scroll-content">
 			<!-- Hero Art Banner -->
 			<div class="panel-hero-banner">
-				{#if getDeckCoverArt(selectedDeck)}
+				{#if selectedDeck.isDraft}
+					<div class="draft-pattern-bg"></div>
+					{#if getDeckCoverArt(selectedDeck)}
+						<img
+							src={getDeckCoverArt(selectedDeck)}
+							alt=""
+							class="panel-hero-img draft-layer-bottom"
+						/>
+						<img
+							src={getDeckCoverArt(selectedDeck)}
+							alt=""
+							class="panel-hero-img draft-layer-top"
+						/>
+					{/if}
+				{:else if getDeckCoverArt(selectedDeck)}
 					<img
 						src={getDeckCoverArt(selectedDeck)}
 						alt=""
@@ -797,9 +843,7 @@
 			<!-- Main Deck Name & Subtitle -->
 			<div class="panel-main-info">
 				<h2 class="panel-deck-name">
-					{selectedDeck.isDraft
-						? selectedDeck.name || "Name & Save This Deck"
-						: selectedDeck.name || "Untitled Deck"}
+					{getDeckDisplayName(selectedDeck)}
 				</h2>
 				<p class="panel-deck-subtitle">
 					{getColorIdentityName(getDeckManaSymbols(selectedDeck))} • {getCardCount(
@@ -1226,8 +1270,23 @@
 		transform: scale(1.03);
 	}
 
-	.deck-cover-img.draft-img {
-		opacity: 0.55;
+	/* Faded Look for Draft Cover Images */
+	.draft-layer-bottom {
+		opacity: 0.6;
+	}
+
+	.draft-layer-top {
+		opacity: 0.8;
+		mix-blend-mode: luminosity;
+	}
+
+	.draft-pattern-bg {
+		position: absolute;
+		inset: 0;
+		background-color: #18181b;
+		background-image: url("data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M-0.646405 24.3536L24.3536 -0.646405L23.6465 -1.35352L-1.35352 23.6465L-0.646405 24.3536ZM-0.646405 36.3536L36.3536 -0.646405L35.6465 -1.35352L-1.35352 35.6464L-0.646405 36.3536ZM48.3536 -0.646405L-0.646405 48.3536L-1.35352 47.6465L47.6465 -1.35352L48.3536 -0.646405ZM10.3536 49.3536L49.3536 10.3536L48.6465 9.64648L9.64648 48.6464L10.3536 49.3536ZM49.3536 22.3535L22.3536 49.3535L21.6465 48.6464L48.6465 21.6464L49.3536 22.3535ZM34.3536 49.3536L49.3536 34.3536L48.6465 33.6465L33.6465 48.6464L34.3536 49.3536ZM49.3536 46.3536L46.3536 49.3536L45.6465 48.6465L48.6465 45.6465L49.3536 46.3536ZM-0.646405 12.3536L12.3536 -0.646405L11.6465 -1.35352L-1.35352 11.6465L-0.646405 12.3536ZM18.3536 -0.646405L-0.646405 18.3536L-1.35352 17.6465L17.6465 -1.35352L18.3536 -0.646405ZM-0.646405 6.35359L6.35359 -0.646405L5.64648 -1.35352L-1.35352 5.64648L-0.646405 6.35359ZM30.3536 -0.646405L-0.646405 30.3536L-1.35352 29.6465L29.6465 -1.35352L30.3536 -0.646405ZM-0.646405 42.3536L42.3536 -0.646405L41.6465 -1.35352L-1.35352 41.6465L-0.646405 42.3536ZM49.3536 4.35359L4.35359 49.3536L3.64648 48.6465L48.6465 3.64648L49.3536 4.35359ZM16.3536 49.3536L49.3536 16.3536L48.6465 15.6465L15.6465 48.6465L16.3536 49.3536ZM49.3536 28.3536L28.3536 49.3536L27.6465 48.6465L48.6465 27.6465L49.3536 28.3536ZM40.3536 49.3536L49.3536 40.3536L48.6465 39.6465L39.6465 48.6465L40.3536 49.3536Z' fill='white' fill-opacity='0.15'/%3E%3C/svg%3E");
+		background-size: 48px 48px;
+		background-repeat: repeat;
 	}
 
 	.deck-cover-fallback {
@@ -1240,11 +1299,6 @@
 			hsl(var(--muted) / 0.4) 0%,
 			hsl(var(--accent) / 0.3) 100%
 		);
-	}
-
-	.deck-cover-fallback.draft-fallback {
-		background-color: #18181b;
-		background-image: url("data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg' fill='none'%3E%3Crect width='48' height='48' fill='%2318181b' opacity='1'/%3E%3Cg opacity='0.15'%3E%3Cg clip-path='url(%23clip0_29_36959)'%3E%3Cpath d='M36.5 -1.5L-13.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M60.5 22.5L10.5 72.5' stroke='%23fafafa'/%3E%3Cpath d='M60.5 -1.5L10.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M37 -26L-13 24' stroke='%23fafafa'/%3E%3Cpath d='M48.5 -1.5L-1.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M72.5 22.5L22.5 72.5' stroke='%23fafafa'/%3E%3Cpath d='M72.5 -1.5L22.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M49 -26L-19.5 42.5' stroke='%23fafafa'/%3E%3C/g%3E%3Cdefs%3E%3CclipPath id='clip0_29_36959'%3E%3Crect width='48' height='48' fill='white'/%3E%3C/clipPath%3E%3C/defs%3E%3C/g%3E%3C/svg%3E");
 	}
 
 	/* Parent gradient container extending 16px above the name box */
@@ -1297,6 +1351,16 @@
 		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 		letter-spacing: -0.01em;
 		line-height: 1;
+	}
+
+	/* Unsaved draft styling: italics and 75% opacity */
+	.deck-card.is-draft .deck-title {
+		font-style: italic;
+		opacity: 0.75;
+	}
+
+	.deck-card.is-draft .deck-mana-pips {
+		opacity: 0.75;
 	}
 
 	.deck-mana-pips {
