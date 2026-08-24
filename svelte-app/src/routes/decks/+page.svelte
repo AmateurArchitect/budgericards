@@ -1369,8 +1369,8 @@
 		left: 0;
 		right: 0;
 		height: 0;
-		border-top: 1px solid rgba(0, 0, 0, 0.95);
-		border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+		border-top: 1px solid rgba(0, 0, 0, 0.75);
+		border-bottom: 1px solid rgba(255, 255, 255, 0.18);
 		pointer-events: none;
 		z-index: 5;
 	}
