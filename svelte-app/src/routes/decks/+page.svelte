@@ -1282,13 +1282,13 @@
 
 	/* Faded Look for Draft Cover Images */
 	.draft-layer-bottom {
-		opacity: 0.4;
+		opacity: 0.5;
 	}
 
 	.draft-white-tint {
 		position: absolute;
 		inset: 0;
-		background-color: rgba(255, 255, 255, 0.2);
+		background-color: rgba(255, 255, 255, 0.3);
 		pointer-events: none;
 		z-index: 1;
 	}
