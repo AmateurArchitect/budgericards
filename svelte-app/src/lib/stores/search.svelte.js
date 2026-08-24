@@ -24,6 +24,7 @@ function createSearch() {
 		scrollBatchLimit: 100,
 		progressiveLimit: 10,
 		showLargeSearchOverride: false,
+		highlightedIndex: 0,
 	});
 
 	/** @type {Map<string, any>} */
@@ -649,6 +650,7 @@ function createSearch() {
 		state.currentPage = 1;
 		state.scrollBatchLimit = 100;
 		state.showLargeSearchOverride = false;
+		state.highlightedIndex = 0;
 
 		// If query is empty and we are not browsing a local board, clear results and stop
 		if (!q && !['sideboard', 'maybeboard'].includes(collection)) {
@@ -722,11 +724,29 @@ function createSearch() {
 		get query() { return state.query; },
 		set query(val) {
 			state.query = val;
+			state.highlightedIndex = 0;
 			if (val.length === 0) {
 				performSearch();
 			} else {
 				state.hasTriggered = true;
 			}
+		},
+
+		get highlightedIndex() {
+			const len = Math.min(state.results.length, 8);
+			if (len === 0) return 0;
+			if (state.highlightedIndex >= len) return 0;
+			return state.highlightedIndex;
+		},
+		set highlightedIndex(val) {
+			state.highlightedIndex = val;
+		},
+		cycleHighlight(step = 1) {
+			const results = sortedResults();
+			const len = Math.min(results.length, 8);
+			if (len <= 0) return 0;
+			state.highlightedIndex = (state.highlightedIndex + step + len) % len;
+			return state.highlightedIndex;
 		},
 
 		get collection() { return state.collection; },

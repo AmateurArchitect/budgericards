@@ -468,12 +468,21 @@
 											searchStore.closeSearch();
 											return;
 										}
-										if ((e.key === "Tab" || e.key === "Enter") && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+										if (e.key === "Tab") {
 											const results = searchStore.results;
 											if (!searchStore.isSearching && results.length > 0 && results.length <= 8 && searchStore.query.trim().length > 0) {
 												e.preventDefault();
-												const topCard = results[0];
-												addSearchCard(topCard);
+												searchStore.cycleHighlight(e.shiftKey ? -1 : 1);
+											}
+											return;
+										}
+										if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+											const results = searchStore.results;
+											if (!searchStore.isSearching && results.length > 0 && results.length <= 8 && searchStore.query.trim().length > 0) {
+												e.preventDefault();
+												const targetIndex = Math.min(searchStore.highlightedIndex, results.length - 1);
+												const targetCard = results[targetIndex] || results[0];
+												addSearchCard(targetCard);
 												const inputEl = /** @type {HTMLInputElement | null} */ (e.target);
 												inputEl?.select();
 											}

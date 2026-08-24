@@ -71,7 +71,10 @@
 		searchStore.totalResults <= 8 &&
 		displayResults.length > 0
 	);
-	const topMatch = $derived(isFewResults ? displayResults[0] : null);
+	const activeIndex = $derived(
+		isFewResults ? Math.min(searchStore.highlightedIndex, displayResults.length - 1) : 0
+	);
+	const targetCard = $derived(isFewResults ? displayResults[activeIndex] : null);
 
 	/** @param {WheelEvent} e */
 	function handleWheel(e) {
@@ -142,11 +145,15 @@
 								Narrow down your query, or 
 								<button class="override-link-btn" onclick={() => searchStore.overrideLargeSearch()}>search anyway</button>.
 							</span>
-						{:else if isFewResults && topMatch}
+						{:else if isFewResults && targetCard}
 							<div class="marginal-autocomplete-info">
 								<span>Found <span class="count">{searchStore.totalResults}</span> {searchStore.totalResults === 1 ? 'card' : 'cards'}.</span>
 								<span class="autocomplete-hint">
-									Press <kbd class="key-cap">Tab</kbd> or <kbd class="key-cap">↵ Enter</kbd> to add <strong class="card-highlight-name">{topMatch.name}</strong>
+									{#if displayResults.length > 1}
+										Press <kbd class="key-cap">Tab</kbd> to cycle or <kbd class="key-cap">↵ Enter</kbd> to add <strong class="card-highlight-name">{targetCard.name}</strong>
+									{:else}
+										Press <kbd class="key-cap">↵ Enter</kbd> to add <strong class="card-highlight-name">{targetCard.name}</strong>
+									{/if}
 								</span>
 							</div>
 						{:else}
@@ -173,7 +180,7 @@
 									: priceStore.getPrice(card.name)}
 								inSearchPanel={true}
 								index={i}
-								isHighlighted={i === 0 && isFewResults}
+								isHighlighted={isFewResults && i === activeIndex}
 							/>
 						</div>
 					{/each}
