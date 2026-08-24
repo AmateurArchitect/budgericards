@@ -1274,7 +1274,7 @@
 		background: rgba(0, 0, 0, 0.25);
 		border-top: 1px solid rgba(0, 0, 0, 0.85);
 		box-shadow:
-			inset 0 0 12px 8px rgba(43, 43, 43, 0.5),
+			inset 0 0 12px 8px rgba(32, 32, 32, 0.5),
 			inset 0.5px 1px 3px rgba(255, 255, 255, 0.18),
 			inset -0.5px -1px 3px rgba(0, 0, 0, 0.75);
 		display: flex;
