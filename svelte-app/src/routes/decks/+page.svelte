@@ -1282,7 +1282,7 @@
 
 	/* Faded Look for Draft Cover Images */
 	.draft-layer-bottom {
-		opacity: 0.5;
+		opacity: 0.6;
 	}
 
 	.draft-white-tint {
@@ -1294,7 +1294,7 @@
 	}
 
 	.draft-layer-top {
-		opacity: 0.6;
+		opacity: 0.5;
 		mix-blend-mode: luminosity;
 		z-index: 1;
 	}
