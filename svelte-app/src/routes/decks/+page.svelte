@@ -1,6 +1,13 @@
 <script>
-	import { fade } from "svelte/transition";
-	import { FolderOpen, Trash2, Loader, PlusCircle } from "lucide-svelte";
+	import { fade, fly } from "svelte/transition";
+	import {
+		FolderOpen,
+		Trash2,
+		Loader,
+		PlusCircle,
+		X,
+		ArrowRight,
+	} from "lucide-svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { authStore } from "$lib/stores/auth.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
@@ -17,6 +24,9 @@
 	let isLoading = $state(false);
 	let error = $state("");
 	let hasLoaded = false;
+
+	/** @type {any | null} */
+	let selectedDeck = $state(null);
 
 	async function loadDecks() {
 		if (!authStore.isAuthenticated && !authStore.isLoading) {
@@ -75,6 +85,7 @@
 
 	/** @param {any} deck */
 	function handleSelectDeck(deck) {
+		if (!deck) return;
 		const cards = deck.cards || deck;
 		deckStore.setDeck({
 			id: deck.id,
@@ -91,6 +102,27 @@
 			metadata: cards.metadata || {},
 		});
 		goto(`/decks/${deck.id}/${slugify(deck.name)}`);
+	}
+
+	/** @param {any} deck */
+	function handleDeckClick(deck) {
+		selectedDeck = deck;
+	}
+
+	/** @param {any} deck */
+	function handleDeckDblClick(deck) {
+		handleSelectDeck(deck);
+	}
+
+	function closeSidePanel() {
+		selectedDeck = null;
+	}
+
+	/** @param {KeyboardEvent} e */
+	function handleWindowKeyDown(e) {
+		if (e.key === "Escape" && selectedDeck) {
+			closeSidePanel();
+		}
 	}
 
 	/**
@@ -126,6 +158,10 @@
 					await syncService.deleteDeck(deckId);
 				if (deleteError) throw deleteError;
 				decks = decks.filter((d) => d.id !== deckId);
+			}
+
+			if (selectedDeck?.id === deckId) {
+				selectedDeck = null;
 			}
 
 			if (deckStore.id === deckId) {
@@ -165,8 +201,9 @@
 		return Math.floor(seconds) + "s ago";
 	}
 
-	/** @param {string} dateString */
+	/** @param {string} [dateString] */
 	function formatUpdatedDate(dateString) {
+		if (!dateString) return "recently";
 		try {
 			const ms = new Date(dateString).getTime();
 			return timeAgo(ms);
@@ -190,6 +227,7 @@
 
 	/** @param {any} deck */
 	function getDeckCoverArt(deck) {
+		if (!deck) return null;
 		const cards = deck.cards || deck;
 		if (cards.coverArt) return cards.coverArt;
 		if (cards.coverArt === "") return null;
@@ -201,7 +239,7 @@
 		if (!leadCard) return null;
 
 		const metadata = cards.metadata || {};
-		const meta = metadata[leadCard.name.toLowerCase()];
+		const meta = metadata[leadCard.name?.toLowerCase()];
 		if (!meta) return null;
 
 		return (
@@ -211,51 +249,110 @@
 		);
 	}
 
+	/** @param {any} deck */
+	function getDeckCommanderInfo(deck) {
+		if (!deck) return null;
+		const cards = deck.cards || deck;
+		const cmd = cards.commander?.[0];
+		if (!cmd) return null;
+		const metadata = cards.metadata || {};
+		const meta = metadata[cmd.name?.toLowerCase()] || {};
+		const artCrop =
+			meta.image_uris?.art_crop ||
+			meta.card_faces?.[0]?.image_uris?.art_crop ||
+			meta.image_uris?.normal ||
+			null;
+		return {
+			name: cmd.name,
+			type_line: meta.type_line || "Commander",
+			mana_cost: meta.mana_cost || "",
+			artCrop,
+			meta,
+		};
+	}
+
+	/** @param {any} deck */
+	function getBoardBreakdown(deck) {
+		if (!deck)
+			return {
+				commander: 0,
+				mainboard: 0,
+				sideboard: 0,
+				maybeboard: 0,
+				companion: 0,
+				total: 0,
+			};
+		const cards = deck.cards || deck;
+		const commander = cards.commander?.length || 0;
+		const companion = cards.companion?.length || 0;
+		const mainboard = cards.mainboard?.length || 0;
+		const sideboard = cards.sideboard?.length || 0;
+		const maybeboard = cards.maybeboard?.length || 0;
+		return {
+			commander,
+			companion,
+			mainboard,
+			sideboard,
+			maybeboard,
+			total:
+				commander + companion + mainboard + sideboard + maybeboard,
+		};
+	}
+
 	let sortBy = $state("updated"); // 'updated' | 'name' | 'cards'
 	let groupBy = $state("none"); // 'none' | 'format' | 'colors'
 
+	/** @param {string[]} colors */
+	function getColorIdentityName(colors) {
+		if (!colors || colors.length === 0) return "Colorless";
+		const sorted = ["W", "U", "B", "R", "G"].filter((c) =>
+			colors.includes(c),
+		);
+		const key = sorted.join("");
+
+		/** @type {Record<string, string>} */
+		const colorMap = {
+			W: "White",
+			U: "Blue",
+			B: "Black",
+			R: "Red",
+			G: "Green",
+			WU: "Azorius",
+			UB: "Dimir",
+			BR: "Rakdos",
+			RG: "Gruul",
+			GW: "Selesnya",
+			WB: "Orzhov",
+			UR: "Izzet",
+			BG: "Golgari",
+			RW: "Boros",
+			GU: "Simic",
+			GWU: "Bant",
+			WUB: "Esper",
+			UBR: "Grixis",
+			BRG: "Jund",
+			RGW: "Naya",
+			WBG: "Abzan",
+			URW: "Jeskai",
+			BGU: "Sultai",
+			RWB: "Mardu",
+			GUR: "Temur",
+			UBRG: "Glint-Eye",
+			BRGW: "Dune-Brood",
+			RGWU: "Ink-Treader",
+			GWUB: "Witch-Maw",
+			WUBR: "Yore-Tiller",
+			WUBRG: "Five-Color",
+		};
+
+		return colorMap[key] || `${sorted.join("")}`;
+	}
+
 	/** @param {any} deck */
 	function getDeckColors(deck) {
-		const cards = deck.cards || deck;
-		const metadata = cards.metadata || {};
-		const colorsSet = new Set();
-
-		const allCardsList = [
-			...(cards.commander || []),
-			...(cards.companion || []),
-			...(cards.mainboard || []),
-			...(cards.sideboard || []),
-			...(cards.maybeboard || []),
-		];
-
-		for (const card of allCardsList) {
-			const meta = metadata[card.name.toLowerCase()];
-			if (meta && meta.color_identity) {
-				for (const c of meta.color_identity) {
-					colorsSet.add(c);
-				}
-			}
-		}
-
-		if (colorsSet.size === 0) return "Colorless";
-
-		// Sort WUBRG order
-		const wubrg = ["W", "U", "B", "R", "G"];
-		const sorted = wubrg.filter((c) => colorsSet.has(c));
-		if (sorted.length === 0) return "Colorless";
-		if (sorted.length === 1) {
-			/** @type {Record<string, string>} */
-			const names = {
-				W: "White",
-				U: "Blue",
-				B: "Black",
-				R: "Red",
-				G: "Green",
-			};
-			return names[sorted[0]] || sorted[0];
-		}
-		if (sorted.length === 5) return "Five-Color";
-		return "Guild/Shard (" + sorted.join("") + ")";
+		const manaSymbols = getDeckManaSymbols(deck);
+		if (manaSymbols.length === 0) return "Colorless";
+		return getColorIdentityName(manaSymbols);
 	}
 
 	const allDecks = $derived.by(() => {
@@ -329,6 +426,7 @@
 
 	/** @param {any} deck */
 	function getDeckManaSymbols(deck) {
+		if (!deck) return [];
 		const cards = deck.cards || deck;
 		const metadata = cards.metadata || {};
 		const colorsSet = new Set();
@@ -342,7 +440,7 @@
 		];
 
 		for (const card of allCardsList) {
-			const meta = metadata[card.name.toLowerCase()];
+			const meta = metadata[card.name?.toLowerCase()];
 			if (meta && meta.color_identity) {
 				for (const c of meta.color_identity) {
 					colorsSet.add(c);
@@ -358,6 +456,8 @@
 		goto("/decks/new");
 	}
 </script>
+
+<svelte:window onkeydown={handleWindowKeyDown} />
 
 <div class="decks-page-wrapper">
 	<div class="decks-page-container">
@@ -413,8 +513,6 @@
 											: "0.5"}
 									/>
 									{#if i === 12}
-										<!-- Design Details on the Top Card (MTG Card Back) -->
-										<!-- Inner border -->
 										<rect
 											x="-21"
 											y="-31"
@@ -425,8 +523,6 @@
 											stroke-width="1"
 											stroke-opacity="0.8"
 										/>
-
-										<!-- Ellipse in the center (MTG Card Back Oval) -->
 										<ellipse
 											cx="0"
 											cy="0"
@@ -437,22 +533,15 @@
 											stroke-width="1"
 											stroke-opacity="0.8"
 										/>
-
-										<!-- 5 mana circles in WUBRG pentagon layout -->
 										<g
 											stroke="currentColor"
 											stroke-width="1"
 											stroke-opacity="0.8"
 										>
-											<!-- Top (White) -->
 											<circle cx="0" cy="-6" r="1.2" />
-											<!-- Right (Blue) -->
 											<circle cx="5" cy="-2" r="1.2" />
-											<!-- Bottom Right (Black) -->
 											<circle cx="3" cy="4" r="1.2" />
-											<!-- Bottom Left (Red) -->
 											<circle cx="-3" cy="4" r="1.2" />
-											<!-- Left (Green) -->
 											<circle cx="-5" cy="-2" r="1.2" />
 										</g>
 									{/if}
@@ -553,23 +642,17 @@
 											}
 										}}
 									>
-										<div
-											class="deck-art-preview create-art-preview"
-										>
+										<div class="create-content">
 											<PlusCircle
 												class="create-icon"
 												size={32}
 											/>
-										</div>
-										<div
-											class="deck-details create-details"
-										>
-											<h3 class="deck-name">
-												Create New Deck
-											</h3>
-											<p class="deck-desc">
-												Start building a fresh draft
-											</p>
+											<span class="create-title"
+												>Create New Deck</span
+											>
+											<span class="create-subtitle"
+												>Start building a fresh draft</span
+											>
 										</div>
 									</div>
 								{/if}
@@ -577,101 +660,61 @@
 								{#each group.items as deck (deck.id)}
 									<div
 										class="deck-card"
+										class:selected={selectedDeck?.id ===
+											deck.id}
 										role="button"
 										tabindex="0"
-										onclick={() => handleSelectDeck(deck)}
+										onclick={() => handleDeckClick(deck)}
+										ondblclick={() =>
+											handleDeckDblClick(deck)}
 										onkeydown={(e) => {
 											if (
 												e.key === "Enter" ||
 												e.key === " "
 											) {
 												e.preventDefault();
-												handleSelectDeck(deck);
+												handleDeckClick(deck);
 											}
 										}}
 									>
-										<div
-											class="deck-art-preview"
-											class:draft-preview={deck.isDraft}
-										>
-											{#if getDeckCoverArt(deck)}
-												<img
-													src={getDeckCoverArt(deck)}
-													alt=""
-													class="deck-art-img"
-													class:draft-img={deck.isDraft}
-												/>
-											{:else}
-												<div
-													class="deck-art-fallback"
-													class:draft-art-fallback={deck.isDraft}
-												></div>
-											{/if}
+										{#if getDeckCoverArt(deck)}
+											<img
+												src={getDeckCoverArt(deck)}
+												alt=""
+												class="deck-cover-img"
+												class:draft-img={deck.isDraft}
+											/>
+										{:else}
 											<div
-												class="deck-badge"
-												class:draft-badge={deck.isDraft}
-											>
-												{deck.isDraft
-													? "Local Draft"
-													: deck.cards?.format ||
-														"Commander"}
-											</div>
-										</div>
+												class="deck-cover-fallback"
+												class:draft-fallback={deck.isDraft}
+											></div>
+										{/if}
 
-										<div class="deck-details">
-											<h3 class="deck-name">
+										<div class="deck-bottom-banner">
+											<span
+												class="deck-title"
+												title={deck.isDraft
+													? deck.name ||
+														"Name & Save This Deck"
+													: deck.name}
+											>
 												{deck.isDraft
 													? deck.name ||
 														"Name & Save This Deck"
 													: deck.name}
-											</h3>
-											<div class="deck-meta">
-												{#if getDeckManaSymbols(deck).length > 0}
-													<div
-														class="deck-mana-symbols"
-													>
-														{#each getDeckManaSymbols(deck) as sym}
-															<ManaSymbol
-																symbol={sym}
-																size="0.75rem"
-																className="ms-cost"
-															/>
-														{/each}
-													</div>
-													<span class="meta-dot"
-														>•</span
-													>
-												{/if}
-												<span class="card-count"
-													>{getCardCount(deck)} Cards</span
-												>
-												<span class="meta-dot">•</span>
-												<span class="updated-time"
-													>Updated {formatUpdatedDate(
-														deck.isDraft
-															? deck.metadata
-																	?.updatedAt
-															: deck.updated_at,
-													)}</span
-												>
-											</div>
-										</div>
-
-										<div class="deck-actions">
-											<button
-												class="action-icon-btn delete-btn"
-												title={deck.isDraft
-													? "Delete Draft"
-													: "Delete Deck"}
-												onclick={(e) =>
-													handleDeleteDeck(
-														deck.id,
-														e,
-														deck.isDraft,
-													)}
-											>
-												<Trash2 size={16} />
-											</button>
+											</span>
+											{#if getDeckManaSymbols(deck).length > 0}
+												<div class="deck-mana-pips">
+													{#each getDeckManaSymbols(deck) as sym}
+														<ManaSymbol
+															symbol={sym}
+															size="0.85rem"
+															className="deck-pip"
+														/>
+													{/each}
+												</div>
+											{/if}
 										</div>
 									</div>
 								{/each}
@@ -684,6 +727,217 @@
 	</div>
 </div>
 
+<!-- Side Info Panel & Backdrop -->
+{#if selectedDeck}
+	{@const cmdInfo = getDeckCommanderInfo(selectedDeck)}
+	{@const breakdown = getBoardBreakdown(selectedDeck)}
+
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<div
+		class="panel-backdrop"
+		transition:fade={{ duration: 180 }}
+		onclick={closeSidePanel}
+		role="presentation"
+	></div>
+
+	<aside
+		class="deck-info-panel"
+		transition:fly={{ x: 380, duration: 240 }}
+		aria-label="Deck details"
+	>
+		<!-- Panel Header -->
+		<div class="panel-header">
+			<div class="panel-header-title">
+				<FolderOpen size={16} class="panel-icon" />
+				<span>Deck Details</span>
+			</div>
+			<button
+				type="button"
+				class="panel-close-btn"
+				onclick={closeSidePanel}
+				aria-label="Close panel"
+			>
+				<X size={18} />
+			</button>
+		</div>
+
+		<!-- Panel Scrollable Body -->
+		<div class="panel-scroll-content">
+			<!-- Hero Art Banner -->
+			<div class="panel-hero-banner">
+				{#if getDeckCoverArt(selectedDeck)}
+					<img
+						src={getDeckCoverArt(selectedDeck)}
+						alt=""
+						class="panel-hero-img"
+					/>
+				{:else}
+					<div class="panel-hero-fallback"></div>
+				{/if}
+				<div class="panel-hero-overlay"></div>
+				<div class="panel-hero-badges">
+					<span
+						class="format-pill"
+						class:draft-pill={selectedDeck.isDraft}
+					>
+						{selectedDeck.isDraft
+							? "Local Draft"
+							: selectedDeck.cards?.format || "Commander"}
+					</span>
+					{#if getDeckManaSymbols(selectedDeck).length > 0}
+						<div class="hero-mana-pips">
+							{#each getDeckManaSymbols(selectedDeck) as sym}
+								<ManaSymbol symbol={sym} size="0.85rem" />
+							{/each}
+						</div>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Main Deck Name & Subtitle -->
+			<div class="panel-main-info">
+				<h2 class="panel-deck-name">
+					{selectedDeck.isDraft
+						? selectedDeck.name || "Name & Save This Deck"
+						: selectedDeck.name || "Untitled Deck"}
+				</h2>
+				<p class="panel-deck-subtitle">
+					{getColorIdentityName(getDeckManaSymbols(selectedDeck))} • {getCardCount(
+						selectedDeck,
+					)} Cards
+				</p>
+			</div>
+
+			<!-- Primary Open Deck CTA -->
+			<div class="panel-cta-container">
+				<button
+					type="button"
+					class="open-deck-cta-btn"
+					onclick={() => handleSelectDeck(selectedDeck)}
+				>
+					<span>Open Deck</span>
+					<ArrowRight size={18} class="btn-arrow" />
+				</button>
+			</div>
+
+			<!-- Metadata Overview -->
+			<div class="panel-section">
+				<h4 class="section-title">Overview</h4>
+				<div class="meta-grid">
+					<div class="meta-item">
+						<span class="meta-label">Format</span>
+						<span class="meta-value">
+							{selectedDeck.isDraft
+								? "Local Draft"
+								: selectedDeck.cards?.format || "Commander"}
+						</span>
+					</div>
+					<div class="meta-item">
+						<span class="meta-label">Color Identity</span>
+						<span class="meta-value">
+							{getColorIdentityName(
+								getDeckManaSymbols(selectedDeck),
+							)}
+						</span>
+					</div>
+					<div class="meta-item">
+						<span class="meta-label">Total Cards</span>
+						<span class="meta-value"
+							>{getCardCount(selectedDeck)} cards</span
+						>
+					</div>
+					<div class="meta-item">
+						<span class="meta-label">Last Updated</span>
+						<span class="meta-value">
+							{formatUpdatedDate(
+								selectedDeck.isDraft
+									? selectedDeck.metadata?.updatedAt
+									: selectedDeck.updated_at,
+							)}
+						</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Commander Section (if deck has a commander) -->
+			{#if cmdInfo}
+				<div class="panel-section">
+					<h4 class="section-title">Commander</h4>
+					<div class="commander-card-preview">
+						{#if cmdInfo.artCrop}
+							<img
+								src={cmdInfo.artCrop}
+								alt={cmdInfo.name}
+								class="commander-thumb"
+							/>
+						{/if}
+						<div class="commander-text">
+							<span class="commander-name">{cmdInfo.name}</span>
+							<span class="commander-type"
+								>{cmdInfo.type_line}</span
+							>
+						</div>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Breakdown Chips Section -->
+			<div class="panel-section">
+				<h4 class="section-title">Card Breakdown</h4>
+				<div class="breakdown-chips">
+					{#if breakdown.commander > 0}
+						<div class="chip">
+							<span class="chip-label">Commander</span>
+							<span class="chip-count">{breakdown.commander}</span>
+						</div>
+					{/if}
+					{#if breakdown.companion > 0}
+						<div class="chip">
+							<span class="chip-label">Companion</span>
+							<span class="chip-count">{breakdown.companion}</span>
+						</div>
+					{/if}
+					<div class="chip">
+						<span class="chip-label">Mainboard</span>
+						<span class="chip-count">{breakdown.mainboard}</span>
+					</div>
+					{#if breakdown.sideboard > 0}
+						<div class="chip">
+							<span class="chip-label">Sideboard</span>
+							<span class="chip-count">{breakdown.sideboard}</span>
+						</div>
+					{/if}
+					{#if breakdown.maybeboard > 0}
+						<div class="chip">
+							<span class="chip-label">Maybeboard</span>
+							<span class="chip-count">{breakdown.maybeboard}</span>
+						</div>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Footer Delete Action -->
+			<div class="panel-footer-actions">
+				<button
+					type="button"
+					class="delete-deck-btn"
+					onclick={(e) => {
+						const d = selectedDeck;
+						handleDeleteDeck(d.id, e, d.isDraft);
+					}}
+				>
+					<Trash2 size={15} />
+					<span
+						>{selectedDeck.isDraft
+							? "Delete Draft"
+							: "Delete Deck"}</span
+					>
+				</button>
+			</div>
+		</div>
+	</aside>
+{/if}
+
 <style>
 	.decks-page-wrapper {
 		width: 100%;
@@ -694,7 +948,7 @@
 
 	.decks-page-container {
 		width: 100%;
-		max-width: 960px;
+		max-width: 1040px;
 		margin: 0 auto;
 		padding: 3rem 1.5rem;
 		display: flex;
@@ -706,7 +960,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
-		margin-bottom: 2.5rem;
+		margin-bottom: 2rem;
 		border-bottom: 1px solid hsl(var(--border) / 0.3);
 		padding-bottom: 1.25rem;
 	}
@@ -749,7 +1003,7 @@
 		color: hsl(var(--muted-foreground));
 		background: hsl(var(--muted) / 0.05);
 		border: 1px dashed hsl(var(--border) / 0.6);
-		border-radius: var(--radius-lg);
+		border-radius: var(--radius-lg, 8px);
 	}
 
 	.empty-state {
@@ -844,170 +1098,7 @@
 		}
 	}
 
-	/* Decks list/grid */
-	.decks-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-		gap: 1.25rem;
-	}
-
-	.deck-card {
-		display: flex;
-		flex-direction: column;
-		background: hsl(var(--muted) / 0.15);
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-lg);
-		overflow: hidden;
-		cursor: pointer;
-		text-align: left;
-		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-		position: relative;
-	}
-
-	.deck-card:hover {
-		background: hsl(var(--muted) / 0.3);
-		border-color: hsl(var(--primary) / 0.4);
-		transform: translateY(-2px);
-		box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
-	}
-
-	.deck-art-preview {
-		width: 100%;
-		aspect-ratio: 4 / 3;
-		height: auto;
-		overflow: hidden;
-		position: relative;
-		border-bottom: 1px solid hsl(var(--border) / 0.4);
-		background: hsl(var(--muted) / 0.1);
-	}
-
-	.deck-art-preview.draft-preview {
-		background-color: #18181b;
-		background-image: url("data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg' fill='none'%3E%3Crect width='48' height='48' fill='%2318181b' opacity='1'/%3E%3Cg opacity='0.15'%3E%3Cg clip-path='url(%23clip0_29_36959)'%3E%3Cpath d='M36.5 -1.5L-13.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M60.5 22.5L10.5 72.5' stroke='%23fafafa'/%3E%3Cpath d='M60.5 -1.5L10.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M37 -26L-13 24' stroke='%23fafafa'/%3E%3Cpath d='M48.5 -1.5L-1.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M72.5 22.5L22.5 72.5' stroke='%23fafafa'/%3E%3Cpath d='M72.5 -1.5L22.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M49 -26L-19.5 42.5' stroke='%23fafafa'/%3E%3C/g%3E%3Cdefs%3E%3CclipPath id='clip0_29_36959'%3E%3Crect width='48' height='48' fill='white'/%3E%3C/clipPath%3E%3C/defs%3E%3C/g%3E%3C/svg%3E");
-		background-size: 48px 48px;
-		background-repeat: repeat;
-	}
-
-	.deck-art-img.draft-img {
-		opacity: 0.45;
-	}
-
-	.deck-art-img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-
-	.deck-art-fallback {
-		width: 100%;
-		height: 100%;
-		background: linear-gradient(
-			135deg,
-			hsl(var(--muted)) 0%,
-			hsl(var(--accent) / 0.6) 100%
-		);
-	}
-
-	.deck-badge {
-		position: absolute;
-		bottom: 8px;
-		left: 8px;
-		font-size: 0.625rem;
-		font-weight: 700;
-		background: rgba(0, 0, 0, 0.75);
-		backdrop-filter: blur(4px);
-		color: white;
-		padding: 3px 6px;
-		border-radius: 4px;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.deck-details {
-		padding: 1rem;
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		gap: 0.5rem;
-	}
-
-	.deck-name {
-		font-size: 1rem;
-		font-weight: 700;
-		margin: 0;
-		color: hsl(var(--foreground));
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.deck-meta {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.meta-dot {
-		color: hsl(var(--muted-foreground) / 0.4);
-	}
-
-	.deck-actions {
-		position: absolute;
-		top: 8px;
-		right: 8px;
-		opacity: 0;
-		transition: opacity 0.15s;
-		z-index: 10;
-	}
-
-	.deck-card:hover .deck-actions {
-		opacity: 1;
-	}
-
-	.action-icon-btn {
-		background: rgba(0, 0, 0, 0.6);
-		backdrop-filter: blur(4px);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		color: white;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 0.5rem;
-		border-radius: 50%;
-		transition: all 0.15s;
-	}
-
-	.action-icon-btn:hover {
-		background: rgba(239, 68, 68, 0.8);
-		border-color: rgba(239, 68, 68, 0.2);
-	}
-
-	/* Sectioning */
-	.library-section {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.draft-badge {
-		background: hsl(var(--warning) / 0.95) !important;
-		color: hsl(var(--warning-foreground)) !important;
-	}
-
-	.draft-art-fallback {
-		background: linear-gradient(
-			135deg,
-			hsl(var(--muted) / 0.5) 0%,
-			hsl(var(--warning) / 0.25) 100%
-		) !important;
-		opacity: 0.65;
-	}
-
-	/* Library Controls (Segmented Control styling) */
+	/* Library Controls */
 	.library-controls {
 		display: flex;
 		flex-wrap: wrap;
@@ -1016,7 +1107,7 @@
 		background: hsl(var(--muted) / 0.08);
 		border: 1px solid hsl(var(--border) / 0.3);
 		border-radius: var(--radius-md);
-		margin-bottom: 2.5rem;
+		margin-bottom: 2rem;
 		align-items: center;
 	}
 
@@ -1065,60 +1156,163 @@
 		font-weight: 600;
 	}
 
+	/* Decks list/grid */
+	.decks-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+		gap: 1.25rem;
+	}
+
+	/* Simplified Deck Box Card */
+	.deck-card {
+		position: relative;
+		width: 100%;
+		aspect-ratio: 16 / 10;
+		border-radius: 8px;
+		overflow: hidden;
+		cursor: pointer;
+		background: #141416;
+		border: 1px solid hsl(var(--border) / 0.6);
+		transition:
+			transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+			box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+			border-color 0.2s ease;
+		user-select: none;
+		box-sizing: border-box;
+		display: flex;
+	}
+
+	.deck-card:hover {
+		transform: translateY(-2px);
+		border-color: hsl(var(--foreground) / 0.4);
+		box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+	}
+
+	.deck-card.selected {
+		border-color: hsl(var(--primary));
+		box-shadow:
+			0 0 0 2px hsl(var(--primary) / 0.9),
+			0 8px 24px rgba(0, 0, 0, 0.5);
+	}
+
+	.deck-cover-img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.deck-card:hover .deck-cover-img {
+		transform: scale(1.03);
+	}
+
+	.deck-cover-img.draft-img {
+		opacity: 0.55;
+	}
+
+	.deck-cover-fallback {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(
+			135deg,
+			hsl(var(--muted) / 0.4) 0%,
+			hsl(var(--accent) / 0.3) 100%
+		);
+	}
+
+	.deck-cover-fallback.draft-fallback {
+		background-color: #18181b;
+		background-image: url("data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg' fill='none'%3E%3Crect width='48' height='48' fill='%2318181b' opacity='1'/%3E%3Cg opacity='0.15'%3E%3Cg clip-path='url(%23clip0_29_36959)'%3E%3Cpath d='M36.5 -1.5L-13.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M60.5 22.5L10.5 72.5' stroke='%23fafafa'/%3E%3Cpath d='M60.5 -1.5L10.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M37 -26L-13 24' stroke='%23fafafa'/%3E%3Cpath d='M48.5 -1.5L-1.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M72.5 22.5L22.5 72.5' stroke='%23fafafa'/%3E%3Cpath d='M72.5 -1.5L22.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M49 -26L-19.5 42.5' stroke='%23fafafa'/%3E%3C/g%3E%3Cdefs%3E%3CclipPath id='clip0_29_36959'%3E%3Crect width='48' height='48' fill='white'/%3E%3C/clipPath%3E%3C/defs%3E%3C/g%3E%3C/svg%3E");
+	}
+
+	/* Bottom Title & Mana Strip */
+	.deck-bottom-banner {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.85rem 0.85rem 0.65rem;
+		background: linear-gradient(
+			to top,
+			rgba(0, 0, 0, 0.94) 0%,
+			rgba(0, 0, 0, 0.75) 65%,
+			rgba(0, 0, 0, 0) 100%
+		);
+		z-index: 2;
+		pointer-events: none;
+	}
+
+	.deck-title {
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
+			Georgia, serif;
+		font-size: 0.975rem;
+		font-weight: 600;
+		color: #ffffff;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+		letter-spacing: -0.01em;
+	}
+
+	.deck-mana-pips {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+		flex-shrink: 0;
+	}
+
 	/* Create New Deck Card */
 	.deck-card.create-card {
-		border: 2px dashed hsl(var(--border) / 0.8);
-		background: transparent;
-		box-shadow: none;
-	}
-
-	.deck-card.create-card:hover {
-		border-color: hsl(var(--primary));
-		background: hsl(var(--primary) / 0.02);
-		transform: translateY(-2px);
-		box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-	}
-
-	.create-art-preview {
-		border: none;
+		border: 1.5px dashed hsl(var(--border) / 0.8);
+		background: hsl(var(--muted) / 0.05);
 		display: flex;
 		align-items: center;
 		justify-content: center;
+	}
+
+	.deck-card.create-card:hover {
+		border-color: hsl(var(--primary) / 0.8);
+		background: hsl(var(--primary) / 0.04);
+	}
+
+	.create-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.35rem;
+		text-align: center;
+		padding: 1rem;
 		color: hsl(var(--muted-foreground));
 		transition: color 0.2s ease;
 	}
 
 	:global(.create-card:hover .create-icon) {
 		color: hsl(var(--primary));
+		transform: scale(1.06);
+		transition:
+			transform 0.2s ease,
+			color 0.2s ease;
 	}
 
-	.create-details {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		text-align: center;
-		gap: 0.25rem;
-		justify-content: center;
-	}
-
-	.create-details .deck-name {
-		font-size: 1rem;
+	.create-title {
+		font-size: 0.95rem;
 		font-weight: 600;
 		color: hsl(var(--foreground));
 	}
 
-	.deck-desc {
-		font-size: 0.775rem;
+	.create-subtitle {
+		font-size: 0.75rem;
 		color: hsl(var(--muted-foreground));
-		line-height: 1.4;
-		margin: 0;
-		max-width: 180px;
-	}
-
-	.deck-mana-symbols {
-		display: inline-flex;
-		align-items: center;
-		gap: 2px;
 	}
 
 	/* Grouping Container & Headers */
@@ -1141,5 +1335,361 @@
 		letter-spacing: 0.05em;
 		border-bottom: 1px dashed hsl(var(--border) / 0.2);
 		padding-bottom: 0.25rem;
+	}
+
+	.library-section {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	/* Side Info Panel & Backdrop */
+	.panel-backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.5);
+		backdrop-filter: blur(2px);
+		z-index: 90;
+	}
+
+	.deck-info-panel {
+		position: fixed;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		width: 380px;
+		max-width: 92vw;
+		background: #111114;
+		border-left: 1px solid hsl(var(--border) / 0.6);
+		z-index: 100;
+		display: flex;
+		flex-direction: column;
+		box-shadow: -10px 0 35px rgba(0, 0, 0, 0.5);
+	}
+
+	.panel-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 1rem 1.25rem;
+		border-bottom: 1px solid hsl(var(--border) / 0.4);
+		background: hsl(var(--card));
+	}
+
+	.panel-header-title {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: hsl(var(--muted-foreground));
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	:global(.panel-icon) {
+		color: hsl(var(--primary));
+	}
+
+	.panel-close-btn {
+		background: transparent;
+		border: none;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.35rem;
+		border-radius: var(--radius-sm);
+		transition: all 0.15s ease;
+	}
+
+	.panel-close-btn:hover {
+		color: hsl(var(--foreground));
+		background: hsl(var(--muted) / 0.3);
+	}
+
+	.panel-scroll-content {
+		flex: 1;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		padding-bottom: 2rem;
+	}
+
+	.panel-hero-banner {
+		position: relative;
+		width: 100%;
+		aspect-ratio: 16 / 9;
+		overflow: hidden;
+		background: hsl(var(--muted) / 0.2);
+	}
+
+	.panel-hero-img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.panel-hero-fallback {
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(
+			135deg,
+			hsl(var(--muted)) 0%,
+			hsl(var(--accent)) 100%
+		);
+	}
+
+	.panel-hero-overlay {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(
+			to top,
+			#111114 0%,
+			rgba(17, 17, 20, 0.4) 50%,
+			rgba(0, 0, 0, 0.1) 100%
+		);
+	}
+
+	.panel-hero-badges {
+		position: absolute;
+		bottom: 0.75rem;
+		left: 1.25rem;
+		right: 1.25rem;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.format-pill {
+		font-size: 0.65rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		background: rgba(0, 0, 0, 0.75);
+		backdrop-filter: blur(4px);
+		color: #fff;
+		padding: 3px 8px;
+		border-radius: 4px;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+	}
+
+	.format-pill.draft-pill {
+		background: hsl(var(--warning) / 0.9);
+		color: #000;
+		border-color: transparent;
+	}
+
+	.hero-mana-pips {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+		background: rgba(0, 0, 0, 0.65);
+		padding: 2px 6px;
+		border-radius: 12px;
+		backdrop-filter: blur(4px);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.panel-main-info {
+		padding: 1.25rem 1.25rem 0.75rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.panel-deck-name {
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
+			Georgia, serif;
+		font-size: 1.45rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+		margin: 0;
+		line-height: 1.25;
+		letter-spacing: -0.01em;
+	}
+
+	.panel-deck-subtitle {
+		font-size: 0.85rem;
+		color: hsl(var(--muted-foreground));
+		margin: 0;
+	}
+
+	.panel-cta-container {
+		padding: 0 1.25rem 1.25rem;
+	}
+
+	.open-deck-cta-btn {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		padding: 0.85rem 1.5rem;
+		background: hsl(var(--primary));
+		color: white;
+		font-size: 0.95rem;
+		font-weight: 600;
+		border: none;
+		border-radius: var(--radius-md);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		box-shadow: 0 4px 14px hsl(var(--primary) / 0.3);
+	}
+
+	.open-deck-cta-btn:hover {
+		background: hsl(var(--primary-light));
+		transform: translateY(-1px);
+		box-shadow: 0 6px 20px hsl(var(--primary) / 0.4);
+	}
+
+	:global(.open-deck-cta-btn .btn-arrow) {
+		transition: transform 0.2s ease;
+	}
+
+	:global(.open-deck-cta-btn:hover .btn-arrow) {
+		transform: translateX(4px);
+	}
+
+	.panel-section {
+		padding: 1rem 1.25rem;
+		border-top: 1px solid hsl(var(--border) / 0.3);
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.section-title {
+		font-size: 0.725rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: hsl(var(--muted-foreground));
+		margin: 0;
+	}
+
+	.meta-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 0.75rem;
+	}
+
+	.meta-item {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		background: hsl(var(--muted) / 0.1);
+		padding: 0.6rem 0.75rem;
+		border-radius: var(--radius-md);
+		border: 1px solid hsl(var(--border) / 0.2);
+	}
+
+	.meta-label {
+		font-size: 0.7rem;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.meta-value {
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+	}
+
+	.commander-card-preview {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		background: hsl(var(--muted) / 0.15);
+		padding: 0.6rem 0.75rem;
+		border-radius: var(--radius-md);
+		border: 1px solid hsl(var(--border) / 0.3);
+	}
+
+	.commander-thumb {
+		width: 44px;
+		height: 44px;
+		border-radius: var(--radius-sm);
+		object-fit: cover;
+		border: 1px solid hsl(var(--border) / 0.4);
+	}
+
+	.commander-text {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		overflow: hidden;
+	}
+
+	.commander-name {
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.commander-type {
+		font-size: 0.725rem;
+		color: hsl(var(--muted-foreground));
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.breakdown-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+	}
+
+	.chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		background: hsl(var(--muted) / 0.15);
+		border: 1px solid hsl(var(--border) / 0.3);
+		padding: 0.3rem 0.6rem;
+		border-radius: var(--radius-sm);
+		font-size: 0.75rem;
+	}
+
+	.chip-label {
+		color: hsl(var(--muted-foreground));
+	}
+
+	.chip-count {
+		font-weight: 600;
+		color: hsl(var(--foreground));
+	}
+
+	.panel-footer-actions {
+		margin-top: auto;
+		padding: 1.25rem;
+		border-top: 1px solid hsl(var(--border) / 0.3);
+	}
+
+	.delete-deck-btn {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		padding: 0.65rem 1rem;
+		background: transparent;
+		color: hsl(var(--destructive, #ef4444));
+		border: 1px solid hsl(var(--destructive, #ef4444) / 0.3);
+		border-radius: var(--radius-md);
+		font-size: 0.8rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.delete-deck-btn:hover {
+		background: hsl(var(--destructive, #ef4444) / 0.12);
+		border-color: hsl(var(--destructive, #ef4444) / 0.6);
 	}
 </style>
