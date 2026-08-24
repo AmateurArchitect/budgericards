@@ -699,9 +699,7 @@
 										}}
 									>
 										{#if deck.isDraft}
-											<div
-												class="draft-pattern-bg"
-											></div>
+											<div class="draft-pattern-bg"></div>
 											{#if getDeckCoverArt(deck)}
 												<img
 													src={getDeckCoverArt(deck)}
@@ -1272,11 +1270,11 @@
 
 	/* Faded Look for Draft Cover Images */
 	.draft-layer-bottom {
-		opacity: 0.6;
+		opacity: 0.4;
 	}
 
 	.draft-layer-top {
-		opacity: 0.8;
+		opacity: 0.6;
 		mix-blend-mode: luminosity;
 	}
 
