@@ -47,13 +47,13 @@
 
 	const curvedPathD = $derived(() => {
 		const w = collectionWidth || 150;
-		const cutX = Math.round((w - 13.33) * 100) / 100;
-		return `M 6 0.5 L ${cutX} 0.5 A 22 22 0 0 0 ${cutX} 35.5 L 6 35.5 A 5.5 5.5 0 0 1 0.5 30 L 0.5 6 A 5.5 5.5 0 0 1 6 0.5 Z`;
+		const cutX = Math.round((w - 19.23) * 100) / 100;
+		return `M 6 0.5 L ${cutX} 0.5 A 26 26 0 0 0 ${cutX} 35.5 L 6 35.5 A 5.5 5.5 0 0 1 0.5 30 L 0.5 6 A 5.5 5.5 0 0 1 6 0.5 Z`;
 	});
 
 	const rightCurvedPathD = $derived(() => {
-		const w = sortBtnWidth || 54;
-		return `M 13.33 0.5 L ${w - 6} 0.5 A 5.5 5.5 0 0 1 ${w - 0.5} 6 L ${w - 0.5} 30 A 5.5 5.5 0 0 1 ${w - 6} 35.5 L 13.33 35.5 A 22 22 0 0 0 13.33 0.5 Z`;
+		const w = sortBtnWidth || 58;
+		return `M 19.23 0.5 L ${w - 6} 0.5 A 5.5 5.5 0 0 1 ${w - 0.5} 6 L ${w - 0.5} 30 A 5.5 5.5 0 0 1 ${w - 6} 35.5 L 19.23 35.5 A 26 26 0 0 0 19.23 0.5 Z`;
 	});
 
 	const isCustomSearchSortActive = $derived(() => {
@@ -761,7 +761,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		padding: 0 1.65rem 0 1.05rem;
+		padding: 0 1.85rem 0 1.05rem;
 		background: transparent;
 		border: none;
 		color: hsl(var(--foreground));
@@ -928,12 +928,12 @@
 		position: relative;
 		z-index: 1;
 		height: 36px;
-		width: 54px;
+		width: 58px;
 		margin-left: -18px;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		padding: 0 0.5rem 0 1.65rem;
+		padding: 0 0.6rem 0 1.85rem;
 		background: transparent;
 		border: none;
 		color: hsl(var(--muted-foreground));
@@ -956,7 +956,7 @@
 	}
 
 	.search-sort-btn.active .curved-bg path {
-		fill: hsla(var(--primary-hsl), 0.15);
+		fill: hsl(var(--primary) / 0.15);
 		stroke: hsl(var(--primary));
 	}
 
