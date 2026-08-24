@@ -705,6 +705,9 @@
 													alt=""
 													class="deck-cover-img draft-layer-bottom"
 												/>
+												<div
+													class="draft-white-tint"
+												></div>
 												<img
 													src={getDeckCoverArt(deck)}
 													alt=""
@@ -808,6 +811,7 @@
 							alt=""
 							class="panel-hero-img draft-layer-bottom"
 						/>
+						<div class="draft-white-tint"></div>
 						<img
 							src={getDeckCoverArt(selectedDeck)}
 							alt=""
@@ -1281,9 +1285,18 @@
 		opacity: 0.4;
 	}
 
+	.draft-white-tint {
+		position: absolute;
+		inset: 0;
+		background-color: rgba(255, 255, 255, 0.2);
+		pointer-events: none;
+		z-index: 1;
+	}
+
 	.draft-layer-top {
 		opacity: 0.6;
 		mix-blend-mode: luminosity;
+		z-index: 1;
 	}
 
 	.draft-pattern-overlay {
