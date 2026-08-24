@@ -1196,8 +1196,8 @@
 		border-radius: inherit;
 		pointer-events: none;
 		box-shadow:
-			inset 1px 1px 0 rgba(255, 255, 255, 0.18),
-			inset -1px -1px 0 rgba(0, 0, 0, 0.6);
+			inset 1px 1px 3px rgba(255, 255, 255, 0.18),
+			inset -1px -1px 3px rgba(0, 0, 0, 0.75);
 		z-index: 4;
 	}
 
