@@ -691,30 +691,31 @@
 											></div>
 										{/if}
 
-										<div class="deck-bottom-banner">
-											<span
-												class="deck-title"
-												title={deck.isDraft
-													? deck.name ||
-														"Name & Save This Deck"
-													: deck.name}
-											>
-												{deck.isDraft
-													? deck.name ||
-														"Name & Save This Deck"
-													: deck.name}
-											</span>
-											{#if getDeckManaSymbols(deck).length > 0}
-												<div class="deck-mana-pips">
-													{#each getDeckManaSymbols(deck) as sym}
-														<ManaSymbol
-															symbol={sym}
-															size="0.85rem"
-															className="deck-pip"
-														/>
-													{/each}
-												</div>
-											{/if}
+										<div class="deck-bottom-container">
+											<div class="deck-name-box">
+												<span
+													class="deck-title"
+													title={deck.isDraft
+														? deck.name ||
+															"Name & Save This Deck"
+														: deck.name}
+												>
+													{deck.isDraft
+														? deck.name ||
+															"Name & Save This Deck"
+														: deck.name}
+												</span>
+												{#if getDeckManaSymbols(deck).length > 0}
+													<div class="deck-mana-pips">
+														{#each getDeckManaSymbols(deck) as sym}
+															<ManaSymbol
+																symbol={sym}
+																size="16px"
+															/>
+														{/each}
+													</div>
+												{/if}
+											</div>
 										</div>
 									</div>
 								{/each}
@@ -787,7 +788,7 @@
 					{#if getDeckManaSymbols(selectedDeck).length > 0}
 						<div class="hero-mana-pips">
 							{#each getDeckManaSymbols(selectedDeck) as sym}
-								<ManaSymbol symbol={sym} size="0.85rem" />
+								<ManaSymbol symbol={sym} size="16px" />
 							{/each}
 						</div>
 					{/if}
@@ -1003,7 +1004,7 @@
 		color: hsl(var(--muted-foreground));
 		background: hsl(var(--muted) / 0.05);
 		border: 1px dashed hsl(var(--border) / 0.6);
-		border-radius: var(--radius-lg, 8px);
+		border-radius: 6px;
 	}
 
 	.empty-state {
@@ -1159,20 +1160,22 @@
 	/* Decks list/grid */
 	.decks-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 		gap: 1.25rem;
 	}
 
-	/* Simplified Deck Box Card */
+	/* 3D Tile Deck Box Card */
 	.deck-card {
 		position: relative;
 		width: 100%;
-		aspect-ratio: 16 / 10;
-		border-radius: 8px;
+		aspect-ratio: 4 / 3;
+		border-radius: 6px;
 		overflow: hidden;
 		cursor: pointer;
 		background: #141416;
-		border: 1px solid hsl(var(--border) / 0.6);
+		border: 1px solid rgba(0, 0, 0, 0.75);
+		box-shadow:
+			0 4px 16px rgba(0, 0, 0, 0.35);
 		transition:
 			transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
 			box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
@@ -1182,10 +1185,23 @@
 		display: flex;
 	}
 
+	/* 3D Tile Inner Shadows for the Deck Cover */
+	.deck-card::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		pointer-events: none;
+		box-shadow:
+			inset 0 1px 0 rgba(255, 255, 255, 0.18),
+			inset 0 -1px 0 rgba(0, 0, 0, 0.6);
+		z-index: 4;
+	}
+
 	.deck-card:hover {
 		transform: translateY(-2px);
-		border-color: hsl(var(--foreground) / 0.4);
-		box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+		box-shadow:
+			0 12px 28px rgba(0, 0, 0, 0.5);
 	}
 
 	.deck-card.selected {
@@ -1229,44 +1245,62 @@
 		background-image: url("data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg' fill='none'%3E%3Crect width='48' height='48' fill='%2318181b' opacity='1'/%3E%3Cg opacity='0.15'%3E%3Cg clip-path='url(%23clip0_29_36959)'%3E%3Cpath d='M36.5 -1.5L-13.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M60.5 22.5L10.5 72.5' stroke='%23fafafa'/%3E%3Cpath d='M60.5 -1.5L10.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M37 -26L-13 24' stroke='%23fafafa'/%3E%3Cpath d='M48.5 -1.5L-1.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M72.5 22.5L22.5 72.5' stroke='%23fafafa'/%3E%3Cpath d='M72.5 -1.5L22.5 48.5' stroke='%23fafafa'/%3E%3Cpath d='M49 -26L-19.5 42.5' stroke='%23fafafa'/%3E%3C/g%3E%3Cdefs%3E%3CclipPath id='clip0_29_36959'%3E%3Crect width='48' height='48' fill='white'/%3E%3C/clipPath%3E%3C/defs%3E%3C/g%3E%3C/svg%3E");
 	}
 
-	/* Bottom Title & Mana Strip */
-	.deck-bottom-banner {
+	/* Parent gradient container extending 16px above the name box */
+	.deck-bottom-container {
 		position: absolute;
 		bottom: 0;
 		left: 0;
 		right: 0;
+		height: 60px;
+		background: linear-gradient(
+			180deg,
+			rgba(0, 0, 0, 0) 0%,
+			rgba(0, 0, 0, 0.4) 33%,
+			rgba(0, 0, 0, 0.5) 100%
+		);
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		z-index: 3;
+		pointer-events: none;
+	}
+
+	/* 44px tall Name Box with 25% black bg, 3D divider & 3 inner shadows */
+	.deck-name-box {
+		width: 100%;
+		height: 44px;
+		background: rgba(0, 0, 0, 0.25);
+		border-top: 1px solid rgba(0, 0, 0, 0.85);
+		box-shadow:
+			inset 0 0 12px 8px rgba(43, 43, 43, 0.5),
+			inset 0 1px 0 rgba(255, 255, 255, 0.18),
+			inset 0 -1px 0 rgba(0, 0, 0, 0.6);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 0.75rem;
-		padding: 0.85rem 0.85rem 0.65rem;
-		background: linear-gradient(
-			to top,
-			rgba(0, 0, 0, 0.94) 0%,
-			rgba(0, 0, 0, 0.75) 65%,
-			rgba(0, 0, 0, 0) 100%
-		);
-		z-index: 2;
-		pointer-events: none;
+		gap: 8px;
+		padding: 0 12px;
+		box-sizing: border-box;
 	}
 
 	.deck-title {
 		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
 			Georgia, serif;
-		font-size: 0.975rem;
+		font-size: 16px;
 		font-weight: 600;
 		color: #ffffff;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
-		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 		letter-spacing: -0.01em;
+		line-height: 1;
 	}
 
 	.deck-mana-pips {
 		display: inline-flex;
 		align-items: center;
-		gap: 3px;
+		gap: 4px;
 		flex-shrink: 0;
 	}
 
@@ -1277,6 +1311,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		aspect-ratio: 4 / 3;
+		border-radius: 6px;
 	}
 
 	.deck-card.create-card:hover {
