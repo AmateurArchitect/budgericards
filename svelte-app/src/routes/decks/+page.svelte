@@ -118,6 +118,23 @@
 		selectedDeck = null;
 	}
 
+	/** @param {MouseEvent} e */
+	function handleContainerClick(e) {
+		const target = /** @type {HTMLElement | null} */ (e.target);
+		if (!target) return;
+		if (
+			target.closest(".deck-card") ||
+			target.closest(".deck-info-panel") ||
+			target.closest(".control-btn") ||
+			target.closest(".start-building-btn") ||
+			target.closest("button") ||
+			target.closest("a")
+		) {
+			return;
+		}
+		selectedDeck = null;
+	}
+
 	/** @param {KeyboardEvent} e */
 	function handleWindowKeyDown(e) {
 		if (e.key === "Escape" && selectedDeck) {
@@ -480,13 +497,19 @@
 <svelte:window onkeydown={handleWindowKeyDown} />
 
 <div class="decks-page-wrapper">
-	<div class="decks-page-container">
-		<header class="page-header">
-			<div class="title-area">
-				<FolderOpen class="header-icon" size={20} />
-				<h1>Your Decks</h1>
-			</div>
-		</header>
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<div
+		class="decks-page-container"
+		onclick={handleContainerClick}
+		role="presentation"
+	>
+		<div class="decks-content-inner">
+			<header class="page-header">
+				<div class="title-area">
+					<FolderOpen class="header-icon" size={20} />
+					<h1>Your Decks</h1>
+				</div>
+			</header>
 
 		<main class="page-body">
 			{#if authStore.isLoading || (isLoading && allDecks.length === 0)}
@@ -766,18 +789,10 @@
 	</div>
 </div>
 
-<!-- Side Info Panel & Backdrop -->
+<!-- Side Info Panel (in same plane, side-by-side) -->
 {#if selectedDeck}
 	{@const cmdInfo = getDeckCommanderInfo(selectedDeck)}
 	{@const breakdown = getBoardBreakdown(selectedDeck)}
-
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<div
-		class="panel-backdrop"
-		transition:fade={{ duration: 180 }}
-		onclick={closeSidePanel}
-		role="presentation"
-	></div>
 
 	<aside
 		class="deck-info-panel"
@@ -996,23 +1011,35 @@
 		</div>
 	</aside>
 {/if}
+</div>
 
 <style>
 	.decks-page-wrapper {
+		display: flex;
 		width: 100%;
 		height: 100%;
-		overflow-y: auto;
+		overflow: hidden;
 		background: hsl(var(--background));
+		position: relative;
 	}
 
 	.decks-page-container {
-		width: 100%;
-		max-width: 1040px;
-		margin: 0 auto;
+		flex: 1;
+		min-width: 0;
+		height: 100%;
+		overflow-y: auto;
 		padding: 3rem 1.5rem;
 		display: flex;
 		flex-direction: column;
+		align-items: center;
 		box-sizing: border-box;
+	}
+
+	.decks-content-inner {
+		width: 100%;
+		max-width: 1040px;
+		display: flex;
+		flex-direction: column;
 	}
 
 	.page-header {
@@ -1484,28 +1511,19 @@
 		gap: 1rem;
 	}
 
-	/* Side Info Panel & Backdrop */
-	.panel-backdrop {
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.5);
-		backdrop-filter: blur(2px);
-		z-index: 90;
-	}
-
+	/* Side Info Panel (In Same Plane as Content) */
 	.deck-info-panel {
-		position: fixed;
-		top: 0;
-		right: 0;
-		bottom: 0;
+		position: relative;
 		width: 380px;
 		max-width: 92vw;
+		height: 100%;
 		background: #111114;
 		border-left: 1px solid hsl(var(--border) / 0.6);
-		z-index: 100;
 		display: flex;
 		flex-direction: column;
-		box-shadow: -10px 0 35px rgba(0, 0, 0, 0.5);
+		flex-shrink: 0;
+		box-shadow: -4px 0 24px rgba(0, 0, 0, 0.35);
+		z-index: 10;
 	}
 
 	.panel-header {
