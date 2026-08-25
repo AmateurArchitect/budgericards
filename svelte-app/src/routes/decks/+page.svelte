@@ -1386,7 +1386,8 @@
 		text-overflow: ellipsis;
 		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 		letter-spacing: -0.01em;
-		line-height: 1;
+		line-height: 1.3;
+		padding-bottom: 2px;
 	}
 
 	/* Unsaved draft styling: italics and 75% opacity */
