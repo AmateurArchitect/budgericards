@@ -171,9 +171,11 @@
 	style={Object.entries(layoutStore.cssVariables).map(([k, v]) => `${k}: ${v}`).join("; ")}
 >
 	{#if $page.url.pathname !== '/login' && !$page.url.pathname.startsWith('/auth')}
-		<Header />
-		<div class="app-content-wrapper">
-			{@render children()}
+		<div class="app-shell-main">
+			<Header />
+			<div class="app-content-wrapper">
+				{@render children()}
+			</div>
 		</div>
 	{:else}
 		{@render children()}
@@ -198,10 +200,23 @@
 <style>
 	.app-shell {
 		display: flex;
-		flex-direction: column;
+		flex-direction: row;
 		height: 100vh;
 		width: 100vw;
 		overflow: hidden;
+		position: relative;
+	}
+
+	.app-shell-main {
+		display: flex;
+		flex-direction: column;
+		height: 100vh;
+		width: calc(100vw - var(--right-sidebar-width, 0px));
+		max-width: 100vw;
+		overflow: hidden;
+		flex: 1;
+		min-width: 0;
+		transition: width 0.24s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
 	.app-content-wrapper {

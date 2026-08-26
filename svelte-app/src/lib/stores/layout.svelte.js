@@ -68,6 +68,8 @@ class LayoutStore {
 	/** Final clamped card width */
 	cardWidth = $derived(`clamp(120px, min(${this.cardWidthCalc}, 23.5vh), 240px)`);
 
+	rightSidebarWidth = $state(0);
+
 	/** Layout utility for CSS variables */
 	cssVariables = $derived({
 		"--card-width": this.cardWidth,
@@ -75,7 +77,8 @@ class LayoutStore {
 		"--column-gap": `${this.columnGap}px`,
 		"--num-cols": this.numCols,
 		"--base-margin": `${this.baseMargin}px`,
-		"--is-condensed": this.isCondensed ? "1" : "0"
+		"--is-condensed": this.isCondensed ? "1" : "0",
+		"--right-sidebar-width": `${this.rightSidebarWidth}px`
 	});
 }
 

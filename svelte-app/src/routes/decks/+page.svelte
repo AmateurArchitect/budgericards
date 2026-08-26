@@ -11,6 +11,7 @@
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { authStore } from "$lib/stores/auth.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
+	import { layoutStore } from "$lib/stores/layout.svelte.js";
 	import { syncService } from "$lib/syncService";
 	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
@@ -27,6 +28,15 @@
 
 	/** @type {any | null} */
 	let selectedDeck = $state(null);
+
+	$effect(() => {
+		layoutStore.rightSidebarWidth = selectedDeck ? 380 : 0;
+		return () => {
+			layoutStore.rightSidebarWidth = 0;
+		};
+	});
+
+	let clickTimer = /** @type {any} */ (null);
 
 	async function loadDecks() {
 		if (!authStore.isAuthenticated && !authStore.isLoading) {
@@ -106,15 +116,34 @@
 
 	/** @param {any} deck */
 	function handleDeckClick(deck) {
-		selectedDeck = deck;
+		if (clickTimer) clearTimeout(clickTimer);
+
+		if (!selectedDeck) {
+			// If sidebar is closed, delay opening slightly (220ms) so double click can intercept and open the deck directly
+			clickTimer = setTimeout(() => {
+				selectedDeck = deck;
+				clickTimer = null;
+			}, 220);
+		} else {
+			// If sidebar is already open, immediately switch selection
+			selectedDeck = deck;
+		}
 	}
 
 	/** @param {any} deck */
 	function handleDeckDblClick(deck) {
+		if (clickTimer) {
+			clearTimeout(clickTimer);
+			clickTimer = null;
+		}
 		handleSelectDeck(deck);
 	}
 
 	function closeSidePanel() {
+		if (clickTimer) {
+			clearTimeout(clickTimer);
+			clickTimer = null;
+		}
 		selectedDeck = null;
 	}
 
@@ -1511,28 +1540,33 @@
 		gap: 1rem;
 	}
 
-	/* Side Info Panel (In Same Plane as Content) */
+	/* Full Height Side Info Panel */
 	.deck-info-panel {
-		position: relative;
+		position: fixed;
+		top: 0;
+		right: 0;
+		bottom: 0;
 		width: 380px;
 		max-width: 92vw;
-		height: 100%;
+		height: 100vh;
 		background: #111114;
-		border-left: 1px solid hsl(var(--border) / 0.6);
+		border-left: 1px solid hsl(var(--border));
 		display: flex;
 		flex-direction: column;
-		flex-shrink: 0;
-		box-shadow: -4px 0 24px rgba(0, 0, 0, 0.35);
-		z-index: 10;
+		box-shadow: -6px 0 28px rgba(0, 0, 0, 0.4);
+		z-index: 1001;
 	}
 
 	.panel-header {
+		height: 76px;
+		padding: 0 1.25rem;
+		border-bottom: 1px solid hsl(var(--border));
+		background: #111114;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 1rem 1.25rem;
-		border-bottom: 1px solid hsl(var(--border) / 0.4);
-		background: hsl(var(--card));
+		box-sizing: border-box;
+		flex-shrink: 0;
 	}
 
 	.panel-header-title {
