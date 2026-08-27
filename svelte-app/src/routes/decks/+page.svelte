@@ -1061,7 +1061,7 @@
 
 	.decks-content-inner {
 		width: 100%;
-		max-width: 1040px;
+		max-width: 1200px;
 		display: flex;
 		flex-direction: column;
 	}
@@ -1269,9 +1269,8 @@
 	/* Decks list/grid */
 	.decks-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(220px, 240px));
-		gap: 2.25rem 2rem;
-		justify-content: start;
+		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+		gap: 2.25rem 1.75rem;
 	}
 
 	/* Deck Card Wrapper */
@@ -1437,14 +1436,14 @@
 		box-shadow: none;
 	}
 
-	.create-icon {
+	:global(.create-icon) {
 		color: hsl(var(--muted-foreground));
 		transition:
 			transform 0.2s ease,
 			color 0.2s ease;
 	}
 
-	.deck-card:hover .create-icon {
+	:global(.deck-card:hover .create-icon) {
 		transform: scale(1.1);
 		color: hsl(var(--primary));
 	}
