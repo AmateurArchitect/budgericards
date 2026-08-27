@@ -1303,7 +1303,7 @@
 	.decks-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-		gap: 2rem 1.5rem;
+		gap: 1.75rem 1.5rem;
 	}
 
 	/* Deck Card Wrapper */
