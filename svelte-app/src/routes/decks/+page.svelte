@@ -789,7 +789,7 @@
 													{#each getDeckManaSymbols(deck) as sym}
 														<ManaSymbol
 															symbol={sym}
-															size="16px"
+															size="20px"
 														/>
 													{/each}
 												</div>
@@ -1391,21 +1391,16 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 3px;
-		background: rgba(0, 0, 0, 0.65);
-		padding: 3px 6px;
-		border-radius: 12px;
-		backdrop-filter: blur(4px);
-		border: 1px solid rgba(255, 255, 255, 0.12);
 		z-index: 5;
 		pointer-events: none;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+		filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.75));
 	}
 
 	/* Centered deck title below image frame */
 	.deck-title {
 		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
 			Georgia, serif;
-		font-size: 15px;
+		font-size: 18px;
 		font-weight: 600;
 		color: #ffffff;
 		text-align: center;
