@@ -714,18 +714,16 @@
 											}
 										}}
 									>
-										<div class="create-content">
+										<div class="deck-cover-frame create-frame">
 											<PlusCircle
 												class="create-icon"
 												size={32}
 											/>
-											<span class="create-title"
-												>Create New Deck</span
-											>
 											<span class="create-subtitle"
 												>Start building a fresh draft</span
 											>
 										</div>
+										<span class="deck-title">Create New Deck</span>
 									</div>
 								{/if}
 
@@ -750,63 +748,60 @@
 											}
 										}}
 									>
-										{#if deck.isDraft}
-											{#if getDeckCoverArt(deck)}
-												<img
-													src={getDeckCoverArt(deck)}
-													alt=""
-													class="deck-cover-img draft-layer-bottom"
-												/>
+										<div class="deck-cover-frame">
+											{#if deck.isDraft}
+												{#if getDeckCoverArt(deck)}
+													<img
+														src={getDeckCoverArt(deck)}
+														alt=""
+														class="deck-cover-img draft-layer-bottom"
+													/>
+													<div
+														class="draft-white-tint"
+													></div>
+													<img
+														src={getDeckCoverArt(deck)}
+														alt=""
+														class="deck-cover-img draft-layer-top"
+													/>
+												{:else}
+													<div
+														class="deck-cover-fallback"
+													></div>
+												{/if}
 												<div
-													class="draft-white-tint"
+													class="draft-pattern-overlay"
 												></div>
+											{:else if getDeckCoverArt(deck)}
 												<img
 													src={getDeckCoverArt(deck)}
 													alt=""
-													class="deck-cover-img draft-layer-top"
+													class="deck-cover-img"
 												/>
 											{:else}
 												<div
 													class="deck-cover-fallback"
 												></div>
 											{/if}
-											<div
-												class="draft-pattern-overlay"
-											></div>
-										{:else if getDeckCoverArt(deck)}
-											<img
-												src={getDeckCoverArt(deck)}
-												alt=""
-												class="deck-cover-img"
-											/>
-										{:else}
-											<div
-												class="deck-cover-fallback"
-											></div>
-										{/if}
 
-										<div class="deck-bottom-container">
-											<div class="deck-name-box">
-												<span
-													class="deck-title"
-													title={getDeckDisplayName(
-														deck,
-													)}
-												>
-													{getDeckDisplayName(deck)}
-												</span>
-												{#if getDeckManaSymbols(deck).length > 0}
-													<div class="deck-mana-pips">
-														{#each getDeckManaSymbols(deck) as sym}
-															<ManaSymbol
-																symbol={sym}
-																size="16px"
-															/>
-														{/each}
-													</div>
-												{/if}
-											</div>
+											{#if getDeckManaSymbols(deck).length > 0}
+												<div class="deck-mana-pips">
+													{#each getDeckManaSymbols(deck) as sym}
+														<ManaSymbol
+															symbol={sym}
+															size="16px"
+														/>
+													{/each}
+												</div>
+											{/if}
 										</div>
+
+										<span
+											class="deck-title"
+											title={getDeckDisplayName(deck)}
+										>
+											{getDeckDisplayName(deck)}
+										</span>
 									</div>
 								{/each}
 							</div>
@@ -1274,32 +1269,40 @@
 	/* Decks list/grid */
 	.decks-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-		gap: 1.25rem;
+		grid-template-columns: repeat(auto-fill, minmax(220px, 240px));
+		gap: 2.25rem 2rem;
+		justify-content: start;
 	}
 
-	/* 3D Tile Deck Box Card */
+	/* Deck Card Wrapper */
 	.deck-card {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		cursor: pointer;
+		user-select: none;
+		box-sizing: border-box;
+		outline: none;
+	}
+
+	/* The 4:3 Image Frame */
+	.deck-cover-frame {
 		position: relative;
 		width: 100%;
 		aspect-ratio: 4 / 3;
 		border-radius: 6px;
 		overflow: hidden;
-		cursor: pointer;
 		background: #141416;
-		border: 1px solid rgba(0, 0, 0, 0.75);
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 		transition:
 			transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
 			box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
 			border-color 0.2s ease;
-		user-select: none;
-		box-sizing: border-box;
-		display: flex;
 	}
 
 	/* 3D Tile Inner Shadows for the Deck Cover */
-	.deck-card:not(.create-card)::after {
+	.deck-card:not(.create-card) .deck-cover-frame::after {
 		content: "";
 		position: absolute;
 		inset: 0;
@@ -1311,12 +1314,12 @@
 		z-index: 4;
 	}
 
-	.deck-card:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+	.deck-card:hover .deck-cover-frame {
+		transform: translateY(-3px);
+		box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);
 	}
 
-	.deck-card.selected {
+	.deck-card.selected .deck-cover-frame {
 		border-color: hsl(var(--primary));
 		box-shadow:
 			0 0 0 2px hsl(var(--primary) / 0.9),
@@ -1379,71 +1382,42 @@
 		);
 	}
 
-	/* Parent gradient container extending 16px above the name box */
-	.deck-bottom-container {
+	/* Mana symbols floating bottom-center of the cover image */
+	.deck-mana-pips {
 		position: absolute;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		height: 60px;
-		background: linear-gradient(
-			180deg,
-			rgba(0, 0, 0, 0) 0%,
-			rgba(0, 0, 0, 0.4) 33%,
-			rgba(0, 0, 0, 0.5) 100%
-		);
-		display: flex;
-		flex-direction: column;
-		justify-content: flex-end;
-		z-index: 3;
-		pointer-events: none;
-	}
-
-	/* 44px tall Name Box with 25% black bg, 3D divider & 3 inner shadows */
-	.deck-name-box {
-		position: relative;
-		width: 100%;
-		height: 44px;
-		background: rgba(0, 0, 0, 0.25);
-		box-shadow:
-			inset 0 0 12px 8px rgba(32, 32, 32, 0.5),
-			inset 0.5px 1px 3px rgba(255, 255, 255, 0.18),
-			inset -0.5px -1px 3px rgba(0, 0, 0, 0.75);
-		display: flex;
+		bottom: 8px;
+		left: 50%;
+		transform: translateX(-50%);
+		display: inline-flex;
 		align-items: center;
-		justify-content: space-between;
-		gap: 8px;
-		padding: 0 12px;
-		box-sizing: border-box;
-	}
-
-	/* 3D Chiseled Dual-Line Divider: Dark line on top, light line on bottom */
-	.deck-name-box::before {
-		content: "";
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		height: 0;
-		border-top: 1px solid rgba(0, 0, 0, 0.75);
-		border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-		pointer-events: none;
+		gap: 3px;
+		background: rgba(0, 0, 0, 0.65);
+		padding: 3px 6px;
+		border-radius: 12px;
+		backdrop-filter: blur(4px);
+		border: 1px solid rgba(255, 255, 255, 0.12);
 		z-index: 5;
+		pointer-events: none;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 	}
 
+	/* Centered deck title below image frame */
 	.deck-title {
 		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
 			Georgia, serif;
-		font-size: 16px;
+		font-size: 15px;
 		font-weight: 600;
 		color: #ffffff;
+		text-align: center;
+		margin-top: 10px;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
-		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+		width: 100%;
 		letter-spacing: -0.01em;
 		line-height: 1.3;
 		padding-bottom: 2px;
+		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 	}
 
 	/* Unsaved draft styling: italics and 75% opacity */
@@ -1456,60 +1430,35 @@
 		opacity: 0.75;
 	}
 
-	.deck-mana-pips {
-		display: inline-flex;
-		align-items: center;
-		gap: 4px;
-		flex-shrink: 0;
-	}
-
-	/* Create New Deck Card */
-	.deck-card.create-card {
-		border: 1.5px dashed hsl(var(--border) / 0.8);
+	/* Create New Deck Frame */
+	.deck-cover-frame.create-frame {
+		border: 1.5px dashed hsl(var(--border) / 0.7);
 		background: hsl(var(--muted) / 0.05);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		aspect-ratio: 4 / 3;
-		border-radius: 6px;
-		box-shadow: none;
-	}
-
-	.deck-card.create-card:hover {
-		border-color: hsl(var(--primary) / 0.8);
-		background: hsl(var(--primary) / 0.04);
-		box-shadow: none;
-	}
-
-	.create-content {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 0.35rem;
-		text-align: center;
-		padding: 1rem;
-		color: hsl(var(--muted-foreground));
-		transition: color 0.2s ease;
+		gap: 0.5rem;
+		box-shadow: none;
 	}
 
-	:global(.create-card:hover .create-icon) {
-		color: hsl(var(--primary));
-		transform: scale(1.06);
+	.create-icon {
+		color: hsl(var(--muted-foreground));
 		transition:
 			transform 0.2s ease,
 			color 0.2s ease;
 	}
 
-	.create-title {
-		font-size: 0.95rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
+	.deck-card:hover .create-icon {
+		transform: scale(1.1);
+		color: hsl(var(--primary));
 	}
 
 	.create-subtitle {
 		font-size: 0.75rem;
 		color: hsl(var(--muted-foreground));
+		text-align: center;
+		padding: 0 1rem;
 	}
 
 	/* Grouping Container & Headers */
