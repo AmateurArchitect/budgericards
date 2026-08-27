@@ -4,7 +4,7 @@
 		FolderOpen,
 		Trash2,
 		Loader,
-		PlusCircle,
+		Plus,
 		X,
 		ArrowRight,
 	} from "lucide-svelte";
@@ -720,6 +720,8 @@
 											role="button"
 											tabindex="0"
 											onclick={handleNewDeckLink}
+											aria-label="Create New Deck"
+											title="Create New Deck"
 											onkeydown={(e) => {
 												if (
 													e.key === "Enter" ||
@@ -733,18 +735,11 @@
 											<div
 												class="deck-cover-frame create-frame"
 											>
-												<PlusCircle
+												<Plus
 													class="create-icon"
-													size={32}
+													size={36}
 												/>
-												<span class="create-subtitle"
-													>Start building a fresh
-													draft</span
-												>
 											</div>
-											<span class="deck-title"
-												>Create New Deck</span
-											>
 										</div>
 									{/if}
 
@@ -1462,30 +1457,26 @@
 		border: 1.5px dashed hsl(var(--border) / 0.7);
 		background: hsl(var(--muted) / 0.05);
 		display: flex;
-		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 0.5rem;
 		box-shadow: none;
 	}
 
 	:global(.create-icon) {
-		color: hsl(var(--muted-foreground));
+		color: hsl(var(--muted-foreground) / 0.8);
 		transition:
-			transform 0.2s ease,
+			transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
 			color 0.2s ease;
 	}
 
 	:global(.deck-card:hover .create-icon) {
-		transform: scale(1.1);
+		transform: scale(1.18);
 		color: hsl(var(--primary));
 	}
 
-	.create-subtitle {
-		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground));
-		text-align: center;
-		padding: 0 1rem;
+	.deck-card.create-card:hover .deck-cover-frame {
+		border-color: hsl(var(--primary) / 0.6);
+		background: hsl(var(--primary) / 0.04);
 	}
 
 	/* Grouping Container & Headers */
