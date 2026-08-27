@@ -540,501 +540,534 @@
 				</div>
 			</header>
 
-		<main class="page-body">
-			{#if authStore.isLoading || (isLoading && allDecks.length === 0)}
-				<div class="loading-state">
-					<Loader class="spinner" size={36} />
-					<p>Loading your decks...</p>
-				</div>
-			{:else if error}
-				<div class="error-state">
-					<p>{error}</p>
-					<Button onclick={loadDecks} variant="outline"
-						>Try Again</Button
-					>
-				</div>
-			{:else if allDecks.length === 0}
-				<div class="empty-state">
-					<div class="empty-icon-container">
-						<svg
-							viewBox="0 0 160 160"
-							width="140"
-							height="140"
-							fill="none"
-							xmlns="http://www.w3.org/2000/svg"
-						>
-							<!-- Vertical Stack of Cards -->
-							{#each Array(13) as _, i}
-								{@const yOffset = (12 - i) * 2.8}
-								<g
-									transform="translate(0, {yOffset}) matrix(-0.86, 0.5, 0.871, 0.5, 79, 70)"
-								>
-									<rect
-										x="-25"
-										y="-35"
-										width="50"
-										height="70"
-										rx="3"
-										fill={i === 12
-											? "hsl(var(--muted) / 0.55)"
-											: "hsl(var(--background))"}
-										stroke="currentColor"
-										stroke-width="1"
-										stroke-opacity={i === 12
-											? "0.9"
-											: "0.5"}
-									/>
-									{#if i === 12}
-										<rect
-											x="-21"
-											y="-31"
-											width="42"
-											height="62"
-											rx="1.5"
-											stroke="currentColor"
-											stroke-width="1"
-											stroke-opacity="0.8"
-										/>
-										<ellipse
-											cx="0"
-											cy="0"
-											rx="14"
-											ry="24"
-											fill="hsl(var(--muted) / 0.1)"
-											stroke="currentColor"
-											stroke-width="1"
-											stroke-opacity="0.8"
-										/>
-										<g
-											stroke="currentColor"
-											stroke-width="1"
-											stroke-opacity="0.8"
-										>
-											<circle cx="0" cy="-6" r="1.2" />
-											<circle cx="5" cy="-2" r="1.2" />
-											<circle cx="3" cy="4" r="1.2" />
-											<circle cx="-3" cy="4" r="1.2" />
-											<circle cx="-5" cy="-2" r="1.2" />
-										</g>
-									{/if}
-								</g>
-							{/each}
-						</svg>
+			<main class="page-body">
+				{#if authStore.isLoading || (isLoading && allDecks.length === 0)}
+					<div class="loading-state">
+						<Loader class="spinner" size={36} />
+						<p>Loading your decks...</p>
 					</div>
-					<h3>Create your first deck</h3>
-					<p>
-						Your saved decks will appear here. Continue to the
-						deckbuilder to start brewing.
-					</p>
-					<a href="/" class="start-building-btn"
-						>Start Building <span class="arrow-icon">→</span></a
-					>
-				</div>
-			{:else}
-				{#if allDecks.length >= 6}
-					<div class="library-controls">
-						<div class="control-group">
-							<span class="control-label">Sort by:</span>
-							<div class="control-buttons">
-								<button
-									class="control-btn"
-									class:active={sortBy === "updated"}
-									onclick={() => (sortBy = "updated")}
-									>Recent</button
-								>
-								<button
-									class="control-btn"
-									class:active={sortBy === "name"}
-									onclick={() => (sortBy = "name")}
-									>Name</button
-								>
-								<button
-									class="control-btn"
-									class:active={sortBy === "cards"}
-									onclick={() => (sortBy = "cards")}
-									>Cards</button
-								>
-							</div>
+				{:else if error}
+					<div class="error-state">
+						<p>{error}</p>
+						<Button onclick={loadDecks} variant="outline"
+							>Try Again</Button
+						>
+					</div>
+				{:else if allDecks.length === 0}
+					<div class="empty-state">
+						<div class="empty-icon-container">
+							<svg
+								viewBox="0 0 160 160"
+								width="140"
+								height="140"
+								fill="none"
+								xmlns="http://www.w3.org/2000/svg"
+							>
+								<!-- Vertical Stack of Cards -->
+								{#each Array(13) as _, i}
+									{@const yOffset = (12 - i) * 2.8}
+									<g
+										transform="translate(0, {yOffset}) matrix(-0.86, 0.5, 0.871, 0.5, 79, 70)"
+									>
+										<rect
+											x="-25"
+											y="-35"
+											width="50"
+											height="70"
+											rx="3"
+											fill={i === 12
+												? "hsl(var(--muted) / 0.55)"
+												: "hsl(var(--background))"}
+											stroke="currentColor"
+											stroke-width="1"
+											stroke-opacity={i === 12
+												? "0.9"
+												: "0.5"}
+										/>
+										{#if i === 12}
+											<rect
+												x="-21"
+												y="-31"
+												width="42"
+												height="62"
+												rx="1.5"
+												stroke="currentColor"
+												stroke-width="1"
+												stroke-opacity="0.8"
+											/>
+											<ellipse
+												cx="0"
+												cy="0"
+												rx="14"
+												ry="24"
+												fill="hsl(var(--muted) / 0.1)"
+												stroke="currentColor"
+												stroke-width="1"
+												stroke-opacity="0.8"
+											/>
+											<g
+												stroke="currentColor"
+												stroke-width="1"
+												stroke-opacity="0.8"
+											>
+												<circle
+													cx="0"
+													cy="-6"
+													r="1.2"
+												/>
+												<circle
+													cx="5"
+													cy="-2"
+													r="1.2"
+												/>
+												<circle cx="3" cy="4" r="1.2" />
+												<circle
+													cx="-3"
+													cy="4"
+													r="1.2"
+												/>
+												<circle
+													cx="-5"
+													cy="-2"
+													r="1.2"
+												/>
+											</g>
+										{/if}
+									</g>
+								{/each}
+							</svg>
 						</div>
-
-						{#if allDecks.length >= 12}
+						<h3>Create your first deck</h3>
+						<p>
+							Your saved decks will appear here. Continue to the
+							deckbuilder to start brewing.
+						</p>
+						<a href="/" class="start-building-btn"
+							>Start Building <span class="arrow-icon">→</span></a
+						>
+					</div>
+				{:else}
+					{#if allDecks.length >= 6}
+						<div class="library-controls">
 							<div class="control-group">
-								<span class="control-label">Group by:</span>
+								<span class="control-label">Sort by:</span>
 								<div class="control-buttons">
 									<button
 										class="control-btn"
-										class:active={groupBy === "none"}
-										onclick={() => (groupBy = "none")}
-										>None</button
+										class:active={sortBy === "updated"}
+										onclick={() => (sortBy = "updated")}
+										>Recent</button
 									>
 									<button
 										class="control-btn"
-										class:active={groupBy === "format"}
-										onclick={() => (groupBy = "format")}
-										>Format</button
+										class:active={sortBy === "name"}
+										onclick={() => (sortBy = "name")}
+										>Name</button
 									>
 									<button
 										class="control-btn"
-										class:active={groupBy === "colors"}
-										onclick={() => (groupBy = "colors")}
-										>Colors</button
+										class:active={sortBy === "cards"}
+										onclick={() => (sortBy = "cards")}
+										>Cards</button
 									>
 								</div>
 							</div>
-						{/if}
-					</div>
-				{/if}
 
-				<section class="library-section">
-					{#each groupedDecks as group, groupIdx (group.key)}
-						<div
-							class="group-container"
-							class:has-title={!!group.label}
-						>
-							{#if group.label}
-								<h3 class="group-title">
-									{group.label} ({group.items.length})
-								</h3>
-							{/if}
-
-							<div class="decks-grid">
-								{#if groupIdx === 0}
-									<div
-										class="deck-card create-card"
-										role="button"
-										tabindex="0"
-										onclick={handleNewDeckLink}
-										onkeydown={(e) => {
-											if (
-												e.key === "Enter" ||
-												e.key === " "
-											) {
-												e.preventDefault();
-												handleNewDeckLink();
-											}
-										}}
-									>
-										<div class="deck-cover-frame create-frame">
-											<PlusCircle
-												class="create-icon"
-												size={32}
-											/>
-											<span class="create-subtitle"
-												>Start building a fresh draft</span
-											>
-										</div>
-										<span class="deck-title">Create New Deck</span>
+							{#if allDecks.length >= 12}
+								<div class="control-group">
+									<span class="control-label">Group by:</span>
+									<div class="control-buttons">
+										<button
+											class="control-btn"
+											class:active={groupBy === "none"}
+											onclick={() => (groupBy = "none")}
+											>None</button
+										>
+										<button
+											class="control-btn"
+											class:active={groupBy === "format"}
+											onclick={() => (groupBy = "format")}
+											>Format</button
+										>
+										<button
+											class="control-btn"
+											class:active={groupBy === "colors"}
+											onclick={() => (groupBy = "colors")}
+											>Colors</button
+										>
 									</div>
+								</div>
+							{/if}
+						</div>
+					{/if}
+
+					<section class="library-section">
+						{#each groupedDecks as group, groupIdx (group.key)}
+							<div
+								class="group-container"
+								class:has-title={!!group.label}
+							>
+								{#if group.label}
+									<h3 class="group-title">
+										{group.label} ({group.items.length})
+									</h3>
 								{/if}
 
-								{#each group.items as deck (deck.id)}
-									<div
-										class="deck-card"
-										class:selected={selectedDeck?.id ===
-											deck.id}
-										class:is-draft={deck.isDraft}
-										role="button"
-										tabindex="0"
-										onclick={() => handleDeckClick(deck)}
-										ondblclick={() =>
-											handleDeckDblClick(deck)}
-										onkeydown={(e) => {
-											if (
-												e.key === "Enter" ||
-												e.key === " "
-											) {
-												e.preventDefault();
-												handleDeckClick(deck);
-											}
-										}}
-									>
-										<div class="deck-cover-frame">
-											{#if deck.isDraft}
-												{#if getDeckCoverArt(deck)}
-													<img
-														src={getDeckCoverArt(deck)}
-														alt=""
-														class="deck-cover-img draft-layer-bottom"
-													/>
+								<div class="decks-grid">
+									{#if groupIdx === 0}
+										<div
+											class="deck-card create-card"
+											role="button"
+											tabindex="0"
+											onclick={handleNewDeckLink}
+											onkeydown={(e) => {
+												if (
+													e.key === "Enter" ||
+													e.key === " "
+												) {
+													e.preventDefault();
+													handleNewDeckLink();
+												}
+											}}
+										>
+											<div
+												class="deck-cover-frame create-frame"
+											>
+												<PlusCircle
+													class="create-icon"
+													size={32}
+												/>
+												<span class="create-subtitle"
+													>Start building a fresh
+													draft</span
+												>
+											</div>
+											<span class="deck-title"
+												>Create New Deck</span
+											>
+										</div>
+									{/if}
+
+									{#each group.items as deck (deck.id)}
+										<div
+											class="deck-card"
+											class:selected={selectedDeck?.id ===
+												deck.id}
+											class:is-draft={deck.isDraft}
+											role="button"
+											tabindex="0"
+											onclick={() =>
+												handleDeckClick(deck)}
+											ondblclick={() =>
+												handleDeckDblClick(deck)}
+											onkeydown={(e) => {
+												if (
+													e.key === "Enter" ||
+													e.key === " "
+												) {
+													e.preventDefault();
+													handleDeckClick(deck);
+												}
+											}}
+										>
+											<div class="deck-cover-frame">
+												{#if deck.isDraft}
+													{#if getDeckCoverArt(deck)}
+														<img
+															src={getDeckCoverArt(
+																deck,
+															)}
+															alt=""
+															class="deck-cover-img draft-layer-bottom"
+														/>
+														<div
+															class="draft-white-tint"
+														></div>
+														<img
+															src={getDeckCoverArt(
+																deck,
+															)}
+															alt=""
+															class="deck-cover-img draft-layer-top"
+														/>
+													{:else}
+														<div
+															class="deck-cover-fallback"
+														></div>
+													{/if}
 													<div
-														class="draft-white-tint"
+														class="draft-pattern-overlay"
 													></div>
+												{:else if getDeckCoverArt(deck)}
 													<img
-														src={getDeckCoverArt(deck)}
+														src={getDeckCoverArt(
+															deck,
+														)}
 														alt=""
-														class="deck-cover-img draft-layer-top"
+														class="deck-cover-img"
 													/>
 												{:else}
 													<div
 														class="deck-cover-fallback"
 													></div>
 												{/if}
-												<div
-													class="draft-pattern-overlay"
-												></div>
-											{:else if getDeckCoverArt(deck)}
-												<img
-													src={getDeckCoverArt(deck)}
-													alt=""
-													class="deck-cover-img"
-												/>
-											{:else}
-												<div
-													class="deck-cover-fallback"
-												></div>
-											{/if}
 
-											{#if getDeckManaSymbols(deck).length > 0}
-												<div class="deck-mana-pips">
-													{#each getDeckManaSymbols(deck) as sym}
-														<ManaSymbol
-															symbol={sym}
-															size="20px"
-														/>
-													{/each}
-												</div>
-											{/if}
+												{#if getDeckManaSymbols(deck).length > 0}
+													<div class="deck-mana-pips">
+														{#each getDeckManaSymbols(deck) as sym}
+															<ManaSymbol
+																symbol={sym}
+																size="20px"
+															/>
+														{/each}
+													</div>
+												{/if}
+											</div>
+
+											<span
+												class="deck-title"
+												title={getDeckDisplayName(deck)}
+											>
+												{getDeckDisplayName(deck)}
+											</span>
 										</div>
-
-										<span
-											class="deck-title"
-											title={getDeckDisplayName(deck)}
-										>
-											{getDeckDisplayName(deck)}
-										</span>
-									</div>
-								{/each}
+									{/each}
+								</div>
 							</div>
-						</div>
-					{/each}
-				</section>
-			{/if}
-		</main>
-	</div>
-</div>
-
-<!-- Side Info Panel (in same plane, side-by-side) -->
-{#if selectedDeck}
-	{@const cmdInfo = getDeckCommanderInfo(selectedDeck)}
-	{@const breakdown = getBoardBreakdown(selectedDeck)}
-
-	<aside
-		class="deck-info-panel"
-		transition:fly={{ x: 380, duration: 240 }}
-		aria-label="Deck details"
-	>
-		<!-- Panel Header -->
-		<div class="panel-header">
-			<div class="panel-header-title">
-				<FolderOpen size={16} class="panel-icon" />
-				<span>Deck Details</span>
-			</div>
-			<button
-				type="button"
-				class="panel-close-btn"
-				onclick={closeSidePanel}
-				aria-label="Close panel"
-			>
-				<X size={18} />
-			</button>
+						{/each}
+					</section>
+				{/if}
+			</main>
 		</div>
+	</div>
 
-		<!-- Panel Scrollable Body -->
-		<div class="panel-scroll-content">
-			<!-- Hero Art Banner -->
-			<div class="panel-hero-banner">
-				{#if selectedDeck.isDraft}
-					{#if getDeckCoverArt(selectedDeck)}
+	<!-- Side Info Panel (in same plane, side-by-side) -->
+	{#if selectedDeck}
+		{@const cmdInfo = getDeckCommanderInfo(selectedDeck)}
+		{@const breakdown = getBoardBreakdown(selectedDeck)}
+
+		<aside
+			class="deck-info-panel"
+			transition:fly={{ x: 380, duration: 240 }}
+			aria-label="Deck details"
+		>
+			<!-- Panel Header -->
+			<div class="panel-header">
+				<div class="panel-header-title">
+					<FolderOpen size={16} class="panel-icon" />
+					<span>Deck Details</span>
+				</div>
+				<button
+					type="button"
+					class="panel-close-btn"
+					onclick={closeSidePanel}
+					aria-label="Close panel"
+				>
+					<X size={18} />
+				</button>
+			</div>
+
+			<!-- Panel Scrollable Body -->
+			<div class="panel-scroll-content">
+				<!-- Hero Art Banner -->
+				<div class="panel-hero-banner">
+					{#if selectedDeck.isDraft}
+						{#if getDeckCoverArt(selectedDeck)}
+							<img
+								src={getDeckCoverArt(selectedDeck)}
+								alt=""
+								class="panel-hero-img draft-layer-bottom"
+							/>
+							<div class="draft-white-tint"></div>
+							<img
+								src={getDeckCoverArt(selectedDeck)}
+								alt=""
+								class="panel-hero-img draft-layer-top"
+							/>
+						{:else}
+							<div class="panel-hero-fallback"></div>
+						{/if}
+						<div class="draft-pattern-overlay"></div>
+					{:else if getDeckCoverArt(selectedDeck)}
 						<img
 							src={getDeckCoverArt(selectedDeck)}
 							alt=""
-							class="panel-hero-img draft-layer-bottom"
-						/>
-						<div class="draft-white-tint"></div>
-						<img
-							src={getDeckCoverArt(selectedDeck)}
-							alt=""
-							class="panel-hero-img draft-layer-top"
+							class="panel-hero-img"
 						/>
 					{:else}
 						<div class="panel-hero-fallback"></div>
 					{/if}
-					<div class="draft-pattern-overlay"></div>
-				{:else if getDeckCoverArt(selectedDeck)}
-					<img
-						src={getDeckCoverArt(selectedDeck)}
-						alt=""
-						class="panel-hero-img"
-					/>
-				{:else}
-					<div class="panel-hero-fallback"></div>
-				{/if}
-				<div class="panel-hero-overlay"></div>
-				<div class="panel-hero-badges">
-					<span
-						class="format-pill"
-						class:draft-pill={selectedDeck.isDraft}
-					>
-						{selectedDeck.isDraft
-							? "Local Draft"
-							: selectedDeck.cards?.format || "Commander"}
-					</span>
-					{#if getDeckManaSymbols(selectedDeck).length > 0}
-						<div class="hero-mana-pips">
-							{#each getDeckManaSymbols(selectedDeck) as sym}
-								<ManaSymbol symbol={sym} size="16px" />
-							{/each}
-						</div>
-					{/if}
-				</div>
-			</div>
-
-			<!-- Main Deck Name & Subtitle -->
-			<div class="panel-main-info">
-				<h2 class="panel-deck-name">
-					{getDeckDisplayName(selectedDeck)}
-				</h2>
-				<p class="panel-deck-subtitle">
-					{getColorIdentityName(getDeckManaSymbols(selectedDeck))} • {getCardCount(
-						selectedDeck,
-					)} Cards
-				</p>
-			</div>
-
-			<!-- Primary Open Deck CTA -->
-			<div class="panel-cta-container">
-				<button
-					type="button"
-					class="open-deck-cta-btn"
-					onclick={() => handleSelectDeck(selectedDeck)}
-				>
-					<span>Open Deck</span>
-					<ArrowRight size={18} class="btn-arrow" />
-				</button>
-			</div>
-
-			<!-- Metadata Overview -->
-			<div class="panel-section">
-				<h4 class="section-title">Overview</h4>
-				<div class="meta-grid">
-					<div class="meta-item">
-						<span class="meta-label">Format</span>
-						<span class="meta-value">
+					<div class="panel-hero-overlay"></div>
+					<div class="panel-hero-badges">
+						<span
+							class="format-pill"
+							class:draft-pill={selectedDeck.isDraft}
+						>
 							{selectedDeck.isDraft
 								? "Local Draft"
 								: selectedDeck.cards?.format || "Commander"}
 						</span>
-					</div>
-					<div class="meta-item">
-						<span class="meta-label">Color Identity</span>
-						<span class="meta-value">
-							{getColorIdentityName(
-								getDeckManaSymbols(selectedDeck),
-							)}
-						</span>
-					</div>
-					<div class="meta-item">
-						<span class="meta-label">Total Cards</span>
-						<span class="meta-value"
-							>{getCardCount(selectedDeck)} cards</span
-						>
-					</div>
-					<div class="meta-item">
-						<span class="meta-label">Last Updated</span>
-						<span class="meta-value">
-							{formatUpdatedDate(
-								selectedDeck.isDraft
-									? selectedDeck.metadata?.updatedAt
-									: selectedDeck.updated_at,
-							)}
-						</span>
-					</div>
-				</div>
-			</div>
-
-			<!-- Commander Section (if deck has a commander) -->
-			{#if cmdInfo}
-				<div class="panel-section">
-					<h4 class="section-title">Commander</h4>
-					<div class="commander-card-preview">
-						{#if cmdInfo.artCrop}
-							<img
-								src={cmdInfo.artCrop}
-								alt={cmdInfo.name}
-								class="commander-thumb"
-							/>
+						{#if getDeckManaSymbols(selectedDeck).length > 0}
+							<div class="hero-mana-pips">
+								{#each getDeckManaSymbols(selectedDeck) as sym}
+									<ManaSymbol symbol={sym} size="16px" />
+								{/each}
+							</div>
 						{/if}
-						<div class="commander-text">
-							<span class="commander-name">{cmdInfo.name}</span>
-							<span class="commander-type"
-								>{cmdInfo.type_line}</span
-							>
-						</div>
 					</div>
 				</div>
-			{/if}
 
-			<!-- Breakdown Chips Section -->
-			<div class="panel-section">
-				<h4 class="section-title">Card Breakdown</h4>
-				<div class="breakdown-chips">
-					{#if breakdown.commander > 0}
-						<div class="chip">
-							<span class="chip-label">Commander</span>
-							<span class="chip-count">{breakdown.commander}</span
-							>
-						</div>
-					{/if}
-					{#if breakdown.companion > 0}
-						<div class="chip">
-							<span class="chip-label">Companion</span>
-							<span class="chip-count">{breakdown.companion}</span
-							>
-						</div>
-					{/if}
-					<div class="chip">
-						<span class="chip-label">Mainboard</span>
-						<span class="chip-count">{breakdown.mainboard}</span>
-					</div>
-					{#if breakdown.sideboard > 0}
-						<div class="chip">
-							<span class="chip-label">Sideboard</span>
-							<span class="chip-count">{breakdown.sideboard}</span
-							>
-						</div>
-					{/if}
-					{#if breakdown.maybeboard > 0}
-						<div class="chip">
-							<span class="chip-label">Maybeboard</span>
-							<span class="chip-count"
-								>{breakdown.maybeboard}</span
-							>
-						</div>
-					{/if}
+				<!-- Main Deck Name & Subtitle -->
+				<div class="panel-main-info">
+					<h2 class="panel-deck-name">
+						{getDeckDisplayName(selectedDeck)}
+					</h2>
+					<p class="panel-deck-subtitle">
+						{getColorIdentityName(getDeckManaSymbols(selectedDeck))}
+						• {getCardCount(selectedDeck)} Cards
+					</p>
 				</div>
-			</div>
 
-			<!-- Footer Delete Action -->
-			<div class="panel-footer-actions">
-				<button
-					type="button"
-					class="delete-deck-btn"
-					onclick={(e) => {
-						const d = selectedDeck;
-						handleDeleteDeck(d.id, e, d.isDraft);
-					}}
-				>
-					<Trash2 size={15} />
-					<span
-						>{selectedDeck.isDraft
-							? "Delete Draft"
-							: "Delete Deck"}</span
+				<!-- Primary Open Deck CTA -->
+				<div class="panel-cta-container">
+					<button
+						type="button"
+						class="open-deck-cta-btn"
+						onclick={() => handleSelectDeck(selectedDeck)}
 					>
-				</button>
+						<span>Open Deck</span>
+						<ArrowRight size={18} class="btn-arrow" />
+					</button>
+				</div>
+
+				<!-- Metadata Overview -->
+				<div class="panel-section">
+					<h4 class="section-title">Overview</h4>
+					<div class="meta-grid">
+						<div class="meta-item">
+							<span class="meta-label">Format</span>
+							<span class="meta-value">
+								{selectedDeck.isDraft
+									? "Local Draft"
+									: selectedDeck.cards?.format || "Commander"}
+							</span>
+						</div>
+						<div class="meta-item">
+							<span class="meta-label">Color Identity</span>
+							<span class="meta-value">
+								{getColorIdentityName(
+									getDeckManaSymbols(selectedDeck),
+								)}
+							</span>
+						</div>
+						<div class="meta-item">
+							<span class="meta-label">Total Cards</span>
+							<span class="meta-value"
+								>{getCardCount(selectedDeck)} cards</span
+							>
+						</div>
+						<div class="meta-item">
+							<span class="meta-label">Last Updated</span>
+							<span class="meta-value">
+								{formatUpdatedDate(
+									selectedDeck.isDraft
+										? selectedDeck.metadata?.updatedAt
+										: selectedDeck.updated_at,
+								)}
+							</span>
+						</div>
+					</div>
+				</div>
+
+				<!-- Commander Section (if deck has a commander) -->
+				{#if cmdInfo}
+					<div class="panel-section">
+						<h4 class="section-title">Commander</h4>
+						<div class="commander-card-preview">
+							{#if cmdInfo.artCrop}
+								<img
+									src={cmdInfo.artCrop}
+									alt={cmdInfo.name}
+									class="commander-thumb"
+								/>
+							{/if}
+							<div class="commander-text">
+								<span class="commander-name"
+									>{cmdInfo.name}</span
+								>
+								<span class="commander-type"
+									>{cmdInfo.type_line}</span
+								>
+							</div>
+						</div>
+					</div>
+				{/if}
+
+				<!-- Breakdown Chips Section -->
+				<div class="panel-section">
+					<h4 class="section-title">Card Breakdown</h4>
+					<div class="breakdown-chips">
+						{#if breakdown.commander > 0}
+							<div class="chip">
+								<span class="chip-label">Commander</span>
+								<span class="chip-count"
+									>{breakdown.commander}</span
+								>
+							</div>
+						{/if}
+						{#if breakdown.companion > 0}
+							<div class="chip">
+								<span class="chip-label">Companion</span>
+								<span class="chip-count"
+									>{breakdown.companion}</span
+								>
+							</div>
+						{/if}
+						<div class="chip">
+							<span class="chip-label">Mainboard</span>
+							<span class="chip-count">{breakdown.mainboard}</span
+							>
+						</div>
+						{#if breakdown.sideboard > 0}
+							<div class="chip">
+								<span class="chip-label">Sideboard</span>
+								<span class="chip-count"
+									>{breakdown.sideboard}</span
+								>
+							</div>
+						{/if}
+						{#if breakdown.maybeboard > 0}
+							<div class="chip">
+								<span class="chip-label">Maybeboard</span>
+								<span class="chip-count"
+									>{breakdown.maybeboard}</span
+								>
+							</div>
+						{/if}
+					</div>
+				</div>
+
+				<!-- Footer Delete Action -->
+				<div class="panel-footer-actions">
+					<button
+						type="button"
+						class="delete-deck-btn"
+						onclick={(e) => {
+							const d = selectedDeck;
+							handleDeleteDeck(d.id, e, d.isDraft);
+						}}
+					>
+						<Trash2 size={15} />
+						<span
+							>{selectedDeck.isDraft
+								? "Delete Draft"
+								: "Delete Deck"}</span
+						>
+					</button>
+				</div>
 			</div>
-		</div>
-	</aside>
-{/if}
+		</aside>
+	{/if}
 </div>
 
 <style>
@@ -1061,7 +1094,7 @@
 
 	.decks-content-inner {
 		width: 100%;
-		max-width: 1200px;
+		max-width: 1032px;
 		display: flex;
 		flex-direction: column;
 	}
@@ -1270,7 +1303,7 @@
 	.decks-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-		gap: 2.25rem 1.75rem;
+		gap: 2rem 1.5rem;
 	}
 
 	/* Deck Card Wrapper */
