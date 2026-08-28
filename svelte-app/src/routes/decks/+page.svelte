@@ -30,7 +30,7 @@
 	let selectedDeck = $state(null);
 
 	$effect(() => {
-		layoutStore.rightSidebarWidth = selectedDeck ? 380 : 0;
+		layoutStore.rightSidebarWidth = selectedDeck ? 412 : 0;
 		return () => {
 			layoutStore.rightSidebarWidth = 0;
 		};
@@ -843,84 +843,95 @@
 
 		<aside
 			class="deck-info-panel"
-			transition:fly={{ x: 380, duration: 240 }}
+			transition:fly={{ x: 420, duration: 240 }}
 			aria-label="Deck details"
 		>
-			<!-- Panel Header -->
-			<div class="panel-header">
-				<div class="panel-header-title">
-					<FolderOpen size={16} class="panel-icon" />
-					<span>Deck Details</span>
-				</div>
-				<button
-					type="button"
-					class="panel-close-btn"
-					onclick={closeSidePanel}
-					aria-label="Close panel"
-				>
-					<X size={18} />
-				</button>
-			</div>
-
-			<!-- Panel Scrollable Body -->
-			<div class="panel-scroll-content">
-				<!-- Hero Art Banner -->
-				<div class="panel-hero-banner">
-					{#if selectedDeck.isDraft}
-						{#if getDeckCoverArt(selectedDeck)}
-							<img
-								src={getDeckCoverArt(selectedDeck)}
-								alt=""
-								class="panel-hero-img draft-layer-bottom"
-							/>
-							<div class="draft-white-tint"></div>
-							<img
-								src={getDeckCoverArt(selectedDeck)}
-								alt=""
-								class="panel-hero-img draft-layer-top"
-							/>
-						{:else}
-							<div class="panel-hero-fallback"></div>
-						{/if}
-						<div class="draft-pattern-overlay"></div>
-					{:else if getDeckCoverArt(selectedDeck)}
+			<!-- Full Bleed Hero Art Cover at Top -->
+			<div class="panel-hero-banner">
+				{#if selectedDeck.isDraft}
+					{#if getDeckCoverArt(selectedDeck)}
 						<img
 							src={getDeckCoverArt(selectedDeck)}
 							alt=""
-							class="panel-hero-img"
+							class="panel-hero-img draft-layer-bottom"
+						/>
+						<div class="draft-white-tint"></div>
+						<img
+							src={getDeckCoverArt(selectedDeck)}
+							alt=""
+							class="panel-hero-img draft-layer-top"
 						/>
 					{:else}
 						<div class="panel-hero-fallback"></div>
 					{/if}
-					<div class="panel-hero-overlay"></div>
-					<div class="panel-hero-badges">
-						<span
-							class="format-pill"
-							class:draft-pill={selectedDeck.isDraft}
-						>
-							{selectedDeck.isDraft
-								? "Local Draft"
-								: selectedDeck.cards?.format || "Commander"}
-						</span>
-						{#if getDeckManaSymbols(selectedDeck).length > 0}
-							<div class="hero-mana-pips">
-								{#each getDeckManaSymbols(selectedDeck) as sym}
-									<ManaSymbol symbol={sym} size="16px" />
-								{/each}
-							</div>
-						{/if}
-					</div>
+					<div class="draft-pattern-overlay"></div>
+				{:else if getDeckCoverArt(selectedDeck)}
+					<img
+						src={getDeckCoverArt(selectedDeck)}
+						alt=""
+						class="panel-hero-img"
+					/>
+				{:else}
+					<div class="panel-hero-fallback"></div>
+				{/if}
+				<div class="panel-hero-overlay"></div>
+
+				<!-- Floating Top Controls: Format Badge & Glass Close Button -->
+				<div class="panel-hero-top">
+					<span
+						class="format-pill"
+						class:draft-pill={selectedDeck.isDraft}
+					>
+						{selectedDeck.isDraft
+							? "Local Draft"
+							: selectedDeck.cards?.format || "Commander"}
+					</span>
+					<button
+						type="button"
+						class="panel-close-btn"
+						onclick={closeSidePanel}
+						aria-label="Close panel"
+					>
+						<X size={16} />
+					</button>
 				</div>
 
-				<!-- Main Deck Name & Subtitle -->
+				<!-- Floating Bottom Mana Pips (if any) -->
+				{#if getDeckManaSymbols(selectedDeck).length > 0}
+					<div class="panel-hero-bottom">
+						<div class="hero-mana-pips">
+							{#each getDeckManaSymbols(selectedDeck) as sym}
+								<ManaSymbol symbol={sym} size="16px" />
+							{/each}
+						</div>
+					</div>
+				{/if}
+			</div>
+
+			<!-- Panel Scrollable Body -->
+			<div class="panel-scroll-content">
+				<!-- Main Deck Name & Unified Meta Line -->
 				<div class="panel-main-info">
 					<h2 class="panel-deck-name">
 						{getDeckDisplayName(selectedDeck)}
 					</h2>
-					<p class="panel-deck-subtitle">
-						{getColorIdentityName(getDeckManaSymbols(selectedDeck))}
-						• {getCardCount(selectedDeck)} Cards
-					</p>
+					<div class="panel-meta-row">
+						<span class="panel-meta-item color-identity">
+							{getColorIdentityName(getDeckManaSymbols(selectedDeck))}
+						</span>
+						<span class="panel-meta-dot">•</span>
+						<span class="panel-meta-item">
+							{getCardCount(selectedDeck)} cards
+						</span>
+						<span class="panel-meta-dot">•</span>
+						<span class="panel-meta-item updated-time">
+							Updated {formatUpdatedDate(
+								selectedDeck.isDraft
+									? selectedDeck.metadata?.updatedAt
+									: selectedDeck.updated_at,
+							)}
+						</span>
+					</div>
 				</div>
 
 				<!-- Primary Open Deck CTA -->
@@ -931,47 +942,8 @@
 						onclick={() => handleSelectDeck(selectedDeck)}
 					>
 						<span>Open Deck</span>
-						<ArrowRight size={18} class="btn-arrow" />
+						<ArrowRight size={17} class="btn-arrow" />
 					</button>
-				</div>
-
-				<!-- Metadata Overview -->
-				<div class="panel-section">
-					<h4 class="section-title">Overview</h4>
-					<div class="meta-grid">
-						<div class="meta-item">
-							<span class="meta-label">Format</span>
-							<span class="meta-value">
-								{selectedDeck.isDraft
-									? "Local Draft"
-									: selectedDeck.cards?.format || "Commander"}
-							</span>
-						</div>
-						<div class="meta-item">
-							<span class="meta-label">Color Identity</span>
-							<span class="meta-value">
-								{getColorIdentityName(
-									getDeckManaSymbols(selectedDeck),
-								)}
-							</span>
-						</div>
-						<div class="meta-item">
-							<span class="meta-label">Total Cards</span>
-							<span class="meta-value"
-								>{getCardCount(selectedDeck)} cards</span
-							>
-						</div>
-						<div class="meta-item">
-							<span class="meta-label">Last Updated</span>
-							<span class="meta-value">
-								{formatUpdatedDate(
-									selectedDeck.isDraft
-										? selectedDeck.metadata?.updatedAt
-										: selectedDeck.updated_at,
-								)}
-							</span>
-						</div>
-					</div>
 				</div>
 
 				<!-- Commander Section (if deck has a commander) -->
@@ -998,12 +970,56 @@
 					</div>
 				{/if}
 
-				<!-- Breakdown Chips Section -->
+				<!-- Composition Breakdown Section -->
 				<div class="panel-section">
-					<h4 class="section-title">Card Breakdown</h4>
+					<div class="section-header-row">
+						<h4 class="section-title">Composition</h4>
+					</div>
+
+					<!-- Visual multi-segment proportion bar -->
+					{#if breakdown.total > 0}
+						<div class="breakdown-bar">
+							{#if breakdown.commander > 0}
+								<div
+									class="bar-segment commander-segment"
+									style="width: {(breakdown.commander / breakdown.total) * 100}%"
+									title="Commander: {breakdown.commander}"
+								></div>
+							{/if}
+							{#if breakdown.companion > 0}
+								<div
+									class="bar-segment companion-segment"
+									style="width: {(breakdown.companion / breakdown.total) * 100}%"
+									title="Companion: {breakdown.companion}"
+								></div>
+							{/if}
+							<div
+								class="bar-segment mainboard-segment"
+								style="width: {(breakdown.mainboard / breakdown.total) * 100}%"
+								title="Mainboard: {breakdown.mainboard}"
+							></div>
+							{#if breakdown.sideboard > 0}
+								<div
+									class="bar-segment sideboard-segment"
+									style="width: {(breakdown.sideboard / breakdown.total) * 100}%"
+									title="Sideboard: {breakdown.sideboard}"
+								></div>
+							{/if}
+							{#if breakdown.maybeboard > 0}
+								<div
+									class="bar-segment maybeboard-segment"
+									style="width: {(breakdown.maybeboard / breakdown.total) * 100}%"
+									title="Maybeboard: {breakdown.maybeboard}"
+								></div>
+							{/if}
+						</div>
+					{/if}
+
+					<!-- Breakdown chip pills -->
 					<div class="breakdown-chips">
 						{#if breakdown.commander > 0}
 							<div class="chip">
+								<span class="chip-dot dot-commander"></span>
 								<span class="chip-label">Commander</span>
 								<span class="chip-count"
 									>{breakdown.commander}</span
@@ -1012,6 +1028,7 @@
 						{/if}
 						{#if breakdown.companion > 0}
 							<div class="chip">
+								<span class="chip-dot dot-companion"></span>
 								<span class="chip-label">Companion</span>
 								<span class="chip-count"
 									>{breakdown.companion}</span
@@ -1019,12 +1036,14 @@
 							</div>
 						{/if}
 						<div class="chip">
+							<span class="chip-dot dot-mainboard"></span>
 							<span class="chip-label">Mainboard</span>
 							<span class="chip-count">{breakdown.mainboard}</span
 							>
 						</div>
 						{#if breakdown.sideboard > 0}
 							<div class="chip">
+								<span class="chip-dot dot-sideboard"></span>
 								<span class="chip-label">Sideboard</span>
 								<span class="chip-count"
 									>{breakdown.sideboard}</span
@@ -1033,6 +1052,7 @@
 						{/if}
 						{#if breakdown.maybeboard > 0}
 							<div class="chip">
+								<span class="chip-dot dot-maybeboard"></span>
 								<span class="chip-label">Maybeboard</span>
 								<span class="chip-count"
 									>{breakdown.maybeboard}</span
@@ -1507,88 +1527,44 @@
 		gap: 1rem;
 	}
 
-	/* Full Height Side Info Panel */
+	/* Floating Rounded Info Panel */
 	.deck-info-panel {
 		position: fixed;
-		top: 0;
-		right: 0;
-		bottom: 0;
+		top: 1.25rem;
+		right: 1.25rem;
+		bottom: 1.25rem;
 		width: 380px;
-		max-width: 92vw;
-		height: 100vh;
-		background: #111114;
-		border-left: 1px solid hsl(var(--border));
+		max-width: calc(100vw - 2.5rem);
+		height: calc(100vh - 2.5rem);
+		background: #111115;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 18px;
 		display: flex;
 		flex-direction: column;
-		box-shadow: -6px 0 28px rgba(0, 0, 0, 0.4);
+		box-shadow:
+			0 20px 50px rgba(0, 0, 0, 0.7),
+			0 0 0 1px rgba(255, 255, 255, 0.05);
 		z-index: 1001;
-	}
-
-	.panel-header {
-		height: 76px;
-		padding: 0 1.25rem;
-		border-bottom: 1px solid hsl(var(--border));
-		background: #111114;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		box-sizing: border-box;
-		flex-shrink: 0;
-	}
-
-	.panel-header-title {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		font-size: 0.8rem;
-		font-weight: 600;
-		color: hsl(var(--muted-foreground));
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	:global(.panel-icon) {
-		color: hsl(var(--primary));
-	}
-
-	.panel-close-btn {
-		background: transparent;
-		border: none;
-		color: hsl(var(--muted-foreground));
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 0.35rem;
-		border-radius: var(--radius-sm);
-		transition: all 0.15s ease;
-	}
-
-	.panel-close-btn:hover {
-		color: hsl(var(--foreground));
-		background: hsl(var(--muted) / 0.3);
-	}
-
-	.panel-scroll-content {
-		flex: 1;
-		overflow-y: auto;
-		display: flex;
-		flex-direction: column;
-		padding-bottom: 2rem;
+		overflow: hidden;
 	}
 
 	.panel-hero-banner {
 		position: relative;
 		width: 100%;
-		aspect-ratio: 16 / 9;
+		height: 200px;
+		flex-shrink: 0;
 		overflow: hidden;
-		background: hsl(var(--muted) / 0.2);
+		background: #18181c;
+		border-top-left-radius: 18px;
+		border-top-right-radius: 18px;
 	}
 
 	.panel-hero-img {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+		object-position: center 25%;
+		display: block;
 	}
 
 	.panel-hero-fallback {
@@ -1606,58 +1582,107 @@
 		inset: 0;
 		background: linear-gradient(
 			to top,
-			#111114 0%,
-			rgba(17, 17, 20, 0.4) 50%,
-			rgba(0, 0, 0, 0.1) 100%
+			#111115 0%,
+			rgba(17, 17, 21, 0.45) 45%,
+			rgba(0, 0, 0, 0.25) 100%
 		);
+		pointer-events: none;
 	}
 
-	.panel-hero-badges {
+	.panel-hero-top {
 		position: absolute;
-		bottom: 0.75rem;
-		left: 1.25rem;
-		right: 1.25rem;
+		top: 12px;
+		left: 12px;
+		right: 12px;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 0.5rem;
+		z-index: 5;
+	}
+
+	.panel-hero-bottom {
+		position: absolute;
+		bottom: 12px;
+		right: 14px;
+		z-index: 5;
+	}
+
+	.panel-close-btn {
+		background: rgba(0, 0, 0, 0.55);
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		backdrop-filter: blur(8px);
+		color: rgba(255, 255, 255, 0.85);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.panel-close-btn:hover {
+		color: #ffffff;
+		background: rgba(255, 255, 255, 0.18);
+		transform: scale(1.06);
+		border-color: rgba(255, 255, 255, 0.3);
 	}
 
 	.format-pill {
 		font-size: 0.65rem;
 		font-weight: 700;
 		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		background: rgba(0, 0, 0, 0.75);
-		backdrop-filter: blur(4px);
-		color: #fff;
-		padding: 3px 8px;
-		border-radius: 4px;
+		letter-spacing: 0.06em;
+		background: rgba(0, 0, 0, 0.6);
+		backdrop-filter: blur(8px);
+		color: #e2e8f0;
+		padding: 4px 10px;
+		border-radius: 20px;
 		border: 1px solid rgba(255, 255, 255, 0.15);
 	}
 
 	.format-pill.draft-pill {
-		background: hsl(var(--warning) / 0.9);
-		color: #000;
-		border-color: transparent;
+		background: rgba(245, 158, 11, 0.25);
+		color: #fbbf24;
+		border-color: rgba(245, 158, 11, 0.4);
 	}
 
 	.hero-mana-pips {
 		display: inline-flex;
 		align-items: center;
 		gap: 3px;
-		background: rgba(0, 0, 0, 0.65);
-		padding: 2px 6px;
+		background: rgba(0, 0, 0, 0.6);
+		padding: 3px 7px;
 		border-radius: 12px;
-		backdrop-filter: blur(4px);
-		border: 1px solid rgba(255, 255, 255, 0.1);
+		backdrop-filter: blur(6px);
+		border: 1px solid rgba(255, 255, 255, 0.12);
+	}
+
+	.panel-scroll-content {
+		flex: 1;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+		padding: 0.25rem 1.25rem 1.5rem;
+		scrollbar-width: thin;
+		scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+	}
+
+	.panel-scroll-content::-webkit-scrollbar {
+		width: 4px;
+	}
+
+	.panel-scroll-content::-webkit-scrollbar-thumb {
+		background: rgba(255, 255, 255, 0.12);
+		border-radius: 4px;
 	}
 
 	.panel-main-info {
-		padding: 1.25rem 1.25rem 0.75rem;
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: 0.4rem;
 	}
 
 	.panel-deck-name {
@@ -1665,20 +1690,38 @@
 			Georgia, serif;
 		font-size: 1.45rem;
 		font-weight: 700;
-		color: hsl(var(--foreground));
+		color: #ffffff;
 		margin: 0;
 		line-height: 1.25;
-		letter-spacing: -0.01em;
+		letter-spacing: -0.015em;
+		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 	}
 
-	.panel-deck-subtitle {
-		font-size: 0.85rem;
+	.panel-meta-row {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.45rem;
+		font-size: 0.8rem;
 		color: hsl(var(--muted-foreground));
-		margin: 0;
+	}
+
+	.panel-meta-item {
+		font-weight: 500;
+	}
+
+	.panel-meta-item.color-identity {
+		color: hsl(var(--foreground));
+		font-weight: 600;
+	}
+
+	.panel-meta-dot {
+		opacity: 0.4;
+		font-size: 0.65rem;
 	}
 
 	.panel-cta-container {
-		padding: 0 1.25rem 1.25rem;
+		width: 100%;
 	}
 
 	.open-deck-cta-btn {
@@ -1686,23 +1729,23 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.5rem;
-		padding: 0.85rem 1.5rem;
-		background: hsl(var(--primary));
+		gap: 0.6rem;
+		padding: 0.85rem 1.25rem;
+		background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 		color: white;
 		font-size: 0.95rem;
 		font-weight: 600;
 		border: none;
-		border-radius: var(--radius-md);
+		border-radius: 12px;
 		cursor: pointer;
-		transition: all 0.2s ease;
-		box-shadow: 0 4px 14px hsl(var(--primary) / 0.3);
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+		box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
 	}
 
 	.open-deck-cta-btn:hover {
-		background: hsl(var(--primary-light));
-		transform: translateY(-1px);
-		box-shadow: 0 6px 20px hsl(var(--primary) / 0.4);
+		background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+		transform: translateY(-1.5px);
+		box-shadow: 0 6px 22px rgba(37, 99, 235, 0.5);
 	}
 
 	:global(.open-deck-cta-btn .btn-arrow) {
@@ -1714,78 +1757,65 @@
 	}
 
 	.panel-section {
-		padding: 1rem 1.25rem;
-		border-top: 1px solid hsl(var(--border) / 0.3);
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: 0.65rem;
+		padding-top: 0.25rem;
+	}
+
+	.section-header-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 	}
 
 	.section-title {
-		font-size: 0.725rem;
+		font-size: 0.7rem;
 		font-weight: 700;
 		text-transform: uppercase;
-		letter-spacing: 0.06em;
-		color: hsl(var(--muted-foreground));
+		letter-spacing: 0.07em;
+		color: hsl(var(--muted-foreground) / 0.85);
 		margin: 0;
-	}
-
-	.meta-grid {
-		display: grid;
-		grid-template-columns: repeat(2, 1fr);
-		gap: 0.75rem;
-	}
-
-	.meta-item {
-		display: flex;
-		flex-direction: column;
-		gap: 0.15rem;
-		background: hsl(var(--muted) / 0.1);
-		padding: 0.6rem 0.75rem;
-		border-radius: var(--radius-md);
-		border: 1px solid hsl(var(--border) / 0.2);
-	}
-
-	.meta-label {
-		font-size: 0.7rem;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.meta-value {
-		font-size: 0.85rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
 	}
 
 	.commander-card-preview {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
-		background: hsl(var(--muted) / 0.15);
-		padding: 0.6rem 0.75rem;
-		border-radius: var(--radius-md);
-		border: 1px solid hsl(var(--border) / 0.3);
+		gap: 0.85rem;
+		background: rgba(255, 255, 255, 0.03);
+		padding: 0.65rem 0.85rem;
+		border-radius: 12px;
+		border: 1px solid rgba(255, 255, 255, 0.07);
+		transition:
+			border-color 0.15s ease,
+			background 0.15s ease;
+	}
+
+	.commander-card-preview:hover {
+		background: rgba(255, 255, 255, 0.05);
+		border-color: rgba(255, 255, 255, 0.12);
 	}
 
 	.commander-thumb {
 		width: 44px;
 		height: 44px;
-		border-radius: var(--radius-sm);
+		border-radius: 8px;
 		object-fit: cover;
-		border: 1px solid hsl(var(--border) / 0.4);
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		flex-shrink: 0;
 	}
 
 	.commander-text {
 		display: flex;
 		flex-direction: column;
 		gap: 0.15rem;
-		overflow: hidden;
+		min-width: 0;
 	}
 
 	.commander-name {
 		font-size: 0.875rem;
 		font-weight: 600;
-		color: hsl(var(--foreground));
+		color: #ffffff;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -1799,21 +1829,80 @@
 		text-overflow: ellipsis;
 	}
 
+	/* Composition Bar */
+	.breakdown-bar {
+		display: flex;
+		height: 6px;
+		width: 100%;
+		border-radius: 999px;
+		overflow: hidden;
+		background: rgba(255, 255, 255, 0.06);
+		gap: 2px;
+	}
+
+	.bar-segment {
+		height: 100%;
+		border-radius: 999px;
+		transition: width 0.3s ease;
+	}
+
+	.commander-segment {
+		background: #f59e0b;
+	}
+
+	.companion-segment {
+		background: #ec4899;
+	}
+
+	.mainboard-segment {
+		background: #3b82f6;
+	}
+
+	.sideboard-segment {
+		background: #10b981;
+	}
+
+	.maybeboard-segment {
+		background: #8b5cf6;
+	}
+
 	.breakdown-chips {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.4rem;
+		gap: 0.45rem;
 	}
 
 	.chip {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.4rem;
-		background: hsl(var(--muted) / 0.15);
-		border: 1px solid hsl(var(--border) / 0.3);
-		padding: 0.3rem 0.6rem;
-		border-radius: var(--radius-sm);
+		gap: 0.45rem;
+		background: rgba(255, 255, 255, 0.04);
+		border: 1px solid rgba(255, 255, 255, 0.07);
+		padding: 0.3rem 0.65rem;
+		border-radius: 8px;
 		font-size: 0.75rem;
+	}
+
+	.chip-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+	}
+
+	.dot-commander {
+		background: #f59e0b;
+	}
+	.dot-companion {
+		background: #ec4899;
+	}
+	.dot-mainboard {
+		background: #3b82f6;
+	}
+	.dot-sideboard {
+		background: #10b981;
+	}
+	.dot-maybeboard {
+		background: #8b5cf6;
 	}
 
 	.chip-label {
@@ -1822,13 +1911,12 @@
 
 	.chip-count {
 		font-weight: 600;
-		color: hsl(var(--foreground));
+		color: #ffffff;
 	}
 
 	.panel-footer-actions {
 		margin-top: auto;
-		padding: 1.25rem;
-		border-top: 1px solid hsl(var(--border) / 0.3);
+		padding-top: 0.5rem;
 	}
 
 	.delete-deck-btn {
@@ -1838,10 +1926,10 @@
 		justify-content: center;
 		gap: 0.5rem;
 		padding: 0.65rem 1rem;
-		background: transparent;
-		color: hsl(var(--destructive, #ef4444));
-		border: 1px solid hsl(var(--destructive, #ef4444) / 0.3);
-		border-radius: var(--radius-md);
+		background: rgba(239, 68, 68, 0.06);
+		color: #f87171;
+		border: 1px solid rgba(239, 68, 68, 0.2);
+		border-radius: 10px;
 		font-size: 0.8rem;
 		font-weight: 500;
 		cursor: pointer;
@@ -1849,7 +1937,8 @@
 	}
 
 	.delete-deck-btn:hover {
-		background: hsl(var(--destructive, #ef4444) / 0.12);
-		border-color: hsl(var(--destructive, #ef4444) / 0.6);
+		background: rgba(239, 68, 68, 0.14);
+		border-color: rgba(239, 68, 68, 0.4);
+		color: #fca5a5;
 	}
 </style>
