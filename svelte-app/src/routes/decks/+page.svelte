@@ -30,7 +30,7 @@
 	let selectedDeck = $state(null);
 
 	$effect(() => {
-		layoutStore.rightSidebarWidth = selectedDeck ? 412 : 0;
+		layoutStore.rightSidebarWidth = selectedDeck ? 380 : 0;
 		return () => {
 			layoutStore.rightSidebarWidth = 0;
 		};
@@ -843,7 +843,7 @@
 
 		<aside
 			class="deck-info-panel"
-			transition:fly={{ x: 420, duration: 240 }}
+			transition:fly={{ x: 380, duration: 240 }}
 			aria-label="Deck details"
 		>
 			<!-- Full Bleed Hero Art Cover at Top -->
@@ -1527,23 +1527,20 @@
 		gap: 1rem;
 	}
 
-	/* Floating Rounded Info Panel */
+	/* Full Height Right Info Panel */
 	.deck-info-panel {
 		position: fixed;
-		top: 1.25rem;
-		right: 1.25rem;
-		bottom: 1.25rem;
+		top: 0;
+		right: 0;
+		bottom: 0;
 		width: 380px;
-		max-width: calc(100vw - 2.5rem);
-		height: calc(100vh - 2.5rem);
+		max-width: 92vw;
+		height: 100vh;
 		background: #111115;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		border-radius: 18px;
+		border-left: 1px solid hsl(var(--border) / 0.5);
 		display: flex;
 		flex-direction: column;
-		box-shadow:
-			0 20px 50px rgba(0, 0, 0, 0.7),
-			0 0 0 1px rgba(255, 255, 255, 0.05);
+		box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
 		z-index: 1001;
 		overflow: hidden;
 	}
@@ -1551,12 +1548,10 @@
 	.panel-hero-banner {
 		position: relative;
 		width: 100%;
-		height: 200px;
+		height: 210px;
 		flex-shrink: 0;
 		overflow: hidden;
 		background: #18181c;
-		border-top-left-radius: 18px;
-		border-top-right-radius: 18px;
 	}
 
 	.panel-hero-img {
@@ -1651,12 +1646,8 @@
 	.hero-mana-pips {
 		display: inline-flex;
 		align-items: center;
-		gap: 3px;
-		background: rgba(0, 0, 0, 0.6);
-		padding: 3px 7px;
-		border-radius: 12px;
-		backdrop-filter: blur(6px);
-		border: 1px solid rgba(255, 255, 255, 0.12);
+		gap: 4px;
+		filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.85));
 	}
 
 	.panel-scroll-content {
@@ -1665,7 +1656,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
-		padding: 0.25rem 1.25rem 1.5rem;
+		padding: 0 1.25rem 1.75rem;
 		scrollbar-width: thin;
 		scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
 	}
@@ -1682,7 +1673,8 @@
 	.panel-main-info {
 		display: flex;
 		flex-direction: column;
-		gap: 0.4rem;
+		gap: 0.45rem;
+		padding-top: 1.25rem;
 	}
 
 	.panel-deck-name {
