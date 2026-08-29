@@ -675,8 +675,8 @@
 			},
 			{
 				sectionHeader: "FORMAT",
-				label: "Deck Format",
-				valueBadge: currentFormat,
+				label: currentFormat,
+				pill: true,
 				submenu: [
 					"Commander",
 					"Brawl",
@@ -726,9 +726,10 @@
 								}
 							: {}),
 						label: cmd.name,
-						subtitle: "Hover to preview • Click for Scryfall ↗",
 						thumbnail: artCrop,
 						tooltipImg: normalImg,
+						pill: true,
+						showEye: true,
 						action: () => {
 							window.open(
 								`https://scryfall.com/search?q=!%22${encodeURIComponent(cmd.name)}%22`,

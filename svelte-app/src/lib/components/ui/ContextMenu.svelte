@@ -3,6 +3,7 @@
 <script>
 	import { fade, fly } from "svelte/transition";
 	import { onMount, tick } from "svelte";
+	import { Eye } from "lucide-svelte";
 
 	/** @typedef {Object} MenuItem
 	 * @property {string} [label]
@@ -11,6 +12,8 @@
 	 * @property {string} [subtitle]
 	 * @property {string} [tooltipImg]
 	 * @property {string} [valueBadge]
+	 * @property {boolean} [pill]
+	 * @property {boolean} [showEye]
 	 * @property {string[]} [shortcuts]
 	 * @property {function} [action]
 	 * @property {boolean} [divider]
@@ -242,6 +245,7 @@
 							<button
 								class="menu-item"
 								class:danger={item.danger}
+								class:menu-item-pill={Boolean(item.pill)}
 								class:has-thumbnail={Boolean(item.thumbnail)}
 								class:has-subtitle={Boolean(item.subtitle)}
 								data-tooltip-img={item.tooltipImg || null}
@@ -264,6 +268,9 @@
 										<span class="item-subtitle">{item.subtitle}</span>
 									{/if}
 								</div>
+								{#if item.showEye}
+									<Eye size={13} class="item-eye-icon" />
+								{/if}
 								{#if item.valueBadge}
 									<span class="item-value-badge">
 										{item.valueBadge}
@@ -317,6 +324,7 @@
 											<button
 												class="menu-item"
 												class:danger={subItem.danger}
+												class:menu-item-pill={Boolean(subItem.pill)}
 												class:has-thumbnail={Boolean(subItem.thumbnail)}
 												class:has-subtitle={Boolean(subItem.subtitle)}
 												data-tooltip-img={subItem.tooltipImg || null}
@@ -335,6 +343,9 @@
 														<span class="item-subtitle">{subItem.subtitle}</span>
 													{/if}
 												</div>
+												{#if subItem.showEye}
+													<Eye size={13} class="item-eye-icon" />
+												{/if}
 												{#if subItem.valueBadge}
 													<span class="item-value-badge">{subItem.valueBadge}</span>
 												{/if}
@@ -621,11 +632,48 @@
 		background: hsl(var(--primary) / 0.12);
 		border-radius: 4px;
 		margin-left: auto;
-		letter-spacing: -0.01em;
 	}
 
 	.menu-item:hover .item-value-badge {
 		color: white;
 		background: hsla(0, 0%, 100%, 0.22);
+	}
+
+	.menu-item.menu-item-pill {
+		display: flex;
+		align-items: center;
+		padding: 5px 8px;
+		background: hsla(0, 0%, 100%, 0.07);
+		border: 1px solid hsla(var(--border) / 0.45);
+		border-radius: var(--radius-sm);
+		margin: 2px 0 3px;
+		gap: 8px;
+		color: var(--text-primary);
+		transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+	}
+
+	.menu-item.menu-item-pill:hover {
+		background: hsl(var(--primary));
+		border-color: hsl(var(--primary));
+		color: white;
+	}
+
+	.menu-item-pill .item-thumbnail {
+		width: 22px;
+		height: 22px;
+		border-radius: 3px;
+		margin: 0;
+	}
+
+	.item-eye-icon {
+		opacity: 0.5;
+		margin-left: auto;
+		flex-shrink: 0;
+		transition: opacity 0.12s ease;
+	}
+
+	.menu-item:hover .item-eye-icon {
+		opacity: 1;
+		color: white;
 	}
 </style>
