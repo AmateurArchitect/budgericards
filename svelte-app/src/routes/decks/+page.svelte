@@ -7,6 +7,10 @@
 		Plus,
 		X,
 		ArrowRight,
+		Copy,
+		FileText,
+		Share2,
+		Check,
 	} from "lucide-svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { authStore } from "$lib/stores/auth.svelte.js";
@@ -30,7 +34,7 @@
 	let selectedDeck = $state(null);
 
 	$effect(() => {
-		layoutStore.rightSidebarWidth = selectedDeck ? 380 : 0;
+		layoutStore.rightSidebarWidth = selectedDeck ? 395 : 0;
 		return () => {
 			layoutStore.rightSidebarWidth = 0;
 		};
@@ -226,6 +230,186 @@
 		} catch (err) {
 			console.error("Failed to delete deck:", err);
 			alert("Failed to delete deck. Please try again.");
+		}
+	}
+
+	let copyListFeedback = $state(false);
+	let shareFeedback = $state(false);
+	let cloneFeedback = $state(false);
+
+	/** @param {any} deck */
+	function getDeckPrice(deck) {
+		if (!deck) return null;
+		const cards = deck.cards || deck;
+		const metadata = cards.metadata || {};
+		let total = 0;
+		let hasPrice = false;
+		const boards = ["commander", "companion", "mainboard", "sideboard"];
+		for (const b of boards) {
+			const list = cards[b];
+			if (Array.isArray(list)) {
+				for (const c of list) {
+					const meta = metadata[c.name?.toLowerCase()];
+					const p =
+						c.price !== undefined
+							? Number(c.price)
+							: parseFloat(
+									meta?.prices?.usd ||
+										meta?.prices?.usd_foil ||
+										"0",
+								);
+					if (p && !isNaN(p)) {
+						total += p * (c.quantity || 1);
+						hasPrice = true;
+					}
+				}
+			}
+		}
+		return hasPrice && total > 0 ? `$${total.toFixed(2)}` : null;
+	}
+
+	/** @param {any} deck */
+	function formatDeckAsText(deck) {
+		if (!deck) return "";
+		const cards = deck.cards || deck;
+		/** @type {string[]} */
+		const lines = [];
+		const boards = [
+			{ key: "commander", label: "Commander" },
+			{ key: "companion", label: "Companion" },
+			{ key: "mainboard", label: "Mainboard" },
+			{ key: "sideboard", label: "Sideboard" },
+			{ key: "maybeboard", label: "Maybeboard" },
+		];
+		for (const b of boards) {
+			const list = cards[b.key];
+			if (Array.isArray(list) && list.length > 0) {
+				if (lines.length > 0) lines.push("");
+				lines.push(`// ${b.label}`);
+				/** @type {Record<string, number>} */
+				const counts = {};
+				for (const c of list) {
+					const name = c.name;
+					counts[name] = (counts[name] || 0) + (c.quantity || 1);
+				}
+				for (const [name, qty] of Object.entries(counts)) {
+					lines.push(`${qty} ${name}`);
+				}
+			}
+		}
+		return lines.join("\n");
+	}
+
+	/** @param {any} deck */
+	async function handleCloneDeck(deck) {
+		if (!deck) return;
+		const cards = JSON.parse(JSON.stringify(deck.cards || deck));
+		const newName = `${getDeckDisplayName(deck)} (Copy)`;
+		const newId =
+			typeof crypto !== "undefined" && crypto.randomUUID
+				? crypto.randomUUID()
+				: String(Date.now());
+
+		if (deck.isDraft) {
+			let drafts = JSON.parse(
+				localStorage.getItem("budgericards_local_drafts") || "[]",
+			);
+			const newDraft = {
+				id: newId,
+				name: newName,
+				isDraft: true,
+				cards,
+				metadata: {
+					...(deck.metadata || {}),
+					createdAt: new Date().toISOString(),
+					updatedAt: new Date().toISOString(),
+				},
+			};
+			drafts.unshift(newDraft);
+			localStorage.setItem(
+				"budgericards_local_drafts",
+				JSON.stringify(drafts),
+			);
+			localDrafts = drafts;
+			selectedDeck = newDraft;
+		} else {
+			try {
+				const { data, error: saveError } = await syncService.saveDeck({
+					id: newId,
+					name: newName,
+					cards,
+				});
+				if (saveError) throw saveError;
+				if (data) {
+					decks = [data, ...decks];
+					selectedDeck = data;
+				}
+			} catch (err) {
+				console.error("Failed to clone deck:", err);
+				let drafts = JSON.parse(
+					localStorage.getItem("budgericards_local_drafts") || "[]",
+				);
+				const newDraft = {
+					id: newId,
+					name: newName,
+					isDraft: true,
+					cards,
+					metadata: {
+						createdAt: new Date().toISOString(),
+						updatedAt: new Date().toISOString(),
+					},
+				};
+				drafts.unshift(newDraft);
+				localStorage.setItem(
+					"budgericards_local_drafts",
+					JSON.stringify(drafts),
+				);
+				localDrafts = drafts;
+				selectedDeck = newDraft;
+			}
+		}
+		cloneFeedback = true;
+		setTimeout(() => {
+			cloneFeedback = false;
+		}, 2000);
+	}
+
+	/** @param {any} deck */
+	async function handleCopyDeckList(deck) {
+		if (!deck) return;
+		const text = formatDeckAsText(deck);
+		if (navigator.clipboard && text) {
+			await navigator.clipboard.writeText(text);
+			copyListFeedback = true;
+			setTimeout(() => {
+				copyListFeedback = false;
+			}, 2000);
+		}
+	}
+
+	/** @param {any} deck */
+	async function handleShareDeck(deck) {
+		if (!deck) return;
+		const url = deck.isDraft
+			? window.location.href
+			: `${window.location.origin}/decks/${deck.id}`;
+		if (navigator.share) {
+			try {
+				await navigator.share({
+					title: getDeckDisplayName(deck),
+					url,
+				});
+				return;
+			} catch (e) {
+				// fallback to clipboard
+			}
+		}
+		if (navigator.clipboard) {
+			await navigator.clipboard.writeText(url);
+			shareFeedback = true;
+			setTimeout(() => {
+				shareFeedback = false;
+			}, 2000);
 		}
 	}
 
@@ -840,6 +1024,11 @@
 	{#if selectedDeck}
 		{@const cmdInfo = getDeckCommanderInfo(selectedDeck)}
 		{@const breakdown = getBoardBreakdown(selectedDeck)}
+		{@const deckPrice = getDeckPrice(selectedDeck)}
+		{@const manaSymbols = getDeckManaSymbols(selectedDeck)}
+		{@const isCommanderFormat =
+			(selectedDeck.cards?.format || "").toLowerCase() === "commander" ||
+			cmdInfo !== null}
 
 		<aside
 			class="deck-info-panel"
@@ -876,209 +1065,139 @@
 				{/if}
 				<div class="panel-hero-overlay"></div>
 
-				<!-- Floating Top Controls: Format Badge & Glass Close Button -->
-				<div class="panel-hero-top">
-					<span
-						class="format-pill"
-						class:draft-pill={selectedDeck.isDraft}
-					>
-						{selectedDeck.isDraft
-							? "Local Draft"
-							: selectedDeck.cards?.format || "Commander"}
-					</span>
-					<button
-						type="button"
-						class="panel-close-btn"
-						onclick={closeSidePanel}
-						aria-label="Close panel"
-					>
-						<X size={16} />
-					</button>
-				</div>
-
-				<!-- Floating Bottom Mana Pips (if any) -->
-				{#if getDeckManaSymbols(selectedDeck).length > 0}
-					<div class="panel-hero-bottom">
-						<div class="hero-mana-pips">
-							{#each getDeckManaSymbols(selectedDeck) as sym}
-								<ManaSymbol symbol={sym} size="16px" />
-							{/each}
-						</div>
-					</div>
-				{/if}
+				<!-- Floating Top-Right Glass Close Button -->
+				<button
+					type="button"
+					class="panel-close-btn"
+					onclick={closeSidePanel}
+					aria-label="Close panel"
+				>
+					<X size={16} />
+				</button>
 			</div>
 
 			<!-- Panel Scrollable Body -->
 			<div class="panel-scroll-content">
-				<!-- Main Deck Name & Unified Meta Line -->
-				<div class="panel-main-info">
+				<!-- Centered Mana Symbols, Title & Meta Line -->
+				<div class="panel-header-block">
+					{#if manaSymbols.length > 0}
+						<div class="panel-mana-row">
+							{#each manaSymbols as sym}
+								<ManaSymbol symbol={sym} size="20px" />
+							{/each}
+						</div>
+					{/if}
+
 					<h2 class="panel-deck-name">
 						{getDeckDisplayName(selectedDeck)}
 					</h2>
-					<div class="panel-meta-row">
-						<span class="panel-meta-item color-identity">
-							{getColorIdentityName(getDeckManaSymbols(selectedDeck))}
+
+					<div class="panel-meta-line">
+						<span class="meta-item-tag">
+							{selectedDeck.isDraft
+								? "LOCAL DRAFT"
+								: (
+										selectedDeck.cards?.format ||
+										"COMMANDER"
+									).toUpperCase()}
 						</span>
-						<span class="panel-meta-dot">•</span>
-						<span class="panel-meta-item">
-							{getCardCount(selectedDeck)} cards
+						<span class="meta-separator">•</span>
+						<span class="meta-item-count">
+							{#if isCommanderFormat && breakdown.total > 0}
+								{breakdown.total}/100
+							{:else}
+								{getCardCount(selectedDeck)} CARDS
+							{/if}
 						</span>
-						<span class="panel-meta-dot">•</span>
-						<span class="panel-meta-item updated-time">
-							Updated {formatUpdatedDate(
-								selectedDeck.isDraft
-									? selectedDeck.metadata?.updatedAt
-									: selectedDeck.updated_at,
-							)}
-						</span>
+						{#if deckPrice}
+							<span class="meta-separator">•</span>
+							<span class="meta-item-price">{deckPrice}</span>
+						{/if}
 					</div>
 				</div>
 
-				<!-- Primary Open Deck CTA -->
-				<div class="panel-cta-container">
+				<!-- Action Buttons Stack (Figma Frame 1564) -->
+				<div class="panel-actions-stack">
+					<!-- Primary Open Deck CTA -->
 					<button
 						type="button"
-						class="open-deck-cta-btn"
+						class="action-btn primary-btn"
 						onclick={() => handleSelectDeck(selectedDeck)}
 					>
 						<span>Open Deck</span>
 						<ArrowRight size={17} class="btn-arrow" />
 					</button>
-				</div>
 
-				<!-- Commander Section (if deck has a commander) -->
-				{#if cmdInfo}
-					<div class="panel-section">
-						<h4 class="section-title">Commander</h4>
-						<div class="commander-card-preview">
-							{#if cmdInfo.artCrop}
-								<img
-									src={cmdInfo.artCrop}
-									alt={cmdInfo.name}
-									class="commander-thumb"
-								/>
-							{/if}
-							<div class="commander-text">
-								<span class="commander-name"
-									>{cmdInfo.name}</span
-								>
-								<span class="commander-type"
-									>{cmdInfo.type_line}</span
-								>
-							</div>
-						</div>
-					</div>
-				{/if}
-
-				<!-- Composition Breakdown Section -->
-				<div class="panel-section">
-					<div class="section-header-row">
-						<h4 class="section-title">Composition</h4>
-					</div>
-
-					<!-- Visual multi-segment proportion bar -->
-					{#if breakdown.total > 0}
-						<div class="breakdown-bar">
-							{#if breakdown.commander > 0}
-								<div
-									class="bar-segment commander-segment"
-									style="width: {(breakdown.commander / breakdown.total) * 100}%"
-									title="Commander: {breakdown.commander}"
-								></div>
-							{/if}
-							{#if breakdown.companion > 0}
-								<div
-									class="bar-segment companion-segment"
-									style="width: {(breakdown.companion / breakdown.total) * 100}%"
-									title="Companion: {breakdown.companion}"
-								></div>
-							{/if}
-							<div
-								class="bar-segment mainboard-segment"
-								style="width: {(breakdown.mainboard / breakdown.total) * 100}%"
-								title="Mainboard: {breakdown.mainboard}"
-							></div>
-							{#if breakdown.sideboard > 0}
-								<div
-									class="bar-segment sideboard-segment"
-									style="width: {(breakdown.sideboard / breakdown.total) * 100}%"
-									title="Sideboard: {breakdown.sideboard}"
-								></div>
-							{/if}
-							{#if breakdown.maybeboard > 0}
-								<div
-									class="bar-segment maybeboard-segment"
-									style="width: {(breakdown.maybeboard / breakdown.total) * 100}%"
-									title="Maybeboard: {breakdown.maybeboard}"
-								></div>
-							{/if}
-						</div>
-					{/if}
-
-					<!-- Breakdown chip pills -->
-					<div class="breakdown-chips">
-						{#if breakdown.commander > 0}
-							<div class="chip">
-								<span class="chip-dot dot-commander"></span>
-								<span class="chip-label">Commander</span>
-								<span class="chip-count"
-									>{breakdown.commander}</span
-								>
-							</div>
-						{/if}
-						{#if breakdown.companion > 0}
-							<div class="chip">
-								<span class="chip-dot dot-companion"></span>
-								<span class="chip-label">Companion</span>
-								<span class="chip-count"
-									>{breakdown.companion}</span
-								>
-							</div>
-						{/if}
-						<div class="chip">
-							<span class="chip-dot dot-mainboard"></span>
-							<span class="chip-label">Mainboard</span>
-							<span class="chip-count">{breakdown.mainboard}</span
-							>
-						</div>
-						{#if breakdown.sideboard > 0}
-							<div class="chip">
-								<span class="chip-dot dot-sideboard"></span>
-								<span class="chip-label">Sideboard</span>
-								<span class="chip-count"
-									>{breakdown.sideboard}</span
-								>
-							</div>
-						{/if}
-						{#if breakdown.maybeboard > 0}
-							<div class="chip">
-								<span class="chip-dot dot-maybeboard"></span>
-								<span class="chip-label">Maybeboard</span>
-								<span class="chip-count"
-									>{breakdown.maybeboard}</span
-								>
-							</div>
-						{/if}
-					</div>
-				</div>
-
-				<!-- Footer Delete Action -->
-				<div class="panel-footer-actions">
+					<!-- Clone Button -->
 					<button
 						type="button"
-						class="delete-deck-btn"
+						class="action-btn secondary-btn"
+						onclick={() => handleCloneDeck(selectedDeck)}
+					>
+						{#if cloneFeedback}
+							<Check size={16} class="btn-icon success-icon" />
+							<span>Cloned!</span>
+						{:else}
+							<Copy size={16} class="btn-icon" />
+							<span>Clone</span>
+						{/if}
+					</button>
+
+					<!-- Copy List Button -->
+					<button
+						type="button"
+						class="action-btn secondary-btn"
+						onclick={() => handleCopyDeckList(selectedDeck)}
+					>
+						{#if copyListFeedback}
+							<Check size={16} class="btn-icon success-icon" />
+							<span>List Copied!</span>
+						{:else}
+							<FileText size={16} class="btn-icon" />
+							<span>Copy List</span>
+						{/if}
+					</button>
+
+					<!-- Share Button -->
+					<button
+						type="button"
+						class="action-btn secondary-btn"
+						onclick={() => handleShareDeck(selectedDeck)}
+					>
+						{#if shareFeedback}
+							<Check size={16} class="btn-icon success-icon" />
+							<span>Link Copied!</span>
+						{:else}
+							<Share2 size={16} class="btn-icon" />
+							<span>Share</span>
+						{/if}
+					</button>
+
+					<!-- Delete Button -->
+					<button
+						type="button"
+						class="action-btn danger-btn"
 						onclick={(e) => {
 							const d = selectedDeck;
 							handleDeleteDeck(d.id, e, d.isDraft);
 						}}
 					>
-						<Trash2 size={15} />
+						<Trash2 size={16} class="btn-icon" />
 						<span
 							>{selectedDeck.isDraft
 								? "Delete Draft"
-								: "Delete Deck"}</span
+								: "Delete"}</span
 						>
 					</button>
+				</div>
+
+				<!-- Footer Timestamp -->
+				<div class="panel-footer-timestamp">
+					Updated {formatUpdatedDate(
+						selectedDeck.isDraft
+							? selectedDeck.metadata?.updatedAt
+							: selectedDeck.updated_at,
+					)}.
 				</div>
 			</div>
 		</aside>
@@ -1527,20 +1646,23 @@
 		gap: 1rem;
 	}
 
-	/* Full Height Right Info Panel */
+	/* Floating Rounded Info Panel (Frame 1564) */
 	.deck-info-panel {
 		position: fixed;
-		top: 0;
-		right: 0;
-		bottom: 0;
-		width: 380px;
-		max-width: 92vw;
-		height: 100vh;
-		background: #111115;
-		border-left: 1px solid hsl(var(--border) / 0.5);
+		top: 1rem;
+		right: 1rem;
+		bottom: 1rem;
+		width: 360px;
+		max-width: calc(100vw - 2rem);
+		height: calc(100vh - 2rem);
+		background: #141417;
+		border: 1px solid rgba(255, 255, 255, 0.09);
+		border-radius: 20px;
 		display: flex;
 		flex-direction: column;
-		box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
+		box-shadow:
+			0 24px 60px rgba(0, 0, 0, 0.75),
+			0 0 0 1px rgba(255, 255, 255, 0.05);
 		z-index: 1001;
 		overflow: hidden;
 	}
@@ -1548,17 +1670,19 @@
 	.panel-hero-banner {
 		position: relative;
 		width: 100%;
-		height: 210px;
+		height: 230px;
 		flex-shrink: 0;
 		overflow: hidden;
 		background: #18181c;
+		border-top-left-radius: 20px;
+		border-top-right-radius: 20px;
 	}
 
 	.panel-hero-img {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
-		object-position: center 25%;
+		object-position: center 20%;
 		display: block;
 	}
 
@@ -1577,33 +1701,19 @@
 		inset: 0;
 		background: linear-gradient(
 			to top,
-			#111115 0%,
-			rgba(17, 17, 21, 0.45) 45%,
-			rgba(0, 0, 0, 0.25) 100%
+			#141417 0%,
+			rgba(20, 20, 23, 0.65) 40%,
+			rgba(0, 0, 0, 0.2) 100%
 		);
 		pointer-events: none;
 	}
 
-	.panel-hero-top {
-		position: absolute;
-		top: 12px;
-		left: 12px;
-		right: 12px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		z-index: 5;
-	}
-
-	.panel-hero-bottom {
-		position: absolute;
-		bottom: 12px;
-		right: 14px;
-		z-index: 5;
-	}
-
 	.panel-close-btn {
-		background: rgba(0, 0, 0, 0.55);
+		position: absolute;
+		top: 14px;
+		right: 14px;
+		z-index: 10;
+		background: rgba(0, 0, 0, 0.5);
 		border: 1px solid rgba(255, 255, 255, 0.15);
 		backdrop-filter: blur(8px);
 		color: rgba(255, 255, 255, 0.85);
@@ -1619,35 +1729,9 @@
 
 	.panel-close-btn:hover {
 		color: #ffffff;
-		background: rgba(255, 255, 255, 0.18);
+		background: rgba(255, 255, 255, 0.2);
 		transform: scale(1.06);
 		border-color: rgba(255, 255, 255, 0.3);
-	}
-
-	.format-pill {
-		font-size: 0.65rem;
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-		background: rgba(0, 0, 0, 0.6);
-		backdrop-filter: blur(8px);
-		color: #e2e8f0;
-		padding: 4px 10px;
-		border-radius: 20px;
-		border: 1px solid rgba(255, 255, 255, 0.15);
-	}
-
-	.format-pill.draft-pill {
-		background: rgba(245, 158, 11, 0.25);
-		color: #fbbf24;
-		border-color: rgba(245, 158, 11, 0.4);
-	}
-
-	.hero-mana-pips {
-		display: inline-flex;
-		align-items: center;
-		gap: 4px;
-		filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.85));
 	}
 
 	.panel-scroll-content {
@@ -1655,8 +1739,7 @@
 		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
-		gap: 1.25rem;
-		padding: 0 1.25rem 1.75rem;
+		padding: 0 1.5rem 1.75rem;
 		scrollbar-width: thin;
 		scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
 	}
@@ -1670,267 +1753,147 @@
 		border-radius: 4px;
 	}
 
-	.panel-main-info {
+	.panel-header-block {
 		display: flex;
 		flex-direction: column;
-		gap: 0.45rem;
-		padding-top: 1.25rem;
+		align-items: center;
+		text-align: center;
+		margin-top: -12px;
+		position: relative;
+		z-index: 5;
+	}
+
+	.panel-mana-row {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		margin-bottom: 0.65rem;
+		filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.9));
 	}
 
 	.panel-deck-name {
 		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
 			Georgia, serif;
-		font-size: 1.45rem;
+		font-size: 1.5rem;
 		font-weight: 700;
 		color: #ffffff;
-		margin: 0;
+		margin: 0 0 0.4rem;
 		line-height: 1.25;
 		letter-spacing: -0.015em;
-		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+		text-align: center;
+		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 	}
 
-	.panel-meta-row {
+	.panel-meta-line {
 		display: flex;
 		align-items: center;
+		justify-content: center;
 		flex-wrap: wrap;
-		gap: 0.45rem;
-		font-size: 0.8rem;
+		gap: 0.5rem;
+		font-size: 0.72rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
 		color: hsl(var(--muted-foreground));
 	}
 
-	.panel-meta-item {
-		font-weight: 500;
-	}
-
-	.panel-meta-item.color-identity {
-		color: hsl(var(--foreground));
-		font-weight: 600;
-	}
-
-	.panel-meta-dot {
+	.meta-separator {
 		opacity: 0.4;
-		font-size: 0.65rem;
 	}
 
-	.panel-cta-container {
+	.panel-actions-stack {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+		margin-top: 1.6rem;
 		width: 100%;
 	}
 
-	.open-deck-cta-btn {
+	.action-btn {
 		width: 100%;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		gap: 0.6rem;
-		padding: 0.85rem 1.25rem;
+		padding: 0.75rem 1.25rem;
+		border-radius: 10px;
+		font-size: 0.88rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+		box-sizing: border-box;
+	}
+
+	.primary-btn {
+		background: #2563eb;
 		background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-		color: white;
-		font-size: 0.95rem;
+		color: #ffffff;
 		font-weight: 600;
 		border: none;
-		border-radius: 12px;
-		cursor: pointer;
-		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 		box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
 	}
 
-	.open-deck-cta-btn:hover {
+	.primary-btn:hover {
 		background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-		transform: translateY(-1.5px);
-		box-shadow: 0 6px 22px rgba(37, 99, 235, 0.5);
+		transform: translateY(-1px);
+		box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
 	}
 
-	:global(.open-deck-cta-btn .btn-arrow) {
-		transition: transform 0.2s ease;
+	.primary-btn .btn-arrow {
+		transition: transform 0.18s ease;
 	}
 
-	:global(.open-deck-cta-btn:hover .btn-arrow) {
+	.primary-btn:hover .btn-arrow {
 		transform: translateX(4px);
 	}
 
-	.panel-section {
-		display: flex;
-		flex-direction: column;
-		gap: 0.65rem;
-		padding-top: 0.25rem;
-	}
-
-	.section-header-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-
-	.section-title {
-		font-size: 0.7rem;
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.07em;
-		color: hsl(var(--muted-foreground) / 0.85);
-		margin: 0;
-	}
-
-	.commander-card-preview {
-		display: flex;
-		align-items: center;
-		gap: 0.85rem;
-		background: rgba(255, 255, 255, 0.03);
-		padding: 0.65rem 0.85rem;
-		border-radius: 12px;
-		border: 1px solid rgba(255, 255, 255, 0.07);
-		transition:
-			border-color 0.15s ease,
-			background 0.15s ease;
-	}
-
-	.commander-card-preview:hover {
-		background: rgba(255, 255, 255, 0.05);
-		border-color: rgba(255, 255, 255, 0.12);
-	}
-
-	.commander-thumb {
-		width: 44px;
-		height: 44px;
-		border-radius: 8px;
-		object-fit: cover;
-		border: 1px solid rgba(255, 255, 255, 0.12);
-		flex-shrink: 0;
-	}
-
-	.commander-text {
-		display: flex;
-		flex-direction: column;
-		gap: 0.15rem;
-		min-width: 0;
-	}
-
-	.commander-name {
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: #ffffff;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.commander-type {
-		font-size: 0.725rem;
-		color: hsl(var(--muted-foreground));
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	/* Composition Bar */
-	.breakdown-bar {
-		display: flex;
-		height: 6px;
-		width: 100%;
-		border-radius: 999px;
-		overflow: hidden;
-		background: rgba(255, 255, 255, 0.06);
-		gap: 2px;
-	}
-
-	.bar-segment {
-		height: 100%;
-		border-radius: 999px;
-		transition: width 0.3s ease;
-	}
-
-	.commander-segment {
-		background: #f59e0b;
-	}
-
-	.companion-segment {
-		background: #ec4899;
-	}
-
-	.mainboard-segment {
-		background: #3b82f6;
-	}
-
-	.sideboard-segment {
-		background: #10b981;
-	}
-
-	.maybeboard-segment {
-		background: #8b5cf6;
-	}
-
-	.breakdown-chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.45rem;
-	}
-
-	.chip {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45rem;
+	.secondary-btn {
 		background: rgba(255, 255, 255, 0.04);
-		border: 1px solid rgba(255, 255, 255, 0.07);
-		padding: 0.3rem 0.65rem;
-		border-radius: 8px;
-		font-size: 0.75rem;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		color: hsl(var(--foreground));
 	}
 
-	.chip-dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
+	.secondary-btn:hover {
+		background: rgba(255, 255, 255, 0.08);
+		border-color: rgba(255, 255, 255, 0.16);
+		transform: translateY(-1px);
 	}
 
-	.dot-commander {
-		background: #f59e0b;
-	}
-	.dot-companion {
-		background: #ec4899;
-	}
-	.dot-mainboard {
-		background: #3b82f6;
-	}
-	.dot-sideboard {
-		background: #10b981;
-	}
-	.dot-maybeboard {
-		background: #8b5cf6;
-	}
-
-	.chip-label {
+	:global(.secondary-btn .btn-icon) {
 		color: hsl(var(--muted-foreground));
 	}
 
-	.chip-count {
-		font-weight: 600;
-		color: #ffffff;
+	:global(.secondary-btn:hover .btn-icon) {
+		color: hsl(var(--foreground));
 	}
 
-	.panel-footer-actions {
-		margin-top: auto;
-		padding-top: 0.5rem;
-	}
-
-	.delete-deck-btn {
-		width: 100%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.5rem;
-		padding: 0.65rem 1rem;
+	.danger-btn {
 		background: rgba(239, 68, 68, 0.06);
-		color: #f87171;
 		border: 1px solid rgba(239, 68, 68, 0.2);
-		border-radius: 10px;
-		font-size: 0.8rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition: all 0.15s ease;
+		color: #f87171;
 	}
 
-	.delete-deck-btn:hover {
+	.danger-btn:hover {
 		background: rgba(239, 68, 68, 0.14);
 		border-color: rgba(239, 68, 68, 0.4);
 		color: #fca5a5;
+		transform: translateY(-1px);
+	}
+
+	:global(.danger-btn .btn-icon) {
+		color: #f87171;
+	}
+
+	:global(.success-icon) {
+		color: #10b981 !important;
+	}
+
+	.panel-footer-timestamp {
+		margin-top: auto;
+		padding-top: 1.5rem;
+		text-align: center;
+		font-size: 0.8rem;
+		color: hsl(var(--muted-foreground) / 0.7);
 	}
 </style>
