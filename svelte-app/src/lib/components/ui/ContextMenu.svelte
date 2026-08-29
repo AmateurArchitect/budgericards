@@ -217,6 +217,9 @@
 					<div class="divider"></div>
 				{/if}
 				{#each items as item}
+					{#if item.sectionHeader}
+						<div class="menu-section-header">{item.sectionHeader}</div>
+					{/if}
 					{#if item.divider}
 						<div class="divider"></div>
 					{:else}
@@ -234,14 +237,36 @@
 							<button
 								class="menu-item"
 								class:danger={item.danger}
+								class:has-thumbnail={Boolean(item.thumbnail)}
+								class:has-subtitle={Boolean(item.subtitle)}
+								data-tooltip-img={item.tooltipImg || null}
 								onclick={() => {
 									if (!item.submenu) {
 										handleAction(item);
 									}
 								}}
 							>
-								<span class="item-label">{item.label}</span>
-								{#if item.submenu}
+								{#if item.thumbnail}
+									<img
+										src={item.thumbnail}
+										alt=""
+										class="item-thumbnail"
+									/>
+								{/if}
+								<div class="item-content">
+									<span class="item-label">{item.label}</span>
+									{#if item.subtitle}
+										<span class="item-subtitle">{item.subtitle}</span>
+									{/if}
+								</div>
+								{#if item.valueBadge}
+									<span class="item-value-badge">
+										{item.valueBadge}
+										{#if item.submenu}
+											<span class="submenu-arrow">▶</span>
+										{/if}
+									</span>
+								{:else if item.submenu}
 									<span class="submenu-arrow">▶</span>
 								{/if}
 								{#if item.shortcuts && item.shortcuts.length > 0 && !item.submenu}
@@ -278,15 +303,36 @@
 									in:fade={{ duration: 100 }}
 								>
 									{#each item.submenu as subItem}
+										{#if subItem.sectionHeader}
+											<div class="menu-section-header">{subItem.sectionHeader}</div>
+										{/if}
 										{#if subItem.divider}
 											<div class="divider"></div>
 										{:else}
 											<button
 												class="menu-item"
 												class:danger={subItem.danger}
+												class:has-thumbnail={Boolean(subItem.thumbnail)}
+												class:has-subtitle={Boolean(subItem.subtitle)}
+												data-tooltip-img={subItem.tooltipImg || null}
 												onclick={() => handleAction(subItem)}
 											>
-												<span class="item-label">{subItem.label}</span>
+												{#if subItem.thumbnail}
+													<img
+														src={subItem.thumbnail}
+														alt=""
+														class="item-thumbnail"
+													/>
+												{/if}
+												<div class="item-content">
+													<span class="item-label">{subItem.label}</span>
+													{#if subItem.subtitle}
+														<span class="item-subtitle">{subItem.subtitle}</span>
+													{/if}
+												</div>
+												{#if subItem.valueBadge}
+													<span class="item-value-badge">{subItem.valueBadge}</span>
+												{/if}
 												{#if subItem.shortcuts && subItem.shortcuts.length > 0}
 													<div class="shortcut-container">
 														{#each subItem.shortcuts as sc, i}
@@ -508,5 +554,73 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		user-select: none;
+	}
+
+	.menu-section-header {
+		padding: 6px 8px 2px;
+		font-size: 10px;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--text-muted);
+		opacity: 0.7;
+		user-select: none;
+	}
+
+	.menu-item.has-thumbnail {
+		padding: 5px 8px;
+		gap: 9px;
+	}
+
+	.item-thumbnail {
+		width: 26px;
+		height: 26px;
+		border-radius: 4px;
+		object-fit: cover;
+		flex-shrink: 0;
+		border: 1px solid hsla(var(--border) / 0.6);
+		background: #141416;
+	}
+
+	.item-content {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+		min-width: 0;
+		flex: 1;
+	}
+
+	.item-subtitle {
+		font-size: 10.5px;
+		color: var(--text-secondary);
+		opacity: 0.75;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		line-height: 1.2;
+	}
+
+	.menu-item:hover .item-subtitle {
+		color: hsla(0, 0%, 100%, 0.85);
+		opacity: 1;
+	}
+
+	.item-value-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 2px 7px;
+		font-size: 11px;
+		font-weight: 600;
+		color: hsl(var(--primary));
+		background: hsl(var(--primary) / 0.12);
+		border-radius: 4px;
+		margin-left: auto;
+		letter-spacing: -0.01em;
+	}
+
+	.menu-item:hover .item-value-badge {
+		color: white;
+		background: hsla(0, 0%, 100%, 0.22);
 	}
 </style>

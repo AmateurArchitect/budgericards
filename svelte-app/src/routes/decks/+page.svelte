@@ -654,7 +654,6 @@
 		const items = [
 			{
 				label: "Open Deck",
-				shortcuts: ["Enter", "Double Click"],
 				action: () => handleSelectDeck(deck),
 			},
 			{
@@ -673,7 +672,9 @@
 				},
 			},
 			{
-				label: `Format: ${currentFormat}`,
+				sectionHeader: "FORMAT",
+				label: "Deck Format",
+				valueBadge: currentFormat,
 				submenu: [
 					"Commander",
 					"Brawl",
@@ -693,65 +694,46 @@
 			},
 		];
 
-		// Commander actions if available
+		// Commander hover preview & Scryfall link actions
 		if (commanders.length > 0) {
 			items.push({ divider: true });
-			if (commanders.length === 1) {
-				const cmd = commanders[0];
-				items.push(
-					{
-						label: `View Commander (${cmd.name})`,
-						action: () => {
-							const meta =
-								(cards.metadata || {})[cmd.name?.toLowerCase()];
-							interactionStore.showCardDataModal(
-								cmd,
-								"commander",
-								meta?.prices?.usd || null,
-							);
-						},
-					},
-					{
-						label: `Scryfall: ${cmd.name}`,
-						action: () => {
-							window.open(
-								`https://scryfall.com/search?q=!%22${encodeURIComponent(cmd.name)}%22`,
-								"_blank",
-							);
-						},
-					},
-				);
-			} else {
-				// Multiple commanders (partner/friends forever)
+			const isMultiple = commanders.length > 1;
+			commanders.forEach((cmd, idx) => {
+				const meta =
+					(cards.metadata || {})[cmd.name?.toLowerCase()] || {};
+				const artCrop =
+					meta.image_uris?.art_crop ||
+					meta.card_faces?.[0]?.image_uris?.art_crop ||
+					(meta.image
+						? meta.image.replace("/normal/", "/art_crop/")
+						: null) ||
+					`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cmd.name)}&format=image&version=art_crop`;
+				const normalImg =
+					meta.image_uris?.normal ||
+					meta.card_faces?.[0]?.image_uris?.normal ||
+					meta.image ||
+					`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cmd.name)}&format=image`;
+
 				items.push({
-					label: "Commanders",
-					submenu: commanders.flatMap((cmd) => [
-						{
-							label: `View ${cmd.name}`,
-							action: () => {
-								const meta =
-									(cards.metadata || {})[
-										cmd.name?.toLowerCase()
-									];
-								interactionStore.showCardDataModal(
-									cmd,
-									"commander",
-									meta?.prices?.usd || null,
-								);
-							},
-						},
-						{
-							label: `Scryfall: ${cmd.name}`,
-							action: () => {
-								window.open(
-									`https://scryfall.com/search?q=!%22${encodeURIComponent(cmd.name)}%22`,
-									"_blank",
-								);
-							},
-						},
-					]),
+					...(idx === 0
+						? {
+								sectionHeader: isMultiple
+									? "COMMANDERS"
+									: "COMMANDER",
+							}
+						: {}),
+					label: cmd.name,
+					subtitle: "Hover to preview • Click for Scryfall ↗",
+					thumbnail: artCrop,
+					tooltipImg: normalImg,
+					action: () => {
+						window.open(
+							`https://scryfall.com/search?q=!%22${encodeURIComponent(cmd.name)}%22`,
+							"_blank",
+						);
+					},
 				});
-			}
+			});
 		}
 
 		items.push(

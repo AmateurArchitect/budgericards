@@ -79,7 +79,7 @@
 
 	/** @param {MouseEvent} e */
 	function handleMouseOut(e) {
-		if (interactionStore.isMenuOpen) return;
+		if (interactionStore.isMenuOpen && interactionStore.menuCard) return;
 		const target = /** @type {HTMLElement} */ (e.target);
 		if (target && target.closest("[data-tooltip-img]")) {
 			visible = false;
@@ -121,12 +121,12 @@
 	});
 
 	const currentPrice = $derived.by(() => {
-		const raw = interactionStore.isMenuOpen
+		const raw = interactionStore.isMenuOpen && interactionStore.menuCard
 			? interactionStore.menuPrice
 			: interactionStore.hoveredPrice;
 		if (raw !== null && raw !== 0) return raw;
 
-		const card = interactionStore.isMenuOpen
+		const card = interactionStore.isMenuOpen && interactionStore.menuCard
 			? interactionStore.menuCard
 			: interactionStore.hoveredCard;
 		if (card) return priceStore.getPrice(card.name);
@@ -135,7 +135,7 @@
 	});
 
 	const currentCard = $derived.by(() => {
-		const c = interactionStore.isMenuOpen
+		const c = interactionStore.isMenuOpen && interactionStore.menuCard
 			? interactionStore.menuCard
 			: interactionStore.hoveredCard;
 		if (!c) return null;
@@ -154,7 +154,7 @@
 		const menuOpen = interactionStore.isMenuOpen;
 		const menuPos = interactionStore.menuPosition;
 
-		if (menuOpen && menuPos) {
+		if (menuOpen && menuPos && interactionStore.menuCard) {
 			// FIXED position relative to context menu
 			const menuWidth = 200;
 			const menuOnRight = menuPos.x + menuWidth < window.innerWidth - 10;
@@ -165,6 +165,15 @@
 				nextX = menuPos.x - menuWidth - tooltipWidth - padding;
 			}
 			nextY = menuPos.y;
+		} else if (trigger.closest(".context-menu")) {
+			const menuEl = trigger.closest(".context-menu");
+			const menuRect = menuEl.getBoundingClientRect();
+			if (menuRect.right + tooltipWidth + padding < window.innerWidth) {
+				nextX = menuRect.right + padding;
+			} else {
+				nextX = menuRect.left - tooltipWidth - padding;
+			}
+			nextY = Math.max(padding, Math.min(rect.top - 10, window.innerHeight - tooltipHeight - padding));
 		} else if (
 			trigger.classList.contains("curve-card-item") ||
 			trigger.closest(".card-shell")
