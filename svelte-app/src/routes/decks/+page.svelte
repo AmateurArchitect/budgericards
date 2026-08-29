@@ -1023,7 +1023,6 @@
 									{#if groupIdx === 0}
 										<div
 											class="deck-card create-card"
-											style="--stagger-index: 0"
 											role="button"
 											tabindex="0"
 											onclick={handleNewDeckLink}
@@ -1052,7 +1051,7 @@
 									{/if}
 
 									{#each group.items as deck, itemIdx (deck.id)}
-										{@const staggerIdx = (groupIdx === 0 ? 1 : 0) + itemIdx}
+										{@const staggerIdx = itemIdx}
 										<div
 											class="deck-card"
 											style="--stagger-index: {Math.min(staggerIdx, 24)}"
@@ -1611,6 +1610,9 @@
 		user-select: none;
 		box-sizing: border-box;
 		outline: none;
+	}
+
+	.deck-card:not(.create-card) {
 		animation: deckCardPopIn 0.38s cubic-bezier(0.2, 0.8, 0.25, 1) backwards;
 		animation-delay: calc(var(--stagger-index, 0) * 35ms);
 	}
