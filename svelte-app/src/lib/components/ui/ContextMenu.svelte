@@ -573,13 +573,13 @@
 	}
 
 	.menu-section-header {
-		padding: 6px 8px 2px;
-		font-size: 10px;
+		padding: 6px 8px 3px;
+		font-size: 12px;
 		font-weight: 700;
 		text-transform: uppercase;
-		letter-spacing: 0.06em;
-		color: var(--text-muted);
-		opacity: 0.7;
+		letter-spacing: 0.05em;
+		color: var(--text-secondary);
+		opacity: 1;
 		user-select: none;
 	}
 

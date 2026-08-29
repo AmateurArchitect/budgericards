@@ -668,39 +668,10 @@
 				},
 			},
 			{ divider: true },
-			{
-				label: "Rename Deck",
-				action: () => {
-					selectedDeck = deck;
-					startEditingName();
-				},
-			},
-			{
-				sectionHeader: "FORMAT",
-				label: currentFormat,
-				pill: true,
-				submenu: [
-					"Commander",
-					"Brawl",
-					"Oathbreaker",
-					"Standard",
-					"Pioneer",
-					"Modern",
-					"Legacy",
-					"Vintage",
-					"Pauper",
-					"Cube",
-					"Freeform",
-				].map((fmt) => ({
-					label: fmt === currentFormat ? `✓ ${fmt}` : fmt,
-					action: () => handleSetDeckFormat(deck, fmt),
-				})),
-			},
 		];
 
 		// Commander hover preview & Scryfall link actions
 		if (commanders.length > 0) {
-			items.push({ divider: true });
 			const isMultiple = commanders.length > 1;
 			commanders.forEach(
 				(/** @type {any} */ cmd, /** @type {number} */ idx) => {
@@ -744,7 +715,35 @@
 		}
 
 		items.push(
+			{
+				sectionHeader: "FORMAT",
+				label: currentFormat,
+				pill: true,
+				submenu: [
+					"Commander",
+					"Brawl",
+					"Oathbreaker",
+					"Standard",
+					"Pioneer",
+					"Modern",
+					"Legacy",
+					"Vintage",
+					"Pauper",
+					"Cube",
+					"Freeform",
+				].map((fmt) => ({
+					label: fmt === currentFormat ? `✓ ${fmt}` : fmt,
+					action: () => handleSetDeckFormat(deck, fmt),
+				})),
+			},
 			{ divider: true },
+			{
+				label: "Rename Deck",
+				action: () => {
+					selectedDeck = deck;
+					startEditingName();
+				},
+			},
 			{
 				label: "Clone Deck",
 				action: () => handleCloneDeck(deck),
@@ -766,7 +765,7 @@
 			},
 		);
 
-		interactionStore.showCustomMenu(e, displayName, items);
+		interactionStore.showCustomMenu(e, "", items);
 	}
 
 	/** @param {number} timestamp */
