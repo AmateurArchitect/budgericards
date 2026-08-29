@@ -269,7 +269,7 @@
 									{/if}
 								</div>
 								{#if item.showEye}
-									<Eye size={13} class="item-eye-icon" />
+									<span class="item-eye-icon"><Eye size={13} /></span>
 								{/if}
 								{#if item.valueBadge}
 									<span class="item-value-badge">
@@ -344,7 +344,7 @@
 													{/if}
 												</div>
 												{#if subItem.showEye}
-													<Eye size={13} class="item-eye-icon" />
+													<span class="item-eye-icon"><Eye size={13} /></span>
 												{/if}
 												{#if subItem.valueBadge}
 													<span class="item-value-badge">{subItem.valueBadge}</span>

@@ -150,7 +150,8 @@
 	 * @param {HTMLElement} trigger
 	 */
 	function updatePosition(e, trigger) {
-		let nextX, nextY;
+		let nextX = e.clientX + padding / 2;
+		let nextY = e.clientY + padding / 2;
 		const rect = trigger.getBoundingClientRect();
 		const menuOpen = interactionStore.isMenuOpen;
 		const menuPos = interactionStore.menuPosition;

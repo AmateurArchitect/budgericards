@@ -595,7 +595,9 @@
 			let drafts = JSON.parse(
 				localStorage.getItem("budgericards_local_drafts") || "[]",
 			);
-			const idx = drafts.findIndex((d) => d.id === deck.id);
+			const idx = drafts.findIndex(
+				(/** @type {any} */ d) => d.id === deck.id,
+			);
 			if (idx !== -1) {
 				drafts[idx].cards = cards;
 				drafts[idx].metadata = {
