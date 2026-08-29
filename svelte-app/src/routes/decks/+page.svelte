@@ -1654,7 +1654,6 @@
 		color: hsl(var(--primary));
 	}
 
-	.deck-card.create-card:hover .create-cover-frame,
 	.deck-card.create-card:hover .deck-cover-frame {
 		border-color: hsl(var(--primary) / 0.6);
 		background: hsl(var(--primary) / 0.04);
