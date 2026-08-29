@@ -21,6 +21,7 @@
 	import { authStore } from "$lib/stores/auth.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { layoutStore } from "$lib/stores/layout.svelte.js";
+	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { syncService } from "$lib/syncService";
 	import { onMount, tick } from "svelte";
 	import { goto } from "$app/navigation";
@@ -579,6 +580,207 @@
 				shareFeedback = false;
 			}, 2000);
 		}
+	}
+
+	/**
+	 * @param {any} deck
+	 * @param {string} newFormat
+	 */
+	async function handleSetDeckFormat(deck, newFormat) {
+		if (!deck) return;
+		const cards = JSON.parse(JSON.stringify(deck.cards || deck));
+		cards.format = newFormat;
+
+		if (deck.isDraft) {
+			let drafts = JSON.parse(
+				localStorage.getItem("budgericards_local_drafts") || "[]",
+			);
+			const idx = drafts.findIndex((d) => d.id === deck.id);
+			if (idx !== -1) {
+				drafts[idx].cards = cards;
+				drafts[idx].metadata = {
+					...(drafts[idx].metadata || {}),
+					updatedAt: new Date().toISOString(),
+				};
+				localStorage.setItem(
+					"budgericards_local_drafts",
+					JSON.stringify(drafts),
+				);
+				localDrafts = drafts;
+				if (selectedDeck?.id === deck.id) {
+					selectedDeck = drafts[idx];
+				}
+			}
+		} else {
+			if (authStore.isAuthenticated) {
+				try {
+					const { data, error: saveError } = await syncService.saveDeck(
+						deck.id,
+						cards,
+					);
+					if (saveError) throw saveError;
+					if (data) {
+						updateSyncedDecks(
+							decks.map((d) => (d.id === deck.id ? data : d)),
+						);
+						if (selectedDeck?.id === deck.id) {
+							selectedDeck = data;
+						}
+					}
+				} catch (err) {
+					console.error("Failed to update deck format:", err);
+				}
+			}
+		}
+	}
+
+	/**
+	 * @param {MouseEvent} e
+	 * @param {any} deck
+	 */
+	function handleDeckContextMenu(e, deck) {
+		if (!deck) return;
+		e.preventDefault();
+		e.stopPropagation();
+
+		// Auto-select deck
+		selectedDeck = deck;
+
+		const displayName = getDeckDisplayName(deck);
+		const cards = deck.cards || deck;
+		const currentFormat = deck.isDraft
+			? "Local Draft"
+			: cards.format || "Commander";
+		const commanders = cards.commander || [];
+
+		/** @type {any[]} */
+		const items = [
+			{
+				label: "Open Deck",
+				shortcuts: ["Enter", "Double Click"],
+				action: () => handleSelectDeck(deck),
+			},
+			{
+				label: "Open in New Tab",
+				action: () => {
+					const slug = slugify(deck.name);
+					window.open(`/decks/${deck.id}/${slug}`, "_blank");
+				},
+			},
+			{ divider: true },
+			{
+				label: "Rename Deck",
+				action: () => {
+					selectedDeck = deck;
+					startEditingName();
+				},
+			},
+			{
+				label: `Format: ${currentFormat}`,
+				submenu: [
+					"Commander",
+					"Brawl",
+					"Oathbreaker",
+					"Standard",
+					"Pioneer",
+					"Modern",
+					"Legacy",
+					"Vintage",
+					"Pauper",
+					"Cube",
+					"Freeform",
+				].map((fmt) => ({
+					label: fmt === currentFormat ? `✓ ${fmt}` : fmt,
+					action: () => handleSetDeckFormat(deck, fmt),
+				})),
+			},
+		];
+
+		// Commander actions if available
+		if (commanders.length > 0) {
+			items.push({ divider: true });
+			if (commanders.length === 1) {
+				const cmd = commanders[0];
+				items.push(
+					{
+						label: `View Commander (${cmd.name})`,
+						action: () => {
+							const meta =
+								(cards.metadata || {})[cmd.name?.toLowerCase()];
+							interactionStore.showCardDataModal(
+								cmd,
+								"commander",
+								meta?.prices?.usd || null,
+							);
+						},
+					},
+					{
+						label: `Scryfall: ${cmd.name}`,
+						action: () => {
+							window.open(
+								`https://scryfall.com/search?q=!%22${encodeURIComponent(cmd.name)}%22`,
+								"_blank",
+							);
+						},
+					},
+				);
+			} else {
+				// Multiple commanders (partner/friends forever)
+				items.push({
+					label: "Commanders",
+					submenu: commanders.flatMap((cmd) => [
+						{
+							label: `View ${cmd.name}`,
+							action: () => {
+								const meta =
+									(cards.metadata || {})[
+										cmd.name?.toLowerCase()
+									];
+								interactionStore.showCardDataModal(
+									cmd,
+									"commander",
+									meta?.prices?.usd || null,
+								);
+							},
+						},
+						{
+							label: `Scryfall: ${cmd.name}`,
+							action: () => {
+								window.open(
+									`https://scryfall.com/search?q=!%22${encodeURIComponent(cmd.name)}%22`,
+									"_blank",
+								);
+							},
+						},
+					]),
+				});
+			}
+		}
+
+		items.push(
+			{ divider: true },
+			{
+				label: "Clone Deck",
+				action: () => handleCloneDeck(deck),
+			},
+			{
+				label: "Copy Decklist",
+				action: () => handleCopyDeckList(deck),
+			},
+			{
+				label: "Share Deck Link",
+				action: () => handleShareDeck(deck),
+			},
+			{ divider: true },
+			{
+				label: deck.isDraft ? "Delete Draft" : "Delete Deck",
+				danger: true,
+				action: (event) =>
+					handleDeleteDeck(deck.id, event, deck.isDraft),
+			},
+		);
+
+		interactionStore.showCustomMenu(e, displayName, items);
 	}
 
 	/** @param {number} timestamp */
@@ -1408,6 +1610,8 @@
 												handleDeckClick(deck)}
 											ondblclick={() =>
 												handleDeckDblClick(deck)}
+											oncontextmenu={(e) =>
+												handleDeckContextMenu(e, deck)}
 											onkeydown={(e) => {
 												if (
 													e.key === "Enter" ||

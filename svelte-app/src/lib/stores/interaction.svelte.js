@@ -1331,6 +1331,23 @@ function createInteractionStore() {
 
 		/**
 		 * @param {MouseEvent} e
+		 * @param {string} title
+		 * @param {any[]} items
+		 */
+		showCustomMenu(e, title, items) {
+			e.preventDefault();
+			e.stopPropagation();
+			state.menuCard = null;
+			state.menuZone = null;
+			state.menuPrice = null;
+			state.menuHeaderTitle = title;
+			state.menuCustomItems = items;
+			state.menuPosition = { x: e.clientX, y: e.clientY };
+			state.isMenuOpen = true;
+		},
+
+		/**
+		 * @param {MouseEvent} e
 		 * @param {string} columnLabel
 		 * @param {any[]} columnCards
 		 */
