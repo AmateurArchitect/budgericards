@@ -921,12 +921,15 @@
 											<div
 												class="deck-cover-frame create-frame"
 											>
-												<Plus
-													class="create-icon"
-													size={36}
-												/>
+												<div class="create-frame-content">
+													<Plus
+														class="create-icon"
+														size={30}
+													/>
+													<span class="create-inner-label">Create New Deck</span>
+												</div>
 											</div>
-											<span class="deck-title create-card-title">Create New Deck</span>
+											<span class="deck-title create-card-spacer" aria-hidden="true">&nbsp;</span>
 										</div>
 									{/if}
 
@@ -1615,6 +1618,16 @@
 		box-shadow: none;
 	}
 
+	.create-frame-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.4rem;
+		text-align: center;
+		padding: 0 0.75rem;
+	}
+
 	:global(.create-icon) {
 		color: hsl(var(--muted-foreground) / 0.8);
 		transition:
@@ -1622,28 +1635,40 @@
 			color 0.2s ease;
 	}
 
+	.create-inner-label {
+		font-family: inherit;
+		font-size: 0.82rem;
+		font-weight: 600;
+		letter-spacing: -0.01em;
+		color: hsl(var(--muted-foreground));
+		opacity: 0;
+		transform: translateY(4px);
+		transition:
+			opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+			transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+			color 0.2s ease;
+	}
+
 	:global(.deck-card:hover .create-icon) {
-		transform: scale(1.18);
+		transform: scale(1.12);
 		color: hsl(var(--primary));
 	}
 
+	.deck-card.create-card:hover .create-cover-frame,
 	.deck-card.create-card:hover .deck-cover-frame {
 		border-color: hsl(var(--primary) / 0.6);
 		background: hsl(var(--primary) / 0.04);
 	}
 
-	.create-card .create-card-title {
-		opacity: 0;
-		color: hsl(var(--muted-foreground));
-		font-style: normal;
-		transition:
-			opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1),
-			color 0.18s ease;
+	.deck-card.create-card:hover .create-inner-label {
+		opacity: 1;
+		transform: translateY(0);
+		color: hsl(var(--primary));
 	}
 
-	.create-card:hover .create-card-title {
-		opacity: 1;
-		color: hsl(var(--primary-light, var(--primary)));
+	.create-card-spacer {
+		visibility: hidden;
+		pointer-events: none;
 	}
 
 	/* Grouping Container & Headers */
