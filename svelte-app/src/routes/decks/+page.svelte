@@ -34,7 +34,7 @@
 	let selectedDeck = $state(null);
 
 	$effect(() => {
-		layoutStore.rightSidebarWidth = selectedDeck ? 395 : 0;
+		layoutStore.rightSidebarWidth = selectedDeck ? 380 : 0;
 		return () => {
 			layoutStore.rightSidebarWidth = 0;
 		};
@@ -1646,23 +1646,20 @@
 		gap: 1rem;
 	}
 
-	/* Floating Rounded Info Panel (Frame 1564) */
+	/* Full Height Docked Sidebar (Frame 1564 Layout) */
 	.deck-info-panel {
 		position: fixed;
-		top: 1rem;
-		right: 1rem;
-		bottom: 1rem;
-		width: 360px;
-		max-width: calc(100vw - 2rem);
-		height: calc(100vh - 2rem);
-		background: #141417;
-		border: 1px solid rgba(255, 255, 255, 0.09);
-		border-radius: 20px;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		width: 380px;
+		max-width: 92vw;
+		height: 100vh;
+		background: #121215;
+		border-left: 1px solid hsl(var(--border) / 0.5);
 		display: flex;
 		flex-direction: column;
-		box-shadow:
-			0 24px 60px rgba(0, 0, 0, 0.75),
-			0 0 0 1px rgba(255, 255, 255, 0.05);
+		box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
 		z-index: 1001;
 		overflow: hidden;
 	}
@@ -1670,12 +1667,10 @@
 	.panel-hero-banner {
 		position: relative;
 		width: 100%;
-		height: 230px;
+		height: 240px;
 		flex-shrink: 0;
 		overflow: hidden;
 		background: #18181c;
-		border-top-left-radius: 20px;
-		border-top-right-radius: 20px;
 	}
 
 	.panel-hero-img {
@@ -1710,10 +1705,10 @@
 
 	.panel-close-btn {
 		position: absolute;
-		top: 14px;
-		right: 14px;
+		top: 16px;
+		right: 16px;
 		z-index: 10;
-		background: rgba(0, 0, 0, 0.5);
+		background: rgba(0, 0, 0, 0.55);
 		border: 1px solid rgba(255, 255, 255, 0.15);
 		backdrop-filter: blur(8px);
 		color: rgba(255, 255, 255, 0.85);
