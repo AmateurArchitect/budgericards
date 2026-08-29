@@ -1753,7 +1753,7 @@
 		flex-direction: column;
 		align-items: center;
 		text-align: center;
-		margin-top: -12px;
+		padding-top: 1rem;
 		position: relative;
 		z-index: 5;
 	}
