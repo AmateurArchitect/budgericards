@@ -4,6 +4,7 @@
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import Button from "$lib/components/ui/Button.svelte";
 	import Input from "$lib/components/ui/Input.svelte";
+	import { ALL_FORMATS } from "$lib/constants/formats.js";
 	import { goto } from "$app/navigation";
 
 	let displayName = $state("");
@@ -16,16 +17,7 @@
 	let error = $state("");
 	let success = $state(false);
 
-	const formats = [
-		"Commander",
-		"Standard",
-		"Modern",
-		"Pioneer",
-		"Legacy",
-		"Vintage",
-		"Pauper",
-		"Brawl"
-	];
+	const formats = ALL_FORMATS;
 
 	const views = [
 		{ id: "stacks", label: "Stacks View" },

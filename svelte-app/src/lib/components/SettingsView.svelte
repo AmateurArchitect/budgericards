@@ -2,18 +2,9 @@
 	import { goto } from "$app/navigation";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { syncService } from "$lib/syncService";
+	import { ALL_FORMATS } from "$lib/constants/formats.js";
 
-	const formats = [
-		"Commander",
-		"Modern",
-		"Standard",
-		"Pioneer",
-		"Pauper",
-		"Legacy",
-		"Vintage",
-		"Limited",
-		"Oathbreaker"
-	];
+	const formats = ALL_FORMATS;
 
 	async function handleDelete() {
 		if (!confirm("Are you sure you want to delete this deck? This cannot be undone.")) {

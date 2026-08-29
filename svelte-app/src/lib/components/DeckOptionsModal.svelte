@@ -3,6 +3,7 @@
 	import { ChevronDown, ChevronRight } from 'lucide-svelte';
 	import { deckStore } from '$lib/stores/deck.svelte.js';
 	import Input from '$lib/components/ui/Input.svelte';
+	import { ALL_FORMATS } from '$lib/constants/formats.js';
 	import { onMount, tick } from 'svelte';
 
 	/** @type {{ isOpen: boolean, fallbackArt: string | null, triggerElement: HTMLElement | null }} */
@@ -109,21 +110,15 @@
 	}
 
 	const primaryFormats = [
-		'List',
 		'Commander',
 		'Standard',
 		'Modern',
-		'Pioneer'
+		'Pioneer',
+		'Brawl',
+		'List'
 	];
 
-	const moreFormats = [
-		'Pauper',
-		'Legacy',
-		'Vintage',
-		'Brawl',
-		'Oathbreaker',
-		'Limited'
-	];
+	const moreFormats = ALL_FORMATS.filter(f => !primaryFormats.includes(f));
 
 	/** @param {string} format */
 	function selectFormat(format) {

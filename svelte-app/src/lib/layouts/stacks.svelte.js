@@ -1,6 +1,7 @@
 import { compareColors } from '$lib/utils/colors.js';
 import { deckStore } from '$lib/stores/deck.svelte.js';
 import { settingsStore } from '$lib/stores/settings.svelte.js';
+import { isCommanderFormat } from '$lib/constants/formats.js';
 
 /**
  * @typedef {Object} StackData
@@ -32,13 +33,12 @@ export function createStacksEngine() {
 		const splitView = grouping === 'freeform' ? false : deckStore.splitView;
 
 		let cards = deckStore.currentBoardCards;
-		const commanderFormats = ["Commander", "Brawl", "Oathbreaker"];
-		const isCommanderFormat = commanderFormats.includes(deckStore.format);
+		const isCommander = isCommanderFormat(deckStore.format);
 		const isListFormat = deckStore.format === "List";
 
 		// If we're looking at the mainboard, we also want to show commanders and companions in the layout
 		if (deckStore.activeBoard === 'mainboard') {
-			const isIllegal = !isCommanderFormat && !isListFormat;
+			const isIllegal = !isCommander && !isListFormat;
 			cards = [
 				...deckStore.commander.map(c => ({ ...c, _forceColumn: "Special", _forceStack: "Commanders", _isIllegalFormat: isIllegal })),
 				...deckStore.companion.map(c => ({ ...c, _forceColumn: "Special", _forceStack: "Companions" })),

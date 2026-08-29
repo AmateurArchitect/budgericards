@@ -21,6 +21,7 @@
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { priceStore } from "$lib/stores/prices.svelte.js";
 	import { toastStore } from "$lib/stores/toast.svelte.js";
+	import { isCommanderFormat } from "$lib/constants/formats.js";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/stores";
 
@@ -203,7 +204,7 @@
 			const isPlaneswalker = typeLine.includes("planeswalker");
 			const canBeCommander = oracle.includes("can be your commander") || facesOracle.includes("can be your commander");
 			const isCompanion = oracle.includes("companion —") || facesOracle.includes("companion —");
-			const isCommanderFormat = ["Commander", "Brawl", "Oathbreaker"].includes(deckStore.format);
+			const isCommander = isCommanderFormat(deckStore.format);
 
 			const isCommanderCandidate =
 				isLegendaryCreature ||
@@ -217,7 +218,7 @@
 				deckStore.format = "Commander";
 				targetBoard = "commander";
 				toastStore.show(`Set format to Commander with ${card.name} as your commander.`);
-			} else if (isCommanderFormat && deckStore.commander.length === 0 && isCommanderCandidate) {
+			} else if (isCommander && deckStore.commander.length === 0 && isCommanderCandidate) {
 				targetBoard = "commander";
 			} else if (isCompanion && deckStore.companion.length === 0) {
 				targetBoard = "companion";

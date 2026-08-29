@@ -22,6 +22,7 @@
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { layoutStore } from "$lib/stores/layout.svelte.js";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
+	import { FORMAT_CATEGORIES } from "$lib/constants/formats.js";
 	import { syncService } from "$lib/syncService";
 	import { onMount, tick } from "svelte";
 	import { goto } from "$app/navigation";
@@ -653,43 +654,9 @@
 			? "Local Draft"
 			: cards.format || "Commander";
 		const commanders = cards.commander || [];
-
-		// Categorized format list
-		const formatCategories = [
-			{
-				name: "COMMANDER",
-				formats: [
-					"Commander",
-					"Brawl",
-					"Oathbreaker",
-					"Duel Commander",
-				],
-			},
-			{
-				name: "CONSTRUCTED",
-				formats: [
-					"Standard",
-					"Pioneer",
-					"Modern",
-					"Legacy",
-					"Vintage",
-					"Pauper",
-					"Premodern",
-				],
-			},
-			{
-				name: "LIMITED",
-				formats: ["Cube", "Draft", "Sealed"],
-			},
-			{
-				name: "LIST / OTHER",
-				formats: ["Freeform", "Decklist", "Custom"],
-			},
-		];
-
 		/** @type {any[]} */
 		const formatSubmenu = [];
-		formatCategories.forEach((cat, catIdx) => {
+		FORMAT_CATEGORIES.forEach((cat, catIdx) => {
 			if (catIdx > 0) {
 				formatSubmenu.push({ divider: true });
 			}
