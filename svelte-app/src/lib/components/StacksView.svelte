@@ -15,6 +15,11 @@
 	import CardShell from "./CardShell.svelte";
 	import CardArt from "./CardArt.svelte";
 	import StackHeader from "./StackHeader.svelte";
+	import {
+		getPartnerLogic,
+		canPair,
+		canCardBeCommander,
+	} from "$lib/utils/legality.js";
 
 	const engine = createStacksEngine();
 
@@ -381,30 +386,25 @@
 
 			let targetBoard = deckStore.activeBoard;
 			if (colKey === "Special") {
-				const typeLine = (data.card.type_line || "").toLowerCase();
-				const oracle = (data.card.oracle_text || "").toLowerCase();
-				const facesOracle = (data.card.card_faces || [])
+				const meta = data.card?.type_line ? data.card : (deckStore.metadata[data.name?.toLowerCase()] || data.card);
+				const oracle = (meta?.oracle_text || "").toLowerCase();
+				const facesOracle = (meta?.card_faces || [])
 					.map((/** @type {any} */ f) =>
 						(f.oracle_text || "").toLowerCase(),
 					)
 					.join(" ");
 
-				const isLegendaryCreature =
-					typeLine.includes("legendary") &&
-					typeLine.includes("creature");
-				const isPlaneswalker = typeLine.includes("planeswalker");
 				const isCompanion =
 					oracle.includes("companion —") ||
-					facesOracle.includes("companion —");
+					oracle.includes("companion\n") ||
+					facesOracle.includes("companion —") ||
+					facesOracle.includes("companion\n");
 
 				if (stackId === "companions") {
 					if (!isCompanion) return;
 					targetBoard = "companion";
 				} else {
-					const canBeCommander =
-						isLegendaryCreature ||
-						(["Brawl", "Oathbreaker"].includes(deckStore.format) &&
-							isPlaneswalker);
+					const canBeCommander = canCardBeCommander(data.card || { name: data.name }, deckStore.format, deckStore.commander);
 					if (!canBeCommander) return;
 					targetBoard = "commander";
 				}
@@ -416,31 +416,25 @@
 				for (const item of cardsToProcess) {
 					let itemTargetBoard = targetBoard;
 					if (colKey === "Special") {
-						const meta = item.card.type_line ? item.card : (deckStore.metadata[item.name.toLowerCase()] || item.card);
-						const typeLine = (meta.type_line || "").toLowerCase();
-						const oracle = (meta.oracle_text || "").toLowerCase();
-						const facesOracle = (meta.card_faces || [])
+						const meta = item.card?.type_line ? item.card : (deckStore.metadata[item.name.toLowerCase()] || item.card);
+						const oracle = (meta?.oracle_text || "").toLowerCase();
+						const facesOracle = (meta?.card_faces || [])
 							.map((/** @type {any} */ f) =>
 								(f.oracle_text || "").toLowerCase(),
 							)
 							.join(" ");
 
-						const isLegendaryCreature =
-							typeLine.includes("legendary") &&
-							typeLine.includes("creature");
-						const isPlaneswalker = typeLine.includes("planeswalker");
 						const isCompanion =
 							oracle.includes("companion —") ||
-							facesOracle.includes("companion —");
+							oracle.includes("companion\n") ||
+							facesOracle.includes("companion —") ||
+							facesOracle.includes("companion\n");
 
 						if (stackId === "companions") {
 							if (!isCompanion) continue;
 							itemTargetBoard = "companion";
 						} else {
-							const canBeCommander =
-								isLegendaryCreature ||
-								(["Brawl", "Oathbreaker"].includes(deckStore.format) &&
-									isPlaneswalker);
+							const canBeCommander = canCardBeCommander(item.card || { name: item.name }, deckStore.format, deckStore.commander);
 							if (!canBeCommander) continue;
 							itemTargetBoard = "commander";
 						}
@@ -462,19 +456,47 @@
 
 						// If it's a move to a special board, or from a different board
 						if (item.sourceBoard !== itemTargetBoard) {
-							// Swap logic for special boards: if targeting commander/companion and it's full, move existing back
-							if (
-								itemTargetBoard === "commander" ||
-								itemTargetBoard === "companion"
-							) {
-								const storeAny = /** @type {any} */ (deckStore);
-								const currentCards = storeAny[itemTargetBoard];
+							// Swap logic for special boards: if targeting companion or commander (when full/not a partner pair), move existing back
+							if (itemTargetBoard === "companion") {
+								const currentCards = deckStore.companion;
 								if (currentCards.length > 0) {
 									[...currentCards].forEach((c) => {
 										deckStore.moveCard(
 											c.name,
-											itemTargetBoard,
-											"mainboard",
+											"companion",
+											item.sourceBoard && item.sourceBoard !== "companion" ? item.sourceBoard : "mainboard",
+											c.id,
+											c.price,
+										);
+									});
+								}
+							} else if (itemTargetBoard === "commander") {
+								if (deckStore.format === "List" || !deckStore.format || deckStore.format === "None") {
+									deckStore.format = "Commander";
+								}
+								const currentCards = deckStore.commander;
+								let shouldSwap = true;
+
+								if (currentCards.length === 1) {
+									const existingCommander = currentCards[0];
+									const existingMeta = deckStore.metadata[existingCommander.name.toLowerCase()] || existingCommander;
+									const existingLogic = getPartnerLogic(existingCommander.name, existingMeta);
+
+									const newMeta = item.card?.type_line ? item.card : (deckStore.metadata[item.name.toLowerCase()] || item.card);
+									const newLogic = getPartnerLogic(item.name, newMeta);
+
+									const isLegalPair = canPair(newLogic, item.name, existingLogic, existingCommander.name);
+									if (isLegalPair) {
+										shouldSwap = false;
+									}
+								}
+
+								if (shouldSwap && currentCards.length > 0) {
+									[...currentCards].forEach((c) => {
+										deckStore.moveCard(
+											c.name,
+											"commander",
+											item.sourceBoard && item.sourceBoard !== "commander" ? item.sourceBoard : "mainboard",
 											c.id,
 											c.price,
 										);

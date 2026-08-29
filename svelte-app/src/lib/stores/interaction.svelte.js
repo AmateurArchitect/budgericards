@@ -4,6 +4,7 @@ import { fetchCollection } from "../api/scryfall.js";
 import { getCardByName } from "../localSearch";
 import { priceStore } from "./prices.svelte.js";
 import { toastStore } from "./toast.svelte.js";
+import { getPartnerLogic, canPair, canCardBeCommander } from "../utils/legality.js";
 
 /**
  * Parses a single text cell/column value into card details
@@ -1679,8 +1680,7 @@ function createInteractionStore() {
 			const hasPartner = /partner|friends forever|choose a background/i.test(oracleText);
 
 			// Commander eligibility
-			const canBeCommander = (isLegendary && isCreature) ||
-				(isPlaneswalker && ['Brawl', 'Oathbreaker', 'Commander'].includes(deckStore.format));
+			const canBeCommander = canCardBeCommander(card, deckStore.format, deckStore.commander);
 
 			const items = [];
 
@@ -1739,59 +1739,7 @@ function createInteractionStore() {
 			items.push({ divider: true });
 
 			const existingCommander = deckStore.commander[0];
-			const existingMeta = existingCommander ? deckStore.metadata[existingCommander.name.toLowerCase()] : null;
-
-			/** 
-			 * @param {string} name 
-			 * @param {any} meta 
-			 */
-			const getPartnerLogic = (name, meta) => {
-				const text = meta?.oracle_text || "";
-				const type = meta?.type_line || "";
-				
-				if (text.toLowerCase().includes("partner with ")) {
-					const match = text.match(/Partner with ([^(\n\.,]+)/i);
-					return { type: 'specific', target: match ? match[1].trim() : null };
-				}
-				if (text.includes("Friends forever")) return { type: 'friends' };
-				if (text.includes("Choose a Background")) return { type: 'commander-background' };
-				if (type.includes("Background") && type.includes("Enchantment")) return { type: 'background' };
-				if (text.includes("Doctor's companion")) return { type: 'doctors-companion' };
-				if (type.includes("Doctor") && type.includes("Time Lord")) return { type: 'doctor' };
-				if (text.includes("Partner")) return { type: 'global' };
-				
-				return null;
-			};
-
-			/**
-			 * @param {any} logicA
-			 * @param {string} nameA
-			 * @param {any} logicB
-			 * @param {string} nameB
-			 */
-			const canPair = (logicA, nameA, logicB, nameB) => {
-				if (!logicA || !logicB) return false;
-				
-				// 1. Global Partners
-				if (logicA.type === 'global' && logicB.type === 'global') return true;
-				
-				// 2. Friends Forever
-				if (logicA.type === 'friends' && logicB.type === 'friends') return true;
-				
-				// 3. Specific Partners ("Partner with [Name]")
-				if (logicA.type === 'specific' && nameB.toLowerCase().includes(logicA.target?.toLowerCase() || "")) return true;
-				if (logicB.type === 'specific' && nameA.toLowerCase().includes(logicB.target?.toLowerCase() || "")) return true;
-				
-				// 4. Backgrounds
-				if (logicA.type === 'commander-background' && logicB.type === 'background') return true;
-				if (logicB.type === 'commander-background' && logicA.type === 'background') return true;
-				
-				// 5. Doctor's Companion
-				if (logicA.type === 'doctors-companion' && logicB.type === 'doctor') return true;
-				if (logicB.type === 'doctors-companion' && logicA.type === 'doctor') return true;
-				
-				return false;
-			};
+			const existingMeta = existingCommander ? (deckStore.metadata[existingCommander.name.toLowerCase()] || existingCommander) : null;
 
 			const newLogic = getPartnerLogic(name, meta);
 			const existingLogic = getPartnerLogic(existingCommander?.name || "", existingMeta);
