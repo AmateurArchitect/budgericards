@@ -1221,30 +1221,16 @@
 		min-width: 0;
 		height: 100%;
 		overflow-y: auto;
-		padding-top: 3rem;
-		padding-bottom: 3rem;
-		padding-left: max(1.5rem, 380px);
-		padding-right: max(
-			1.5rem,
-			calc(380px - var(--right-sidebar-width, 0px))
-		);
+		padding: 3rem 2rem;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		box-sizing: border-box;
-		transition: padding-right 0.24s cubic-bezier(0.4, 0, 0.2, 1);
-	}
-
-	@media (max-width: 1024px) {
-		.decks-page-container {
-			padding-left: 1.5rem;
-			padding-right: 1.5rem;
-		}
 	}
 
 	.decks-content-inner {
 		width: 100%;
-		max-width: 1032px;
+		max-width: 960px;
 		display: flex;
 		flex-direction: column;
 	}
@@ -1452,7 +1438,7 @@
 	/* Decks list/grid */
 	.decks-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
 		gap: 1.75rem 1.5rem;
 	}
 
