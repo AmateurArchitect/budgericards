@@ -990,6 +990,7 @@
 											tabindex="0"
 											onclick={handleNewDeckLink}
 											aria-label="Create New Deck"
+											title="Create New Deck"
 											onkeydown={(e) => {
 												if (
 													e.key === "Enter" ||
@@ -1188,6 +1189,7 @@
 						<h2
 							class="panel-deck-name"
 							ondblclick={startEditingName}
+							title="Double-click to rename"
 						>
 							{getDeckDisplayName(selectedDeck)}
 						</h2>
@@ -1948,7 +1950,7 @@
 		color: #ffffff;
 		background: transparent;
 		border: none;
-		border-bottom: 2px solid hsl(var(--primary));
+		border-bottom: 1.5px solid rgba(255, 255, 255, 0.45);
 		border-radius: 0;
 		margin: 0 0 0.75rem;
 		line-height: 1.25;
@@ -1960,7 +1962,12 @@
 		outline: none;
 		box-shadow: none;
 		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
-		caret-color: hsl(var(--primary));
+		caret-color: #ffffff;
+		transition: border-color 0.15s ease;
+	}
+
+	.panel-deck-name-input:focus {
+		border-bottom-color: rgba(255, 255, 255, 0.85);
 	}
 
 	.panel-meta-line {
