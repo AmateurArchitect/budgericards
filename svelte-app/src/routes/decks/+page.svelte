@@ -1023,6 +1023,7 @@
 									{#if groupIdx === 0}
 										<div
 											class="deck-card create-card"
+											style="--stagger-index: 0"
 											role="button"
 											tabindex="0"
 											onclick={handleNewDeckLink}
@@ -1050,9 +1051,11 @@
 										</div>
 									{/if}
 
-									{#each group.items as deck (deck.id)}
+									{#each group.items as deck, itemIdx (deck.id)}
+										{@const staggerIdx = (groupIdx === 0 ? 1 : 0) + itemIdx}
 										<div
 											class="deck-card"
+											style="--stagger-index: {Math.min(staggerIdx, 24)}"
 											class:selected={selectedDeck?.id ===
 												deck.id}
 											class:is-draft={deck.isDraft}
@@ -1584,6 +1587,21 @@
 		gap: 1.5rem;
 	}
 
+	@keyframes deckCardPopIn {
+		0% {
+			opacity: 0;
+			transform: translateY(12px) scale(0.96);
+		}
+		60% {
+			opacity: 1;
+			transform: translateY(-2px) scale(1.01);
+		}
+		100% {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+	}
+
 	/* Deck Card Wrapper */
 	.deck-card {
 		display: flex;
@@ -1593,6 +1611,8 @@
 		user-select: none;
 		box-sizing: border-box;
 		outline: none;
+		animation: deckCardPopIn 0.38s cubic-bezier(0.2, 0.8, 0.25, 1) backwards;
+		animation-delay: calc(var(--stagger-index, 0) * 35ms);
 	}
 
 	/* The 4:3 Image Frame */
