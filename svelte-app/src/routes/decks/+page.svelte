@@ -990,7 +990,6 @@
 											tabindex="0"
 											onclick={handleNewDeckLink}
 											aria-label="Create New Deck"
-											title="Create New Deck"
 											onkeydown={(e) => {
 												if (
 													e.key === "Enter" ||
@@ -1740,16 +1739,14 @@
 		font-weight: 600;
 		letter-spacing: -0.01em;
 		color: hsl(var(--muted-foreground));
-		opacity: 0;
-		transform: translateY(4px);
+		opacity: 0.85;
 		transition:
-			opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-			transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-			color 0.2s ease;
+			color 0.2s ease,
+			opacity 0.2s ease;
 	}
 
 	:global(.deck-card:hover .create-icon) {
-		transform: scale(1.12);
+		transform: scale(1.1);
 		color: hsl(var(--primary));
 	}
 
@@ -1760,7 +1757,6 @@
 
 	.deck-card.create-card:hover .create-inner-label {
 		opacity: 1;
-		transform: translateY(0);
 		color: hsl(var(--primary));
 	}
 
