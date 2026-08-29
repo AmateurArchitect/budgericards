@@ -1282,7 +1282,7 @@
 		color: hsl(var(--muted-foreground));
 		background: hsl(var(--muted) / 0.05);
 		border: 1px dashed hsl(var(--border) / 0.6);
-		border-radius: 6px;
+		border-radius: 12px;
 	}
 
 	.empty-state {
@@ -1337,7 +1337,7 @@
 		padding: 0.75rem 2rem;
 		background: hsl(var(--primary));
 		color: white;
-		border-radius: var(--radius-md);
+		border-radius: 6px;
 		font-size: 0.875rem;
 		font-weight: 600;
 		text-decoration: none;
@@ -1407,7 +1407,7 @@
 		display: flex;
 		background: hsl(var(--muted) / 0.2);
 		padding: 2px;
-		border-radius: var(--radius-sm);
+		border-radius: 6px;
 		border: 1px solid hsl(var(--border) / 0.2);
 	}
 
@@ -1418,7 +1418,7 @@
 		font-size: 0.75rem;
 		font-weight: 500;
 		padding: 4px 12px;
-		border-radius: calc(var(--radius-sm) - 1px);
+		border-radius: 3px;
 		cursor: pointer;
 		transition: all 0.15s ease;
 	}
@@ -1813,7 +1813,7 @@
 		justify-content: center;
 		gap: 0.6rem;
 		padding: 0.75rem 1.25rem;
-		border-radius: 10px;
+		border-radius: 6px;
 		font-size: 0.88rem;
 		font-weight: 500;
 		cursor: pointer;
