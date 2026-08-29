@@ -1822,7 +1822,7 @@
 		box-sizing: border-box;
 	}
 
-	.primary-btn {
+	.action-btn.primary-btn {
 		background: #2563eb;
 		background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 		color: #ffffff;
@@ -1831,10 +1831,16 @@
 		box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
 	}
 
-	.primary-btn:hover {
+	.action-btn.primary-btn:hover {
+		background: #3b82f6;
 		background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
 		transform: translateY(-1px);
 		box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+	}
+
+	.action-btn.primary-btn:active {
+		transform: translateY(0);
+		background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
 	}
 
 	:global(.primary-btn .btn-arrow) {
