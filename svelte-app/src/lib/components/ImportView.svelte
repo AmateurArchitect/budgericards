@@ -1068,7 +1068,7 @@
 				<div class="actions-list">
 					<Button
 						variant="outline"
-						class="action-btn"
+						class="import-action-btn"
 						onclick={handleClearPrintings}
 					>
 						Clear Printings
@@ -1487,7 +1487,7 @@
 		gap: 0.75rem;
 	}
 
-	:global(.action-btn) {
+	.actions-list :global(.import-action-btn) {
 		width: 100%;
 		display: flex;
 		align-items: center;
@@ -1496,14 +1496,14 @@
 		height: 38px;
 		font-size: var(--font-sm);
 		font-weight: 500;
-		background: hsl(var(--muted) / 0.1) !important;
-		border-color: hsl(var(--border) / 0.4) !important;
-		transition: all 0.2s !important;
+		background: hsl(var(--muted) / 0.1);
+		border-color: hsl(var(--border) / 0.4);
+		transition: all 0.2s;
 	}
 
-	:global(.action-btn:hover) {
-		background: hsl(var(--muted) / 0.25) !important;
-		border-color: hsl(var(--border) / 0.8) !important;
+	.actions-list :global(.import-action-btn:hover) {
+		background: hsl(var(--muted) / 0.25);
+		border-color: hsl(var(--border) / 0.8);
 	}
 
 	.hover-card-preview {
