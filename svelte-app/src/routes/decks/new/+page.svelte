@@ -2,8 +2,10 @@
 	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
 	import { deckStore, generateId } from "$lib/stores/deck.svelte.js";
+	import { searchStore } from "$lib/stores/search.svelte.js";
 
 	onMount(() => {
+		searchStore.reset();
 		const newId = generateId();
 		sessionStorage.setItem("budgericards_active_deck_id", newId);
 		sessionStorage.setItem("budgericards_is_new_draft", "true");

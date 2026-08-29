@@ -2,6 +2,7 @@
 	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
 	import { deckStore, generateId } from "$lib/stores/deck.svelte.js";
+	import { searchStore } from "$lib/stores/search.svelte.js";
 
 	// Helper to create a URL-safe slug
 	/** @param {string} name */
@@ -16,6 +17,7 @@
 	}
 
 	onMount(() => {
+		searchStore.reset();
 		const urlParams = new URLSearchParams(window.location.search);
 		const isNewDeck = urlParams.get('new_deck') === 'true';
 

@@ -33,7 +33,11 @@
 		const id = $page.params.id;
 		if (id) {
 			untrack(() => {
+				const prevId = deckStore.id;
 				deckStore.selectDeckId(id);
+				if (prevId && prevId !== deckStore.id) {
+					searchStore.reset();
+				}
 			});
 		}
 	});

@@ -13,6 +13,7 @@
 		Check,
 	} from "lucide-svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
+	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { authStore } from "$lib/stores/auth.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { layoutStore } from "$lib/stores/layout.svelte.js";
@@ -132,6 +133,7 @@
 	/** @param {any} deck */
 	function handleSelectDeck(deck) {
 		if (!deck) return;
+		searchStore.reset();
 		const cards = deck.cards || deck;
 		deckStore.setDeck({
 			id: deck.id,

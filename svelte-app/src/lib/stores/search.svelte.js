@@ -720,7 +720,7 @@ function createSearch() {
 		});
 	});
 
-	return {
+	const api = {
 		get query() { return state.query; },
 		set query(val) {
 			state.query = val;
@@ -800,6 +800,27 @@ function createSearch() {
 			state.query = '';
 			state.results = [];
 			state.hasTriggered = false;
+			state.isSearching = false;
+			state.error = '';
+			state.showLargeSearchOverride = false;
+			state.highlightedIndex = 0;
+		},
+		reset() {
+			state.isOpen = false;
+			state.isFocused = false;
+			state.isCollapsed = false;
+			state.query = '';
+			state.results = [];
+			state.hasTriggered = false;
+			state.isSearching = false;
+			state.error = '';
+			state.currentPage = 1;
+			state.scrollBatchLimit = 100;
+			state.showLargeSearchOverride = false;
+			state.highlightedIndex = 0;
+			state.filters = { colors: [] };
+			state.activeSorts = [];
+			state.collection = 'scryfall';
 		},
 		toggleSearch() {
 			if (this.isOpen) {
@@ -897,6 +918,21 @@ function createSearch() {
 			state.isCollapsed = !state.isCollapsed;
 		}
 	};
+
+	let lastDeckId = "";
+	if (typeof window !== "undefined") {
+		$effect.root(() => {
+			$effect(() => {
+				const currentDeckId = deckStore.id;
+				if (lastDeckId && currentDeckId && lastDeckId !== currentDeckId) {
+					api.reset();
+				}
+				lastDeckId = currentDeckId;
+			});
+		});
+	}
+
+	return api;
 }
 
 export const searchStore = createSearch();
