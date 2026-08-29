@@ -1671,8 +1671,8 @@
 		border: none;
 		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 		transition:
-			transform 0.1s cubic-bezier(0.4, 0, 0.2, 1),
-			box-shadow 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+			transform 0.08s cubic-bezier(0.4, 0, 0.2, 1),
+			box-shadow 0.08s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
 	/* 3D Tile Layered Inner Shadows for the Deck Cover */
@@ -1683,21 +1683,21 @@
 		border-radius: inherit;
 		pointer-events: none;
 		box-shadow:
-			inset 0.5px 1px 3px rgba(255, 255, 255, 0.2),
-			inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+			inset 0 1px 4px rgba(255, 255, 255, 0.2),
+			inset 0 0 0 1px rgba(255, 255, 255, 0.08),
 			inset -0.5px -1.5px 3px rgba(0, 0, 0, 0.75);
 		z-index: 4;
-		transition: box-shadow 0.1s ease;
+		transition: box-shadow 0.08s ease;
 	}
 
 	.deck-card:hover .deck-cover-frame {
-		transform: scale(1.01) translateY(-3px);
+		transform: translateY(-2px);
 		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
 	}
 
 	.deck-card:hover:not(.create-card) .deck-cover-frame::after {
 		box-shadow:
-			inset 0.5px 1.5px 4px rgba(255, 255, 255, 0.32),
+			inset 0 1.5px 5px rgba(255, 255, 255, 0.32),
 			inset 0 0 0 1px rgba(255, 255, 255, 0.12),
 			inset -0.5px -2px 4px rgba(0, 0, 0, 0.85);
 	}
