@@ -1949,10 +1949,10 @@
 		font-style: italic;
 		font-size: 1.5rem;
 		font-weight: 700;
-		color: #ffffff;
+		color: hsl(var(--muted-foreground));
 		background: transparent;
 		border: none;
-		border-bottom: 1.5px solid rgba(255, 255, 255, 0.45);
+		border-bottom: 1.5px solid rgba(255, 255, 255, 0.35);
 		border-radius: 0;
 		margin: 0 0 0.75rem;
 		line-height: 1.25;
@@ -1964,12 +1964,14 @@
 		outline: none;
 		box-shadow: none;
 		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
-		caret-color: #ffffff;
-		transition: border-color 0.15s ease;
+		caret-color: hsl(var(--foreground));
+		transition:
+			border-color 0.15s ease,
+			color 0.15s ease;
 	}
 
 	.panel-deck-name-input:focus {
-		border-bottom-color: rgba(255, 255, 255, 0.85);
+		border-bottom-color: rgba(255, 255, 255, 0.75);
 	}
 
 	.panel-meta-line {
