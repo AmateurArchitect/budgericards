@@ -167,13 +167,15 @@
 			nextY = menuPos.y;
 		} else if (trigger.closest(".context-menu")) {
 			const menuEl = trigger.closest(".context-menu");
-			const menuRect = menuEl.getBoundingClientRect();
-			if (menuRect.right + tooltipWidth + padding < window.innerWidth) {
-				nextX = menuRect.right + padding;
-			} else {
-				nextX = menuRect.left - tooltipWidth - padding;
+			if (menuEl) {
+				const menuRect = menuEl.getBoundingClientRect();
+				if (menuRect.right + tooltipWidth + padding < window.innerWidth) {
+					nextX = menuRect.right + padding;
+				} else {
+					nextX = menuRect.left - tooltipWidth - padding;
+				}
+				nextY = Math.max(padding, Math.min(rect.top - 10, window.innerHeight - tooltipHeight - padding));
 			}
-			nextY = Math.max(padding, Math.min(rect.top - 10, window.innerHeight - tooltipHeight - padding));
 		} else if (
 			trigger.classList.contains("curve-card-item") ||
 			trigger.closest(".card-shell")

@@ -6,6 +6,11 @@
 
 	/** @typedef {Object} MenuItem
 	 * @property {string} [label]
+	 * @property {string} [sectionHeader]
+	 * @property {string} [thumbnail]
+	 * @property {string} [subtitle]
+	 * @property {string} [tooltipImg]
+	 * @property {string} [valueBadge]
 	 * @property {string[]} [shortcuts]
 	 * @property {function} [action]
 	 * @property {boolean} [divider]

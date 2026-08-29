@@ -621,7 +621,9 @@
 					if (saveError) throw saveError;
 					if (data) {
 						updateSyncedDecks(
-							decks.map((d) => (d.id === deck.id ? data : d)),
+							decks.map((/** @type {any} */ d) =>
+								d.id === deck.id ? data : d,
+							),
 						);
 						if (selectedDeck?.id === deck.id) {
 							selectedDeck = data;
@@ -698,42 +700,44 @@
 		if (commanders.length > 0) {
 			items.push({ divider: true });
 			const isMultiple = commanders.length > 1;
-			commanders.forEach((cmd, idx) => {
-				const meta =
-					(cards.metadata || {})[cmd.name?.toLowerCase()] || {};
-				const artCrop =
-					meta.image_uris?.art_crop ||
-					meta.card_faces?.[0]?.image_uris?.art_crop ||
-					(meta.image
-						? meta.image.replace("/normal/", "/art_crop/")
-						: null) ||
-					`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cmd.name)}&format=image&version=art_crop`;
-				const normalImg =
-					meta.image_uris?.normal ||
-					meta.card_faces?.[0]?.image_uris?.normal ||
-					meta.image ||
-					`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cmd.name)}&format=image`;
+			commanders.forEach(
+				(/** @type {any} */ cmd, /** @type {number} */ idx) => {
+					const meta =
+						(cards.metadata || {})[cmd.name?.toLowerCase()] || {};
+					const artCrop =
+						meta.image_uris?.art_crop ||
+						meta.card_faces?.[0]?.image_uris?.art_crop ||
+						(meta.image
+							? meta.image.replace("/normal/", "/art_crop/")
+							: null) ||
+						`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cmd.name)}&format=image&version=art_crop`;
+					const normalImg =
+						meta.image_uris?.normal ||
+						meta.card_faces?.[0]?.image_uris?.normal ||
+						meta.image ||
+						`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cmd.name)}&format=image`;
 
-				items.push({
-					...(idx === 0
-						? {
-								sectionHeader: isMultiple
-									? "COMMANDERS"
-									: "COMMANDER",
-							}
-						: {}),
-					label: cmd.name,
-					subtitle: "Hover to preview • Click for Scryfall ↗",
-					thumbnail: artCrop,
-					tooltipImg: normalImg,
-					action: () => {
-						window.open(
-							`https://scryfall.com/search?q=!%22${encodeURIComponent(cmd.name)}%22`,
-							"_blank",
-						);
-					},
-				});
-			});
+					items.push({
+						...(idx === 0
+							? {
+									sectionHeader: isMultiple
+										? "COMMANDERS"
+										: "COMMANDER",
+								}
+							: {}),
+						label: cmd.name,
+						subtitle: "Hover to preview • Click for Scryfall ↗",
+						thumbnail: artCrop,
+						tooltipImg: normalImg,
+						action: () => {
+							window.open(
+								`https://scryfall.com/search?q=!%22${encodeURIComponent(cmd.name)}%22`,
+								"_blank",
+							);
+						},
+					});
+				},
+			);
 		}
 
 		items.push(
@@ -754,7 +758,7 @@
 			{
 				label: deck.isDraft ? "Delete Draft" : "Delete Deck",
 				danger: true,
-				action: (event) =>
+				action: (/** @type {any} */ event) =>
 					handleDeleteDeck(deck.id, event, deck.isDraft),
 			},
 		);
