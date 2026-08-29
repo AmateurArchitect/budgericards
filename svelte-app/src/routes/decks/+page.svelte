@@ -643,9 +643,6 @@
 		e.preventDefault();
 		e.stopPropagation();
 
-		// Auto-select deck
-		selectedDeck = deck;
-
 		const displayName = getDeckDisplayName(deck);
 		const cards = deck.cards || deck;
 		const currentFormat = deck.isDraft
