@@ -1003,13 +1003,11 @@
 											<div
 												class="deck-cover-frame create-frame"
 											>
-												<div class="create-frame-content">
-													<Plus
-														class="create-icon"
-														size={30}
-													/>
-													<span class="create-inner-label">Create New Deck</span>
-												</div>
+												<Plus
+													class="create-icon"
+													size={32}
+												/>
+												<span class="create-inner-label">Create New Deck</span>
 											</div>
 											<span class="deck-title create-card-spacer" aria-hidden="true">&nbsp;</span>
 										</div>
@@ -1708,6 +1706,7 @@
 
 	/* Create New Deck Frame */
 	.deck-cover-frame.create-frame {
+		position: relative;
 		border: 1.5px dashed hsl(var(--border) / 0.7);
 		background: hsl(var(--muted) / 0.05);
 		display: flex;
@@ -1716,38 +1715,31 @@
 		box-shadow: none;
 	}
 
-	.create-frame-content {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 0.4rem;
-		text-align: center;
-		padding: 0 0.75rem;
-	}
-
 	:global(.create-icon) {
 		color: hsl(var(--muted-foreground) / 0.8);
 		transition:
-			transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+			transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
 			color 0.2s ease;
 	}
 
 	.create-inner-label {
+		position: absolute;
+		bottom: 1.15rem;
+		left: 0;
+		right: 0;
+		text-align: center;
 		font-family: inherit;
 		font-size: 0.82rem;
 		font-weight: 600;
 		letter-spacing: -0.01em;
 		color: hsl(var(--muted-foreground));
-		opacity: 0.85;
+		opacity: 0;
+		transform: translateY(6px);
 		transition:
-			color 0.2s ease,
-			opacity 0.2s ease;
-	}
-
-	:global(.deck-card:hover .create-icon) {
-		transform: scale(1.1);
-		color: hsl(var(--primary));
+			opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+			transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+			color 0.2s ease;
+		pointer-events: none;
 	}
 
 	.deck-card.create-card:hover .deck-cover-frame {
@@ -1755,8 +1747,14 @@
 		background: hsl(var(--primary) / 0.04);
 	}
 
+	:global(.deck-card.create-card:hover .create-icon) {
+		transform: translateY(-8px) scale(1.06);
+		color: hsl(var(--primary));
+	}
+
 	.deck-card.create-card:hover .create-inner-label {
 		opacity: 1;
+		transform: translateY(0);
 		color: hsl(var(--primary));
 	}
 
