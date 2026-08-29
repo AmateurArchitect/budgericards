@@ -98,6 +98,36 @@
 	}
 
 	/** @param {HTMLElement} node */
+	function positionSubmenu(node) {
+		const padding = 10;
+		node.style.maxHeight = `${window.innerHeight - padding * 2}px`;
+		node.style.overflowY = 'auto';
+
+		const rect = node.getBoundingClientRect();
+
+		// Vertical overflow handling - shift up if bottom goes offscreen
+		if (rect.bottom > window.innerHeight - padding) {
+			const overflow = rect.bottom - (window.innerHeight - padding);
+			const currentTop = parseFloat(window.getComputedStyle(node).top) || 0;
+			const newTop = currentTop - overflow;
+			node.style.top = `${newTop}px`;
+		}
+
+		// Check if top went above screen after shifting
+		const adjustedRect = node.getBoundingClientRect();
+		if (adjustedRect.top < padding) {
+			const diff = padding - adjustedRect.top;
+			const currentTop = parseFloat(node.style.top) || 0;
+			node.style.top = `${currentTop + diff}px`;
+		}
+
+		// Horizontal overflow handling
+		if (adjustedRect.right > window.innerWidth - padding) {
+			node.classList.add('open-left');
+		}
+	}
+
+	/** @param {HTMLElement} node */
 	function portal(node) {
 		document.body.appendChild(node);
 		return {
@@ -310,6 +340,7 @@
 
 							{#if item.submenu && activeSubmenuItem?.label === item.label}
 								<div 
+									use:positionSubmenu
 									class="submenu-container" 
 									class:open-left={menuLeft + 400 > window.innerWidth}
 									in:fade={{ duration: 100 }}
@@ -430,6 +461,19 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1px;
+		scrollbar-width: thin;
+		scrollbar-color: hsla(var(--border) / 0.8) transparent;
+	}
+
+	.submenu-container::-webkit-scrollbar,
+	.context-menu::-webkit-scrollbar {
+		width: 4px;
+	}
+
+	.submenu-container::-webkit-scrollbar-thumb,
+	.context-menu::-webkit-scrollbar-thumb {
+		background: hsla(var(--border) / 0.8);
+		border-radius: 4px;
 	}
 
 	.submenu-container.open-left {
@@ -440,6 +484,7 @@
 	.context-menu {
 		position: absolute;
 		min-width: 200px;
+		max-height: calc(100vh - 20px);
 		background: hsl(var(--popover));
 		border: 1px solid hsla(var(--border) / 0.6);
 		border-radius: var(--radius);
@@ -450,6 +495,8 @@
 		pointer-events: auto;
 		outline: none;
 		overflow: visible;
+		scrollbar-width: thin;
+		scrollbar-color: hsla(var(--border) / 0.8) transparent;
 	}
 
 	.menu-items {

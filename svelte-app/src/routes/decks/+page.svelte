@@ -685,30 +685,19 @@
 			{ divider: true },
 		];
 
-		// View Commander option with thumbnail & eye icon
+		// View Commander option with submenu
 		if (commanders.length > 0) {
-			commanders.forEach((/** @type {any} */ cmd) => {
+			const commanderSubmenu = commanders.map((/** @type {any} */ cmd) => {
 				const meta =
 					(cards.metadata || {})[cmd.name?.toLowerCase()] || {};
-				const artCrop =
-					meta.image_uris?.art_crop ||
-					meta.card_faces?.[0]?.image_uris?.art_crop ||
-					(meta.image
-						? meta.image.replace("/normal/", "/art_crop/")
-						: null) ||
-					`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cmd.name)}&format=image&version=art_crop`;
 				const normalImg =
 					meta.image_uris?.normal ||
 					meta.card_faces?.[0]?.image_uris?.normal ||
 					meta.image ||
 					`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cmd.name)}&format=image`;
 
-				items.push({
-					label:
-						commanders.length > 1
-							? `View Commander (${cmd.name})`
-							: `View Commander (${cmd.name})`,
-					thumbnail: artCrop,
+				return {
+					label: cmd.name,
 					tooltipImg: normalImg,
 					showEye: true,
 					action: () => {
@@ -717,7 +706,12 @@
 							"_blank",
 						);
 					},
-				});
+				};
+			});
+
+			items.push({
+				label: "View Commander",
+				submenu: commanderSubmenu,
 			});
 		}
 
@@ -725,7 +719,6 @@
 		items.push(
 			{
 				label: "Change Format",
-				valueBadge: currentFormat,
 				submenu: formatSubmenu,
 			},
 			{ divider: true },
@@ -745,7 +738,7 @@
 				action: () => handleCopyDeckList(deck),
 			},
 			{
-				label: "Share Deck Link",
+				label: "Copy Deck Link",
 				action: () => handleShareDeck(deck),
 			},
 			{ divider: true },
