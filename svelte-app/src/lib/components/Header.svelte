@@ -321,74 +321,67 @@
 				{/if}
 			</div>
 
-			<!-- User Profile / Auth on Left when search is open -->
-			{#if isDeckPage && searchStore.isOpen}
-				<div class="user-auth-bug">
-					{#if authStore.isLoading}
-						<div class="auth-loading-spinner spinner"></div>
-					{:else}
-						{#if authStore.isAuthenticated && authStore.user}
-							<div class="profile-menu-container">
-								<button
-									class="profile-trigger"
-									onclick={() => {
-										showProfileDropdown = !showProfileDropdown;
-										if (showProfileDropdown) closeAllDropdowns("profile");
-									}}
-									aria-expanded={showProfileDropdown}
-									aria-haspopup="menu"
-									aria-label="User menu"
-								>
-									<span class="user-name">
-										{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0]}
-									</span>
-									<ChevronDown size={14} class="chevron" />
-								</button>
-
-								{#if showProfileDropdown}
-									<div class="profile-dropdown" use:smartAlign transition:fade={{ duration: 150 }}>
-										<div class="dropdown-header">
-											<span class="dropdown-email">{authStore.user.email}</span>
-										</div>
-										<div class="menu-divider"></div>
-										<button class="menu-item" onclick={handleNewDeck}>
-											<PlusCircle size={14} />
-											<span>New Deck</span>
-										</button>
-										<a href="/decks" class="menu-item nav-link" onclick={() => (showProfileDropdown = false)}>
-											<FolderOpen size={14} />
-											<span>Your Decks</span>
-										</a>
-										<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
-											<SettingsIcon size={14} />
-											<span>Settings</span>
-										</button>
-										<div class="menu-divider"></div>
-										<button class="menu-item destructive" onclick={handleSignOut}>
-											<LogOut size={14} />
-											<span>Log Out</span>
-										</button>
-									</div>
-								{/if}
-							</div>
-						{:else}
-							<a
-								href="/login?redirectTo={encodeURIComponent($page.url.pathname)}"
-								class="profile-trigger font-semibold"
-								style="text-decoration: none;"
-								aria-label="Log In"
+			<!-- User Profile / Auth on Left -->
+			<div class="user-auth-bug">
+				{#if authStore.isLoading}
+					<div class="auth-loading-spinner spinner"></div>
+				{:else}
+					{#if authStore.isAuthenticated && authStore.user}
+						<div class="profile-menu-container">
+							<button
+								class="profile-trigger"
+								onclick={() => {
+									showProfileDropdown = !showProfileDropdown;
+									if (showProfileDropdown) closeAllDropdowns("profile");
+								}}
+								aria-expanded={showProfileDropdown}
+								aria-haspopup="menu"
+								aria-label="User menu"
 							>
-								<span class="user-name">Log In</span>
-							</a>
-						{/if}
+								<span class="user-name">
+									{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0]}
+								</span>
+								<ChevronDown size={14} class="chevron" />
+							</button>
+
+							{#if showProfileDropdown}
+								<div class="profile-dropdown" use:smartAlign transition:fade={{ duration: 150 }}>
+									<div class="dropdown-header">
+										<span class="dropdown-email">{authStore.user.email}</span>
+									</div>
+									<div class="menu-divider"></div>
+									<button class="menu-item" onclick={handleNewDeck}>
+										<PlusCircle size={14} />
+										<span>New Deck</span>
+									</button>
+									<a href="/decks" class="menu-item nav-link" onclick={() => (showProfileDropdown = false)}>
+										<FolderOpen size={14} />
+										<span>Your Decks</span>
+									</a>
+									<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
+										<SettingsIcon size={14} />
+										<span>Settings</span>
+									</button>
+									<div class="menu-divider"></div>
+									<button class="menu-item destructive" onclick={handleSignOut}>
+										<LogOut size={14} />
+										<span>Log Out</span>
+									</button>
+								</div>
+							{/if}
+						</div>
+					{:else}
+						<a
+							href="/login?redirectTo={encodeURIComponent($page.url.pathname)}"
+							class="profile-trigger font-semibold"
+							style="text-decoration: none;"
+							aria-label="Log In"
+						>
+							<span class="user-name">Log In</span>
+						</a>
 					{/if}
-				</div>
-			{:else}
-				<nav class="nav-links">
-					<a href="/decks" class="nav-item" class:active={$page.url.pathname === '/decks'}>Browse Decks</a>
-					<a href="/gallery" class="nav-item" class:active={$page.url.pathname === '/gallery'}>Art Gallery</a>
-				</nav>
-			{/if}
+				{/if}
+			</div>
 		</div>
 
 		<div class="header-right">
@@ -567,67 +560,6 @@
 					bind:isOpen={showSearchSort}
 					target="search"
 				/>
-			{:else}
-				<div class="user-auth-bug">
-					{#if authStore.isLoading}
-						<div class="auth-loading-spinner spinner"></div>
-					{:else}
-						{#if authStore.isAuthenticated && authStore.user}
-							<div class="profile-menu-container">
-								<button
-									class="profile-trigger"
-									onclick={() => {
-										showProfileDropdown = !showProfileDropdown;
-										if (showProfileDropdown) closeAllDropdowns("profile");
-									}}
-									aria-expanded={showProfileDropdown}
-									aria-haspopup="menu"
-									aria-label="User menu"
-								>
-									<span class="user-name">
-										{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0]}
-									</span>
-									<ChevronDown size={14} class="chevron" />
-								</button>
-
-								{#if showProfileDropdown}
-									<div class="profile-dropdown" use:smartAlign transition:fade={{ duration: 150 }}>
-										<div class="dropdown-header">
-											<span class="dropdown-email">{authStore.user.email}</span>
-										</div>
-										<div class="menu-divider"></div>
-										<button class="menu-item" onclick={handleNewDeck}>
-											<PlusCircle size={14} />
-											<span>New Deck</span>
-										</button>
-										<a href="/decks" class="menu-item nav-link" onclick={() => (showProfileDropdown = false)}>
-											<FolderOpen size={14} />
-											<span>Your Decks</span>
-										</a>
-										<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
-											<SettingsIcon size={14} />
-											<span>Settings</span>
-										</button>
-										<div class="menu-divider"></div>
-										<button class="menu-item destructive" onclick={handleSignOut}>
-											<LogOut size={14} />
-											<span>Log Out</span>
-										</button>
-									</div>
-								{/if}
-							</div>
-						{:else}
-							<a
-								href="/login?redirectTo={encodeURIComponent($page.url.pathname)}"
-								class="profile-trigger font-semibold"
-								style="text-decoration: none;"
-								aria-label="Log In"
-							>
-								<span class="user-name">Log In</span>
-							</a>
-						{/if}
-					{/if}
-				</div>
 			{/if}
 		</div>
 	</header>
@@ -1110,29 +1042,7 @@
 		opacity: 0.5;
 	}
 
-	.nav-links {
-		display: flex;
-		align-items: center;
-		gap: 1.5rem;
-		margin-left: 0.5rem;
-	}
 
-	.nav-item {
-		color: hsl(var(--muted-foreground));
-		font-size: 0.8125rem;
-		font-weight: 600;
-		text-decoration: none;
-		transition: color 0.15s ease;
-		background: none;
-		border: none;
-		cursor: pointer;
-		padding: 0.25rem 0;
-	}
-
-	.nav-item:hover,
-	.nav-item.active {
-		color: hsl(var(--foreground));
-	}
 
 	.nav-link {
 		text-decoration: none;
