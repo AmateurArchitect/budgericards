@@ -215,23 +215,57 @@
 		deck.name = trimmed;
 
 		if (deck.isDraft) {
-			let drafts = JSON.parse(
-				localStorage.getItem("budgericards_local_drafts") || "[]",
-			);
-			const idx = drafts.findIndex(
-				(/** @type {any} */ d) => d.id === deck.id,
-			);
-			if (idx !== -1) {
-				drafts[idx].name = trimmed;
-				if (!drafts[idx].metadata) drafts[idx].metadata = {};
-				drafts[idx].metadata.updatedAt = new Date().toISOString();
-				localStorage.setItem(
-					"budgericards_local_drafts",
-					JSON.stringify(drafts),
+			if (authStore.isAuthenticated) {
+				const cards = JSON.parse(JSON.stringify(deck.cards || deck));
+				try {
+					const { data, error: saveError } = await syncService.saveDeck(
+						deck.id,
+						{
+							...cards,
+							name: trimmed,
+						},
+					);
+					if (saveError) throw saveError;
+					if (data) {
+						let drafts = JSON.parse(
+							localStorage.getItem("budgericards_local_drafts") ||
+								"[]",
+						);
+						drafts = drafts.filter(
+							(/** @type {any} */ d) => d.id !== deck.id,
+						);
+						localStorage.setItem(
+							"budgericards_local_drafts",
+							JSON.stringify(drafts),
+						);
+						localDrafts = drafts;
+
+						updateSyncedDecks([data, ...decks]);
+						selectedDeck = data;
+					}
+				} catch (err) {
+					console.error("Failed to save draft to cloud:", err);
+					deck.name = oldName;
+				}
+			} else {
+				let drafts = JSON.parse(
+					localStorage.getItem("budgericards_local_drafts") || "[]",
 				);
-				localDrafts = drafts;
+				const idx = drafts.findIndex(
+					(/** @type {any} */ d) => d.id === deck.id,
+				);
+				if (idx !== -1) {
+					drafts[idx].name = trimmed;
+					if (!drafts[idx].metadata) drafts[idx].metadata = {};
+					drafts[idx].metadata.updatedAt = new Date().toISOString();
+					localStorage.setItem(
+						"budgericards_local_drafts",
+						JSON.stringify(drafts),
+					);
+					localDrafts = drafts;
+				}
+				selectedDeck = { ...deck, name: trimmed };
 			}
-			selectedDeck = { ...deck, name: trimmed };
 		} else {
 			const cards = JSON.parse(JSON.stringify(deck.cards || deck));
 			try {
