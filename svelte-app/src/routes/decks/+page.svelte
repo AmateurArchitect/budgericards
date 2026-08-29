@@ -1671,8 +1671,8 @@
 		border: none;
 		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 		transition:
-			transform 0.08s cubic-bezier(0.4, 0, 0.2, 1),
-			box-shadow 0.08s cubic-bezier(0.4, 0, 0.2, 1);
+			transform 0.1s cubic-bezier(0.4, 0, 0.2, 1),
+			box-shadow 0.1s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
 	/* 3D Tile Layered Inner Shadows for the Deck Cover */
@@ -1687,11 +1687,11 @@
 			inset 0 0 0 1px rgba(255, 255, 255, 0.08),
 			inset -0.5px -1.5px 3px rgba(0, 0, 0, 0.75);
 		z-index: 4;
-		transition: box-shadow 0.08s ease;
+		transition: box-shadow 0.1s ease;
 	}
 
 	.deck-card:hover .deck-cover-frame {
-		transform: translateY(-2px);
+		transform: translateY(-3px);
 		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
 	}
 
