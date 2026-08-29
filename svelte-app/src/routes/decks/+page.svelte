@@ -46,35 +46,63 @@
 
 	let clickTimer = /** @type {any} */ (null);
 
+	/** @param {any[]} newDecks */
+	function updateSyncedDecks(newDecks) {
+		decks = newDecks;
+		if (typeof window !== "undefined") {
+			try {
+				localStorage.setItem(
+					"budgericards_cached_synced_decks",
+					JSON.stringify(newDecks),
+				);
+			} catch (e) {}
+		}
+	}
+
 	async function loadDecks() {
 		if (!authStore.isAuthenticated && !authStore.isLoading) {
-			decks = [];
+			updateSyncedDecks([]);
 			return;
 		}
 
-		isLoading = true;
+		if (decks.length === 0) {
+			isLoading = true;
+		}
 		error = "";
 		try {
 			const { data, error: fetchError } = await syncService.fetchDecks();
 			if (fetchError) throw fetchError;
-			decks = data || [];
+			updateSyncedDecks(data || []);
 			hasLoaded = true;
 		} catch (err) {
 			console.error("Failed to load decks:", err);
-			error = "Could not load synced decks. Please try again.";
+			if (decks.length === 0) {
+				error = "Could not load synced decks. Please try again.";
+			}
 		} finally {
 			isLoading = false;
 		}
 	}
 
 	onMount(() => {
-		if (authStore.isAuthenticated) {
-			loadDecks();
-		}
 		if (typeof window !== "undefined") {
 			localDrafts = JSON.parse(
 				localStorage.getItem("budgericards_local_drafts") || "[]",
 			);
+			const cached = localStorage.getItem(
+				"budgericards_cached_synced_decks",
+			);
+			if (cached) {
+				try {
+					const parsed = JSON.parse(cached);
+					if (Array.isArray(parsed) && parsed.length > 0) {
+						decks = parsed;
+					}
+				} catch (e) {}
+			}
+		}
+		if (authStore.isAuthenticated) {
+			loadDecks();
 		}
 	});
 
@@ -216,7 +244,11 @@
 				);
 				if (saveError) throw saveError;
 				if (data) {
-					decks = decks.map((d) => (d.id === deck.id ? data : d));
+					updateSyncedDecks(
+						decks.map((/** @type {any} */ d) =>
+							d.id === deck.id ? data : d,
+						),
+					);
 					selectedDeck = data;
 				}
 			} catch (err) {
@@ -293,7 +325,9 @@
 				const { error: deleteError } =
 					await syncService.deleteDeck(deckId);
 				if (deleteError) throw deleteError;
-				decks = decks.filter((d) => d.id !== deckId);
+				updateSyncedDecks(
+					decks.filter((/** @type {any} */ d) => d.id !== deckId),
+				);
 			}
 
 			if (selectedDeck?.id === deckId) {
@@ -429,7 +463,7 @@
 				);
 				if (saveError) throw saveError;
 				if (data) {
-					decks = [data, ...decks];
+					updateSyncedDecks([data, ...decks]);
 					selectedDeck = data;
 				}
 			} catch (err) {
@@ -1191,6 +1225,7 @@
 						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 						<h2
 							class="panel-deck-name"
+							class:is-draft={selectedDeck.isDraft}
 							ondblclick={startEditingName}
 							title="Double-click to rename"
 						>
@@ -1943,6 +1978,11 @@
 		border: none;
 		background: transparent;
 		padding: 0 4px;
+	}
+
+	.panel-deck-name.is-draft {
+		font-style: italic;
+		opacity: 0.9;
 	}
 
 	.panel-deck-name-input {
