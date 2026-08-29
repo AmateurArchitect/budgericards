@@ -926,6 +926,7 @@
 													size={36}
 												/>
 											</div>
+											<span class="deck-title create-card-title">Create New Deck</span>
 										</div>
 									{/if}
 
@@ -1629,6 +1630,20 @@
 	.deck-card.create-card:hover .deck-cover-frame {
 		border-color: hsl(var(--primary) / 0.6);
 		background: hsl(var(--primary) / 0.04);
+	}
+
+	.create-card .create-card-title {
+		opacity: 0;
+		color: hsl(var(--muted-foreground));
+		font-style: normal;
+		transition:
+			opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+			color 0.18s ease;
+	}
+
+	.create-card:hover .create-card-title {
+		opacity: 1;
+		color: hsl(var(--primary-light, var(--primary)));
 	}
 
 	/* Grouping Container & Headers */
