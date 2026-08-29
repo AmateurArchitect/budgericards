@@ -83,6 +83,7 @@
 		const target = /** @type {HTMLElement} */ (e.target);
 		if (target && target.closest("[data-tooltip-img]")) {
 			visible = false;
+			currentTrigger = null;
 		}
 	}
 
@@ -234,13 +235,13 @@
 	onMount(() => {
 		/** @param {MouseEvent} e */
 		const handleGlobalMouseOver = (e) => {
-			if (interactionStore.isMenuOpen) return;
+			if (interactionStore.isMenuOpen && interactionStore.menuCard) return;
 			handleMouseOver(e);
 		};
 
 		/** @param {MouseEvent} e */
 		const handleGlobalMouseMove = (e) => {
-			if (interactionStore.isMenuOpen) return;
+			if (interactionStore.isMenuOpen && interactionStore.menuCard) return;
 			handleMouseMove(e);
 		};
 
@@ -295,7 +296,7 @@
 		);
 		width: var(--popover-width);
 		pointer-events: none;
-		z-index: 9999;
+		z-index: 25000;
 		opacity: 0;
 		transform: scale(0.95);
 		transition:
