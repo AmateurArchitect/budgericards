@@ -654,6 +654,54 @@
 			: cards.format || "Commander";
 		const commanders = cards.commander || [];
 
+		// Categorized format list
+		const formatCategories = [
+			{
+				name: "COMMANDER",
+				formats: [
+					"Commander",
+					"Brawl",
+					"Oathbreaker",
+					"Duel Commander",
+				],
+			},
+			{
+				name: "CONSTRUCTED",
+				formats: [
+					"Standard",
+					"Pioneer",
+					"Modern",
+					"Legacy",
+					"Vintage",
+					"Pauper",
+					"Premodern",
+				],
+			},
+			{
+				name: "LIMITED",
+				formats: ["Cube", "Draft", "Sealed"],
+			},
+			{
+				name: "LIST / OTHER",
+				formats: ["Freeform", "Decklist", "Custom"],
+			},
+		];
+
+		/** @type {any[]} */
+		const formatSubmenu = [];
+		formatCategories.forEach((cat, catIdx) => {
+			if (catIdx > 0) {
+				formatSubmenu.push({ divider: true });
+			}
+			formatSubmenu.push({ sectionHeader: cat.name });
+			cat.formats.forEach((fmt) => {
+				formatSubmenu.push({
+					label: fmt === currentFormat ? `✓ ${fmt}` : fmt,
+					action: () => handleSetDeckFormat(deck, fmt),
+				});
+			});
+		});
+
 		/** @type {any[]} */
 		const items = [
 			{
@@ -670,71 +718,48 @@
 			{ divider: true },
 		];
 
-		// Commander hover preview & Scryfall link actions
+		// View Commander option with thumbnail & eye icon
 		if (commanders.length > 0) {
-			const isMultiple = commanders.length > 1;
-			commanders.forEach(
-				(/** @type {any} */ cmd, /** @type {number} */ idx) => {
-					const meta =
-						(cards.metadata || {})[cmd.name?.toLowerCase()] || {};
-					const artCrop =
-						meta.image_uris?.art_crop ||
-						meta.card_faces?.[0]?.image_uris?.art_crop ||
-						(meta.image
-							? meta.image.replace("/normal/", "/art_crop/")
-							: null) ||
-						`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cmd.name)}&format=image&version=art_crop`;
-					const normalImg =
-						meta.image_uris?.normal ||
-						meta.card_faces?.[0]?.image_uris?.normal ||
-						meta.image ||
-						`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cmd.name)}&format=image`;
+			commanders.forEach((/** @type {any} */ cmd) => {
+				const meta =
+					(cards.metadata || {})[cmd.name?.toLowerCase()] || {};
+				const artCrop =
+					meta.image_uris?.art_crop ||
+					meta.card_faces?.[0]?.image_uris?.art_crop ||
+					(meta.image
+						? meta.image.replace("/normal/", "/art_crop/")
+						: null) ||
+					`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cmd.name)}&format=image&version=art_crop`;
+				const normalImg =
+					meta.image_uris?.normal ||
+					meta.card_faces?.[0]?.image_uris?.normal ||
+					meta.image ||
+					`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cmd.name)}&format=image`;
 
-					items.push({
-						...(idx === 0
-							? {
-									sectionHeader: isMultiple
-										? "COMMANDERS"
-										: "COMMANDER",
-								}
-							: {}),
-						label: cmd.name,
-						thumbnail: artCrop,
-						tooltipImg: normalImg,
-						pill: true,
-						showEye: true,
-						action: () => {
-							window.open(
-								`https://scryfall.com/search?q=!%22${encodeURIComponent(cmd.name)}%22`,
-								"_blank",
-							);
-						},
-					});
-				},
-			);
+				items.push({
+					label:
+						commanders.length > 1
+							? `View Commander (${cmd.name})`
+							: `View Commander (${cmd.name})`,
+					thumbnail: artCrop,
+					tooltipImg: normalImg,
+					showEye: true,
+					action: () => {
+						window.open(
+							`https://scryfall.com/search?q=!%22${encodeURIComponent(cmd.name)}%22`,
+							"_blank",
+						);
+					},
+				});
+			});
 		}
 
+		// Change Format option with categorized submenu
 		items.push(
 			{
-				sectionHeader: "FORMAT",
-				label: currentFormat,
-				pill: true,
-				submenu: [
-					"Commander",
-					"Brawl",
-					"Oathbreaker",
-					"Standard",
-					"Pioneer",
-					"Modern",
-					"Legacy",
-					"Vintage",
-					"Pauper",
-					"Cube",
-					"Freeform",
-				].map((fmt) => ({
-					label: fmt === currentFormat ? `✓ ${fmt}` : fmt,
-					action: () => handleSetDeckFormat(deck, fmt),
-				})),
+				label: "Change Format",
+				valueBadge: currentFormat,
+				submenu: formatSubmenu,
 			},
 			{ divider: true },
 			{
