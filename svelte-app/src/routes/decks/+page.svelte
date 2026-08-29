@@ -164,7 +164,8 @@
 		tick().then(() => {
 			if (nameInputEl) {
 				nameInputEl.focus();
-				nameInputEl.select();
+				const len = nameInputEl.value.length;
+				nameInputEl.setSelectionRange(len, len);
 			}
 		});
 	}
@@ -1945,6 +1946,7 @@
 	.panel-deck-name-input {
 		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
 			Georgia, serif;
+		font-style: italic;
 		font-size: 1.5rem;
 		font-weight: 700;
 		color: #ffffff;
