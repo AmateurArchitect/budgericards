@@ -1034,28 +1034,28 @@
 
 		<aside
 			class="deck-info-panel"
+			class:is-draft-panel={selectedDeck.isDraft}
 			transition:fly={{ x: 380, duration: 240 }}
 			aria-label="Deck details"
 		>
 			<!-- Full Bleed Hero Art Cover at Top -->
 			<div class="panel-hero-banner">
 				{#if selectedDeck.isDraft}
+					<div class="panel-draft-caution-backdrop"></div>
 					{#if getDeckCoverArt(selectedDeck)}
 						<img
 							src={getDeckCoverArt(selectedDeck)}
 							alt=""
-							class="panel-hero-img draft-layer-bottom"
-						/>
-						<div class="draft-white-tint"></div>
-						<img
-							src={getDeckCoverArt(selectedDeck)}
-							alt=""
-							class="panel-hero-img draft-layer-top"
+							class="panel-hero-img draft-hero-art"
 						/>
 					{:else}
 						<div class="panel-hero-fallback"></div>
 					{/if}
 					<div class="draft-pattern-overlay"></div>
+					<div class="panel-draft-badge">
+						<span class="caution-stripes-icon"></span>
+						<span>LOCAL DRAFT</span>
+					</div>
 				{:else if getDeckCoverArt(selectedDeck)}
 					<img
 						src={getDeckCoverArt(selectedDeck)}
@@ -1095,7 +1095,10 @@
 					</h2>
 
 					<div class="panel-meta-line">
-						<span class="meta-item-tag">
+						<span
+							class="meta-item-tag"
+							class:is-draft-tag={selectedDeck.isDraft}
+						>
 							{selectedDeck.isDraft
 								? "LOCAL DRAFT"
 								: (
@@ -1120,13 +1123,14 @@
 
 				<!-- Action Buttons Stack (Figma Frame 1564) -->
 				<div class="panel-actions-stack">
-					<!-- Primary Open Deck CTA -->
+					<!-- Primary CTA -->
 					<button
 						type="button"
 						class="action-btn primary-btn"
+						class:draft-primary-btn={selectedDeck.isDraft}
 						onclick={() => handleSelectDeck(selectedDeck)}
 					>
-						<span>Open Deck</span>
+						<span>{selectedDeck.isDraft ? "Continue Building" : "Open Deck"}</span>
 						<ArrowRight size={17} class="btn-arrow" />
 					</button>
 
@@ -1193,13 +1197,29 @@
 					</button>
 				</div>
 
+				{#if selectedDeck.isDraft}
+					<!-- Under Construction / Local Storage Caution Card -->
+					<div class="panel-draft-callout">
+						<div class="draft-callout-stripes"></div>
+						<div class="draft-callout-text">
+							<span class="draft-callout-title"
+								>Unsaved Local Draft</span
+							>
+							<span class="draft-callout-desc"
+								>Stored in this browser. Open and save to add to
+								your synced library.</span
+							>
+						</div>
+					</div>
+				{/if}
+
 				<!-- Footer Timestamp -->
 				<div class="panel-footer-timestamp">
 					Updated {formatUpdatedDate(
 						selectedDeck.isDraft
 							? selectedDeck.metadata?.updatedAt
 							: selectedDeck.updated_at,
-					)}.
+					)} ago.
 				</div>
 			</div>
 		</aside>
@@ -1884,6 +1904,154 @@
 
 	:global(.success-icon) {
 		color: #10b981 !important;
+	}
+
+	/* Draft Panel Specific Aesthetic */
+	.deck-info-panel.is-draft-panel {
+		background: #111114;
+	}
+
+	.panel-draft-caution-backdrop {
+		position: absolute;
+		inset: 0;
+		background: repeating-linear-gradient(
+			-45deg,
+			rgba(255, 255, 255, 0.02),
+			rgba(255, 255, 255, 0.02) 12px,
+			rgba(255, 255, 255, 0.05) 12px,
+			rgba(255, 255, 255, 0.05) 24px
+		);
+		z-index: 1;
+	}
+
+	.draft-hero-art {
+		filter: grayscale(0.7) contrast(0.92) brightness(0.8);
+		opacity: 0.65;
+		mix-blend-mode: luminosity;
+		z-index: 2;
+	}
+
+	.panel-draft-badge {
+		position: absolute;
+		top: 14px;
+		left: 16px;
+		z-index: 10;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 4px 10px;
+		border-radius: 4px;
+		background: rgba(14, 14, 17, 0.88);
+		backdrop-filter: blur(8px);
+		border: 1px dashed rgba(255, 255, 255, 0.22);
+		font-size: 0.68rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		color: rgba(255, 255, 255, 0.85);
+		text-transform: uppercase;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+	}
+
+	.caution-stripes-icon {
+		display: inline-block;
+		width: 12px;
+		height: 12px;
+		border-radius: 2px;
+		background: repeating-linear-gradient(
+			-45deg,
+			rgba(255, 255, 255, 0.2),
+			rgba(255, 255, 255, 0.2) 2px,
+			rgba(255, 255, 255, 0.7) 2px,
+			rgba(255, 255, 255, 0.7) 4px
+		);
+	}
+
+	.is-draft-panel .panel-deck-name {
+		font-style: italic;
+		color: rgba(255, 255, 255, 0.82);
+	}
+
+	.is-draft-panel .panel-mana-row {
+		opacity: 0.8;
+	}
+
+	.meta-item-tag.is-draft-tag {
+		background: repeating-linear-gradient(
+			-45deg,
+			rgba(255, 255, 255, 0.03),
+			rgba(255, 255, 255, 0.03) 6px,
+			rgba(255, 255, 255, 0.08) 6px,
+			rgba(255, 255, 255, 0.08) 12px
+		);
+		border: 1px dashed rgba(255, 255, 255, 0.2);
+		padding: 2px 7px;
+		border-radius: 4px;
+		color: rgba(255, 255, 255, 0.75);
+		font-weight: 600;
+	}
+
+	/* Draft Primary Button */
+	.action-btn.draft-primary-btn {
+		background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		color: #f1f5f9;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+	}
+
+	.action-btn.draft-primary-btn:hover {
+		background: linear-gradient(135deg, #475569 0%, #334155 100%);
+		border-color: rgba(255, 255, 255, 0.22);
+		box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+		transform: translateY(-1px);
+	}
+
+	/* Under Construction Callout Box */
+	.panel-draft-callout {
+		position: relative;
+		margin-top: 1.25rem;
+		padding: 12px 14px;
+		border-radius: 8px;
+		background: repeating-linear-gradient(
+			-45deg,
+			rgba(255, 255, 255, 0.015),
+			rgba(255, 255, 255, 0.015) 8px,
+			rgba(255, 255, 255, 0.04) 8px,
+			rgba(255, 255, 255, 0.04) 16px
+		);
+		border: 1px dashed rgba(255, 255, 255, 0.12);
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+	}
+
+	.draft-callout-stripes {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 3px;
+		border-top-left-radius: 8px;
+		border-top-right-radius: 8px;
+		background: repeating-linear-gradient(
+			-45deg,
+			rgba(255, 255, 255, 0.15),
+			rgba(255, 255, 255, 0.15) 6px,
+			rgba(255, 255, 255, 0.4) 6px,
+			rgba(255, 255, 255, 0.4) 12px
+		);
+	}
+
+	.draft-callout-title {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: rgba(255, 255, 255, 0.75);
+		letter-spacing: 0.02em;
+	}
+
+	.draft-callout-desc {
+		font-size: 0.72rem;
+		color: rgba(255, 255, 255, 0.42);
+		line-height: 1.4;
 	}
 
 	.panel-footer-timestamp {
