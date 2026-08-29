@@ -1097,7 +1097,7 @@
 																		interactionStore.stopEditing();
 																	}
 																}}
-																onblur={(e) => {
+																onblur={(/** @type {any} */ e) => {
 																	const val =
 																		parseInt(
 																			e
@@ -1283,7 +1283,7 @@
 																		interactionStore.stopEditing();
 																	}
 																}}
-																onblur={(e) => {
+																onblur={(/** @type {any} */ e) => {
 																	const val =
 																		parseInt(
 																			e
@@ -1458,7 +1458,7 @@
 																interactionStore.stopEditing();
 															}
 														}}
-														onblur={(e) => {
+														onblur={(/** @type {any} */ e) => {
 															const val =
 																parseInt(
 																	e
