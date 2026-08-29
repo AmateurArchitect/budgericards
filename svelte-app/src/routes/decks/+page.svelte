@@ -11,6 +11,10 @@
 		FileText,
 		Share2,
 		Check,
+		Filter,
+		LayoutGrid,
+		ArrowDownWideNarrow,
+		ChevronDown,
 	} from "lucide-svelte";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { searchStore } from "$lib/stores/search.svelte.js";
@@ -307,10 +311,12 @@
 	function handleContainerClick(e) {
 		const target = /** @type {HTMLElement | null} */ (e.target);
 		if (!target) return;
+		if (!target.closest(".control-dropdown-container")) {
+			closeAllDropdowns();
+		}
 		if (
 			target.closest(".deck-card") ||
 			target.closest(".deck-info-panel") ||
-			target.closest(".control-btn") ||
 			target.closest(".start-building-btn") ||
 			target.closest("button") ||
 			target.closest("a")
@@ -322,8 +328,14 @@
 
 	/** @param {KeyboardEvent} e */
 	function handleWindowKeyDown(e) {
-		if (e.key === "Escape" && selectedDeck) {
-			closeSidePanel();
+		if (e.key === "Escape") {
+			if (showFilterDropdown || showGroupDropdown || showSortDropdown) {
+				closeAllDropdowns();
+				return;
+			}
+			if (selectedDeck) {
+				closeSidePanel();
+			}
 		}
 	}
 
@@ -707,6 +719,38 @@
 
 	let sortBy = $state("updated"); // 'updated' | 'name' | 'cards'
 	let groupBy = $state("none"); // 'none' | 'format' | 'colors'
+	let filterBy = $state("all"); // 'all' | 'drafts' | 'saved' | 'format:...' | 'color:...'
+
+	let showFilterDropdown = $state(false);
+	let showGroupDropdown = $state(false);
+	let showSortDropdown = $state(false);
+
+	/** @param {string} [except] */
+	function closeAllDropdowns(except = "") {
+		if (except !== "filter") showFilterDropdown = false;
+		if (except !== "group") showGroupDropdown = false;
+		if (except !== "sort") showSortDropdown = false;
+	}
+
+	/** @param {HTMLElement} node */
+	function smartAlign(node) {
+		function align() {
+			node.style.left = "auto";
+			node.style.right = "0";
+			const rect = node.getBoundingClientRect();
+			if (rect.left < 10) {
+				node.style.left = "0";
+				node.style.right = "auto";
+			}
+		}
+		align();
+		window.addEventListener("resize", align);
+		return {
+			destroy() {
+				window.removeEventListener("resize", align);
+			},
+		};
+	}
 
 	/** @param {string[]} colors */
 	function getColorIdentityName(colors) {
@@ -776,8 +820,81 @@
 		return [...mappedDrafts, ...mappedDecks];
 	});
 
-	const sortedDecks = $derived.by(() => {
+	const availableFormats = $derived.by(() => {
+		const fmts = new Set();
+		for (const d of allDecks) {
+			const f = d.cards?.format;
+			if (f) fmts.add(f);
+		}
+		if (fmts.size === 0) fmts.add("Commander");
+		return Array.from(fmts).sort();
+	});
+
+	const filterLabel = $derived.by(() => {
+		if (filterBy === "all") return "All Decks";
+		if (filterBy === "drafts") return "Drafts";
+		if (filterBy === "saved") return "Saved";
+		if (filterBy.startsWith("format:")) {
+			return filterBy.replace("format:", "");
+		}
+		if (filterBy.startsWith("color:")) {
+			const col = filterBy.replace("color:", "");
+			const colorNames = {
+				W: "White",
+				U: "Blue",
+				B: "Black",
+				R: "Red",
+				G: "Green",
+				COLORLESS: "Colorless",
+				MULTI: "Multicolor",
+			};
+			/** @type {Record<string, string>} */
+			const map = colorNames;
+			return map[col] || col;
+		}
+		return "Filter";
+	});
+
+	const groupLabel = $derived.by(() => {
+		if (groupBy === "format") return "Format";
+		if (groupBy === "colors") return "Colors";
+		return "No Grouping";
+	});
+
+	const sortLabel = $derived.by(() => {
+		if (sortBy === "name") return "Name";
+		if (sortBy === "cards") return "Cards";
+		return "Recent";
+	});
+
+	const filteredDecks = $derived.by(() => {
 		let list = [...allDecks];
+		if (filterBy === "all") return list;
+		if (filterBy === "drafts") return list.filter((d) => d.isDraft);
+		if (filterBy === "saved") return list.filter((d) => !d.isDraft);
+		if (filterBy.startsWith("format:")) {
+			const fmt = filterBy.replace("format:", "").toLowerCase();
+			return list.filter((d) => {
+				const deckFmt = (
+					d.cards?.format || (d.isDraft ? "draft" : "commander")
+				).toLowerCase();
+				return deckFmt === fmt;
+			});
+		}
+		if (filterBy.startsWith("color:")) {
+			const col = filterBy.replace("color:", "");
+			return list.filter((d) => {
+				const symbols = getDeckManaSymbols(d);
+				if (col === "COLORLESS") return symbols.length === 0;
+				if (col === "MULTI") return symbols.length > 1;
+				return symbols.includes(col);
+			});
+		}
+		return list;
+	});
+
+	const sortedDecks = $derived.by(() => {
+		let list = [...filteredDecks];
 		if (sortBy === "updated") {
 			list.sort(
 				(a, b) =>
@@ -794,7 +911,7 @@
 
 	const groupedDecks = $derived.by(() => {
 		const list = sortedDecks;
-		if (allDecks.length < 12 || groupBy === "none") {
+		if (groupBy === "none") {
 			return [{ key: "all", label: "", items: list }];
 		}
 
@@ -878,6 +995,239 @@
 					<FolderOpen class="header-icon" size={20} />
 					<h1>Your Decks</h1>
 				</div>
+
+				{#if allDecks.length > 6}
+					<div class="header-controls">
+						<!-- Filter Dropdown -->
+						<div class="control-dropdown-container">
+							<button
+								class="header-select-trigger"
+								class:active={filterBy !== "all"}
+								onclick={(e) => {
+									e.stopPropagation();
+									showFilterDropdown = !showFilterDropdown;
+									if (showFilterDropdown) closeAllDropdowns("filter");
+								}}
+								aria-expanded={showFilterDropdown}
+								aria-haspopup="listbox"
+								title="Filter decks"
+							>
+								<Filter size={13} class="control-icon" />
+								<span class="trigger-value">{filterLabel}</span>
+								<ChevronDown size={13} class="chevron" />
+							</button>
+
+							{#if showFilterDropdown}
+								<div class="header-select-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
+									<button
+										class="select-item"
+										class:active={filterBy === "all"}
+										onclick={(e) => {
+											e.stopPropagation();
+											filterBy = "all";
+											showFilterDropdown = false;
+										}}
+									>
+										All Decks
+									</button>
+									<button
+										class="select-item"
+										class:active={filterBy === "drafts"}
+										onclick={(e) => {
+											e.stopPropagation();
+											filterBy = "drafts";
+											showFilterDropdown = false;
+										}}
+									>
+										Drafts Only
+									</button>
+									<button
+										class="select-item"
+										class:active={filterBy === "saved"}
+										onclick={(e) => {
+											e.stopPropagation();
+											filterBy = "saved";
+											showFilterDropdown = false;
+										}}
+									>
+										Saved Decks
+									</button>
+
+									{#if availableFormats.length > 0}
+										<div class="menu-divider"></div>
+										<div class="menu-section-header">Format</div>
+										{#each availableFormats as fmt}
+											<button
+												class="select-item"
+												class:active={filterBy === `format:${fmt}`}
+												onclick={(e) => {
+													e.stopPropagation();
+													filterBy = `format:${fmt}`;
+													showFilterDropdown = false;
+												}}
+											>
+												{fmt}
+											</button>
+										{/each}
+									{/if}
+
+									<div class="menu-divider"></div>
+									<div class="menu-section-header">Color Identity</div>
+									<button
+										class="select-item"
+										class:active={filterBy === "color:W"}
+										onclick={(e) => { e.stopPropagation(); filterBy = "color:W"; showFilterDropdown = false; }}
+									>White</button>
+									<button
+										class="select-item"
+										class:active={filterBy === "color:U"}
+										onclick={(e) => { e.stopPropagation(); filterBy = "color:U"; showFilterDropdown = false; }}
+									>Blue</button>
+									<button
+										class="select-item"
+										class:active={filterBy === "color:B"}
+										onclick={(e) => { e.stopPropagation(); filterBy = "color:B"; showFilterDropdown = false; }}
+									>Black</button>
+									<button
+										class="select-item"
+										class:active={filterBy === "color:R"}
+										onclick={(e) => { e.stopPropagation(); filterBy = "color:R"; showFilterDropdown = false; }}
+									>Red</button>
+									<button
+										class="select-item"
+										class:active={filterBy === "color:G"}
+										onclick={(e) => { e.stopPropagation(); filterBy = "color:G"; showFilterDropdown = false; }}
+									>Green</button>
+									<button
+										class="select-item"
+										class:active={filterBy === "color:MULTI"}
+										onclick={(e) => { e.stopPropagation(); filterBy = "color:MULTI"; showFilterDropdown = false; }}
+									>Multicolor</button>
+									<button
+										class="select-item"
+										class:active={filterBy === "color:COLORLESS"}
+										onclick={(e) => { e.stopPropagation(); filterBy = "color:COLORLESS"; showFilterDropdown = false; }}
+									>Colorless</button>
+								</div>
+							{/if}
+						</div>
+
+						<!-- Group By Dropdown -->
+						<div class="control-dropdown-container">
+							<button
+								class="header-select-trigger"
+								class:active={groupBy !== "none"}
+								onclick={(e) => {
+									e.stopPropagation();
+									showGroupDropdown = !showGroupDropdown;
+									if (showGroupDropdown) closeAllDropdowns("group");
+								}}
+								aria-expanded={showGroupDropdown}
+								aria-haspopup="listbox"
+								title="Group decks by"
+							>
+								<LayoutGrid size={13} class="control-icon" />
+								<span class="trigger-value">{groupLabel}</span>
+								<ChevronDown size={13} class="chevron" />
+							</button>
+
+							{#if showGroupDropdown}
+								<div class="header-select-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
+									<button
+										class="select-item"
+										class:active={groupBy === "none"}
+										onclick={(e) => {
+											e.stopPropagation();
+											groupBy = "none";
+											showGroupDropdown = false;
+										}}
+									>
+										No Grouping
+									</button>
+									<button
+										class="select-item"
+										class:active={groupBy === "format"}
+										onclick={(e) => {
+											e.stopPropagation();
+											groupBy = "format";
+											showGroupDropdown = false;
+										}}
+									>
+										Format
+									</button>
+									<button
+										class="select-item"
+										class:active={groupBy === "colors"}
+										onclick={(e) => {
+											e.stopPropagation();
+											groupBy = "colors";
+											showGroupDropdown = false;
+										}}
+									>
+										Colors
+									</button>
+								</div>
+							{/if}
+						</div>
+
+						<!-- Sort By Dropdown -->
+						<div class="control-dropdown-container">
+							<button
+								class="header-select-trigger"
+								onclick={(e) => {
+									e.stopPropagation();
+									showSortDropdown = !showSortDropdown;
+									if (showSortDropdown) closeAllDropdowns("sort");
+								}}
+								aria-expanded={showSortDropdown}
+								aria-haspopup="listbox"
+								title="Sort decks by"
+							>
+								<ArrowDownWideNarrow size={13} class="control-icon" />
+								<span class="trigger-value">{sortLabel}</span>
+								<ChevronDown size={13} class="chevron" />
+							</button>
+
+							{#if showSortDropdown}
+								<div class="header-select-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
+									<button
+										class="select-item"
+										class:active={sortBy === "updated"}
+										onclick={(e) => {
+											e.stopPropagation();
+											sortBy = "updated";
+											showSortDropdown = false;
+										}}
+									>
+										Recent (Updated)
+									</button>
+									<button
+										class="select-item"
+										class:active={sortBy === "name"}
+										onclick={(e) => {
+											e.stopPropagation();
+											sortBy = "name";
+											showSortDropdown = false;
+										}}
+									>
+										Name (A-Z)
+									</button>
+									<button
+										class="select-item"
+										class:active={sortBy === "cards"}
+										onclick={(e) => {
+											e.stopPropagation();
+											sortBy = "cards";
+											showSortDropdown = false;
+										}}
+									>
+										Cards (Count)
+									</button>
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/if}
 			</header>
 
 			<main class="page-body">
@@ -987,61 +1337,15 @@
 						>
 					</div>
 				{:else}
-					{#if allDecks.length >= 6}
-						<div class="library-controls">
-							<div class="control-group">
-								<span class="control-label">Sort by:</span>
-								<div class="control-buttons">
-									<button
-										class="control-btn"
-										class:active={sortBy === "updated"}
-										onclick={() => (sortBy = "updated")}
-										>Recent</button
-									>
-									<button
-										class="control-btn"
-										class:active={sortBy === "name"}
-										onclick={() => (sortBy = "name")}
-										>Name</button
-									>
-									<button
-										class="control-btn"
-										class:active={sortBy === "cards"}
-										onclick={() => (sortBy = "cards")}
-										>Cards</button
-									>
-								</div>
-							</div>
-
-							{#if allDecks.length >= 12}
-								<div class="control-group">
-									<span class="control-label">Group by:</span>
-									<div class="control-buttons">
-										<button
-											class="control-btn"
-											class:active={groupBy === "none"}
-											onclick={() => (groupBy = "none")}
-											>None</button
-										>
-										<button
-											class="control-btn"
-											class:active={groupBy === "format"}
-											onclick={() => (groupBy = "format")}
-											>Format</button
-										>
-										<button
-											class="control-btn"
-											class:active={groupBy === "colors"}
-											onclick={() => (groupBy = "colors")}
-											>Colors</button
-										>
-									</div>
-								</div>
-							{/if}
-						</div>
-					{/if}
-
 					<section class="library-section">
+						{#if filteredDecks.length === 0 && allDecks.length > 0}
+							<div class="no-filter-matches">
+								<p>No decks match the filter "{filterLabel}".</p>
+								<button class="clear-filter-btn" onclick={() => (filterBy = "all")}>
+									Clear filter
+								</button>
+							</div>
+						{/if}
 						{#each groupedDecks as group, groupIdx (group.key)}
 							<div
 								class="group-container"
@@ -1425,11 +1729,14 @@
 
 	.page-header {
 		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
 		margin-bottom: 2rem;
 		border-bottom: 1px solid hsl(var(--border) / 0.3);
 		padding-bottom: 1.25rem;
+		flex-wrap: wrap;
 	}
 
 	.title-area {
@@ -1453,173 +1760,149 @@
 		letter-spacing: -0.01em;
 	}
 
-	.page-body {
-		flex: 1;
-	}
-
-	/* States */
-	.loading-state,
-	.error-state {
+	/* Header Controls (Dropdowns) */
+	.header-controls {
 		display: flex;
-		flex-direction: column;
 		align-items: center;
-		justify-content: center;
-		text-align: center;
-		padding: 6rem 1.5rem;
-		gap: 1rem;
-		color: hsl(var(--muted-foreground));
-		background: hsl(var(--muted) / 0.05);
-		border: 1px dashed hsl(var(--border) / 0.6);
-		border-radius: 12px;
-	}
-
-	.empty-state {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		text-align: center;
-		padding: 4rem 1.5rem;
 		gap: 0.5rem;
-		color: hsl(var(--muted-foreground));
-		background: transparent;
-		border: none;
+		flex-wrap: wrap;
 	}
 
-	.empty-icon-container {
-		color: hsl(var(--muted-foreground) / 0.7);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		margin-bottom: 0.25rem;
+	.control-dropdown-container {
 		position: relative;
 	}
 
-	.empty-icon-container svg {
-		position: relative;
-		z-index: 1;
-	}
-
-	.empty-state h3 {
-		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
-			Georgia, serif;
-		font-style: italic;
-		font-size: 1.5rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
-		margin: 0;
-		text-wrap: balance;
-	}
-
-	.empty-state p {
-		font-size: 0.95rem;
-		max-width: 440px;
-		margin: 0;
-		line-height: 1.6;
-		color: hsl(var(--muted-foreground));
-		text-wrap: balance;
-	}
-
-	.start-building-btn {
-		margin-top: 1.25rem;
-		padding: 0.75rem 2rem;
-		background: hsl(var(--primary));
-		color: white;
-		border-radius: 6px;
-		font-size: 0.875rem;
-		font-weight: 600;
-		text-decoration: none;
-		transition: all 0.2s ease;
-		box-shadow: 0 4px 12px hsl(var(--primary) / 0.2);
+	.header-select-trigger {
+		height: 34px;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.45rem;
+		padding: 0 10px;
+		background: hsl(var(--muted) / 0.5);
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
+		color: hsl(var(--foreground) / 0.85);
+		font-size: 13px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		white-space: nowrap;
+		box-sizing: border-box;
 	}
 
-	.start-building-btn:hover {
-		opacity: 0.95;
-		transform: translateY(-1px);
-		box-shadow: 0 6px 16px hsl(var(--primary) / 0.3);
-		color: white !important;
+	.header-select-trigger:hover {
+		background: hsl(var(--muted) / 0.8);
+		color: hsl(var(--foreground));
 	}
 
-	.arrow-icon {
-		transition: transform 0.2s ease;
+	.header-select-trigger.active {
+		border-color: hsl(var(--primary) / 0.6);
+		color: hsl(var(--foreground));
+		background: hsl(var(--primary) / 0.1);
 	}
 
-	.start-building-btn:hover .arrow-icon {
-		transform: translateX(3px);
+	:global(.control-icon) {
+		color: hsl(var(--muted-foreground));
+		flex-shrink: 0;
 	}
 
-	:global(.loading-state .spinner) {
-		animation: spin 1s linear infinite;
-		color: hsl(var(--primary));
+	.header-select-trigger:hover :global(.control-icon),
+	.header-select-trigger.active :global(.control-icon) {
+		color: hsl(var(--foreground));
 	}
 
-	@keyframes spin {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	/* Library Controls */
-	.library-controls {
+	.header-select-menu {
+		position: absolute;
+		top: calc(100% + 4px);
+		right: 0;
+		min-width: 155px;
+		max-height: 380px;
+		overflow-y: auto;
+		background: hsl(var(--popover));
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius-md);
+		box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+		padding: 4px;
+		z-index: 100;
 		display: flex;
-		flex-wrap: wrap;
-		gap: 1.5rem;
-		padding: 0;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.select-item {
+		padding: 6px 10px;
+		border-radius: 4px;
+		font-size: 12.5px;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
 		background: transparent;
 		border: none;
-		margin-bottom: 1.5rem;
-		align-items: center;
-	}
-
-	.control-group {
+		text-align: left;
+		cursor: pointer;
+		transition: all 0.12s ease;
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
+		justify-content: space-between;
+		white-space: nowrap;
 	}
 
-	.control-label {
-		font-size: 0.75rem;
+	.select-item:hover {
+		background: hsl(var(--muted) / 0.8);
+		color: hsl(var(--foreground));
+	}
+
+	.select-item.active {
+		color: hsl(var(--primary));
+		background: hsl(var(--primary) / 0.12);
 		font-weight: 600;
-		color: hsl(var(--muted-foreground));
+	}
+
+	.menu-divider {
+		height: 1px;
+		background: hsl(var(--border) / 0.5);
+		margin: 3px 0;
+	}
+
+	.menu-section-header {
+		font-size: 10px;
+		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
+		color: hsl(var(--muted-foreground) / 0.7);
+		padding: 4px 8px 2px;
+		user-select: none;
 	}
 
-	.control-buttons {
+	.no-filter-matches {
 		display: flex;
-		background: hsl(var(--muted) / 0.2);
-		padding: 2px;
-		border-radius: 6px;
-		border: 1px solid hsl(var(--border) / 0.2);
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 3rem 1.5rem;
+		text-align: center;
+		gap: 0.75rem;
+		color: hsl(var(--muted-foreground));
 	}
 
-	.control-btn {
-		background: transparent;
-		border: none;
-		color: hsl(var(--muted-foreground));
-		font-size: 0.75rem;
-		font-weight: 500;
+	.no-filter-matches p {
+		margin: 0;
+		font-size: 0.95rem;
+	}
+
+	.clear-filter-btn {
 		padding: 4px 12px;
-		border-radius: 3px;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		border-radius: 4px;
+		background: hsl(var(--muted) / 0.5);
+		border: 1px solid hsl(var(--border));
+		color: hsl(var(--foreground));
 		cursor: pointer;
 		transition: all 0.15s ease;
 	}
 
-	.control-btn:hover {
-		color: hsl(var(--foreground));
-	}
-
-	.control-btn.active {
-		background: hsl(var(--background));
-		color: hsl(var(--primary));
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-		font-weight: 600;
+	.clear-filter-btn:hover {
+		background: hsl(var(--muted) / 0.8);
 	}
 
 	/* Decks list/grid */
