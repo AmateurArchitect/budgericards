@@ -1034,6 +1034,7 @@
 
 		<aside
 			class="deck-info-panel"
+			class:is-draft-panel={selectedDeck.isDraft}
 			transition:fly={{ x: 380, duration: 240 }}
 			aria-label="Deck details"
 		>
@@ -1202,6 +1203,10 @@
 					)}.
 				</div>
 			</div>
+
+			{#if selectedDeck.isDraft}
+				<div class="panel-draft-bottom-stripes" aria-hidden="true"></div>
+			{/if}
 		</aside>
 	{/if}
 </div>
@@ -1704,11 +1709,22 @@
 		inset: 0;
 		background: linear-gradient(
 			to top,
-			#141417 0%,
-			rgba(20, 20, 23, 0.65) 40%,
-			rgba(0, 0, 0, 0.2) 100%
+			#121215 0%,
+			rgba(18, 18, 21, 0.75) 45%,
+			rgba(0, 0, 0, 0.15) 100%
 		);
 		pointer-events: none;
+		z-index: 3;
+	}
+
+	.is-draft-panel .panel-hero-banner {
+		background: repeating-linear-gradient(
+			-45deg,
+			#141417,
+			#141417 12px,
+			#1e1e24 12px,
+			#1e1e24 24px
+		);
 	}
 
 	.panel-close-btn {
@@ -1745,6 +1761,35 @@
 		padding: 0 1.5rem 1.75rem;
 		scrollbar-width: thin;
 		scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+		position: relative;
+		z-index: 1;
+	}
+
+	.panel-draft-bottom-stripes {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		height: 240px;
+		background: repeating-linear-gradient(
+			-45deg,
+			rgba(255, 255, 255, 0.015),
+			rgba(255, 255, 255, 0.015) 10px,
+			rgba(255, 255, 255, 0.055) 10px,
+			rgba(255, 255, 255, 0.055) 20px
+		);
+		-webkit-mask-image: linear-gradient(
+			to top,
+			rgba(0, 0, 0, 0.7) 0%,
+			transparent 100%
+		);
+		mask-image: linear-gradient(
+			to top,
+			rgba(0, 0, 0, 0.7) 0%,
+			transparent 100%
+		);
+		pointer-events: none;
+		z-index: 0;
 	}
 
 	.panel-scroll-content::-webkit-scrollbar {
