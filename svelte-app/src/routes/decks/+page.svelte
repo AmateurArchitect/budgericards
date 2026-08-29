@@ -1382,11 +1382,10 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 1.5rem;
-		padding: 0.75rem 1rem;
-		background: hsl(var(--muted) / 0.08);
-		border: 1px solid hsl(var(--border) / 0.3);
-		border-radius: var(--radius-md);
-		margin-bottom: 2rem;
+		padding: 0;
+		background: transparent;
+		border: none;
+		margin-bottom: 1.5rem;
 		align-items: center;
 	}
 
@@ -1439,7 +1438,7 @@
 	.decks-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
-		gap: 1.75rem 1.5rem;
+		gap: 1.5rem;
 	}
 
 	/* Deck Card Wrapper */
@@ -1787,7 +1786,7 @@
 		align-items: center;
 		justify-content: center;
 		flex-wrap: wrap;
-		gap: 0.5rem;
+		gap: 0.25rem;
 		font-size: 0.72rem;
 		font-weight: 700;
 		text-transform: uppercase;
@@ -1828,14 +1827,12 @@
 		color: #ffffff;
 		font-weight: 600;
 		border: none;
-		box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
 	}
 
 	.action-btn.primary-btn:hover {
 		background: #3b82f6;
 		background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
 		transform: translateY(-1px);
-		box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
 	}
 
 	.action-btn.primary-btn:active {
