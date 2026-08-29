@@ -334,11 +334,13 @@
 			selectedDeck = newDraft;
 		} else {
 			try {
-				const { data, error: saveError } = await syncService.saveDeck({
-					id: newId,
-					name: newName,
-					cards,
-				});
+				const { data, error: saveError } = await syncService.saveDeck(
+					newId,
+					{
+						...cards,
+						name: newName,
+					},
+				);
 				if (saveError) throw saveError;
 				if (data) {
 					decks = [data, ...decks];
@@ -1835,11 +1837,11 @@
 		box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
 	}
 
-	.primary-btn .btn-arrow {
+	:global(.primary-btn .btn-arrow) {
 		transition: transform 0.18s ease;
 	}
 
-	.primary-btn:hover .btn-arrow {
+	:global(.primary-btn:hover .btn-arrow) {
 		transform: translateX(4px);
 	}
 
