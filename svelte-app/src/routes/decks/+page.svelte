@@ -220,13 +220,11 @@
 			if (authStore.isAuthenticated) {
 				const cards = JSON.parse(JSON.stringify(deck.cards || deck));
 				try {
-					const { data, error: saveError } = await syncService.saveDeck(
-						deck.id,
-						{
+					const { data, error: saveError } =
+						await syncService.saveDeck(deck.id, {
 							...cards,
 							name: trimmed,
-						},
-					);
+						});
 					if (saveError) throw saveError;
 					if (data) {
 						let drafts = JSON.parse(
@@ -1082,7 +1080,10 @@
 													size={36}
 												/>
 											</div>
-											<span class="deck-title create-card-spacer" aria-hidden="true">&nbsp;</span>
+											<span
+												class="deck-title create-card-spacer"
+												aria-hidden="true">&nbsp;</span
+											>
 										</div>
 									{/if}
 
@@ -1090,7 +1091,10 @@
 										{@const staggerIdx = itemIdx}
 										<div
 											class="deck-card"
-											style="--stagger-index: {Math.min(staggerIdx, 24)}"
+											style="--stagger-index: {Math.min(
+												staggerIdx,
+												24,
+											)}"
 											class:selected={selectedDeck?.id ===
 												deck.id}
 											class:is-draft={deck.isDraft}
@@ -1381,7 +1385,10 @@
 			</div>
 
 			{#if selectedDeck.isDraft}
-				<div class="panel-draft-bottom-stripes" aria-hidden="true"></div>
+				<div
+					class="panel-draft-bottom-stripes"
+					aria-hidden="true"
+				></div>
 			{/if}
 		</aside>
 	{/if}
@@ -1676,23 +1683,23 @@
 		border-radius: inherit;
 		pointer-events: none;
 		box-shadow:
-			inset 0 1px 1.5px rgba(255, 255, 255, 0.25),
-			inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-			inset 0 -1.5px 3px rgba(0, 0, 0, 0.75);
+			inset 0.5px 1px 3px rgba(255, 255, 255, 0.2),
+			inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+			inset -0.5 -1.5px 3px rgba(0, 0, 0, 0.75);
 		z-index: 4;
 		transition: box-shadow 0.2s ease;
 	}
 
 	.deck-card:hover .deck-cover-frame {
-		transform: translateY(-3px);
+		transform: scale(1.01) translateY(-3px);
 		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
 	}
 
 	.deck-card:hover:not(.create-card) .deck-cover-frame::after {
 		box-shadow:
-			inset 0 1px 2px rgba(255, 255, 255, 0.38),
-			inset 0 0 0 1px rgba(255, 255, 255, 0.16),
-			inset 0 -2px 4px rgba(0, 0, 0, 0.85);
+			inset 0.5px 1.5px 4px rgba(255, 255, 255, 0.32),
+			inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+			inset -0.5px -2px 4px rgba(0, 0, 0, 0.85);
 	}
 
 	.deck-card.selected .deck-cover-frame {
