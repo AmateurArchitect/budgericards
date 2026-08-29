@@ -1188,7 +1188,6 @@
 						<h2
 							class="panel-deck-name"
 							ondblclick={startEditingName}
-							title="Double-click to rename"
 						>
 							{getDeckDisplayName(selectedDeck)}
 						</h2>
@@ -1936,13 +1935,9 @@
 		text-align: center;
 		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 		cursor: text;
-		border-radius: 6px;
-		padding: 2px 8px;
-		transition: background 0.15s ease;
-	}
-
-	.panel-deck-name:hover {
-		background: rgba(255, 255, 255, 0.08);
+		border: none;
+		background: transparent;
+		padding: 0 4px;
 	}
 
 	.panel-deck-name-input {
@@ -1951,18 +1946,21 @@
 		font-size: 1.5rem;
 		font-weight: 700;
 		color: #ffffff;
-		background: rgba(255, 255, 255, 0.08);
-		border: 1px solid hsl(var(--primary));
-		border-radius: 6px;
-		margin: 0 0 0.4rem;
+		background: transparent;
+		border: none;
+		border-bottom: 2px solid hsl(var(--primary));
+		border-radius: 0;
+		margin: 0 0 0.75rem;
 		line-height: 1.25;
 		letter-spacing: -0.015em;
 		text-align: center;
-		padding: 2px 8px;
+		padding: 0 4px 6px;
 		width: 100%;
 		box-sizing: border-box;
 		outline: none;
-		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.3);
+		box-shadow: none;
+		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+		caret-color: hsl(var(--primary));
 	}
 
 	.panel-meta-line {
