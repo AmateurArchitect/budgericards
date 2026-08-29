@@ -17,7 +17,7 @@
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { layoutStore } from "$lib/stores/layout.svelte.js";
 	import { syncService } from "$lib/syncService";
-	import { onMount } from "svelte";
+	import { onMount, tick } from "svelte";
 	import { goto } from "$app/navigation";
 	import Button from "$lib/components/ui/Button.svelte";
 	import ManaSymbol from "$lib/components/ui/ManaSymbol.svelte";
@@ -32,6 +32,10 @@
 
 	/** @type {any | null} */
 	let selectedDeck = $state(null);
+	let isEditingName = $state(false);
+	let editingName = $state("");
+	/** @type {HTMLInputElement | null} */
+	let nameInputEl = $state(null);
 
 	$effect(() => {
 		layoutStore.rightSidebarWidth = selectedDeck ? 380 : 0;
@@ -121,6 +125,7 @@
 	/** @param {any} deck */
 	function handleDeckClick(deck) {
 		if (clickTimer) clearTimeout(clickTimer);
+		isEditingName = false;
 
 		if (!selectedDeck) {
 			// If sidebar is closed, delay opening slightly (220ms) so double click can intercept and open the deck directly
@@ -148,7 +153,85 @@
 			clearTimeout(clickTimer);
 			clickTimer = null;
 		}
+		isEditingName = false;
 		selectedDeck = null;
+	}
+
+	function startEditingName() {
+		if (!selectedDeck) return;
+		editingName = getDeckDisplayName(selectedDeck);
+		isEditingName = true;
+		tick().then(() => {
+			if (nameInputEl) {
+				nameInputEl.focus();
+				nameInputEl.select();
+			}
+		});
+	}
+
+	async function saveRenamedDeck() {
+		if (!isEditingName) return;
+		const trimmed = editingName.trim();
+		isEditingName = false;
+		if (
+			!selectedDeck ||
+			!trimmed ||
+			trimmed === getDeckDisplayName(selectedDeck)
+		) {
+			return;
+		}
+
+		const deck = selectedDeck;
+		const oldName = deck.name;
+		deck.name = trimmed;
+
+		if (deck.isDraft) {
+			let drafts = JSON.parse(
+				localStorage.getItem("budgericards_local_drafts") || "[]",
+			);
+			const idx = drafts.findIndex((d) => d.id === deck.id);
+			if (idx !== -1) {
+				drafts[idx].name = trimmed;
+				if (!drafts[idx].metadata) drafts[idx].metadata = {};
+				drafts[idx].metadata.updatedAt = new Date().toISOString();
+				localStorage.setItem(
+					"budgericards_local_drafts",
+					JSON.stringify(drafts),
+				);
+				localDrafts = drafts;
+			}
+			selectedDeck = { ...deck, name: trimmed };
+		} else {
+			const cards = JSON.parse(JSON.stringify(deck.cards || deck));
+			try {
+				const { data, error: saveError } = await syncService.saveDeck(
+					deck.id,
+					{
+						...cards,
+						name: trimmed,
+					},
+				);
+				if (saveError) throw saveError;
+				if (data) {
+					decks = decks.map((d) => (d.id === deck.id ? data : d));
+					selectedDeck = data;
+				}
+			} catch (err) {
+				console.error("Failed to rename deck:", err);
+				deck.name = oldName;
+			}
+		}
+	}
+
+	/** @param {KeyboardEvent} e */
+	function handleNameKeydown(e) {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			saveRenamedDeck();
+		} else if (e.key === "Escape") {
+			e.preventDefault();
+			isEditingName = false;
+		}
 	}
 
 	/** @param {MouseEvent} e */
@@ -1095,9 +1178,25 @@
 						</div>
 					{/if}
 
-					<h2 class="panel-deck-name">
-						{getDeckDisplayName(selectedDeck)}
-					</h2>
+					{#if isEditingName}
+						<input
+							type="text"
+							class="panel-deck-name-input"
+							bind:value={editingName}
+							bind:this={nameInputEl}
+							onkeydown={handleNameKeydown}
+							onblur={saveRenamedDeck}
+						/>
+					{:else}
+						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+						<h2
+							class="panel-deck-name"
+							ondblclick={startEditingName}
+							title="Double-click to rename"
+						>
+							{getDeckDisplayName(selectedDeck)}
+						</h2>
+					{/if}
 
 					<div class="panel-meta-line">
 						<span class="meta-item-tag">
@@ -1870,6 +1969,34 @@
 		letter-spacing: -0.015em;
 		text-align: center;
 		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+		cursor: text;
+		border-radius: 6px;
+		padding: 2px 8px;
+		transition: background 0.15s ease;
+	}
+
+	.panel-deck-name:hover {
+		background: rgba(255, 255, 255, 0.08);
+	}
+
+	.panel-deck-name-input {
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
+			Georgia, serif;
+		font-size: 1.5rem;
+		font-weight: 700;
+		color: #ffffff;
+		background: rgba(255, 255, 255, 0.08);
+		border: 1px solid hsl(var(--primary));
+		border-radius: 6px;
+		margin: 0 0 0.4rem;
+		line-height: 1.25;
+		letter-spacing: -0.015em;
+		text-align: center;
+		padding: 2px 8px;
+		width: 100%;
+		box-sizing: border-box;
+		outline: none;
+		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.3);
 	}
 
 	.panel-meta-line {
