@@ -1221,11 +1221,25 @@
 		min-width: 0;
 		height: 100%;
 		overflow-y: auto;
-		padding: 3rem 1.5rem;
+		padding-top: 3rem;
+		padding-bottom: 3rem;
+		padding-left: max(1.5rem, 380px);
+		padding-right: max(
+			1.5rem,
+			calc(380px - var(--right-sidebar-width, 0px))
+		);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		box-sizing: border-box;
+		transition: padding-right 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	@media (max-width: 1024px) {
+		.decks-page-container {
+			padding-left: 1.5rem;
+			padding-right: 1.5rem;
+		}
 	}
 
 	.decks-content-inner {
