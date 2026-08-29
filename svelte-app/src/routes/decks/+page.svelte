@@ -1221,7 +1221,7 @@
 		min-width: 0;
 		height: 100%;
 		overflow-y: auto;
-		padding: 3rem 2rem;
+		padding: 3rem 1.5rem;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -1230,7 +1230,7 @@
 
 	.decks-content-inner {
 		width: 100%;
-		max-width: 960px;
+		max-width: min(1032px, calc(100vw - 380px - 3rem));
 		display: flex;
 		flex-direction: column;
 	}
