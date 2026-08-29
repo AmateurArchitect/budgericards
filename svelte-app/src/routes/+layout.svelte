@@ -212,11 +212,14 @@
 		flex-direction: column;
 		height: 100vh;
 		width: calc(100vw - var(--right-sidebar-width, 0px));
-		max-width: 100vw;
+		max-width: calc(100vw - var(--right-sidebar-width, 0px));
+		flex: 0 0 calc(100vw - var(--right-sidebar-width, 0px));
 		overflow: hidden;
-		flex: 1;
 		min-width: 0;
-		transition: width 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+		transition:
+			width 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+			max-width 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+			flex-basis 0.24s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
 	.app-content-wrapper {
