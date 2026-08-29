@@ -1460,15 +1460,14 @@
 		border-radius: 6px;
 		overflow: hidden;
 		background: #141416;
-		border: 1px solid rgba(255, 255, 255, 0.08);
+		border: none;
 		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 		transition:
 			transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-			box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-			border-color 0.2s ease;
+			box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
-	/* 3D Tile Inner Shadows for the Deck Cover */
+	/* 3D Tile Layered Inner Shadows for the Deck Cover */
 	.deck-card:not(.create-card) .deck-cover-frame::after {
 		content: "";
 		position: absolute;
@@ -1476,18 +1475,26 @@
 		border-radius: inherit;
 		pointer-events: none;
 		box-shadow:
-			inset 0.5px 1px 3px rgba(255, 255, 255, 0.18),
-			inset -0.5px -1px 3px rgba(0, 0, 0, 0.75);
+			inset 0 1px 1.5px rgba(255, 255, 255, 0.25),
+			inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+			inset 0 -1.5px 3px rgba(0, 0, 0, 0.75);
 		z-index: 4;
+		transition: box-shadow 0.2s ease;
 	}
 
 	.deck-card:hover .deck-cover-frame {
 		transform: translateY(-3px);
-		box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+	}
+
+	.deck-card:hover:not(.create-card) .deck-cover-frame::after {
+		box-shadow:
+			inset 0 1px 2px rgba(255, 255, 255, 0.38),
+			inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+			inset 0 -2px 4px rgba(0, 0, 0, 0.85);
 	}
 
 	.deck-card.selected .deck-cover-frame {
-		border-color: hsl(var(--primary));
 		box-shadow:
 			0 0 0 2px hsl(var(--primary) / 0.9),
 			0 8px 24px rgba(0, 0, 0, 0.5);
@@ -1808,13 +1815,14 @@
 
 	.action-btn {
 		width: 100%;
+		height: 40px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		gap: 0.6rem;
-		padding: 0.75rem 1.25rem;
+		padding: 0 1rem;
 		border-radius: 6px;
-		font-size: 0.88rem;
+		font-size: 0.875rem;
 		font-weight: 500;
 		cursor: pointer;
 		transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
