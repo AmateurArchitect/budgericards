@@ -44,5 +44,8 @@ We already have UI that hints at this feature in the table view, but we want to 
  - **Maybeboard De-duplication Toast**: Toast when adding an existing maybeboard card (*"[Card Name] already in maybeboard (updated timestamp)."*).
  - **Decklist Cleanup Toast**: Toast when importing a list where unrecognized lines or invalid formatting were stripped (*"Imported [X] cards (skipped [Y] unrecognized lines)."*).
 
-
- 
+### Pre-Release Infrastructure & Automated Updates
+ - **Dependabot / Automated Dependency PRs**: Configure GitHub Dependabot for npm dependencies (Lucide icons, SvelteKit, Dexie, Supabase, etc.) with automated CI build & type checks.
+ - **Automated Symbology Ingestion**: Move `download-symbols.mjs` into the weekly `sync-data.yml` GitHub Action so new MTG mana symbols and mechanic icons sync to Cloudflare R2 automatically alongside card data.
+ - **Remote Config / Content Decoupling**: Move static curation arrays (`resolved-art.js`, `backgrounds.js`, `selected-art.json`) into Supabase or CDN-hosted JSON so new card backgrounds and featured art can be updated without app redeploys.
+ - **Build-Time / PWA Fallback Hydration**: Automate local fallback snapshot generation during build instead of manually storing static card snapshots in git.
