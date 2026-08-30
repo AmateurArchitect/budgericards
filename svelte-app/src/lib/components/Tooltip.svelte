@@ -22,6 +22,10 @@
 
 	/** @param {MouseEvent} e */
 	function handleMouseOver(e) {
+		if (interactionStore.isDraggingCard) {
+			visible = false;
+			return;
+		}
 		const target = /** @type {HTMLElement} */ (e.target);
 		if (!target) return;
 		const trigger = /** @type {HTMLElement | null} */ (
@@ -50,6 +54,10 @@
 
 	/** @param {MouseEvent} e */
 	function handleMouseMove(e) {
+		if (interactionStore.isDraggingCard) {
+			visible = false;
+			return;
+		}
 		lastEvent = e;
 		if (!visible) return;
 		const target = /** @type {HTMLElement} */ (e.target);
@@ -88,6 +96,11 @@
 	}
 
 	$effect(() => {
+		if (interactionStore.isDraggingCard) {
+			visible = false;
+			currentTrigger = null;
+			return;
+		}
 		// Reposition if menu opens OR moves to a different card
 		if (
 			interactionStore.isMenuOpen &&
@@ -246,11 +259,17 @@
 			handleMouseMove(e);
 		};
 
+		const handleDragStartHide = () => {
+			visible = false;
+			currentTrigger = null;
+		};
+
 		document.addEventListener("mouseover", handleGlobalMouseOver);
 		document.addEventListener("mousemove", handleGlobalMouseMove);
 		document.addEventListener("mouseout", handleMouseOut);
 		document.addEventListener("focusin", updateEditingFieldState);
 		document.addEventListener("focusout", updateEditingFieldState);
+		document.addEventListener("dragstart", handleDragStartHide);
 
 		return () => {
 			document.removeEventListener("mouseover", handleGlobalMouseOver);
@@ -258,6 +277,7 @@
 			document.removeEventListener("mouseout", handleMouseOut);
 			document.removeEventListener("focusin", updateEditingFieldState);
 			document.removeEventListener("focusout", updateEditingFieldState);
+			document.removeEventListener("dragstart", handleDragStartHide);
 		};
 	});
 </script>
@@ -265,7 +285,7 @@
 <div
 	bind:this={tooltipEl}
 	class="card-tooltip"
-	class:visible={visible && !isEditingField}
+	class:visible={visible && !isEditingField && !interactionStore.isDraggingCard}
 	style="left: {x}px; top: {y}px;"
 >
 	<div class="card-tooltip-container" class:illegal={!legality.isLegal}>

@@ -8,6 +8,7 @@
 	import { layoutStore } from '$lib/stores/layout.svelte.js';
 	import ContextMenu from '$lib/components/ui/ContextMenu.svelte';
 	import AnimationLayer from '$lib/components/ui/AnimationLayer.svelte';
+	import CardDragLayer from '$lib/components/ui/CardDragLayer.svelte';
 	import QuantityModal from '$lib/components/ui/QuantityModal.svelte';
 	import CardDataModal from '$lib/components/ui/CardDataModal.svelte';
 	import ChangePrintingsModal from '$lib/components/ui/ChangePrintingsModal.svelte';
@@ -190,6 +191,7 @@
 		onClose={() => {}}
 	/>
 	<AnimationLayer />
+	<CardDragLayer />
 	<QuantityModal />
 	<CardDataModal />
 	<ChangePrintingsModal />

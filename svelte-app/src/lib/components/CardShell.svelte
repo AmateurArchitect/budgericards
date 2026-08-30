@@ -13,6 +13,17 @@
 	let isFlipped = $state(false);
 	let isRotated = $state(false);
 
+	/** @type {HTMLCanvasElement | null} */
+	let blankDragImage = null;
+	function getBlankDragImage() {
+		if (!blankDragImage && typeof document !== "undefined") {
+			blankDragImage = document.createElement("canvas");
+			blankDragImage.width = 1;
+			blankDragImage.height = 1;
+		}
+		return blankDragImage;
+	}
+
 	/** @param {MouseEvent | KeyboardEvent} e */
 	function handleLeftClick(e) {
 		// Ignore clicks on the quantity badge to prevent conflicting actions
@@ -134,6 +145,12 @@
 		if (!e.dataTransfer) return;
 		e.dataTransfer.effectAllowed = "copyMove";
 
+		// Suppress browser default translucent drag ghost
+		const blank = getBlankDragImage();
+		if (blank && e.dataTransfer.setDragImage) {
+			e.dataTransfer.setDragImage(blank, 0, 0);
+		}
+
 		const isSelected = !inSearchPanel && [...interactionStore.selectedCells].some(cell => cell.startsWith(card.id + ":"));
 		let selectedCards = [];
 		if (isSelected) {
@@ -179,12 +196,33 @@
 		);
 		e.dataTransfer.setData("text/plain", card.name);
 
+		const target = /** @type {HTMLElement} */ (e.currentTarget);
+		const rect = target.getBoundingClientRect();
+		const grabOffsetX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+		const grabOffsetY = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+
+		interactionStore.startCardDrag({
+			card: card,
+			price: price,
+			zone: zone || (inSearchPanel ? searchStore.collection : deckStore.activeBoard),
+			selectedCards: selectedCards.length > 0 ? selectedCards : null,
+			isFlipped: isFlipped,
+			isRotated: isRotated,
+			width: rect.width || 140,
+			height: rect.height || 196,
+			grabOffsetX: grabOffsetX,
+			grabOffsetY: grabOffsetY,
+			cursorX: e.clientX,
+			cursorY: e.clientY
+		});
+
 		setTimeout(() => (isDragging = true), 0);
 	}
 
 	/** @param {DragEvent} e */
 	function handleDragEnd(e) {
 		isDragging = false;
+		interactionStore.endCardDrag();
 	}
 
 	/** @param {MouseEvent | null} e */
@@ -220,6 +258,7 @@
 		interactionStore.showMenu(e, card, currentBoard, price);
 	}}
 	onmouseenter={() => {
+		if (interactionStore.isDraggingCard) return;
 		const currentBoard = zone || (inSearchPanel
 			? searchStore.collection
 			: deckStore.activeBoard);
@@ -233,13 +272,21 @@
 	draggable="true"
 	role="button"
 	tabindex="0"
-	data-tooltip-img={(!inSearchPanel && !disableTooltip) ? (meta.card_faces && meta.card_faces.length > 1 && meta.card_faces[0].image_uris ? (isFlipped ? meta.card_faces[1].image_uris?.normal : meta.card_faces[0].image_uris?.normal) : (meta.image_uris?.normal || "")) : undefined}
+	data-tooltip-img={(!inSearchPanel && !disableTooltip && !interactionStore.isDraggingCard) ? (meta.card_faces && meta.card_faces.length > 1 && meta.card_faces[0].image_uris ? (isFlipped ? meta.card_faces[1].image_uris?.normal : meta.card_faces[0].image_uris?.normal) : (meta.image_uris?.normal || "")) : undefined}
 	aria-label="{inSearchPanel ? 'Add' : 'Remove'} {card.name}"
 >
 	{@render children({ isDragging, isFlipped, isRotated, toggleFlip, toggleRotate })}
 </div>
 
 <style>
+	.card-shell.is-dragging {
+		opacity: 0.12 !important;
+		filter: grayscale(1) brightness(0.8);
+		transform: scale(0.96) !important;
+		transition: opacity 0.15s ease, transform 0.15s ease;
+		pointer-events: none;
+	}
+
 	.card-shell.is-selected {
 		box-shadow: 0 0 0 3px hsl(var(--primary)), 0 12px 30px -10px rgba(0, 0, 0, 0);
 		border-radius: var(--radius-md);

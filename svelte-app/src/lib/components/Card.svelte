@@ -92,7 +92,7 @@
 	}
 
 	.card-item.dragging {
-		opacity: 0.4;
+		opacity: 0.12;
 		transform: scale(0.95);
 	}
 
