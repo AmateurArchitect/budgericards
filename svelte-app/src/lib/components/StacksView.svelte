@@ -829,6 +829,17 @@
 			);
 		});
 	});
+
+	onMount(() => {
+		/** @param {Event} e */
+		const onPointerDrop = (e) => {
+			handlePointerDrop(/** @type {CustomEvent} */ (e));
+		};
+		window.addEventListener("budgericard-pointer-drop", onPointerDrop);
+		return () => {
+			window.removeEventListener("budgericard-pointer-drop", onPointerDrop);
+		};
+	});
 </script>
 
 <svelte:window 
@@ -836,7 +847,6 @@
 	ondragstart={handleGlobalDragStart} 
 	ondragend={handleGlobalDragEnd}
 	ondrop={handleGlobalDragEnd}
-	onbudgericard-pointer-drop={handlePointerDrop}
 />
 
 <div
@@ -849,7 +859,6 @@
 	ondragover={handleDragOver}
 	ondragleave={handleDragLeave}
 	ondrop={handleDrop}
-	onbudgericard-pointer-drop={handlePointerDrop}
 	role="region"
 	aria-label="Deck stacks view"
 	data-board={deckStore.activeBoard}

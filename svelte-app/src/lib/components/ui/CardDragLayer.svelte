@@ -62,24 +62,22 @@
 		targetX = dragState.cursorX - dragState.grabOffsetX;
 		targetY = dragState.cursorY - dragState.grabOffsetY;
 
-		// Smooth position tracking (card lags slightly behind cursor to create weight)
-		posX = lerp(posX, targetX, 0.28);
-		posY = lerp(posY, targetY, 0.28);
+		// Smooth position tracking (card lags slightly behind cursor to create realistic weight)
+		posX = lerp(posX, targetX, 0.22);
+		posY = lerp(posY, targetY, 0.22);
 
 		// Displacement / Lag creates natural 3D tilt & banking
 		const lagX = targetX - posX;
 		const lagY = targetY - posY;
 
-		// Dynamic 3D Euler angles based on movement lag
-		// Moving right (lagX > 0) -> right side banks away/up around Y, slight roll on Z
-		// Moving down (lagY > 0) -> bottom edge banks away around X
-		const targetRotY = clamp(lagX * 0.75, -28, 28);
-		const targetRotX = clamp(-lagY * 0.65, -24, 24);
-		const targetRotZ = clamp(lagX * 0.28, -14, 14);
+		// Dynamic 3D Euler angles (pronounced MTG Arena banking & pitch)
+		const targetRotY = clamp(lagX * 2.8, -35, 35);
+		const targetRotX = clamp(-lagY * 2.5, -30, 30);
+		const targetRotZ = clamp(lagX * 0.9, -15, 15);
 
 		// Spring-damper physics with elastic bounce/overshoot
-		const springStiffness = 0.22;
-		const damping = 0.76;
+		const springStiffness = 0.25;
+		const damping = 0.78;
 
 		rotVelX = (rotVelX + (targetRotX - rotX) * springStiffness) * damping;
 		rotX += rotVelX;
@@ -92,12 +90,16 @@
 
 		// Directly apply GPU-accelerated 3D transforms
 		if (containerEl) {
-			const sheenAngle = 115 + rotY * 1.8;
-			const sheenOpacity = clamp(0.12 + (Math.abs(rotY) + Math.abs(rotX)) * 0.008, 0.08, 0.4);
+			const sheenAngle = 115 + rotY * 2.0;
+			const sheenOpacity = clamp(0.12 + (Math.abs(rotY) + Math.abs(rotX)) * 0.012, 0.08, 0.45);
+			const shadowOffsetX = (-rotY * 1.6).toFixed(1);
+			const shadowOffsetY = (28 + rotX * 1.1).toFixed(1);
 
 			containerEl.style.transform = `translate3d(${posX.toFixed(1)}px, ${posY.toFixed(1)}px, 0) scale(1.08) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg)`;
 			containerEl.style.setProperty("--sheen-angle", `${sheenAngle.toFixed(1)}deg`);
 			containerEl.style.setProperty("--sheen-opacity", `${sheenOpacity.toFixed(2)}`);
+			containerEl.style.setProperty("--shadow-x", `${shadowOffsetX}px`);
+			containerEl.style.setProperty("--shadow-y", `${shadowOffsetY}px`);
 		}
 
 		animFrameId = requestAnimationFrame(updatePhysics);
@@ -207,7 +209,7 @@
 		pointer-events: none;
 		z-index: 999999;
 		overflow: hidden;
-		perspective: 1200px;
+		perspective: 800px;
 	}
 
 	.dragged-card-container {
@@ -220,6 +222,8 @@
 		pointer-events: none;
 		--sheen-angle: 120deg;
 		--sheen-opacity: 0.15;
+		--shadow-x: 0px;
+		--shadow-y: 28px;
 	}
 
 	.dragged-card-surface {
@@ -229,12 +233,12 @@
 		border-radius: 4.75% / 3.5%;
 		overflow: hidden;
 		background: #111;
-		/* Lush multi-tier elevated drop shadow */
+		/* Lush multi-tier elevated dynamic directional drop shadow */
 		box-shadow:
-			0 32px 64px -12px rgba(0, 0, 0, 0.82),
+			var(--shadow-x) var(--shadow-y) 56px -10px rgba(0, 0, 0, 0.85),
 			0 14px 28px -6px rgba(0, 0, 0, 0.6),
 			0 0 0 1px rgba(255, 255, 255, 0.22),
-			0 0 20px 2px rgba(0, 0, 0, 0.4);
+			0 0 24px 2px rgba(0, 0, 0, 0.45);
 		transform-style: preserve-3d;
 	}
 

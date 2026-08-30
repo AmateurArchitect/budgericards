@@ -26,6 +26,15 @@
 	onMount(() => {
 		priceStore.load();
 		isHydrated = true;
+
+		/** @param {Event} e */
+		const onPointerDrop = (e) => {
+			handleGlobalPointerDrop(/** @type {CustomEvent} */ (e));
+		};
+		window.addEventListener("budgericard-pointer-drop", onPointerDrop);
+		return () => {
+			window.removeEventListener("budgericard-pointer-drop", onPointerDrop);
+		};
 	});
 
 	// Reactively select the deck whenever the ID in the URL changes
@@ -209,7 +218,6 @@
 	aria-label="Budgericards Deckbuilder"
 	ondragover={handleGlobalDragOver}
 	ondrop={handleGlobalDrop}
-	onbudgericard-pointer-drop={handleGlobalPointerDrop}
 	style={Object.entries(layoutStore.cssVariables).map(([k, v]) => `${k}: ${v}`).join("; ")}
 >
 	<main class="app-layout">
