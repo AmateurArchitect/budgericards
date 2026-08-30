@@ -404,30 +404,9 @@
 				}
 			}
 		};
-
-		/** @param {Event} e */
-		const handlePointerDrop = (e) => {
-			const customEvent = /** @type {CustomEvent} */ (e);
-			const target = /** @type {HTMLElement | null} */ (customEvent.target);
-			const dropZone = target?.closest(".deck-art-drop-zone");
-			if (dropZone && customEvent.detail?.data) {
-				customEvent.stopPropagation();
-				const data = customEvent.detail.data;
-				const meta = deckStore.metadata[data.name?.toLowerCase()] || data.card;
-				if (meta) {
-					const art =
-						meta.image_uris?.art_crop ||
-						meta.card_faces?.[0]?.image_uris?.art_crop;
-					if (art) deckStore.coverArt = art;
-				}
-			}
-		};
-
 		window.addEventListener("keydown", handleGlobalKeydown);
-		window.addEventListener("budgericard-pointer-drop", handlePointerDrop);
 		return () => {
 			window.removeEventListener("keydown", handleGlobalKeydown);
-			window.removeEventListener("budgericard-pointer-drop", handlePointerDrop);
 		};
 	});
 </script>

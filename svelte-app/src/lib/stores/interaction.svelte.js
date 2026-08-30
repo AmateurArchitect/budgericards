@@ -307,20 +307,6 @@ function getCardCellValue(card, columnKey) {
  * @property {{cardId: string, columnKey: string, initialKey: string} | null} inlineEditTrigger
  * @property {string | null} copiedColumnKey
  * @property {boolean} sideboardExpanded
- * @property {Object} dragState
- * @property {boolean} dragState.active
- * @property {any | null} dragState.card
- * @property {number | null} dragState.price
- * @property {string | null} dragState.zone
- * @property {any[] | null} dragState.selectedCards
- * @property {boolean} dragState.isFlipped
- * @property {boolean} dragState.isRotated
- * @property {number} dragState.width
- * @property {number} dragState.height
- * @property {number} dragState.grabOffsetX
- * @property {number} dragState.grabOffsetY
- * @property {number} dragState.cursorX
- * @property {number} dragState.cursorY
  */
 
 function createInteractionStore() {
@@ -381,22 +367,7 @@ function createInteractionStore() {
 		copiedCellValues: null,
 		/** @type {string | null} */
 		copiedColumnKey: null,
-		inlineEditTrigger: null, // { cardId, columnKey, initialKey }
-		dragState: {
-			active: false,
-			card: null,
-			price: null,
-			zone: null,
-			selectedCards: null,
-			isFlipped: false,
-			isRotated: false,
-			width: 140,
-			height: 196,
-			grabOffsetX: 70,
-			grabOffsetY: 98,
-			cursorX: 0,
-			cursorY: 0
-		}
+		inlineEditTrigger: null // { cardId, columnKey, initialKey }
 	});
 
 	function closeMenu() {
@@ -2012,70 +1983,6 @@ function createInteractionStore() {
 			setTimeout(() => {
 				state.activeAnimations = state.activeAnimations.filter(a => a.id !== id);
 			}, 800);
-		},
-
-		get isDraggingCard() {
-			return state.dragState.active;
-		},
-
-		get cardDragState() {
-			return state.dragState;
-		},
-
-		/**
-		 * @param {{
-		 * 	card: any,
-		 * 	price?: number | null,
-		 * 	zone?: string | null,
-		 * 	selectedCards?: any[] | null,
-		 * 	isFlipped?: boolean,
-		 * 	isRotated?: boolean,
-		 * 	width?: number,
-		 * 	height?: number,
-		 * 	grabOffsetX?: number,
-		 * 	grabOffsetY?: number,
-		 * 	cursorX?: number,
-		 * 	cursorY?: number
-		 * }} options
-		 */
-		startCardDrag(options) {
-			closeMenu();
-			state.hoveredCard = null;
-			state.hoveredZone = null;
-			state.hoveredPrice = null;
-
-			state.dragState = {
-				active: true,
-				card: options.card,
-				price: options.price ?? null,
-				zone: options.zone ?? null,
-				selectedCards: options.selectedCards ?? null,
-				isFlipped: options.isFlipped ?? false,
-				isRotated: options.isRotated ?? false,
-				width: options.width || 140,
-				height: options.height || 196,
-				grabOffsetX: options.grabOffsetX !== undefined ? options.grabOffsetX : (options.width ? options.width / 2 : 70),
-				grabOffsetY: options.grabOffsetY !== undefined ? options.grabOffsetY : (options.height ? options.height / 2 : 98),
-				cursorX: options.cursorX || 0,
-				cursorY: options.cursorY || 0
-			};
-		},
-
-		/**
-		 * @param {number} cursorX
-		 * @param {number} cursorY
-		 */
-		updateCardDragPosition(cursorX, cursorY) {
-			if (!state.dragState.active) return;
-			if (cursorX === 0 && cursorY === 0) return;
-			state.dragState.cursorX = cursorX;
-			state.dragState.cursorY = cursorY;
-		},
-
-		endCardDrag() {
-			state.dragState.active = false;
-			state.dragState.card = null;
-			state.dragState.selectedCards = null;
 		}
 	};
 }

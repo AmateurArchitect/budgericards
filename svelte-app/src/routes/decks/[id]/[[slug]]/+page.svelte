@@ -26,15 +26,6 @@
 	onMount(() => {
 		priceStore.load();
 		isHydrated = true;
-
-		/** @param {Event} e */
-		const onPointerDrop = (e) => {
-			handleGlobalPointerDrop(/** @type {CustomEvent} */ (e));
-		};
-		window.addEventListener("budgericard-pointer-drop", onPointerDrop);
-		return () => {
-			window.removeEventListener("budgericard-pointer-drop", onPointerDrop);
-		};
 	});
 
 	// Reactively select the deck whenever the ID in the URL changes
@@ -160,25 +151,6 @@
 
 			if (cardName) {
 				deckStore.addCard(cardName, deckStore.activeBoard, 0);
-			}
-		}
-	}
-
-	/** @param {any} e */
-	function handleGlobalPointerDrop(e) {
-		if (!e.detail?.data) return;
-		const data = e.detail.data;
-		const target = /** @type {HTMLElement} */ (e.target);
-		const deckArea = document.querySelector(".deck-area");
-		const isOverDeck = deckArea && (deckArea === target || deckArea.contains(target));
-
-		if (data.fromDeck) {
-			if (!isOverDeck) {
-				deckStore.removeCard(data.name, data.sourceBoard || deckStore.activeBoard, data.id);
-			}
-		} else {
-			if (isOverDeck) {
-				deckStore.addCard(data.name, deckStore.activeBoard, data.price, data.card);
 			}
 		}
 	}

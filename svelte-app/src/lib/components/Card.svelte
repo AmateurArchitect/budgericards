@@ -92,8 +92,8 @@
 	}
 
 	.card-item.dragging {
-		opacity: 0.3;
-		transform: scale(0.97);
+		opacity: 0.4;
+		transform: scale(0.95);
 	}
 
 	.card-item:hover {

@@ -13,17 +13,6 @@
 	let isFlipped = $state(false);
 	let isRotated = $state(false);
 
-	/** @type {HTMLCanvasElement | null} */
-	let blankDragImage = null;
-	function getBlankDragImage() {
-		if (!blankDragImage && typeof document !== "undefined") {
-			blankDragImage = document.createElement("canvas");
-			blankDragImage.width = 1;
-			blankDragImage.height = 1;
-		}
-		return blankDragImage;
-	}
-
 	/** @param {MouseEvent | KeyboardEvent} e */
 	function handleLeftClick(e) {
 		// Ignore clicks on the quantity badge to prevent conflicting actions
@@ -140,29 +129,18 @@
 		}
 	}
 
-	/** @param {PointerEvent} e */
-	function handlePointerDown(e) {
-		if (e.button !== 0) return; // Only left click
-		const target = /** @type {HTMLElement} */ (e.target);
-		if (target.closest(".stack-badge") || target.closest("input") || target.closest("button") || target.closest(".flip-btn")) return;
-
-		let startX = e.clientX;
-		let startY = e.clientY;
-		let hasDragged = false;
-		let isPointerActive = true;
-
-		const currentTarget = /** @type {HTMLElement} */ (e.currentTarget);
-		const rect = currentTarget.getBoundingClientRect();
-		const grabOffsetX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
-		const grabOffsetY = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+	/** @param {DragEvent} e */
+	function handleDragStart(e) {
+		if (!e.dataTransfer) return;
+		e.dataTransfer.effectAllowed = "copyMove";
 
 		const isSelected = !inSearchPanel && [...interactionStore.selectedCells].some(cell => cell.startsWith(card.id + ":"));
 		let selectedCards = [];
 		if (isSelected) {
 			const selectedIds = new Set(
-				[...interactionStore.selectedCells].map(cell => cell.split(":")[0])
+				[...interactionStore.selectedCells].map(cell => cell.split(':')[0])
 			);
-			const boards = ["commander", "companion", "mainboard", "sideboard", "maybeboard"];
+			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
 			for (const id of selectedIds) {
 				for (const board of boards) {
 					const boardArray = (/** @type {any} */ (deckStore))[board];
@@ -195,61 +173,18 @@
 			card: card,
 			selectedCards: selectedCards.length > 0 ? selectedCards : null
 		};
+		e.dataTransfer.setData(
+			"application/x-budgericard",
+			JSON.stringify(data),
+		);
+		e.dataTransfer.setData("text/plain", card.name);
 
-		/** @param {PointerEvent} moveEvent */
-		const onPointerMove = (moveEvent) => {
-			if (!isPointerActive) return;
-			const dist = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY);
-			if (!hasDragged && dist > 4) {
-				hasDragged = true;
-				isDragging = true;
-				interactionStore.startCardDrag({
-					card: card,
-					price: price,
-					zone: zone || (inSearchPanel ? searchStore.collection : deckStore.activeBoard),
-					selectedCards: selectedCards.length > 0 ? selectedCards : null,
-					isFlipped: isFlipped,
-					isRotated: isRotated,
-					width: rect.width || 140,
-					height: rect.height || 196,
-					grabOffsetX: grabOffsetX,
-					grabOffsetY: grabOffsetY,
-					cursorX: moveEvent.clientX,
-					cursorY: moveEvent.clientY
-				});
-			}
-			if (hasDragged) {
-				interactionStore.updateCardDragPosition(moveEvent.clientX, moveEvent.clientY);
-			}
-		};
+		setTimeout(() => (isDragging = true), 0);
+	}
 
-		/** @param {PointerEvent} upEvent */
-		const onPointerUp = (upEvent) => {
-			window.removeEventListener("pointermove", onPointerMove);
-			window.removeEventListener("pointerup", onPointerUp);
-			window.removeEventListener("pointercancel", onPointerUp);
-			isPointerActive = false;
-
-			if (hasDragged) {
-				isDragging = false;
-				const dropTarget = document.elementFromPoint(upEvent.clientX, upEvent.clientY);
-				if (dropTarget) {
-					const evt = new CustomEvent("budgericard-pointer-drop", {
-						bubbles: true,
-						detail: { data, clientX: upEvent.clientX, clientY: upEvent.clientY }
-					});
-					dropTarget.dispatchEvent(evt);
-				}
-				interactionStore.endCardDrag();
-			} else {
-				const handler = onclick || handleLeftClick;
-				handler(e);
-			}
-		};
-
-		window.addEventListener("pointermove", onPointerMove);
-		window.addEventListener("pointerup", onPointerUp);
-		window.addEventListener("pointercancel", onPointerUp);
+	/** @param {DragEvent} e */
+	function handleDragEnd(e) {
+		isDragging = false;
 	}
 
 	/** @param {MouseEvent | null} e */
@@ -270,7 +205,7 @@
 	style="{style}"
 	class:is-dragging={isDragging}
 	class:is-selected={!inSearchPanel && [...interactionStore.selectedCells].some(cell => cell.startsWith(card.id + ":"))}
-	onpointerdown={handlePointerDown}
+	onclick={onclick || handleLeftClick}
 	onkeydown={(e) => {
 		if (e.key === "Enter" || e.key === " ") {
 			e.preventDefault();
@@ -285,7 +220,6 @@
 		interactionStore.showMenu(e, card, currentBoard, price);
 	}}
 	onmouseenter={() => {
-		if (interactionStore.isDraggingCard) return;
 		const currentBoard = zone || (inSearchPanel
 			? searchStore.collection
 			: deckStore.activeBoard);
@@ -294,23 +228,18 @@
 	onmouseleave={() => {
 		interactionStore.unregisterHover();
 	}}
+	ondragstart={handleDragStart}
+	ondragend={handleDragEnd}
+	draggable="true"
 	role="button"
 	tabindex="0"
-	data-tooltip-img={(!inSearchPanel && !disableTooltip && !interactionStore.isDraggingCard) ? (meta.card_faces && meta.card_faces.length > 1 && meta.card_faces[0].image_uris ? (isFlipped ? meta.card_faces[1].image_uris?.normal : meta.card_faces[0].image_uris?.normal) : (meta.image_uris?.normal || "")) : undefined}
+	data-tooltip-img={(!inSearchPanel && !disableTooltip) ? (meta.card_faces && meta.card_faces.length > 1 && meta.card_faces[0].image_uris ? (isFlipped ? meta.card_faces[1].image_uris?.normal : meta.card_faces[0].image_uris?.normal) : (meta.image_uris?.normal || "")) : undefined}
 	aria-label="{inSearchPanel ? 'Add' : 'Remove'} {card.name}"
 >
 	{@render children({ isDragging, isFlipped, isRotated, toggleFlip, toggleRotate })}
 </div>
 
 <style>
-	.card-shell.is-dragging {
-		opacity: 0.3 !important;
-		filter: grayscale(0.6) brightness(0.75);
-		transform: scale(0.97) !important;
-		transition: opacity 0.15s ease, transform 0.15s ease;
-		pointer-events: none;
-	}
-
 	.card-shell.is-selected {
 		box-shadow: 0 0 0 3px hsl(var(--primary)), 0 12px 30px -10px rgba(0, 0, 0, 0);
 		border-radius: var(--radius-md);
