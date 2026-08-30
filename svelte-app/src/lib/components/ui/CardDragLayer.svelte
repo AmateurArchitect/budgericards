@@ -95,7 +95,7 @@
 			const shadowOffsetX = (-rotY * 1.6).toFixed(1);
 			const shadowOffsetY = (28 + rotX * 1.1).toFixed(1);
 
-			containerEl.style.transform = `translate3d(${posX.toFixed(1)}px, ${posY.toFixed(1)}px, 0) scale(1.08) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg)`;
+			containerEl.style.transform = `translate3d(${posX.toFixed(1)}px, ${posY.toFixed(1)}px, 0) perspective(600px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg) scale3d(1.08, 1.08, 1.08)`;
 			containerEl.style.setProperty("--sheen-angle", `${sheenAngle.toFixed(1)}deg`);
 			containerEl.style.setProperty("--sheen-opacity", `${sheenOpacity.toFixed(2)}`);
 			containerEl.style.setProperty("--shadow-x", `${shadowOffsetX}px`);
@@ -208,8 +208,8 @@
 		inset: 0;
 		pointer-events: none;
 		z-index: 999999;
-		overflow: hidden;
-		perspective: 800px;
+		overflow: visible;
+		perspective: 600px;
 	}
 
 	.dragged-card-container {
