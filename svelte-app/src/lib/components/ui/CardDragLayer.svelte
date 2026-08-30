@@ -14,21 +14,19 @@
 	/** @type {HTMLElement | undefined} */
 	let containerEl = $state();
 
-	// Physics state for smooth interpolation
+	// Physics state: spring-damper model for tactile card physics
 	let posX = 0;
 	let posY = 0;
 	let targetX = 0;
 	let targetY = 0;
-	let lastRawX = 0;
-	let lastRawY = 0;
-	let lastTime = 0;
-
-	let velX = 0;
-	let velY = 0;
 
 	let rotX = 0;
 	let rotY = 0;
 	let rotZ = 0;
+
+	let rotVelX = 0;
+	let rotVelY = 0;
+	let rotVelZ = 0;
 
 	let animFrameId = 0;
 
@@ -60,52 +58,44 @@
 			return;
 		}
 
-		if (!lastTime) lastTime = time;
-		const dt = Math.min((time - lastTime) / 1000, 0.1); // cap dt
-		lastTime = time;
-
-		// Calculate target coordinates based on mouse position and grab offset
+		// Target coordinates from mouse and click grab offset
 		targetX = dragState.cursorX - dragState.grabOffsetX;
 		targetY = dragState.cursorY - dragState.grabOffsetY;
 
-		// Instantaneous raw mouse velocity
-		if (lastRawX !== 0 || lastRawY !== 0) {
-			const instantVelX = (dragState.cursorX - lastRawX) / Math.max(dt, 0.016);
-			const instantVelY = (dragState.cursorY - lastRawY) / Math.max(dt, 0.016);
+		// Smooth position tracking (card lags slightly behind cursor to create weight)
+		posX = lerp(posX, targetX, 0.28);
+		posY = lerp(posY, targetY, 0.28);
 
-			// Smooth velocity with momentum
-			velX = lerp(velX, instantVelX, 0.25);
-			velY = lerp(velY, instantVelY, 0.25);
-		}
-		lastRawX = dragState.cursorX;
-		lastRawY = dragState.cursorY;
+		// Displacement / Lag creates natural 3D tilt & banking
+		const lagX = targetX - posX;
+		const lagY = targetY - posY;
 
-		// Exponential decay on velocity when cursor slows
-		velX *= 0.88;
-		velY *= 0.88;
+		// Dynamic 3D Euler angles based on movement lag
+		// Moving right (lagX > 0) -> right side banks away/up around Y, slight roll on Z
+		// Moving down (lagY > 0) -> bottom edge banks away around X
+		const targetRotY = clamp(lagX * 0.75, -28, 28);
+		const targetRotX = clamp(-lagY * 0.65, -24, 24);
+		const targetRotZ = clamp(lagX * 0.28, -14, 14);
 
-		// Target 3D rotation angles based on velocity (MTG Arena style banking & pitch)
-		// Moving right (velX > 0) -> bank card so left/right rotates around Y-axis
-		// Moving down (velY > 0) -> pitch top edge away around X-axis
-		const targetRotY = clamp(velX * 0.018, -20, 20);
-		const targetRotX = clamp(-velY * 0.016, -18, 18);
-		const targetRotZ = clamp(velX * 0.009, -10, 10);
+		// Spring-damper physics with elastic bounce/overshoot
+		const springStiffness = 0.22;
+		const damping = 0.76;
 
-		// Spring/Lerp rotation towards targets
-		rotX = lerp(rotX, targetRotX, 0.2);
-		rotY = lerp(rotY, targetRotY, 0.2);
-		rotZ = lerp(rotZ, targetRotZ, 0.2);
+		rotVelX = (rotVelX + (targetRotX - rotX) * springStiffness) * damping;
+		rotX += rotVelX;
 
-		// Smooth position tracking
-		posX = lerp(posX, targetX, 0.35);
-		posY = lerp(posY, targetY, 0.35);
+		rotVelY = (rotVelY + (targetRotY - rotY) * springStiffness) * damping;
+		rotY += rotVelY;
 
-		// Update DOM directly for maximum 60/120fps performance
+		rotVelZ = (rotVelZ + (targetRotZ - rotZ) * springStiffness) * damping;
+		rotZ += rotVelZ;
+
+		// Directly apply GPU-accelerated 3D transforms
 		if (containerEl) {
-			const sheenAngle = 115 + rotY * 1.5;
-			const sheenOpacity = clamp(0.12 + Math.abs(rotY) * 0.01 + Math.abs(rotX) * 0.01, 0.08, 0.32);
+			const sheenAngle = 115 + rotY * 1.8;
+			const sheenOpacity = clamp(0.12 + (Math.abs(rotY) + Math.abs(rotX)) * 0.008, 0.08, 0.4);
 
-			containerEl.style.transform = `translate3d(${posX.toFixed(2)}px, ${posY.toFixed(2)}px, 0) scale(1.07) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg)`;
+			containerEl.style.transform = `translate3d(${posX.toFixed(1)}px, ${posY.toFixed(1)}px, 0) scale(1.08) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg)`;
 			containerEl.style.setProperty("--sheen-angle", `${sheenAngle.toFixed(1)}deg`);
 			containerEl.style.setProperty("--sheen-opacity", `${sheenOpacity.toFixed(2)}`);
 		}
@@ -115,17 +105,17 @@
 
 	$effect(() => {
 		if (isDragging) {
-			// Initialize position to match starting cursor immediately
+			// Initialize position to mouse position on start
 			posX = dragState.cursorX - dragState.grabOffsetX;
 			posY = dragState.cursorY - dragState.grabOffsetY;
-			lastRawX = dragState.cursorX;
-			lastRawY = dragState.cursorY;
-			velX = 0;
-			velY = 0;
+			targetX = posX;
+			targetY = posY;
 			rotX = 0;
 			rotY = 0;
 			rotZ = 0;
-			lastTime = 0;
+			rotVelX = 0;
+			rotVelY = 0;
+			rotVelZ = 0;
 
 			cancelAnimationFrame(animFrameId);
 			animFrameId = requestAnimationFrame(updatePhysics);
@@ -142,6 +132,7 @@
 		/** @param {DragEvent | MouseEvent | PointerEvent} e */
 		const handleDragMove = (e) => {
 			if (!interactionStore.isDraggingCard) return;
+			// Filter out invalid (0, 0) coordinates sent by some browsers on drag lifecycle events
 			if (e.clientX === 0 && e.clientY === 0) return;
 			interactionStore.updateCardDragPosition(e.clientX, e.clientY);
 		};
@@ -152,16 +143,17 @@
 			}
 		};
 
-		window.addEventListener("dragover", handleDragMove, { passive: true });
-		window.addEventListener("drag", handleDragMove, { passive: true });
-		window.addEventListener("pointermove", handleDragMove, { passive: true });
+		// Capture dragover on document to guarantee high-frequency events without throttling
+		document.addEventListener("dragover", handleDragMove, { capture: true, passive: true });
+		document.addEventListener("drag", handleDragMove, { capture: true, passive: true });
+		window.addEventListener("pointermove", handleDragMove, { capture: true, passive: true });
 		window.addEventListener("dragend", handleDragEnd);
 		window.addEventListener("drop", handleDragEnd);
 
 		return () => {
-			window.removeEventListener("dragover", handleDragMove);
-			window.removeEventListener("drag", handleDragMove);
-			window.removeEventListener("pointermove", handleDragMove);
+			document.removeEventListener("dragover", handleDragMove, { capture: true });
+			document.removeEventListener("drag", handleDragMove, { capture: true });
+			window.removeEventListener("pointermove", handleDragMove, { capture: true });
 			window.removeEventListener("dragend", handleDragEnd);
 			window.removeEventListener("drop", handleDragEnd);
 			cancelAnimationFrame(animFrameId);

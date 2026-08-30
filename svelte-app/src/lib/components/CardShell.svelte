@@ -143,7 +143,7 @@
 	/** @param {DragEvent} e */
 	function handleDragStart(e) {
 		if (!e.dataTransfer) return;
-		e.dataTransfer.effectAllowed = "copyMove";
+		e.dataTransfer.effectAllowed = "move";
 
 		// Suppress browser default translucent drag ghost
 		const blank = getBlankDragImage();
@@ -280,9 +280,9 @@
 
 <style>
 	.card-shell.is-dragging {
-		opacity: 0.12 !important;
-		filter: grayscale(1) brightness(0.8);
-		transform: scale(0.96) !important;
+		opacity: 0.3 !important;
+		filter: grayscale(0.6) brightness(0.75);
+		transform: scale(0.97) !important;
 		transition: opacity 0.15s ease, transform 0.15s ease;
 		pointer-events: none;
 	}
