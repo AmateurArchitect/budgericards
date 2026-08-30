@@ -155,6 +155,25 @@
 		}
 	}
 
+	/** @param {any} e */
+	function handleGlobalPointerDrop(e) {
+		if (!e.detail?.data) return;
+		const data = e.detail.data;
+		const target = /** @type {HTMLElement} */ (e.target);
+		const deckArea = document.querySelector(".deck-area");
+		const isOverDeck = deckArea && (deckArea === target || deckArea.contains(target));
+
+		if (data.fromDeck) {
+			if (!isOverDeck) {
+				deckStore.removeCard(data.name, data.sourceBoard || deckStore.activeBoard, data.id);
+			}
+		} else {
+			if (isOverDeck) {
+				deckStore.addCard(data.name, deckStore.activeBoard, data.price, data.card);
+			}
+		}
+	}
+
 	/** @param {DragEvent} e */
 	function handleGlobalDragOver(e) {
 		e.preventDefault();
@@ -190,6 +209,7 @@
 	aria-label="Budgericards Deckbuilder"
 	ondragover={handleGlobalDragOver}
 	ondrop={handleGlobalDrop}
+	onbudgericard-pointer-drop={handleGlobalPointerDrop}
 	style={Object.entries(layoutStore.cssVariables).map(([k, v]) => `${k}: ${v}`).join("; ")}
 >
 	<main class="app-layout">

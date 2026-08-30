@@ -140,24 +140,29 @@
 		}
 	}
 
-	/** @param {DragEvent} e */
-	function handleDragStart(e) {
-		if (!e.dataTransfer) return;
-		e.dataTransfer.effectAllowed = "move";
+	/** @param {PointerEvent} e */
+	function handlePointerDown(e) {
+		if (e.button !== 0) return; // Only left click
+		const target = /** @type {HTMLElement} */ (e.target);
+		if (target.closest(".stack-badge") || target.closest("input") || target.closest("button") || target.closest(".flip-btn")) return;
 
-		// Suppress browser default translucent drag ghost
-		const blank = getBlankDragImage();
-		if (blank && e.dataTransfer.setDragImage) {
-			e.dataTransfer.setDragImage(blank, 0, 0);
-		}
+		let startX = e.clientX;
+		let startY = e.clientY;
+		let hasDragged = false;
+		let isPointerActive = true;
+
+		const currentTarget = /** @type {HTMLElement} */ (e.currentTarget);
+		const rect = currentTarget.getBoundingClientRect();
+		const grabOffsetX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+		const grabOffsetY = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
 
 		const isSelected = !inSearchPanel && [...interactionStore.selectedCells].some(cell => cell.startsWith(card.id + ":"));
 		let selectedCards = [];
 		if (isSelected) {
 			const selectedIds = new Set(
-				[...interactionStore.selectedCells].map(cell => cell.split(':')[0])
+				[...interactionStore.selectedCells].map(cell => cell.split(":")[0])
 			);
-			const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+			const boards = ["commander", "companion", "mainboard", "sideboard", "maybeboard"];
 			for (const id of selectedIds) {
 				for (const board of boards) {
 					const boardArray = (/** @type {any} */ (deckStore))[board];
@@ -190,39 +195,61 @@
 			card: card,
 			selectedCards: selectedCards.length > 0 ? selectedCards : null
 		};
-		e.dataTransfer.setData(
-			"application/x-budgericard",
-			JSON.stringify(data),
-		);
-		e.dataTransfer.setData("text/plain", card.name);
 
-		const target = /** @type {HTMLElement} */ (e.currentTarget);
-		const rect = target.getBoundingClientRect();
-		const grabOffsetX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
-		const grabOffsetY = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+		/** @param {PointerEvent} moveEvent */
+		const onPointerMove = (moveEvent) => {
+			if (!isPointerActive) return;
+			const dist = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY);
+			if (!hasDragged && dist > 4) {
+				hasDragged = true;
+				isDragging = true;
+				interactionStore.startCardDrag({
+					card: card,
+					price: price,
+					zone: zone || (inSearchPanel ? searchStore.collection : deckStore.activeBoard),
+					selectedCards: selectedCards.length > 0 ? selectedCards : null,
+					isFlipped: isFlipped,
+					isRotated: isRotated,
+					width: rect.width || 140,
+					height: rect.height || 196,
+					grabOffsetX: grabOffsetX,
+					grabOffsetY: grabOffsetY,
+					cursorX: moveEvent.clientX,
+					cursorY: moveEvent.clientY
+				});
+			}
+			if (hasDragged) {
+				interactionStore.updateCardDragPosition(moveEvent.clientX, moveEvent.clientY);
+			}
+		};
 
-		interactionStore.startCardDrag({
-			card: card,
-			price: price,
-			zone: zone || (inSearchPanel ? searchStore.collection : deckStore.activeBoard),
-			selectedCards: selectedCards.length > 0 ? selectedCards : null,
-			isFlipped: isFlipped,
-			isRotated: isRotated,
-			width: rect.width || 140,
-			height: rect.height || 196,
-			grabOffsetX: grabOffsetX,
-			grabOffsetY: grabOffsetY,
-			cursorX: e.clientX,
-			cursorY: e.clientY
-		});
+		/** @param {PointerEvent} upEvent */
+		const onPointerUp = (upEvent) => {
+			window.removeEventListener("pointermove", onPointerMove);
+			window.removeEventListener("pointerup", onPointerUp);
+			window.removeEventListener("pointercancel", onPointerUp);
+			isPointerActive = false;
 
-		setTimeout(() => (isDragging = true), 0);
-	}
+			if (hasDragged) {
+				isDragging = false;
+				const dropTarget = document.elementFromPoint(upEvent.clientX, upEvent.clientY);
+				if (dropTarget) {
+					const evt = new CustomEvent("budgericard-pointer-drop", {
+						bubbles: true,
+						detail: { data, clientX: upEvent.clientX, clientY: upEvent.clientY }
+					});
+					dropTarget.dispatchEvent(evt);
+				}
+				interactionStore.endCardDrag();
+			} else {
+				const handler = onclick || handleLeftClick;
+				handler(e);
+			}
+		};
 
-	/** @param {DragEvent} e */
-	function handleDragEnd(e) {
-		isDragging = false;
-		interactionStore.endCardDrag();
+		window.addEventListener("pointermove", onPointerMove);
+		window.addEventListener("pointerup", onPointerUp);
+		window.addEventListener("pointercancel", onPointerUp);
 	}
 
 	/** @param {MouseEvent | null} e */
@@ -243,7 +270,7 @@
 	style="{style}"
 	class:is-dragging={isDragging}
 	class:is-selected={!inSearchPanel && [...interactionStore.selectedCells].some(cell => cell.startsWith(card.id + ":"))}
-	onclick={onclick || handleLeftClick}
+	onpointerdown={handlePointerDown}
 	onkeydown={(e) => {
 		if (e.key === "Enter" || e.key === " ") {
 			e.preventDefault();
@@ -267,9 +294,6 @@
 	onmouseleave={() => {
 		interactionStore.unregisterHover();
 	}}
-	ondragstart={handleDragStart}
-	ondragend={handleDragEnd}
-	draggable="true"
 	role="button"
 	tabindex="0"
 	data-tooltip-img={(!inSearchPanel && !disableTooltip && !interactionStore.isDraggingCard) ? (meta.card_faces && meta.card_faces.length > 1 && meta.card_faces[0].image_uris ? (isFlipped ? meta.card_faces[1].image_uris?.normal : meta.card_faces[0].image_uris?.normal) : (meta.image_uris?.normal || "")) : undefined}

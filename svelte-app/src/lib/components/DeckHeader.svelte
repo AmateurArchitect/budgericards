@@ -440,6 +440,19 @@
 				ondragover={handleArtDragOver}
 				ondragleave={handleArtDragLeave}
 				ondrop={handleArtDrop}
+				onbudgericard-pointer-drop={(e) => {
+					e.stopPropagation();
+					const data = e.detail?.data;
+					if (data) {
+						const meta = deckStore.metadata[data.name?.toLowerCase()] || data.card;
+						if (meta) {
+							const art =
+								meta.image_uris?.art_crop ||
+								meta.card_faces?.[0]?.image_uris?.art_crop;
+							if (art) deckStore.coverArt = art;
+						}
+					}
+				}}
 				title="Drop a card here to set deck art"
 				aria-label="Deck cover art drop zone"
 				role="region"
