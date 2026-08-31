@@ -685,28 +685,33 @@
 			{ divider: true },
 		];
 
-		// View Commander option — flat items with tooltipImg so card art appears on hover directly
+		// View Commander option — single item; multi-commander shows both images side by side on hover
 		if (commanders.length > 0) {
-			commanders.forEach((/** @type {any} */ cmd) => {
-				const meta =
-					(cards.metadata || {})[cmd.name?.toLowerCase()] || {};
-				const normalImg =
+			const commanderImgs = commanders.map((/** @type {any} */ cmd) => {
+				const meta = (cards.metadata || {})[cmd.name?.toLowerCase()] || {};
+				return (
 					meta.image_uris?.normal ||
 					meta.card_faces?.[0]?.image_uris?.normal ||
 					meta.image ||
-					`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cmd.name)}&format=image`;
+					`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cmd.name)}&format=image`
+				);
+			});
 
-				items.push({
-					label: commanders.length > 1 ? `View Commander · ${cmd.name}` : "View Commander",
-					tooltipImg: normalImg,
-					showEye: true,
-					action: () => {
+			items.push({
+				label: "View Commander",
+				...(commanderImgs.length > 1
+					? { tooltipImgs: commanderImgs.join(",") }
+					: { tooltipImg: commanderImgs[0] }),
+				showEye: true,
+				action: () => {
+					// Open Scryfall for each commander in its own tab
+					commanders.forEach((/** @type {any} */ cmd) => {
 						window.open(
 							`https://scryfall.com/search?q=!%22${encodeURIComponent(cmd.name)}%22`,
 							"_blank",
 						);
-					},
-				});
+					});
+				},
 			});
 		}
 

@@ -11,6 +11,7 @@
 	 * @property {string} [thumbnail]
 	 * @property {string} [subtitle]
 	 * @property {string} [tooltipImg]
+	 * @property {string} [tooltipImgs]
 	 * @property {string} [valueBadge]
 	 * @property {boolean} [pill]
 	 * @property {boolean} [showEye]
@@ -279,6 +280,7 @@
 								class:has-thumbnail={Boolean(item.thumbnail)}
 								class:has-subtitle={Boolean(item.subtitle)}
 								data-tooltip-img={item.tooltipImg || null}
+								data-tooltip-imgs={item.tooltipImgs || null}
 								onclick={() => {
 									if (!item.submenu) {
 										handleAction(item);

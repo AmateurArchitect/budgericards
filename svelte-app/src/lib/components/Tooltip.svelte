@@ -9,6 +9,8 @@
 
 	let visible = $state(false);
 	let imgUrl = $state("");
+	/** @type {string[]} */
+	let imgUrls = $state([]);
 	let x = $state(0);
 	let y = $state(0);
 	let isEditingField = $state(false);
@@ -25,15 +27,22 @@
 		const target = /** @type {HTMLElement} */ (e.target);
 		if (!target) return;
 		const trigger = /** @type {HTMLElement | null} */ (
-			target.closest("[data-tooltip-img]")
+			target.closest("[data-tooltip-imgs], [data-tooltip-img]")
 		);
 		if (!trigger) {
 			visible = false;
 			return;
 		}
 
-		imgUrl = trigger.getAttribute("data-tooltip-img") || "";
-		if (!imgUrl) return;
+		const multiRaw = trigger.getAttribute("data-tooltip-imgs");
+		if (multiRaw) {
+			imgUrls = multiRaw.split(",").map(u => u.trim()).filter(Boolean);
+			imgUrl = "";
+		} else {
+			imgUrl = trigger.getAttribute("data-tooltip-img") || "";
+			imgUrls = [];
+		}
+		if (!imgUrl && imgUrls.length === 0) return;
 
 		visible = true;
 		// Measure immediately and on the first frame
@@ -55,7 +64,7 @@
 		const target = /** @type {HTMLElement} */ (e.target);
 		if (!target) return;
 		const trigger = /** @type {HTMLElement | null} */ (
-			target.closest("[data-tooltip-img]")
+			target.closest("[data-tooltip-imgs], [data-tooltip-img]")
 		);
 
 		if (trigger) {
@@ -81,7 +90,7 @@
 	function handleMouseOut(e) {
 		if (interactionStore.isMenuOpen && interactionStore.menuCard) return;
 		const target = /** @type {HTMLElement} */ (e.target);
-		if (target && target.closest("[data-tooltip-img]")) {
+		if (target && target.closest("[data-tooltip-imgs], [data-tooltip-img]")) {
 			visible = false;
 			currentTrigger = null;
 		}
@@ -266,24 +275,36 @@
 	bind:this={tooltipEl}
 	class="card-tooltip"
 	class:visible={visible && !isEditingField}
+	class:multi-image={imgUrls.length > 1}
 	style="left: {x}px; top: {y}px;"
 >
-	<div class="card-tooltip-container" class:illegal={!legality.isLegal}>
-		<img src={lockedImgUrl} alt="Card Preview" />
-		{#if settingsStore.showPrices && currentPrice !== null}
-			<div class="tooltip-price" in:fade={{ duration: 150 }}>
-				${Number(currentPrice).toFixed(2)}
-			</div>
-		{/if}
+	{#if imgUrls.length > 1}
+		<!-- Side-by-side multi-commander layout -->
+		<div class="card-tooltip-multi">
+			{#each imgUrls as url}
+				<div class="card-tooltip-container">
+					<img src={url} alt="Card Preview" />
+				</div>
+			{/each}
+		</div>
+	{:else}
+		<div class="card-tooltip-container" class:illegal={!legality.isLegal}>
+			<img src={lockedImgUrl} alt="Card Preview" />
+			{#if settingsStore.showPrices && currentPrice !== null}
+				<div class="tooltip-price" in:fade={{ duration: 150 }}>
+					${Number(currentPrice).toFixed(2)}
+				</div>
+			{/if}
 
-		{#if !legality.isLegal}
-			<div class="legality-warning" in:fade={{ duration: 150 }}>
-				{#each legality.reasons as reason}
-					<div class="reason">{reason}</div>
-				{/each}
-			</div>
-		{/if}
-	</div>
+			{#if !legality.isLegal}
+				<div class="legality-warning" in:fade={{ duration: 150 }}>
+					{#each legality.reasons as reason}
+						<div class="reason">{reason}</div>
+					{/each}
+				</div>
+			{/if}
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -307,6 +328,17 @@
 		box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.8);
 		will-change: left, top, opacity, transform;
 		border-radius: 12px;
+	}
+
+	.card-tooltip.multi-image {
+		width: calc(var(--popover-width) * 2 + 6px);
+	}
+
+	.card-tooltip-multi {
+		display: flex;
+		gap: 6px;
+		border-radius: 12px;
+		overflow: hidden;
 	}
 
 	.card-tooltip-container {
