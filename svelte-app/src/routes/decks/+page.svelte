@@ -685,9 +685,9 @@
 			{ divider: true },
 		];
 
-		// View Commander option with submenu
+		// View Commander option — flat items with tooltipImg so card art appears on hover directly
 		if (commanders.length > 0) {
-			const commanderSubmenu = commanders.map((/** @type {any} */ cmd) => {
+			commanders.forEach((/** @type {any} */ cmd) => {
 				const meta =
 					(cards.metadata || {})[cmd.name?.toLowerCase()] || {};
 				const normalImg =
@@ -696,8 +696,8 @@
 					meta.image ||
 					`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cmd.name)}&format=image`;
 
-				return {
-					label: cmd.name,
+				items.push({
+					label: commanders.length > 1 ? `View Commander · ${cmd.name}` : "View Commander",
 					tooltipImg: normalImg,
 					showEye: true,
 					action: () => {
@@ -706,12 +706,7 @@
 							"_blank",
 						);
 					},
-				};
-			});
-
-			items.push({
-				label: "View Commander",
-				submenu: commanderSubmenu,
+				});
 			});
 		}
 
