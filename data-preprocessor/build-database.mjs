@@ -50,6 +50,23 @@ function isCardAllowed(card) {
   return true;
 }
 
+function parseCollectorNumber(cn) {
+  if (!cn) return { num: 99999, hasSuffix: false };
+  const str = String(cn).trim();
+  const match = str.match(/^(\d+)([a-zA-Z★]+)?$/);
+  if (match) {
+    return {
+      num: parseInt(match[1], 10),
+      hasSuffix: !!match[2]
+    };
+  }
+  const parsed = parseInt(str, 10);
+  return {
+    num: isNaN(parsed) ? 99999 : parsed,
+    hasSuffix: true
+  };
+}
+
 function isDefaultFrame(card) {
   if (!['1993', '1997', '2003', '2015'].includes(card.frame)) return false;
   if (card.border_color !== 'black') return false;
@@ -60,17 +77,10 @@ function isDefaultFrame(card) {
     effects.includes('colorshifted') || 
     effects.includes('futureshifted') || 
     effects.includes('inverted') || 
-    effects.includes('extendedart') ||
-    effects.includes('universesbeyond')
+    effects.includes('extendedart')
   ) return false;
   
   if (card.security_stamp === 'triangle') return false;
-  
-  const ubSets = new Set([
-    'msc', '40k', 'ltr', 'ltc', 'who', 'pip', 'acr'
-  ]);
-  if (ubSets.has(card.set)) return false;
-  
   if (card.full_art === true || card.textless === true || card.oversized === true || card.promo === true) return false;
   if (card.set_type === 'masterpiece') return false;
   if (card.set === 'sld' || card.set_type === 'box' || card.set_type === 'arsenal' || card.set_type === 'treasure_chest') return false;
@@ -82,7 +92,7 @@ function isDefaultFrame(card) {
     'borderless', 'extendedart', 'neonink', 'gilded', 'stepandcompleat', 
     'halo', 'surgefoil', 'textured', 'thick', 'retro', 'playpromo', 
     'wizardsplaynetwork', 'judgegift', 'buyabox', 'boosterfun',
-    'prerelease', 'datestamped', 'promopack', 'stamped'
+    'prerelease', 'datestamped', 'promopack', 'stamped', 'serialized'
   ];
   if (pTypes.some(pt => badPromoTypes.includes(pt))) return false;
   
@@ -106,6 +116,11 @@ function pickBestImage(printings) {
     
     const timeDiff = new Date(a.released_at) - new Date(b.released_at);
     if (timeDiff !== 0) return timeDiff;
+
+    const numA = parseCollectorNumber(a.collector_number).num;
+    const numB = parseCollectorNumber(b.collector_number).num;
+    if (numA !== numB) return numA - numB;
+
     const aIsNonFoil = a.finishes && a.finishes.includes('nonfoil');
     const bIsNonFoil = b.finishes && b.finishes.includes('nonfoil');
     if (aIsNonFoil && !bIsNonFoil) return 1;
@@ -115,7 +130,12 @@ function pickBestImage(printings) {
   const defaults = sorted.filter(isDefaultFrame);
   
   if (defaults.length === 0) {
-    return getImageUrl(sorted[sorted.length - 1]);
+    const fallbackSorted = [...sorted].sort((a, b) => {
+      const numA = parseCollectorNumber(a.collector_number).num;
+      const numB = parseCollectorNumber(b.collector_number).num;
+      return numA - numB;
+    });
+    return getImageUrl(fallbackSorted[0]);
   }
   
   const veryFirstPrinting = sorted[0];
@@ -135,7 +155,12 @@ function pickBestImage(printings) {
   const bestFramePrintings = defaults.filter(c => c.frame === bestFrame);
   
   if (veryFirstPrinting.frame === '2015') {
-    // If first printed in 2015 frame, we want the oldest printing (original art)
+    bestFramePrintings.sort((a, b) => {
+      const numA = parseCollectorNumber(a.collector_number).num;
+      const numB = parseCollectorNumber(b.collector_number).num;
+      if (numA !== numB) return numA - numB;
+      return new Date(a.released_at) - new Date(b.released_at);
+    });
     return getImageUrl(bestFramePrintings[0]);
   } else {
     // If first printed in an older frame but reprinted in a newer frame:
@@ -145,13 +170,23 @@ function pickBestImage(printings) {
         c => c.illustration_id === originalIllustrationId
       );
       if (originalArtInNewFrame.length > 0) {
-        // Prefer the newest 2015 printing that uses the original artwork
-        return getImageUrl(originalArtInNewFrame[originalArtInNewFrame.length - 1]);
+        originalArtInNewFrame.sort((a, b) => {
+          const numA = parseCollectorNumber(a.collector_number).num;
+          const numB = parseCollectorNumber(b.collector_number).num;
+          if (numA !== numB) return numA - numB;
+          return new Date(b.released_at) - new Date(a.released_at);
+        });
+        return getImageUrl(originalArtInNewFrame[0]);
       }
     }
     
-    // Otherwise, fallback to the newest printing of the best frame style available
-    return getImageUrl(bestFramePrintings[bestFramePrintings.length - 1]);
+    bestFramePrintings.sort((a, b) => {
+      const numA = parseCollectorNumber(a.collector_number).num;
+      const numB = parseCollectorNumber(b.collector_number).num;
+      if (numA !== numB) return numA - numB;
+      return new Date(b.released_at) - new Date(a.released_at);
+    });
+    return getImageUrl(bestFramePrintings[0]);
   }
 }
 
@@ -314,6 +349,7 @@ rl.on('line', (line) => {
     const lightweightCard = {
       oracle_id: card.oracle_id,
       name: card.name,
+      collector_number: card.collector_number,
       lang: card.lang,
       released_at: card.released_at,
       illustration_id: card.illustration_id,
