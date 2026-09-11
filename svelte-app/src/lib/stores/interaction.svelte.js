@@ -394,6 +394,7 @@ function createInteractionStore() {
 			if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
 
 			if (state.isMenuOpen) return;
+			if (state.bulkTagsModal.isOpen) return;
 
 			const isCmdCtrl = e.metaKey || e.ctrlKey;
 			const key = e.key.toLowerCase();

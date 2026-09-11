@@ -144,6 +144,9 @@
 			const isInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName || '');
 			if (isInput) return;
 
+			// Don't fire global shortcuts while a modal dialog is open
+			if (interactionStore.bulkTagsModal.isOpen) return;
+
 			if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
 				if (e.shiftKey) {
 					deckStore.redo();

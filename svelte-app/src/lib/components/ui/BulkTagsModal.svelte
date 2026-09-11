@@ -1,115 +1,167 @@
 <script>
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
-	import { fade, scale } from "svelte/transition";
-	import { X, Plus, Tags } from "lucide-svelte";
+	import { fade, scale, fly } from "svelte/transition";
+	import { X, Plus, Tags, Star, ChevronsRight, Pencil, Check } from "lucide-svelte";
 	import Input from "$lib/components/ui/Input.svelte";
 	import Button from "$lib/components/ui/Button.svelte";
-	import { untrack } from "svelte";
 
-	/** @type {string[]} */
-	let tagUnion = $state([]);
-	/** @type {Set<string>} */
-	let sharedTags = $state(new Set());
-	let newTagInput = $state("");
 	/** @type {any[]} */
 	let cards = $state([]);
+	let newTagInput = $state("");
+	/** @type {string | null} */
+	let editingTag = $state(null);
+	let editingValue = $state("");
 
-	// Derived: all tags used elsewhere in the deck (for suggestions)
+	let isOpen = $derived(interactionStore.bulkTagsModal.isOpen);
+
+	// Reactively sync cards from the store when modal opens
+	$effect(() => {
+		if (isOpen) {
+			cards = interactionStore.bulkTagsModal.cards || [];
+		}
+	});
+
+	// Live-derived tag rows — always reads fresh from deckStore
+	let tagRows = $derived.by(() => {
+		if (!isOpen || cards.length === 0) return [];
+
+		/** @type {Map<string, { count: number; notPrimaryCount: number }>} */
+		const unionMap = new Map();
+
+		for (const snapshotCard of cards) {
+			// Read live card data
+			const result = deckStore.findCardById(snapshotCard.id);
+			const liveCard = result?.card ?? snapshotCard;
+
+			if (liveCard.tags) {
+				for (const t of liveCard.tags) {
+					if (!unionMap.has(t)) unionMap.set(t, { count: 0, notPrimaryCount: 0 });
+					const entry = unionMap.get(t);
+					entry.count++;
+					if (liveCard.primaryTag !== t) entry.notPrimaryCount++;
+				}
+			}
+		}
+
+		return [...unionMap.entries()]
+			.map(([tag, { count, notPrimaryCount }]) => ({
+				tag,
+				count,
+				isShared: count === cards.length,
+				needsPrimary: count === cards.length && notPrimaryCount > 0,
+			}))
+			.sort((a, b) => {
+				// Shared first, then alphabetical
+				if (a.isShared && !b.isShared) return -1;
+				if (!a.isShared && b.isShared) return 1;
+				return a.tag.localeCompare(b.tag);
+			});
+	});
+
+	// Derived deck-wide suggestions (excluding tags already in the union)
+	let tagUnionSet = $derived(new Set(tagRows.map(r => r.tag)));
+
 	let deckTagsList = $derived.by(() => {
 		const allTags = new Set();
 		const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
 		const storeAny = /** @type {any} */ (deckStore);
 		for (const board of boards) {
-			const list = storeAny[board] || [];
-			for (const c of list) {
-				if (c.tags) {
-					for (const t of c.tags) {
-						allTags.add(t);
-					}
-				}
+			for (const c of (storeAny[board] || [])) {
+				if (c.tags) for (const t of c.tags) allTags.add(t);
 			}
 		}
 		return [...allTags].sort((a, b) => a.localeCompare(b));
 	});
 
-	let isOpen = $derived(interactionStore.bulkTagsModal.isOpen);
-
-	// When modal opens, compute the union of all tags across selected cards
-	let lastOpenState = false;
-	$effect(() => {
-		const open = isOpen;
-		if (open && !lastOpenState) {
-			untrack(() => {
-				cards = interactionStore.bulkTagsModal.cards || [];
-				computeTagSets();
-				newTagInput = "";
-			});
-		}
-		lastOpenState = open;
-	});
-
-	function computeTagSets() {
-		const unionMap = new Map(); // tag -> count of cards that have it
-		for (const card of cards) {
-			if (card.tags) {
-				for (const t of card.tags) {
-					unionMap.set(t, (unionMap.get(t) || 0) + 1);
-				}
-			}
-		}
-		tagUnion = [...unionMap.keys()].sort((a, b) => {
-			// Shared-by-all tags come first
-			const aShared = unionMap.get(a) === cards.length;
-			const bShared = unionMap.get(b) === cards.length;
-			if (aShared && !bShared) return -1;
-			if (!aShared && bShared) return 1;
-			return a.localeCompare(b);
-		});
-		sharedTags = new Set(
-			[...unionMap.entries()]
-				.filter(([, count]) => count === cards.length)
-				.map(([t]) => t)
-		);
-	}
-
 	function handleClose() {
+		editingTag = null;
+		editingValue = "";
+		newTagInput = "";
 		interactionStore.closeBulkTagsModal();
 	}
 
 	/** @param {string} tag */
 	function addTagToAll(tag) {
 		const trimmed = tag.trim();
-		if (!trimmed) return;
+		if (!trimmed || tagUnionSet.has(trimmed)) return;
 		deckStore.batchUpdate(() => {
-			for (const card of cards) {
-				deckStore.addCardTag(card.id, trimmed);
-			}
+			for (const card of cards) deckStore.addCardTag(card.id, trimmed);
 		});
-		// Optimistically update local state
-		if (!tagUnion.includes(trimmed)) {
-			tagUnion = [...tagUnion, trimmed].sort((a, b) => a.localeCompare(b));
-		}
-		sharedTags = new Set([...sharedTags, trimmed]);
 		newTagInput = "";
+	}
+
+	/** @param {string} tag */
+	function extendToAll(tag) {
+		deckStore.batchUpdate(() => {
+			for (const card of cards) deckStore.addCardTag(card.id, tag);
+		});
 	}
 
 	/** @param {string} tag */
 	function removeTagFromAll(tag) {
 		deckStore.batchUpdate(() => {
-			for (const card of cards) {
-				deckStore.removeCardTag(card.id, tag);
-			}
+			for (const card of cards) deckStore.removeCardTag(card.id, tag);
 		});
-		// Optimistically update local state
-		tagUnion = tagUnion.filter(t => t !== tag);
-		const next = new Set(sharedTags);
-		next.delete(tag);
-		sharedTags = next;
+		if (editingTag === tag) {
+			editingTag = null;
+			editingValue = "";
+		}
 	}
 
-	function handleAddTag() {
-		addTagToAll(newTagInput);
+	/** @param {string} tag */
+	function setPrimaryForAll(tag) {
+		deckStore.batchUpdate(() => {
+			for (const card of cards) {
+				const result = deckStore.findCardById(card.id);
+				const liveCard = result?.card;
+				if (liveCard?.tags?.includes(tag)) {
+					deckStore.setPrimaryTag(card.id, tag);
+				}
+			}
+		});
+	}
+
+	/** @param {string} tag */
+	function startEdit(tag) {
+		editingTag = tag;
+		editingValue = tag;
+	}
+
+	function cancelEdit() {
+		editingTag = null;
+		editingValue = "";
+	}
+
+	/** @param {string} oldTag */
+	function commitEdit(oldTag) {
+		const newTag = editingValue.trim();
+		if (!newTag || newTag === oldTag) {
+			cancelEdit();
+			return;
+		}
+		// Rename tag for each selected card that has it
+		deckStore.batchUpdate(() => {
+			for (const card of cards) {
+				const result = deckStore.findCardById(card.id);
+				const liveCard = result?.card;
+				if (liveCard?.tags?.includes(oldTag)) {
+					const newTags = liveCard.tags.map((/** @type {string} */ t) => t === oldTag ? newTag : t);
+					deckStore.reorderCardTags(card.id, newTags);
+					if (liveCard.primaryTag === oldTag) {
+						deckStore.setPrimaryTag(card.id, newTag);
+					}
+				}
+			}
+		});
+		cancelEdit();
+	}
+
+	/** @param {KeyboardEvent} e
+	 *  @param {string} oldTag */
+	function handleEditKeydown(e, oldTag) {
+		if (e.key === "Enter") { e.preventDefault(); commitEdit(oldTag); }
+		if (e.key === "Escape") { e.preventDefault(); cancelEdit(); }
 	}
 </script>
 
@@ -118,9 +170,7 @@
 	<div
 		class="modal-backdrop"
 		transition:fade={{ duration: 150 }}
-		onmousedown={(e) => {
-			if (e.target === e.currentTarget) handleClose();
-		}}
+		onmousedown={(e) => { if (e.target === e.currentTarget) handleClose(); }}
 		onkeydown={(e) => { if (e.key === "Escape") handleClose(); }}
 	>
 		<div
@@ -137,48 +187,102 @@
 					<span class="modal-title">Edit Tags</span>
 					<span class="card-count-badge">{cards.length} card{cards.length !== 1 ? 's' : ''}</span>
 				</div>
-				<button class="close-btn" onclick={handleClose} aria-label="Close">
-					<X size={16} />
-				</button>
+				<button class="close-btn" onclick={handleClose} aria-label="Close"><X size={16} /></button>
 			</div>
 
 			<!-- Body -->
 			<div class="modal-body">
-				<!-- Legend -->
-				<div class="legend-row">
-					<span class="legend-item">
-						<span class="legend-dot shared"></span>
-						<span class="legend-text">Shared by all</span>
-					</span>
-					<span class="legend-item">
-						<span class="legend-dot partial"></span>
-						<span class="legend-text">Partial (some cards)</span>
-					</span>
-				</div>
 
-				<!-- Active tag pills -->
-				{#if tagUnion.length > 0}
-					<div class="active-tags-list">
-						{#each tagUnion as tag}
-							{@const isShared = sharedTags.has(tag)}
+				<!-- Vertical tag list -->
+				{#if tagRows.length > 0}
+					<div class="tag-list" role="list">
+						{#each tagRows as row (row.tag)}
 							<div
-								class="tag-badge-pill"
-								class:is-shared={isShared}
-								class:is-partial={!isShared}
-								title={isShared ? `All ${cards.length} cards have this tag` : `Only some cards have this tag`}
+								class="tag-row"
+								class:is-shared={row.isShared}
+								class:is-partial={!row.isShared}
+								role="listitem"
+								transition:fly={{ y: -4, duration: 120 }}
 							>
-								<span class="tag-label-text">{tag}</span>
-								{#if !isShared}
-									<span class="partial-indicator">~</span>
+								<!-- Left: status dot + name/edit -->
+								<div class="tag-row-left">
+									<span class="status-dot" class:shared={row.isShared} class:partial={!row.isShared} title={row.isShared ? 'Shared by all' : 'Partial'}></span>
+
+									{#if editingTag === row.tag}
+										<!-- Inline edit mode -->
+										<input
+											class="tag-edit-input"
+											type="text"
+											bind:value={editingValue}
+											onkeydown={(e) => handleEditKeydown(e, row.tag)}
+											aria-label="Edit tag name"
+										/>
+										<button class="action-btn confirm-btn" onclick={() => commitEdit(row.tag)} title="Confirm rename" aria-label="Confirm">
+											<Check size={13} />
+										</button>
+										<button class="action-btn cancel-btn" onclick={cancelEdit} title="Cancel" aria-label="Cancel">
+											<X size={13} />
+										</button>
+									{:else}
+										<span class="tag-name">{row.tag}</span>
+
+										<!-- Card count -->
+										<span class="count-badge" title="{row.count} of {cards.length} selected cards have this tag">
+											{row.count}/{cards.length}
+										</span>
+									{/if}
+								</div>
+
+								<!-- Right: action buttons (hidden in edit mode) -->
+								{#if editingTag !== row.tag}
+									<div class="tag-row-actions">
+										<!-- Extend to all (only if partial) -->
+										{#if !row.isShared}
+											<button
+												class="action-btn extend-btn"
+												onclick={() => extendToAll(row.tag)}
+												title="Apply to all {cards.length} selected cards"
+												aria-label="Extend tag to all selected cards"
+											>
+												<ChevronsRight size={13} />
+												<span class="btn-label">Extend</span>
+											</button>
+										{/if}
+
+										<!-- Set as primary (only if shared but not primary on all) -->
+										{#if row.needsPrimary}
+											<button
+												class="action-btn primary-btn"
+												onclick={() => setPrimaryForAll(row.tag)}
+												title="Set as primary tag for all cards"
+												aria-label="Set as primary tag"
+											>
+												<Star size={13} />
+												<span class="btn-label">Primary</span>
+											</button>
+										{/if}
+
+										<!-- Edit/rename -->
+										<button
+											class="action-btn edit-btn"
+											onclick={() => startEdit(row.tag)}
+											title="Rename tag"
+											aria-label="Rename tag"
+										>
+											<Pencil size={12} />
+										</button>
+
+										<!-- Remove from all -->
+										<button
+											class="action-btn remove-btn"
+											onclick={() => removeTagFromAll(row.tag)}
+											title="Remove from all selected cards"
+											aria-label="Remove tag"
+										>
+											<X size={13} />
+										</button>
+									</div>
 								{/if}
-								<button
-									type="button"
-									class="remove-tag-btn"
-									onclick={() => removeTagFromAll(tag)}
-									aria-label="Remove tag from all cards"
-								>
-									<X size={11} />
-								</button>
 							</div>
 						{/each}
 					</div>
@@ -187,52 +291,47 @@
 				{/if}
 
 				<!-- Add tag input -->
-				<div class="tag-input-row">
-					<div class="tag-input-container">
-						<Input
-							id="bulk-tag-input"
-							type="text"
-							placeholder="Add a tag to all cards..."
-							bind:value={newTagInput}
-							onkeydown={(/** @type {KeyboardEvent} */ e) => {
-								if (e.key === "Enter") {
-									e.preventDefault();
-									handleAddTag();
-								}
-							}}
-						/>
+				<div class="add-tag-section">
+					<div class="tag-input-row">
+						<div class="tag-input-container">
+							<Input
+								id="bulk-tag-input"
+								type="text"
+								placeholder="Add a tag to all {cards.length} cards..."
+								bind:value={newTagInput}
+								onkeydown={(/** @type {KeyboardEvent} */ e) => {
+									if (e.key === "Enter") { e.preventDefault(); addTagToAll(newTagInput); }
+								}}
+							/>
+							{#if newTagInput.trim()}
+								<span class="enter-hint" transition:fade={{ duration: 100 }}>
+									press <kbd class="enter-kbd">Enter</kbd>
+								</span>
+							{/if}
+						</div>
 						{#if newTagInput.trim()}
-							<span class="enter-hint" transition:fade={{ duration: 100 }}>
-								press <kbd class="enter-kbd">Enter</kbd>
-							</span>
+							<Button variant="outline" size="icon" onclick={() => addTagToAll(newTagInput)} aria-label="Add tag">
+								<Plus size={16} />
+							</Button>
 						{/if}
 					</div>
-					{#if newTagInput.trim()}
-						<Button variant="outline" size="icon" onclick={handleAddTag} aria-label="Add tag">
-							<Plus size={16} />
-						</Button>
+
+					<!-- Deck-wide tag suggestions -->
+					{#if deckTagsList.some(t => !tagUnionSet.has(t))}
+						<div class="suggestions-section">
+							<span class="suggestions-label">Add from deck:</span>
+							<div class="suggestions-list">
+								{#each deckTagsList as gTag}
+									{#if !tagUnionSet.has(gTag)}
+										<button type="button" class="suggestion-pill" onclick={() => addTagToAll(gTag)}>
+											{gTag}
+										</button>
+									{/if}
+								{/each}
+							</div>
+						</div>
 					{/if}
 				</div>
-
-				<!-- Suggestions from deck -->
-				{#if deckTagsList.some(t => !tagUnion.includes(t))}
-					<div class="suggestions-section">
-						<span class="suggestions-label">Add from deck tags:</span>
-						<div class="suggestions-list">
-							{#each deckTagsList as gTag}
-								{#if !tagUnion.includes(gTag)}
-									<button
-										type="button"
-										class="suggestion-pill"
-										onclick={() => addTagToAll(gTag)}
-									>
-										{gTag}
-									</button>
-								{/if}
-							{/each}
-						</div>
-					</div>
-				{/if}
 			</div>
 
 			<!-- Footer -->
@@ -246,11 +345,8 @@
 <style>
 	.modal-backdrop {
 		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100vw;
-		height: 100vh;
-		background: rgba(0, 0, 0, 0.45);
+		inset: 0;
+		background: rgba(0, 0, 0, 0.5);
 		backdrop-filter: blur(8px);
 		display: flex;
 		align-items: center;
@@ -259,26 +355,28 @@
 	}
 
 	.modal-content {
-		position: relative;
 		background: hsl(var(--card));
 		border: 1px solid hsla(var(--border) / 0.6);
 		border-radius: var(--radius-lg);
 		box-shadow:
-			0 25px 50px -12px rgba(0, 0, 0, 0.6),
+			0 25px 50px -12px rgba(0, 0, 0, 0.65),
 			0 0 0 1px hsla(255, 100%, 100%, 0.04);
 		width: 100%;
-		max-width: 420px;
+		max-width: 480px;
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
+		max-height: calc(100vh - 4rem);
 	}
 
+	/* ── Header ── */
 	.modal-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		padding: 1rem 1.25rem 0.75rem;
 		border-bottom: 1px solid hsla(var(--border) / 0.4);
+		flex-shrink: 0;
 	}
 
 	.modal-title-row {
@@ -326,110 +424,240 @@
 		background: hsl(var(--muted) / 0.4);
 	}
 
+	/* ── Body ── */
 	.modal-body {
-		padding: 1rem 1.25rem;
+		padding: 0.875rem 1.25rem 1rem;
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: 0.875rem;
+		overflow-y: auto;
+		scrollbar-width: thin;
+		scrollbar-color: hsla(var(--border) / 0.6) transparent;
 	}
 
-	.legend-row {
+	/* ── Tag list ── */
+	.tag-list {
 		display: flex;
-		gap: 1rem;
-		align-items: center;
+		flex-direction: column;
+		gap: 0.3rem;
 	}
 
-	.legend-item {
+	.tag-row {
 		display: flex;
 		align-items: center;
-		gap: 0.35rem;
+		justify-content: space-between;
+		padding: 0.5rem 0.75rem;
+		border-radius: var(--radius-sm);
+		border: 1px solid transparent;
+		gap: 0.5rem;
+		min-height: 2.375rem;
+		transition: background 0.1s;
 	}
 
-	.legend-dot {
-		width: 8px;
-		height: 8px;
+	.tag-row.is-shared {
+		background: hsl(var(--primary) / 0.07);
+		border-color: hsl(var(--primary) / 0.18);
+	}
+
+	.tag-row.is-partial {
+		background: hsla(var(--muted) / 0.25);
+		border-color: hsla(var(--border) / 0.3);
+	}
+
+	.tag-row:hover {
+		filter: brightness(1.07);
+	}
+
+	.tag-row-left {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		min-width: 0;
+		flex: 1;
+	}
+
+	.status-dot {
+		width: 7px;
+		height: 7px;
 		border-radius: 50%;
 		flex-shrink: 0;
 	}
 
-	.legend-dot.shared {
+	.status-dot.shared {
 		background: hsl(var(--primary));
+		box-shadow: 0 0 5px hsl(var(--primary) / 0.5);
 	}
 
-	.legend-dot.partial {
+	.status-dot.partial {
 		background: hsl(var(--muted-foreground));
-		opacity: 0.5;
+		opacity: 0.45;
 	}
 
-	.legend-text {
-		font-size: 0.6875rem;
+	.tag-name {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+		letter-spacing: -0.01em;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		min-width: 0;
+	}
+
+	.tag-row.is-partial .tag-name {
 		color: hsl(var(--muted-foreground));
 	}
 
-	.active-tags-list {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.4rem;
-		min-height: 1.5rem;
-		align-items: center;
+	.count-badge {
+		font-size: 0.6875rem;
+		font-weight: 500;
+		padding: 1px 6px;
+		border-radius: 99px;
+		background: hsla(var(--muted) / 0.4);
+		color: hsl(var(--muted-foreground));
+		border: 1px solid hsla(var(--border) / 0.3);
+		white-space: nowrap;
+		flex-shrink: 0;
 	}
 
+	.tag-row.is-shared .count-badge {
+		background: hsl(var(--primary) / 0.1);
+		color: hsl(var(--primary));
+		border-color: hsl(var(--primary) / 0.2);
+	}
+
+	/* ── Inline edit ── */
+	.tag-edit-input {
+		flex: 1;
+		min-width: 0;
+		background: hsl(var(--background));
+		border: 1px solid hsl(var(--primary) / 0.5);
+		border-radius: var(--radius-sm);
+		padding: 2px 7px;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+		outline: none;
+	}
+
+	.tag-edit-input:focus {
+		border-color: hsl(var(--primary));
+		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.15);
+	}
+
+	/* ── Action buttons ── */
+	.tag-row-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.2rem;
+		flex-shrink: 0;
+	}
+
+	.action-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+		border: none;
+		border-radius: var(--radius-sm);
+		padding: 3px 7px;
+		font-size: 0.6875rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.1s;
+		white-space: nowrap;
+	}
+
+	/* Extend button */
+	.extend-btn {
+		background: hsl(var(--primary) / 0.1);
+		color: hsl(var(--primary));
+	}
+
+	.extend-btn:hover {
+		background: hsl(var(--primary) / 0.2);
+		color: hsl(var(--primary-light, var(--primary)));
+	}
+
+	/* Primary/star button */
+	.primary-btn {
+		background: hsla(43, 100%, 55%, 0.1);
+		color: hsl(43, 90%, 55%);
+	}
+
+	.primary-btn:hover {
+		background: hsla(43, 100%, 55%, 0.2);
+		color: hsl(43, 100%, 60%);
+	}
+
+	/* Edit/pencil — icon only */
+	.edit-btn {
+		background: transparent;
+		color: hsl(var(--muted-foreground));
+		padding: 4px 5px;
+	}
+
+	.edit-btn:hover {
+		background: hsl(var(--muted) / 0.4);
+		color: hsl(var(--foreground));
+	}
+
+	/* Confirm (check) */
+	.confirm-btn {
+		background: hsl(var(--primary) / 0.15);
+		color: hsl(var(--primary));
+		padding: 3px 6px;
+	}
+
+	.confirm-btn:hover {
+		background: hsl(var(--primary) / 0.3);
+	}
+
+	/* Cancel (x on edit) */
+	.cancel-btn {
+		background: transparent;
+		color: hsl(var(--muted-foreground));
+		padding: 3px 5px;
+	}
+
+	.cancel-btn:hover {
+		background: hsl(var(--destructive) / 0.1);
+		color: hsl(var(--destructive));
+	}
+
+	/* Remove button — icon only */
+	.remove-btn {
+		background: transparent;
+		color: hsl(var(--muted-foreground));
+		padding: 4px 5px;
+		opacity: 0.6;
+	}
+
+	.remove-btn:hover {
+		background: hsl(var(--destructive) / 0.1);
+		color: hsl(var(--destructive));
+		opacity: 1;
+	}
+
+	.btn-label {
+		font-size: 0.6875rem;
+	}
+
+	/* ── Empty state ── */
 	.no-tags-placeholder {
 		font-size: 0.875rem;
 		color: hsl(var(--muted-foreground));
 		font-style: italic;
 		margin: 0;
+		padding: 0.5rem 0;
 	}
 
-	.tag-badge-pill {
-		display: inline-flex;
-		align-items: center;
-		gap: 4px;
-		border-radius: var(--radius-sm);
-		padding: 3px 7px;
-		font-size: 0.75rem;
-		font-weight: 500;
-		transition: background 0.1s;
-	}
-
-	.tag-badge-pill.is-shared {
-		background: hsl(var(--primary) / 0.15);
-		border: 1px solid hsl(var(--primary) / 0.35);
-		color: hsl(var(--primary-light));
-	}
-
-	.tag-badge-pill.is-partial {
-		background: hsla(var(--muted) / 0.35);
-		border: 1px solid hsla(var(--border) / 0.4);
-		color: hsl(var(--muted-foreground));
-		opacity: 0.8;
-	}
-
-	.tag-label-text {
-		line-height: 1;
-	}
-
-	.partial-indicator {
-		font-size: 0.625rem;
-		font-weight: 700;
-		opacity: 0.7;
-	}
-
-	.remove-tag-btn {
-		background: transparent;
-		border: none;
-		padding: 0;
-		cursor: pointer;
+	/* ── Add tag section ── */
+	.add-tag-section {
 		display: flex;
-		align-items: center;
-		color: inherit;
-		opacity: 0.6;
-		transition: opacity 0.1s, color 0.1s;
-	}
-
-	.remove-tag-btn:hover {
-		opacity: 1;
-		color: hsl(var(--destructive));
+		flex-direction: column;
+		gap: 0.5rem;
+		padding-top: 0.25rem;
+		border-top: 1px solid hsla(var(--border) / 0.3);
 	}
 
 	.tag-input-row {
@@ -459,11 +687,9 @@
 		gap: 3px;
 	}
 
-	.enter-kbd {
-		font-family: inherit;
-		font-weight: 600;
-	}
+	.enter-kbd { font-family: inherit; font-weight: 600; }
 
+	/* ── Suggestions ── */
 	.suggestions-section {
 		display: flex;
 		flex-direction: column;
@@ -486,7 +712,7 @@
 		background: hsla(var(--muted) / 0.25);
 		border: 1px solid hsla(var(--border) / 0.3);
 		border-radius: var(--radius-sm);
-		padding: 2px 7px;
+		padding: 2px 8px;
 		font-size: 0.6875rem;
 		color: hsl(var(--muted-foreground));
 		cursor: pointer;
@@ -499,10 +725,12 @@
 		border-color: hsla(var(--border) / 0.6);
 	}
 
+	/* ── Footer ── */
 	.modal-footer {
 		display: flex;
 		justify-content: flex-end;
 		padding: 0.75rem 1.25rem 1rem;
 		border-top: 1px solid hsla(var(--border) / 0.4);
+		flex-shrink: 0;
 	}
 </style>
