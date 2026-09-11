@@ -44,11 +44,14 @@
 
 			if (liveCard.tags) {
 				for (const t of liveCard.tags) {
-					if (!unionMap.has(t))
+					if (!unionMap.has(t)) {
 						unionMap.set(t, { count: 0, notPrimaryCount: 0 });
+					}
 					const entry = unionMap.get(t);
-					entry.count++;
-					if (liveCard.primaryTag !== t) entry.notPrimaryCount++;
+					if (entry) {
+						entry.count++;
+						if (liveCard.primaryTag !== t) entry.notPrimaryCount++;
+					}
 				}
 			}
 		}

@@ -42,3 +42,8 @@ Living list of solutions to code errors.
 - **Error Signature:** `Uncaught Error: https://svelte.dev/e/state_unsafe_mutation` (State mutated unsafe).
 - **Fix Pattern:** Wrap state mutations occurring inside `$effect` or tracking contexts (or functions called synchronously by them) in Svelte's `untrack(() => { ... })`.
 - **Logic:** Svelte 5 strictly prevents mutating state variables inside active tracking contexts (like `$derived` or `$effect`) to avoid infinite update loops. Using `untrack` suspends the reactive context during the mutations.
+
+## Avoid TypeScript Syntax in Plain JS Scripts
+- **Error Signature:** Syntax error or crash when using non-null assertions (`!`) or TS types in a standard JavaScript `<script>` block.
+- **Fix Pattern:** Use runtime guards (e.g. `if (entry)`) or JSDoc if needed, instead of TS syntax like `!`.
+- **Logic:** Svelte components use standard JavaScript unless marked `lang="ts"`. Applying TypeScript syntax like `!` to plain JS scripts causes immediate syntax errors and crashes the AST validation.
