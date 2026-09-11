@@ -307,6 +307,9 @@ function getCardCellValue(card, columnKey) {
  * @property {{cardId: string, columnKey: string, initialKey: string} | null} inlineEditTrigger
  * @property {string | null} copiedColumnKey
  * @property {boolean} sideboardExpanded
+ * @property {Object} bulkTagsModal
+ * @property {boolean} bulkTagsModal.isOpen
+ * @property {any[]} bulkTagsModal.cards
  */
 
 function createInteractionStore() {
@@ -367,7 +370,11 @@ function createInteractionStore() {
 		copiedCellValues: null,
 		/** @type {string | null} */
 		copiedColumnKey: null,
-		inlineEditTrigger: null // { cardId, columnKey, initialKey }
+		inlineEditTrigger: null, // { cardId, columnKey, initialKey }
+		bulkTagsModal: {
+			isOpen: false,
+			cards: []
+		}
 	});
 
 	function closeMenu() {
@@ -622,6 +629,7 @@ function createInteractionStore() {
 		get quantityModal() { return state.quantityModal; },
 		get cardDataModal() { return state.cardDataModal; },
 		get maybeboardCleanupModal() { return state.maybeboardCleanupModal; },
+		get bulkTagsModal() { return state.bulkTagsModal; },
 		get selectedCells() { return state.selectedCells; },
 		get selectionAnchor() { return state.selectionAnchor; },
 		get selectionFocus() { return state.selectionFocus; },
@@ -1521,6 +1529,12 @@ function createInteractionStore() {
 					}
 				});
 				items.push({
+					label: "Edit Tags...",
+					action: () => {
+						state.bulkTagsModal = { isOpen: true, cards: selectedCards };
+					}
+				});
+				items.push({
 					label: "Set quantity",
 					action: () => {
 						const qtyStr = prompt("Enter quantity for all selected cards:");
@@ -1928,6 +1942,17 @@ function createInteractionStore() {
 			}
 
 			return filteredItems;
+		},
+
+		/**
+		 * @param {any[]} cards
+		 */
+		showBulkTagsModal(cards) {
+			state.bulkTagsModal = { isOpen: true, cards };
+		},
+
+		closeBulkTagsModal() {
+			state.bulkTagsModal = { isOpen: false, cards: [] };
 		},
 
 		/**
