@@ -86,7 +86,13 @@
 		const trimmed = tag.trim();
 		if (!trimmed || tagUnionSet.has(trimmed)) return;
 		deckStore.batchUpdate(() => {
-			for (const card of cards) deckStore.addCardTag(card.id, trimmed);
+			for (const card of cards) {
+				const liveCard = deckStore.findCardById(card.id)?.card ?? card;
+				// Only add if the card doesn't already have this tag
+				if (!(liveCard.tags || []).includes(trimmed)) {
+					deckStore.addCardTag(card.id, trimmed);
+				}
+			}
 		});
 		newTagInput = "";
 	}
@@ -94,7 +100,15 @@
 	/** @param {string} tag */
 	function extendToAll(tag) {
 		deckStore.batchUpdate(() => {
-			for (const card of cards) deckStore.addCardTag(card.id, tag);
+			for (const card of cards) {
+				const liveCard = deckStore.findCardById(card.id)?.card ?? card;
+				// Only extend to cards that don't already have this tag — prevents duplication
+				if (!(liveCard.tags || []).includes(tag)) {
+					deckStore.addCardTag(card.id, tag);
+					// Primary tag logic: only auto-set primary if this card had NO tags before.
+					// Cards that already have tags keep their existing primary (or lack thereof).
+				}
+			}
 		});
 	}
 
