@@ -2,7 +2,15 @@
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { fade, scale, fly } from "svelte/transition";
-	import { X, Plus, Tags, Star, ChevronsRight, Pencil, Check } from "lucide-svelte";
+	import {
+		X,
+		Plus,
+		Tags,
+		Star,
+		ChevronsRight,
+		Pencil,
+		Check,
+	} from "lucide-svelte";
 	import Input from "$lib/components/ui/Input.svelte";
 	import Button from "$lib/components/ui/Button.svelte";
 
@@ -36,7 +44,8 @@
 
 			if (liveCard.tags) {
 				for (const t of liveCard.tags) {
-					if (!unionMap.has(t)) unionMap.set(t, { count: 0, notPrimaryCount: 0 });
+					if (!unionMap.has(t))
+						unionMap.set(t, { count: 0, notPrimaryCount: 0 });
 					const entry = unionMap.get(t);
 					entry.count++;
 					if (liveCard.primaryTag !== t) entry.notPrimaryCount++;
@@ -60,14 +69,20 @@
 	});
 
 	// Derived deck-wide suggestions (excluding tags already in the union)
-	let tagUnionSet = $derived(new Set(tagRows.map(r => r.tag)));
+	let tagUnionSet = $derived(new Set(tagRows.map((r) => r.tag)));
 
 	let deckTagsList = $derived.by(() => {
 		const allTags = new Set();
-		const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+		const boards = [
+			"commander",
+			"companion",
+			"mainboard",
+			"sideboard",
+			"maybeboard",
+		];
 		const storeAny = /** @type {any} */ (deckStore);
 		for (const board of boards) {
-			for (const c of (storeAny[board] || [])) {
+			for (const c of storeAny[board] || []) {
 				if (c.tags) for (const t of c.tags) allTags.add(t);
 			}
 		}
@@ -160,7 +175,10 @@
 				const result = deckStore.findCardById(card.id);
 				const liveCard = result?.card;
 				if (liveCard?.tags?.includes(oldTag)) {
-					const newTags = liveCard.tags.map((/** @type {string} */ t) => t === oldTag ? newTag : t);
+					const newTags = liveCard.tags.map(
+						(/** @type {string} */ t) =>
+							t === oldTag ? newTag : t,
+					);
 					deckStore.reorderCardTags(card.id, newTags);
 					if (liveCard.primaryTag === oldTag) {
 						deckStore.setPrimaryTag(card.id, newTag);
@@ -174,8 +192,14 @@
 	/** @param {KeyboardEvent} e
 	 *  @param {string} oldTag */
 	function handleEditKeydown(e, oldTag) {
-		if (e.key === "Enter") { e.preventDefault(); commitEdit(oldTag); }
-		if (e.key === "Escape") { e.preventDefault(); cancelEdit(); }
+		if (e.key === "Enter") {
+			e.preventDefault();
+			commitEdit(oldTag);
+		}
+		if (e.key === "Escape") {
+			e.preventDefault();
+			cancelEdit();
+		}
 	}
 </script>
 
@@ -184,8 +208,12 @@
 	<div
 		class="modal-backdrop"
 		transition:fade={{ duration: 150 }}
-		onmousedown={(e) => { if (e.target === e.currentTarget) handleClose(); }}
-		onkeydown={(e) => { if (e.key === "Escape") handleClose(); }}
+		onmousedown={(e) => {
+			if (e.target === e.currentTarget) handleClose();
+		}}
+		onkeydown={(e) => {
+			if (e.key === "Escape") handleClose();
+		}}
 	>
 		<div
 			class="modal-content"
@@ -199,14 +227,21 @@
 				<div class="modal-title-row">
 					<Tags size={16} class="title-icon" />
 					<span class="modal-title">Edit Tags</span>
-					<span class="card-count-badge">{cards.length} card{cards.length !== 1 ? 's' : ''}</span>
+					<span class="card-count-badge"
+						>{cards.length} card{cards.length !== 1
+							? "s"
+							: ""}</span
+					>
 				</div>
-				<button class="close-btn" onclick={handleClose} aria-label="Close"><X size={16} /></button>
+				<button
+					class="close-btn"
+					onclick={handleClose}
+					aria-label="Close"><X size={16} /></button
+				>
 			</div>
 
 			<!-- Body -->
 			<div class="modal-body">
-
 				<!-- Vertical tag list -->
 				{#if tagRows.length > 0}
 					<div class="tag-list" role="list">
@@ -220,7 +255,14 @@
 							>
 								<!-- Left: status dot + name/edit -->
 								<div class="tag-row-left">
-									<span class="status-dot" class:shared={row.isShared} class:partial={!row.isShared} title={row.isShared ? 'Shared by all' : 'Partial'}></span>
+									<span
+										class="status-dot"
+										class:shared={row.isShared}
+										class:partial={!row.isShared}
+										title={row.isShared
+											? "Shared by all"
+											: "Partial"}
+									></span>
 
 									{#if editingTag === row.tag}
 										<!-- Inline edit mode -->
@@ -228,20 +270,34 @@
 											class="tag-edit-input"
 											type="text"
 											bind:value={editingValue}
-											onkeydown={(e) => handleEditKeydown(e, row.tag)}
+											onkeydown={(e) =>
+												handleEditKeydown(e, row.tag)}
 											aria-label="Edit tag name"
 										/>
-										<button class="action-btn confirm-btn" onclick={() => commitEdit(row.tag)} title="Confirm rename" aria-label="Confirm">
+										<button
+											class="action-btn confirm-btn"
+											onclick={() => commitEdit(row.tag)}
+											title="Confirm rename"
+											aria-label="Confirm"
+										>
 											<Check size={13} />
 										</button>
-										<button class="action-btn cancel-btn" onclick={cancelEdit} title="Cancel" aria-label="Cancel">
+										<button
+											class="action-btn cancel-btn"
+											onclick={cancelEdit}
+											title="Cancel"
+											aria-label="Cancel"
+										>
 											<X size={13} />
 										</button>
 									{:else}
 										<span class="tag-name">{row.tag}</span>
 
 										<!-- Card count -->
-										<span class="count-badge" title="{row.count} of {cards.length} selected cards have this tag">
+										<span
+											class="count-badge"
+											title="{row.count} of {cards.length} selected cards have this tag"
+										>
 											{row.count}/{cards.length}
 										</span>
 									{/if}
@@ -254,12 +310,15 @@
 										{#if !row.isShared}
 											<button
 												class="action-btn extend-btn"
-												onclick={() => extendToAll(row.tag)}
+												onclick={() =>
+													extendToAll(row.tag)}
 												title="Apply to all {cards.length} selected cards"
 												aria-label="Extend tag to all selected cards"
 											>
 												<ChevronsRight size={13} />
-												<span class="btn-label">Extend</span>
+												<span class="btn-label"
+													>Extend</span
+												>
 											</button>
 										{/if}
 
@@ -267,12 +326,15 @@
 										{#if row.needsPrimary}
 											<button
 												class="action-btn primary-btn"
-												onclick={() => setPrimaryForAll(row.tag)}
+												onclick={() =>
+													setPrimaryForAll(row.tag)}
 												title="Set as primary tag for all cards"
 												aria-label="Set as primary tag"
 											>
 												<Star size={13} />
-												<span class="btn-label">Primary</span>
+												<span class="btn-label"
+													>Primary</span
+												>
 											</button>
 										{/if}
 
@@ -289,7 +351,8 @@
 										<!-- Remove from all -->
 										<button
 											class="action-btn remove-btn"
-											onclick={() => removeTagFromAll(row.tag)}
+											onclick={() =>
+												removeTagFromAll(row.tag)}
 											title="Remove from all selected cards"
 											aria-label="Remove tag"
 										>
@@ -301,7 +364,10 @@
 						{/each}
 					</div>
 				{:else}
-					<p class="no-tags-placeholder">No tags on any selected cards yet.</p>
+					<p class="no-tags-placeholder">
+						Looks like these cards don't have any tags yet. Want to
+						add some?
+					</p>
 				{/if}
 
 				<!-- Add tag input -->
@@ -314,30 +380,46 @@
 								placeholder="Add a tag to all {cards.length} cards..."
 								bind:value={newTagInput}
 								onkeydown={(/** @type {KeyboardEvent} */ e) => {
-									if (e.key === "Enter") { e.preventDefault(); addTagToAll(newTagInput); }
+									if (e.key === "Enter") {
+										e.preventDefault();
+										addTagToAll(newTagInput);
+									}
 								}}
 							/>
 							{#if newTagInput.trim()}
-								<span class="enter-hint" transition:fade={{ duration: 100 }}>
+								<span
+									class="enter-hint"
+									transition:fade={{ duration: 100 }}
+								>
 									press <kbd class="enter-kbd">Enter</kbd>
 								</span>
 							{/if}
 						</div>
 						{#if newTagInput.trim()}
-							<Button variant="outline" size="icon" onclick={() => addTagToAll(newTagInput)} aria-label="Add tag">
+							<Button
+								variant="outline"
+								size="icon"
+								onclick={() => addTagToAll(newTagInput)}
+								aria-label="Add tag"
+							>
 								<Plus size={16} />
 							</Button>
 						{/if}
 					</div>
 
 					<!-- Deck-wide tag suggestions -->
-					{#if deckTagsList.some(t => !tagUnionSet.has(t))}
+					{#if deckTagsList.some((t) => !tagUnionSet.has(t))}
 						<div class="suggestions-section">
-							<span class="suggestions-label">Add from deck:</span>
+							<span class="suggestions-label">Add from deck:</span
+							>
 							<div class="suggestions-list">
 								{#each deckTagsList as gTag}
 									{#if !tagUnionSet.has(gTag)}
-										<button type="button" class="suggestion-pill" onclick={() => addTagToAll(gTag)}>
+										<button
+											type="button"
+											class="suggestion-pill"
+											onclick={() => addTagToAll(gTag)}
+										>
 											{gTag}
 										</button>
 									{/if}
@@ -430,7 +512,9 @@
 		border-radius: var(--radius-sm);
 		display: flex;
 		align-items: center;
-		transition: color 0.1s, background 0.1s;
+		transition:
+			color 0.1s,
+			background 0.1s;
 	}
 
 	.close-btn:hover {
@@ -701,7 +785,10 @@
 		gap: 3px;
 	}
 
-	.enter-kbd { font-family: inherit; font-weight: 600; }
+	.enter-kbd {
+		font-family: inherit;
+		font-weight: 600;
+	}
 
 	/* ── Suggestions ── */
 	.suggestions-section {
