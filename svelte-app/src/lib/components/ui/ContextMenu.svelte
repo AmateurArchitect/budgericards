@@ -4,6 +4,7 @@
 	import { fade, fly } from "svelte/transition";
 	import { onMount, tick } from "svelte";
 	import { Eye } from "lucide-svelte";
+	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 
 	/** @typedef {Object} MenuItem
 	 * @property {string} [label]
@@ -83,6 +84,7 @@
 
 		menuTop = nextTop;
 		menuLeft = nextLeft;
+		interactionStore.menuRect = { left: menuLeft, top: menuTop, width: menuRect.width, height: menuRect.height };
 	}
 
 	$effect(() => {
@@ -428,7 +430,7 @@
 		width: 100vw;
 		height: 100vh;
 		pointer-events: none;
-		z-index: 20000;
+		z-index: 30000;
 	}
 
 	.menu-item-container {
@@ -459,7 +461,7 @@
 		box-shadow:
 			0 15px 35px -5px rgba(0, 0, 0, 0.5),
 			0 0 0 1px hsla(255, 100%, 100%, 0.04);
-		z-index: 20001;
+		z-index: 30001;
 		display: flex;
 		flex-direction: column;
 		gap: 1px;

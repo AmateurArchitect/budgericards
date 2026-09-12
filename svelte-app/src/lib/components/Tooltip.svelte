@@ -163,27 +163,20 @@
 		let nextY = e.clientY + padding / 2;
 		const rect = trigger.getBoundingClientRect();
 		const menuOpen = interactionStore.isMenuOpen;
-		const menuPos = interactionStore.menuPosition;
+		const menuRect = interactionStore.menuRect;
 
-		if (menuOpen && menuPos && interactionStore.menuCard) {
-			// FIXED position relative to context menu
-			const menuWidth = 200;
-			let actualMenuLeft = menuPos.x;
-			if (actualMenuLeft + menuWidth > window.innerWidth - 10) {
-				actualMenuLeft = menuPos.x - menuWidth;
-			}
-			actualMenuLeft = Math.max(10, actualMenuLeft);
-
+		if (menuOpen && menuRect && interactionStore.menuCard) {
+			// FIXED position relative to context menu's actual bounding box
 			const safety = 20;
 			// Check if there is enough space to the right for BOTH the menu AND the tooltip
-			const menuOnRight = actualMenuLeft + menuWidth + padding + tooltipWidth + safety < window.innerWidth;
+			const menuOnRight = menuRect.left + menuRect.width + padding + tooltipWidth + safety < window.innerWidth;
 
 			if (menuOnRight) {
-				nextX = actualMenuLeft + menuWidth + padding;
+				nextX = menuRect.left + menuRect.width + padding;
 			} else {
-				nextX = actualMenuLeft - tooltipWidth - padding;
+				nextX = menuRect.left - tooltipWidth - padding;
 			}
-			nextY = menuPos.y;
+			nextY = menuRect.top;
 		} else if (trigger.closest(".context-menu")) {
 			const menuEl = trigger.closest(".context-menu");
 			if (menuEl) {

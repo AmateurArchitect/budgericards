@@ -268,6 +268,7 @@ function getCardCellValue(card, columnKey) {
  * @property {number | null} menuPrice - The price of the menu card
  * @property {boolean} isMenuOpen - Whether the context menu is currently visible
  * @property {{x: number, y: number} | null} menuPosition
+ * @property {{top: number, left: number, width: number, height: number} | null} menuRect
  * @property {any[] | null} menuCustomItems
  * @property {string} menuHeaderTitle
  * @property {any[]} activeAnimations - Array of active card move animations
@@ -323,6 +324,7 @@ function createInteractionStore() {
 		menuPrice: null,
 		isMenuOpen: false,
 		menuPosition: null,
+		menuRect: null,
 		menuCustomItems: null,
 		menuHeaderTitle: "",
 		activeAnimations: [],
@@ -382,6 +384,7 @@ function createInteractionStore() {
 		state.menuCard = null;
 		state.menuZone = null;
 		state.menuPrice = null;
+		state.menuRect = null;
 		state.menuCustomItems = null;
 		state.menuHeaderTitle = "";
 	}
@@ -612,6 +615,8 @@ function createInteractionStore() {
 			}
 		},
 		get menuPosition() { return state.menuPosition; },
+		get menuRect() { return state.menuRect; },
+		set menuRect(val) { state.menuRect = val; },
 		get menuHeader() {
 			if (state.menuCustomItems) {
 				return state.menuHeaderTitle;
