@@ -1,4 +1,5 @@
 <script>
+	import { untrack } from "svelte";
 	import { fade, scale } from "svelte/transition";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
@@ -44,28 +45,40 @@
 	// Map of lower-case card name -> boolean (true = recognized Magic card, false = unrecognized)
 	/** @type {Map<string, boolean>} */
 	let recognizedMap = $state(new Map());
+	// Local memory cache across validation runs to avoid re-querying indexedDB
+	const cardCache = new Map();
 
-	// Sync initial text and active board when modal opens
+	let wasOpen = false;
+
+	// Sync initial text and active board ONLY when modal opens (guarded so options are not overwritten)
 	$effect(() => {
-		if (isOpen) {
-			rawText = initialText || "";
-			const currentActive = deckStore.activeBoard;
-			if (currentActive === "sideboard" || currentActive === "maybeboard") {
-				targetBoard = currentActive;
-			} else {
-				targetBoard = "mainboard";
-			}
-			isProcessing = false;
-			progressMessage = "";
-
-			setTimeout(() => {
-				if (textareaEl) {
-					textareaEl.focus();
-					if (rawText) {
-						textareaEl.select();
-					}
+		if (isOpen && !wasOpen) {
+			wasOpen = true;
+			untrack(() => {
+				rawText = initialText || "";
+				const currentActive = deckStore.activeBoard;
+				if (currentActive === "sideboard" || currentActive === "maybeboard") {
+					targetBoard = currentActive;
+				} else {
+					targetBoard = "mainboard";
 				}
-			}, 50);
+				quantityMode = "imported";
+				duplicateStrategy = "add";
+				printingPreference = "default";
+				isProcessing = false;
+				progressMessage = "";
+
+				setTimeout(() => {
+					if (textareaEl) {
+						textareaEl.focus();
+						if (rawText) {
+							textareaEl.select();
+						}
+					}
+				}, 50);
+			});
+		} else if (!isOpen) {
+			wasOpen = false;
 		}
 	});
 
@@ -75,36 +88,40 @@
 		return parseDecklist(rawText);
 	});
 
-	// Reactively validate card names against local card database
+	// Reactively validate card names against local card database without self-referential reactive cycles
 	$effect(() => {
 		const cards = parsedCards;
-		if (cards.length === 0) {
-			recognizedMap = new Map();
+		const uniqueNames = [...new Set(cards.map(c => (c.name || "").trim().toLowerCase()))].filter(Boolean);
+
+		if (uniqueNames.length === 0) {
+			if (untrack(() => recognizedMap.size > 0)) {
+				recognizedMap = new Map();
+			}
 			return;
 		}
 
 		let isCancelled = false;
 
 		const checkAll = async () => {
-			const map = new Map(recognizedMap);
-			const uniqueNames = [...new Set(cards.map(c => (c.name || "").trim().toLowerCase()))].filter(Boolean);
+			const missing = uniqueNames.filter(name => !cardCache.has(name));
 
-			for (const lowerName of uniqueNames) {
-				if (map.has(lowerName)) continue;
+			for (const lowerName of missing) {
 				try {
 					const match = await getCardByName(lowerName);
-					if (!isCancelled) {
-						map.set(lowerName, !!match);
-					}
+					if (isCancelled) return;
+					cardCache.set(lowerName, !!match);
 				} catch (e) {
-					if (!isCancelled) {
-						map.set(lowerName, false);
-					}
+					if (isCancelled) return;
+					cardCache.set(lowerName, false);
 				}
 			}
 
 			if (!isCancelled) {
-				recognizedMap = map;
+				const nextMap = new Map();
+				for (const name of uniqueNames) {
+					nextMap.set(name, cardCache.get(name) ?? false);
+				}
+				recognizedMap = nextMap;
 			}
 		};
 
@@ -805,6 +822,9 @@
 	}
 
 	.modal-container {
+		position: relative;
+		z-index: 1;
+		pointer-events: auto;
 		display: flex;
 		flex-direction: column;
 		width: 920px;
