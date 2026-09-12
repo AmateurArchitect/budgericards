@@ -7,7 +7,6 @@
 		Plus,
 		Tags,
 		Star,
-		ChevronsRight,
 		Pencil,
 		Check,
 	} from "lucide-svelte";
@@ -32,7 +31,7 @@
 		if (isOpen) {
 			cards = interactionStore.bulkTagsModal.cards || [];
 			newTagInput = "";
-			isSuggestionsOpen = deckTagsList.length > 0;
+			isSuggestionsOpen = availableTags.length > 0;
 			activeIndex = -1;
 		}
 	});
@@ -108,36 +107,10 @@
 		return [...allTags].sort((a, b) => a.localeCompare(b));
 	});
 
-	// Derived deck-wide tag counts
-	let deckTagCounts = $derived.by(() => {
-		/** @type {Map<string, number>} */
-		const counts = new Map();
-		const boards = [
-			"commander",
-			"companion",
-			"mainboard",
-			"sideboard",
-			"maybeboard",
-		];
-		const storeAny = /** @type {any} */ (deckStore);
-		for (const board of boards) {
-			for (const c of storeAny[board] || []) {
-				if (c.tags) {
-					for (const t of c.tags) {
-						counts.set(t, (counts.get(t) || 0) + 1);
-					}
-				}
-			}
-		}
-		return counts;
-	});
-
-	// Tags from the deck not already shared by all selected cards
+	// Tags from the deck not represented at all in the selected cards
 	let availableTags = $derived.by(() => {
-		const sharedSet = new Set(
-			tagRows.filter((r) => r.isShared).map((r) => r.tag),
-		);
-		return deckTagsList.filter((t) => !sharedSet.has(t));
+		const selectedTagsSet = new Set(tagRows.map((r) => r.tag));
+		return deckTagsList.filter((t) => !selectedTagsSet.has(t));
 	});
 
 	// Filtered & prioritized suggestions
@@ -471,10 +444,21 @@
 												title="Apply to all {cards.length} selected cards"
 												aria-label="Extend tag to all selected cards"
 											>
-												<ChevronsRight size={13} />
-												<span class="btn-label"
-													>Extend</span
+												<svg
+													width="13"
+													height="13"
+													viewBox="0 0 24 24"
+													fill="none"
+													class="extend-svg"
 												>
+													<path
+														d="M14 21C14.2652 21 14.5196 20.8946 14.7071 20.7071C14.8946 20.5196 15 20.2652 15 20V15C15 14.7348 14.8946 14.4804 14.7071 14.2929C14.5196 14.1054 14.2652 14 14 14M19 21C19.2652 21 19.5196 20.8946 19.7071 20.7071C19.8946 20.5196 20 20.2652 20 20V15C20 14.7348 19.8946 14.4804 19.7071 14.2929C19.5196 14.1054 19.2652 14 19 14M3.00033 7L6.00033 10L9.00033 7M6.00033 10L6.00033 5C6.00033 4.46957 6.21105 3.96086 6.58612 3.58579C6.96119 3.21071 7.4699 3 8.00033 3H10.0003M15 10H20C20.5523 10 21 9.55228 21 9V4C21 3.44772 20.5523 3 20 3H15C14.4477 3 14 3.44772 14 4V9C14 9.55228 14.4477 10 15 10ZM4 21H9C9.55228 21 10 20.5523 10 20V15C10 14.4477 9.55228 14 9 14H4C3.44772 14 3 14.4477 3 15V20C3 20.5523 3.44772 21 4 21Z"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+													/>
+												</svg>
 											</button>
 										{/if}
 
@@ -568,85 +552,38 @@
 						{/if}
 					</div>
 
-					<!-- Predictive tag suggestions menu -->
-					{#if isSuggestionsOpen && (filteredSuggestions.length > 0 || (newTagInput.trim() && deckTagsList.length > 0))}
+					<!-- Predictive tag suggestions list -->
+					{#if isSuggestionsOpen && filteredSuggestions.length > 0}
 						<div
-							class="suggestions-panel"
-							transition:fly={{ y: -4, duration: 140 }}
+							class="suggestions-dropdown"
+							transition:fly={{ y: -4, duration: 120 }}
 						>
-							<div class="suggestions-header">
-								<div class="suggestions-title">
-									<Tags size={12} class="suggestions-title-icon" />
-									<span>
-										{#if newTagInput.trim()}
-											Matching deck tags
-										{:else}
-											Existing tags in deck
-										{/if}
-									</span>
-								</div>
-								<div class="suggestions-header-actions">
-									<span class="suggestions-badge">
-										{filteredSuggestions.length}
-									</span>
+							<div
+								class="suggestions-list"
+								bind:this={suggestionsListEl}
+								role="listbox"
+							>
+								{#each filteredSuggestions as tag, idx}
 									<button
 										type="button"
-										class="close-suggestions-btn"
-										onclick={() => (isSuggestionsOpen = false)}
-										title="Hide suggestions (Esc)"
-										aria-label="Hide suggestions"
+										class="suggestion-item"
+										class:active={idx === activeIndex}
+										role="option"
+										aria-selected={idx === activeIndex}
+										onmouseenter={() => (activeIndex = idx)}
+										onmousedown={(e) => e.preventDefault()}
+										onclick={() => addTagToAll(tag)}
 									>
-										<X size={11} />
+										<span class="suggestion-tag-name">{tag}</span>
 									</button>
-								</div>
+								{/each}
 							</div>
 
-							{#if filteredSuggestions.length > 0}
-								<div
-									class="suggestions-list-container"
-									bind:this={suggestionsListEl}
-									role="listbox"
-								>
-									{#each filteredSuggestions as tag, idx}
-										<button
-											type="button"
-											class="suggestion-item"
-											class:active={idx === activeIndex}
-											role="option"
-											aria-selected={idx === activeIndex}
-											onmouseenter={() => (activeIndex = idx)}
-											onmousedown={(e) => e.preventDefault()}
-											onclick={() => addTagToAll(tag)}
-										>
-											<div class="suggestion-item-left">
-												<span class="suggestion-bullet"></span>
-												<span class="suggestion-tag-name">
-													{tag}
-												</span>
-											</div>
-											{#if deckTagCounts.has(tag)}
-												<span class="suggestion-count-pill">
-													{deckTagCounts.get(tag)} card{deckTagCounts.get(tag) === 1 ? "" : "s"}
-												</span>
-											{/if}
-										</button>
-									{/each}
-								</div>
-							{:else if newTagInput.trim()}
-								<div class="suggestions-empty">
-									<span class="suggestions-empty-text">No matching existing tags</span>
-									<span class="suggestions-empty-hint">
-										Press <kbd class="hint-kbd">Enter</kbd> to add "{newTagInput.trim()}" as a new tag
-									</span>
+							{#if newTagInput.trim()}
+								<div class="suggestion-hint-row">
+									<span>Press <kbd class="hint-kbd">Tab</kbd> to complete or <kbd class="hint-kbd">↵</kbd> to add</span>
 								</div>
 							{/if}
-
-							<div class="suggestions-footer-hint">
-								<span><kbd class="hint-kbd">↑↓</kbd> navigate</span>
-								<span><kbd class="hint-kbd">Tab</kbd> complete</span>
-								<span><kbd class="hint-kbd">↵</kbd> add</span>
-								<span><kbd class="hint-kbd">Esc</kbd> hide</span>
-							</div>
 						</div>
 					{/if}
 				</div>
@@ -888,15 +825,21 @@
 		white-space: nowrap;
 	}
 
-	/* Extend button */
+	/* Extend button — icon only */
 	.extend-btn {
 		background: hsl(var(--primary) / 0.1);
 		color: hsl(var(--primary));
+		padding: 4px 5px;
 	}
 
 	.extend-btn:hover {
 		background: hsl(var(--primary) / 0.2);
 		color: hsl(var(--primary-light, var(--primary)));
+	}
+
+	.extend-svg {
+		display: block;
+		flex-shrink: 0;
 	}
 
 	/* Primary/star button */
@@ -1013,10 +956,10 @@
 		font-weight: 600;
 	}
 
-	/* ── Predictive suggestions panel ── */
-	.suggestions-panel {
-		background: hsla(var(--card) / 0.95);
-		border: 1px solid hsla(var(--border) / 0.55);
+	/* ── Suggestions dropdown ── */
+	.suggestions-dropdown {
+		background: hsl(var(--popover));
+		border: 1px solid hsla(var(--border) / 0.6);
 		border-radius: var(--radius-md);
 		overflow: hidden;
 		display: flex;
@@ -1027,64 +970,8 @@
 		margin-top: 0.25rem;
 	}
 
-	.suggestions-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0.35rem 0.65rem;
-		border-bottom: 1px solid hsla(var(--border) / 0.3);
-		background: hsla(var(--muted) / 0.2);
-	}
-
-	.suggestions-title {
-		display: flex;
-		align-items: center;
-		gap: 0.35rem;
-		font-size: 0.6875rem;
-		font-weight: 600;
-		color: hsl(var(--muted-foreground));
-		text-transform: uppercase;
-		letter-spacing: 0.03em;
-	}
-
-	:global(.suggestions-title-icon) {
-		color: hsl(var(--primary));
-		opacity: 0.8;
-	}
-
-	.suggestions-header-actions {
-		display: flex;
-		align-items: center;
-		gap: 0.35rem;
-	}
-
-	.suggestions-badge {
-		font-size: 0.625rem;
-		font-weight: 600;
-		padding: 1px 5px;
-		border-radius: 99px;
-		background: hsla(var(--muted) / 0.5);
-		color: hsl(var(--muted-foreground));
-	}
-
-	.close-suggestions-btn {
-		background: transparent;
-		border: none;
-		color: hsl(var(--muted-foreground));
-		cursor: pointer;
-		padding: 2px;
-		border-radius: var(--radius-sm);
-		display: flex;
-		align-items: center;
-		transition: color 0.1s;
-	}
-
-	.close-suggestions-btn:hover {
-		color: hsl(var(--foreground));
-	}
-
-	.suggestions-list-container {
-		max-height: 150px;
+	.suggestions-list {
+		max-height: 155px;
 		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
@@ -1097,8 +984,8 @@
 	.suggestion-item {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		padding: 0.375rem 0.625rem;
+		padding: 0.35rem 0.65rem;
+		min-height: 1.875rem;
 		border-radius: var(--radius-sm);
 		background: transparent;
 		border: 1px solid transparent;
@@ -1114,34 +1001,13 @@
 	}
 
 	.suggestion-item:hover {
-		background: hsl(var(--primary) / 0.1);
+		background: hsl(var(--primary) / 0.12);
 	}
 
 	.suggestion-item.active {
-		background: hsl(var(--primary) / 0.18);
+		background: hsl(var(--primary) / 0.2);
 		border-color: hsl(var(--primary) / 0.35);
 		font-weight: 600;
-	}
-
-	.suggestion-item-left {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		min-width: 0;
-	}
-
-	.suggestion-bullet {
-		width: 5px;
-		height: 5px;
-		border-radius: 50%;
-		background: hsl(var(--primary));
-		opacity: 0.7;
-		flex-shrink: 0;
-	}
-
-	.suggestion-item.active .suggestion-bullet {
-		opacity: 1;
-		box-shadow: 0 0 5px hsl(var(--primary));
 	}
 
 	.suggestion-tag-name {
@@ -1150,47 +1016,10 @@
 		text-overflow: ellipsis;
 	}
 
-	.suggestion-count-pill {
-		font-size: 0.6875rem;
-		font-weight: 500;
-		color: hsl(var(--muted-foreground));
-		background: hsla(var(--muted) / 0.35);
-		padding: 1px 6px;
-		border-radius: 99px;
-		white-space: nowrap;
-		flex-shrink: 0;
-	}
-
-	.suggestion-item.active .suggestion-count-pill {
-		background: hsl(var(--primary) / 0.2);
-		color: hsl(var(--primary));
-	}
-
-	.suggestions-empty {
-		padding: 0.75rem 0.65rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-		align-items: center;
-		text-align: center;
-	}
-
-	.suggestions-empty-text {
-		font-size: 0.75rem;
-		font-weight: 500;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.suggestions-empty-hint {
-		font-size: 0.71875rem;
-		color: hsl(var(--muted-foreground) / 0.8);
-	}
-
-	.suggestions-footer-hint {
+	.suggestion-hint-row {
 		display: flex;
 		align-items: center;
 		justify-content: flex-end;
-		gap: 0.75rem;
 		padding: 0.3rem 0.65rem;
 		font-size: 0.65rem;
 		color: hsl(var(--muted-foreground));
