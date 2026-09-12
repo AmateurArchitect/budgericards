@@ -99,6 +99,13 @@
 		interactionStore.closeBulkTagsModal();
 	}
 
+	function handleApply() {
+		if (newTagInput.trim().length > 0) {
+			addTagToAll(newTagInput);
+		}
+		handleClose();
+	}
+
 	/** @param {string} tag */
 	function addTagToAll(tag) {
 		const trimmed = tag.trim();
@@ -435,7 +442,8 @@
 
 			<!-- Footer -->
 			<div class="modal-footer">
-				<Button variant="default" onclick={handleClose}>Done</Button>
+				<Button variant="ghost" onclick={handleClose}>Cancel</Button>
+				<Button variant="default" onclick={handleApply}>Apply</Button>
 			</div>
 		</div>
 	</div>
@@ -833,6 +841,7 @@
 	.modal-footer {
 		display: flex;
 		justify-content: flex-end;
+		gap: 0.5rem;
 		padding: 0.75rem 1.25rem 1rem;
 		border-top: 1px solid hsla(var(--border) / 0.4);
 		flex-shrink: 0;
