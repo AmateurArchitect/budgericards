@@ -569,6 +569,11 @@ function createInteractionStore() {
 				case 'o':
 					window.open(`https://scryfall.com/search?q=!"${name}"`, '_blank');
 					break;
+				case 't':
+					if (zone !== 'scryfall' && zone !== 'budget-edh-26.2' && zone !== 'budget-staples') {
+						interactionStore.showBulkTagsModal([{ ...card, board: card.board || zone }]);
+					}
+					break;
 				case 'e':
 					interactionStore.showCardDataModal(card, zone, price);
 					break;
@@ -1578,9 +1583,9 @@ function createInteractionStore() {
 					}
 				});
 				items.push({
-					label: "Edit Tags...",
+					label: "Edit Tags",
 					action: () => {
-						state.bulkTagsModal = { isOpen: true, cards: selectedCards };
+						this.showBulkTagsModal(selectedCards);
 					}
 				});
 				items.push({
@@ -1938,6 +1943,16 @@ function createInteractionStore() {
 			}
 
 			items.push({ divider: true });
+
+			if (!isFromSearch) {
+				items.push({
+					label: "Edit Tags",
+					shortcuts: ["T"],
+					action: () => {
+						this.showBulkTagsModal([{ ...card, board: card.board || zone }]);
+					}
+				});
+			}
 
 			items.push({
 				label: "Edit Card Data...",

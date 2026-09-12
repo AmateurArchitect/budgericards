@@ -384,9 +384,7 @@
 					<Tags size={16} class="title-icon" />
 					<span class="modal-title">Edit Tags</span>
 					<span class="card-count-badge"
-						>{cards.length} card{cards.length !== 1
-							? "s"
-							: ""}</span
+						>{cards.length === 1 ? (cards[0]?.name || "1 card") : `${cards.length} cards`}</span
 					>
 				</div>
 				<button
@@ -449,13 +447,15 @@
 									{:else}
 										<span class="tag-name">{row.tag}</span>
 
-										<!-- Card count -->
-										<span
-											class="count-badge"
-											title="{row.count} of {cards.length} selected cards have this tag"
-										>
-											{row.count}/{cards.length}
-										</span>
+										<!-- Card count (only for multi-card selection) -->
+										{#if cards.length > 1}
+											<span
+												class="count-badge"
+												title="{row.count} of {cards.length} selected cards have this tag"
+											>
+												{row.count}/{cards.length}
+											</span>
+										{/if}
 									{/if}
 								</div>
 
@@ -521,8 +521,9 @@
 					</div>
 				{:else}
 					<p class="no-tags-placeholder">
-						Looks like these cards don't have any tags yet. Want to
-						add some?
+						{cards.length === 1
+							? "Looks like this card doesn't have any tags yet. Want to add some?"
+							: "Looks like these cards don't have any tags yet. Want to add some?"}
 					</p>
 				{/if}
 
@@ -537,7 +538,7 @@
 								autocorrect="off"
 								autocapitalize="off"
 								spellcheck="false"
-								placeholder="Add a tag to all {cards.length} cards..."
+								placeholder={cards.length === 1 ? "Add a tag to this card..." : `Add a tag to all ${cards.length} cards...`}
 								bind:value={newTagInput}
 								onfocus={() => {
 									if (availableTags.length > 0) {
