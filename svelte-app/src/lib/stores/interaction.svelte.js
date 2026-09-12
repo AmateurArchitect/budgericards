@@ -1367,18 +1367,37 @@ function createInteractionStore() {
 		 * @param {MouseEvent} e
 		 * @param {string} columnLabel
 		 * @param {any[]} columnCards
+		 * @param {Object} [options]
+		 * @param {'column'|'section'} [options.type]
+		 * @param {boolean} [options.isCollapsed]
+		 * @param {() => void} [options.onToggleCollapse]
 		 */
-		showColumnMenu(e, columnLabel, columnCards) {
+		showColumnMenu(e, columnLabel, columnCards, options = {}) {
 			e.preventDefault();
 			e.stopPropagation();
 
 			if (!columnCards || columnCards.length === 0) return;
 
 			const selectedCards = columnCards.map(c => ({ ...c, board: deckStore.activeBoard }));
+			const isSection = options.type === "section";
+			const groupNoun = isSection ? "section" : "stack";
 
-			const items = [
+			/** @type {any[]} */
+			const items = [];
+
+			if (options.onToggleCollapse) {
+				items.push({
+					label: options.isCollapsed ? "Open section" : "Close section",
+					action: () => {
+						options.onToggleCollapse?.();
+					}
+				});
+				items.push({ divider: true });
+			}
+
+			items.push(
 				{
-					label: "Select cards in stack",
+					label: `Select cards in ${groupNoun}`,
 					action: () => {
 						const cellsSet = new Set();
 						for (const card of columnCards) {
@@ -1388,7 +1407,7 @@ function createInteractionStore() {
 					}
 				},
 				{
-					label: "Delete cards in stack",
+					label: `Delete cards in ${groupNoun}`,
 					danger: true,
 					action: () => {
 						deckStore.batchUpdate(() => {
@@ -1467,7 +1486,7 @@ function createInteractionStore() {
 						}
 					]
 				}
-			];
+			);
 
 			state.menuHeaderTitle = columnLabel;
 			state.menuCustomItems = items;

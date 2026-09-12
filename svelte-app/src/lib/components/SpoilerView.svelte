@@ -66,6 +66,34 @@
 		}
 	}
 
+	/**
+	 * @param {MouseEvent} e
+	 * @param {any} category
+	 */
+	function handleCategoryHeaderClick(e, category) {
+		e.preventDefault();
+		e.stopPropagation();
+
+		/** @type {any[]} */
+		const categoryCards = [];
+		for (const item of category.cards) {
+			if (item.instances && item.instances.length > 0) {
+				for (const inst of item.instances) {
+					categoryCards.push(inst);
+				}
+			} else if (item.card) {
+				categoryCards.push(item.card);
+			}
+		}
+
+		const isCollapsed = collapsedCategories.has(category.name);
+		interactionStore.showColumnMenu(e, category.name, categoryCards, {
+			type: "section",
+			isCollapsed,
+			onToggleCollapse: () => toggleCategoryCollapse(category.name)
+		});
+	}
+
 	// Group and sort card rows using the shared grouping engine (supports all grouping modes)
 	const groupedCategories = $derived.by(getGroupedCategories);
 
@@ -311,21 +339,32 @@
 		{/snippet}
 
 		<div class="spoiler-scroll-wrapper">
-			{#if deckStore.splitView}
+			{#if settingsStore.showColumnHeaders}
 				{#each groupedCategories as category (category.name)}
 					{#if category.cards.length > 0}
 						<div class="category-section" in:fade={{ duration: 300 }}>
-							<!-- Category Header (Interactive Collapse) -->
+							<!-- Category Header (Interactive Collapse & Context Menu) -->
 							<button 
 								type="button"
 								class="category-header"
-								onclick={() => toggleCategoryCollapse(category.name)}
+								onclick={(e) => handleCategoryHeaderClick(e, category)}
+								oncontextmenu={(e) => handleCategoryHeaderClick(e, category)}
 								aria-expanded={!collapsedCategories.has(category.name)}
 							>
-								<ChevronDown 
-									size={14} 
-									class="category-chevron {collapsedCategories.has(category.name) ? 'collapsed' : ''}"
-								/>
+								<!-- svelte-ignore a11y_click_events_have_key_events -->
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<span
+									class="category-chevron-wrapper"
+									onclick={(e) => {
+										e.stopPropagation();
+										toggleCategoryCollapse(category.name);
+									}}
+								>
+									<ChevronDown 
+										size={14} 
+										class="category-chevron {collapsedCategories.has(category.name) ? 'collapsed' : ''}"
+									/>
+								</span>
 								<span class="category-title">{category.name}</span>
 								<span class="category-count">{category.totalQtyText || category.totalQty}</span>
 								<div class="category-line"></div>
@@ -412,6 +451,20 @@
 
 	.category-header:hover :global(.category-chevron.collapsed) {
 		transform: rotate(-90deg) translateX(-1px);
+	}
+
+	.category-chevron-wrapper {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		padding: 2px;
+		border-radius: var(--radius-sm);
+		transition: background-color 0.15s ease;
+	}
+
+	.category-chevron-wrapper:hover {
+		background: hsl(var(--foreground) / 0.1);
 	}
 
 	:global(.category-chevron) {

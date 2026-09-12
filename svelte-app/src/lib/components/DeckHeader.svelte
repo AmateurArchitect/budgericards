@@ -786,21 +786,17 @@
 				</div>
 
 				<!-- Split View Modifier Button -->
-				{#if (settingsStore.deckViewMode === "stacks" && deckStore.grouping !== "freeform") || settingsStore.deckViewMode === "spoiler"}
+				{#if settingsStore.deckViewMode === "stacks" && deckStore.grouping !== "freeform"}
 					<Button
 						variant={deckStore.splitView ? "toggle-active" : "ghost"}
 						size="icon"
 						class="modifier-btn {deckStore.splitView ? 'bg-secondary' : ''}"
 						onclick={() => (deckStore.splitView = !deckStore.splitView)}
-						title={settingsStore.deckViewMode === "spoiler"
-							? "Toggle Category Dividers"
-							: deckStore.grouping === "type"
-								? "Toggle Type Split View (Creatures / Non-Creatures)"
-								: "Toggle Spell / Land Row Split View"}
+						title={deckStore.grouping === "type"
+							? "Toggle Type Split View (Creatures / Non-Creatures)"
+							: "Toggle Spell / Land Row Split View"}
 					>
-						{#if settingsStore.deckViewMode === "spoiler"}
-							<StretchHorizontal size={15} />
-						{:else if deckStore.grouping === "type"}
+						{#if deckStore.grouping === "type"}
 							<StretchVertical size={15} />
 						{:else}
 							<StretchHorizontal size={15} />

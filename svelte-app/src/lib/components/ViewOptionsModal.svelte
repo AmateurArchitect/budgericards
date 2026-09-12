@@ -218,8 +218,8 @@
 					<div class="divider"></div>
 				{/if}
 
-				<!-- SECTION 3: STACKS-EXCLUSIVE DROPDOWNS -->
-				{#if settingsStore.deckViewMode === "stacks"}
+				<!-- SECTION 3: STACKS & SPOILER OPTIONS -->
+				{#if settingsStore.deckViewMode === "stacks" || settingsStore.deckViewMode === "spoiler"}
 					<!-- Show Column Headers option -->
 					<div class="form-group toggle-group" style="margin-bottom: 0.75rem;">
 						<label for="show-column-headers" class="toggle-label"
@@ -234,7 +234,9 @@
 							<span class="slider"></span>
 						</label>
 					</div>
+				{/if}
 
+				{#if settingsStore.deckViewMode === "stacks"}
 					<!-- Combine Duplicates option -->
 					<div class="form-group">
 						<span class="group-label">Combine Duplicates</span>
@@ -328,6 +330,8 @@
 				{/if}
 
 				{#if settingsStore.deckViewMode === "spoiler"}
+					<div class="divider"></div>
+
 					<!-- Changing the card size with a premium minimal range slider featuring elegant stop-indicators below the track -->
 					<div class="form-group">
 						<span class="group-label">Card Size</span>
