@@ -23,6 +23,7 @@
 	let isOpen = $derived(interactionStore.bulkTagsModal.isOpen);
 	let isSuggestionsOpen = $state(false);
 	let activeIndex = $state(-1);
+	let isKeyboardNavigating = $state(false);
 	/** @type {HTMLDivElement | null} */
 	let suggestionsListEl = $state(null);
 
@@ -33,17 +34,20 @@
 			newTagInput = "";
 			isSuggestionsOpen = availableTags.length > 0;
 			activeIndex = -1;
+			isKeyboardNavigating = false;
 		}
 	});
 
-	// When user types, auto-highlight top suggestion if any
+	// When user types, auto-highlight top suggestion if any matches
 	$effect(() => {
 		const query = newTagInput.trim();
 		if (query && filteredSuggestions.length > 0) {
 			activeIndex = 0;
 			isSuggestionsOpen = true;
+			isKeyboardNavigating = false;
 		} else if (!query) {
 			activeIndex = -1;
+			isKeyboardNavigating = false;
 		}
 	});
 
@@ -150,6 +154,8 @@
 				e.preventDefault();
 				e.stopPropagation();
 				isSuggestionsOpen = false;
+				activeIndex = -1;
+				isKeyboardNavigating = false;
 				return;
 			}
 		}
@@ -158,11 +164,13 @@
 			if (!isSuggestionsOpen && filteredSuggestions.length > 0) {
 				isSuggestionsOpen = true;
 				activeIndex = 0;
+				isKeyboardNavigating = true;
 				e.preventDefault();
 				return;
 			}
 			if (isSuggestionsOpen && filteredSuggestions.length > 0) {
 				e.preventDefault();
+				isKeyboardNavigating = true;
 				activeIndex = (activeIndex + 1) % filteredSuggestions.length;
 				scrollActiveSuggestionIntoView();
 				return;
@@ -172,6 +180,7 @@
 		if (e.key === "ArrowUp") {
 			if (isSuggestionsOpen && filteredSuggestions.length > 0) {
 				e.preventDefault();
+				isKeyboardNavigating = true;
 				activeIndex =
 					(activeIndex - 1 + filteredSuggestions.length) %
 					filteredSuggestions.length;
@@ -180,13 +189,13 @@
 			}
 		}
 
+		const isItemActive =
+			(newTagInput.trim().length > 0 || isKeyboardNavigating) &&
+			activeIndex >= 0 &&
+			activeIndex < filteredSuggestions.length;
+
 		if (e.key === "Tab") {
-			if (
-				isSuggestionsOpen &&
-				filteredSuggestions.length > 0 &&
-				activeIndex >= 0 &&
-				activeIndex < filteredSuggestions.length
-			) {
+			if (isSuggestionsOpen && isItemActive) {
 				e.preventDefault();
 				newTagInput = filteredSuggestions[activeIndex];
 				return;
@@ -195,12 +204,7 @@
 
 		if (e.key === "Enter") {
 			e.preventDefault();
-			if (
-				isSuggestionsOpen &&
-				filteredSuggestions.length > 0 &&
-				activeIndex >= 0 &&
-				activeIndex < filteredSuggestions.length
-			) {
+			if (isSuggestionsOpen && isItemActive) {
 				addTagToAll(filteredSuggestions[activeIndex]);
 			} else if (newTagInput.trim().length > 0) {
 				addTagToAll(newTagInput);
@@ -214,6 +218,7 @@
 		newTagInput = "";
 		isSuggestionsOpen = false;
 		activeIndex = -1;
+		isKeyboardNavigating = false;
 		interactionStore.closeBulkTagsModal();
 	}
 
@@ -239,6 +244,7 @@
 		});
 		newTagInput = "";
 		activeIndex = -1;
+		isKeyboardNavigating = false;
 	}
 
 	/** @param {string} tag */
@@ -567,10 +573,9 @@
 									<button
 										type="button"
 										class="suggestion-item"
-										class:active={idx === activeIndex}
+										class:active={(newTagInput.trim().length > 0 || isKeyboardNavigating) && idx === activeIndex}
 										role="option"
-										aria-selected={idx === activeIndex}
-										onmouseenter={() => (activeIndex = idx)}
+										aria-selected={(newTagInput.trim().length > 0 || isKeyboardNavigating) && idx === activeIndex}
 										onmousedown={(e) => e.preventDefault()}
 										onclick={() => addTagToAll(tag)}
 									>
@@ -956,18 +961,11 @@
 		font-weight: 600;
 	}
 
-	/* ── Suggestions dropdown ── */
+	/* ── Suggestions list ── */
 	.suggestions-dropdown {
-		background: hsl(var(--popover));
-		border: 1px solid hsla(var(--border) / 0.6);
-		border-radius: var(--radius-md);
-		overflow: hidden;
 		display: flex;
 		flex-direction: column;
-		box-shadow:
-			0 10px 25px -5px rgba(0, 0, 0, 0.45),
-			0 0 0 1px hsla(255, 100%, 100%, 0.03);
-		margin-top: 0.25rem;
+		margin-top: 0.15rem;
 	}
 
 	.suggestions-list {
@@ -975,8 +973,8 @@
 		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
-		gap: 1px;
-		padding: 3px;
+		gap: 2px;
+		padding: 0;
 		scrollbar-width: thin;
 		scrollbar-color: hsla(var(--border) / 0.6) transparent;
 	}
@@ -989,7 +987,7 @@
 		border-radius: var(--radius-sm);
 		background: transparent;
 		border: 1px solid transparent;
-		color: hsl(var(--foreground));
+		color: hsl(var(--foreground) / 0.85);
 		font-size: 0.8125rem;
 		font-weight: 500;
 		cursor: pointer;
@@ -997,16 +995,19 @@
 		width: 100%;
 		transition:
 			background 0.1s,
+			color 0.1s,
 			border-color 0.1s;
 	}
 
 	.suggestion-item:hover {
-		background: hsl(var(--primary) / 0.12);
+		background: hsl(var(--muted) / 0.35);
+		color: hsl(var(--foreground));
 	}
 
 	.suggestion-item.active {
-		background: hsl(var(--primary) / 0.2);
+		background: hsl(var(--primary) / 0.18);
 		border-color: hsl(var(--primary) / 0.35);
+		color: hsl(var(--foreground));
 		font-weight: 600;
 	}
 
@@ -1020,11 +1021,9 @@
 		display: flex;
 		align-items: center;
 		justify-content: flex-end;
-		padding: 0.3rem 0.65rem;
+		padding: 0.25rem 0.25rem 0;
 		font-size: 0.65rem;
 		color: hsl(var(--muted-foreground));
-		border-top: 1px solid hsla(var(--border) / 0.25);
-		background: hsla(var(--muted) / 0.1);
 	}
 
 	.hint-kbd {
