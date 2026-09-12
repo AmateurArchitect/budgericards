@@ -97,6 +97,9 @@
 	}
 
 	$effect(() => {
+		// Read menuRect so this effect re-runs when the context menu finishes layout
+		const _triggerRectUpdate = interactionStore.menuRect;
+
 		// Reposition if menu opens OR moves to a different card
 		if (
 			interactionStore.isMenuOpen &&
