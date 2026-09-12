@@ -1,12 +1,11 @@
 <script>
-	import { fade, scale, fly } from "svelte/transition";
+	import { fade, scale } from "svelte/transition";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { priceStore } from "$lib/stores/prices.svelte.js";
 	import { toastStore } from "$lib/stores/toast.svelte.js";
 	import { parseDecklist } from "$lib/utils/decklistParser.js";
 	import { getCardByName } from "$lib/localSearch";
-	import { db } from "$lib/db";
 	import { fetchCollection, scryfallFetch } from "$lib/api/scryfall.js";
 	import {
 		X,
@@ -15,12 +14,9 @@
 		Layers,
 		Copy,
 		Trash2,
-		AlertCircle,
+		AlertTriangle,
 		Check,
 		Loader2,
-		DollarSign,
-		Calendar,
-		Clock,
 		Sliders
 	} from "lucide-svelte";
 	import Button from "$lib/components/ui/Button.svelte";
@@ -44,6 +40,10 @@
 
 	/** @type {HTMLTextAreaElement | null} */
 	let textareaEl = $state(null);
+
+	// Map of lower-case card name -> boolean (true = recognized Magic card, false = unrecognized)
+	/** @type {Map<string, boolean>} */
+	let recognizedMap = $state(new Map());
 
 	// Sync initial text and active board when modal opens
 	$effect(() => {
@@ -75,6 +75,46 @@
 		return parseDecklist(rawText);
 	});
 
+	// Reactively validate card names against local card database
+	$effect(() => {
+		const cards = parsedCards;
+		if (cards.length === 0) {
+			recognizedMap = new Map();
+			return;
+		}
+
+		let isCancelled = false;
+
+		const checkAll = async () => {
+			const map = new Map(recognizedMap);
+			const uniqueNames = [...new Set(cards.map(c => (c.name || "").trim().toLowerCase()))].filter(Boolean);
+
+			for (const lowerName of uniqueNames) {
+				if (map.has(lowerName)) continue;
+				try {
+					const match = await getCardByName(lowerName);
+					if (!isCancelled) {
+						map.set(lowerName, !!match);
+					}
+				} catch (e) {
+					if (!isCancelled) {
+						map.set(lowerName, false);
+					}
+				}
+			}
+
+			if (!isCancelled) {
+				recognizedMap = map;
+			}
+		};
+
+		checkAll();
+
+		return () => {
+			isCancelled = true;
+		};
+	});
+
 	// Cards currently in the target board
 	const existingBoardCards = $derived.by(() => {
 		const board = deckStore[targetBoard];
@@ -92,20 +132,26 @@
 		return map;
 	});
 
-	// Enriched parsed list with effective quantities and duplicate flags
+	// Enriched parsed list with effective quantities, validation, and duplicate flags
 	const previewCards = $derived.by(() => {
 		return parsedCards.map((card) => {
 			const name = (card.name || "").trim();
 			const lower = name.toLowerCase();
+			const isRecognized = recognizedMap.get(lower); // true, false, or undefined (pending)
+			const isUnrecognized = isRecognized === false;
+
 			const existingCount = existingCardNameCounts.get(lower) || 0;
 			const isDuplicate = existingCount > 0;
 			const effectiveQty = quantityMode === "one" ? 1 : Math.max(1, card.quantity || 1);
-			const willSkip = isDuplicate && duplicateStrategy === "skip";
+			const willSkip = isUnrecognized || (isDuplicate && duplicateStrategy === "skip");
 
 			return {
 				...card,
 				name,
+				lower,
 				effectiveQty,
+				isRecognized,
+				isUnrecognized,
 				isDuplicate,
 				existingCount,
 				willSkip
@@ -114,9 +160,12 @@
 	});
 
 	const totalParsedCount = $derived(previewCards.length);
-	const importableCards = $derived(previewCards.filter(c => !c.willSkip));
+	// Only recognized cards (or pending check) that are not skipped duplicates can be imported
+	const importableCards = $derived(previewCards.filter(c => !c.willSkip && c.isRecognized !== false));
 	const importableQuantity = $derived(importableCards.reduce((acc, c) => acc + c.effectiveQty, 0));
-	const skippedDuplicatesCount = $derived(previewCards.filter(c => c.willSkip).length);
+	const unrecognizedCards = $derived(previewCards.filter(c => c.isUnrecognized));
+	const unrecognizedCount = $derived(unrecognizedCards.length);
+	const skippedDuplicatesCount = $derived(previewCards.filter(c => c.isDuplicate && duplicateStrategy === "skip" && !c.isUnrecognized).length);
 
 	function handleClose() {
 		if (isProcessing) return;
@@ -155,7 +204,7 @@
 
 	async function handleImport() {
 		if (importableCards.length === 0) {
-			toastStore.show("No cards to import", { type: "error" });
+			toastStore.show("No recognized cards to import", { type: "error" });
 			return;
 		}
 
@@ -194,7 +243,7 @@
 								color_identity: localCard.identity || [],
 								image_uris: {
 									normal: localCard.image,
-									art_crop: localCard.image ? localCard.image.replace('/normal/', '/art_crop/') : null
+									art_crop: localCard.image ? localCard.image.replace("/normal/", "/art_crop/") : null
 								},
 								prices: {
 									usd: String(localPrice),
@@ -219,7 +268,7 @@
 				}
 
 				if (missingFromDb.length > 0) {
-					progressMessage = `Resolving ${missingFromDb.length} card${missingFromDb.length === 1 ? '' : 's'} with Scryfall...`;
+					progressMessage = `Resolving ${missingFromDb.length} card${missingFromDb.length === 1 ? "" : "s"} with Scryfall...`;
 					const response = await fetchCollection(missingFromDb.map(x => x.identifier));
 					const data = response.data || [];
 
@@ -302,8 +351,12 @@
 
 			const targetTitle = targetBoard.charAt(0).toUpperCase() + targetBoard.slice(1);
 			const totalAdded = importableQuantity;
-			const skippedMsg = skippedDuplicatesCount > 0 ? ` (${skippedDuplicatesCount} duplicates skipped)` : "";
-			toastStore.show(`Imported ${totalAdded} card${totalAdded === 1 ? "" : "s"} into ${targetTitle}${skippedMsg}.`, { type: "success" });
+			const skippedParts = [];
+			if (skippedDuplicatesCount > 0) skippedParts.push(`${skippedDuplicatesCount} duplicates skipped`);
+			if (unrecognizedCount > 0) skippedParts.push(`${unrecognizedCount} unrecognized ignored`);
+			const suffix = skippedParts.length > 0 ? ` (${skippedParts.join(", ")})` : "";
+
+			toastStore.show(`Imported ${totalAdded} card${totalAdded === 1 ? "" : "s"} into ${targetTitle}${suffix}.`, { type: "success" });
 
 			handleClose();
 		} catch (e) {
@@ -363,7 +416,7 @@
 
 			<!-- Body: Two-Column Layout -->
 			<div class="modal-body">
-				<!-- Left Column: Input & Options -->
+				<!-- Left Column: Input & Options (Containers removed, clean spacing) -->
 				<div class="form-column">
 					<!-- Text Input Area -->
 					<div class="input-section">
@@ -412,10 +465,10 @@
 						</div>
 					</div>
 
-					<!-- Options Group -->
-					<div class="options-grid">
+					<!-- Options Group: Clean spacing without visible card containers -->
+					<div class="options-container">
 						<!-- Target Board -->
-						<div class="option-card">
+						<div class="option-group">
 							<div class="option-header">
 								<Layers size={14} class="option-icon" />
 								<span class="option-title">Target Board</span>
@@ -458,7 +511,7 @@
 						</div>
 
 						<!-- Quantity Mode -->
-						<div class="option-card">
+						<div class="option-group">
 							<div class="option-header">
 								<Sliders size={14} class="option-icon" />
 								<span class="option-title">Quantity</span>
@@ -490,7 +543,7 @@
 						</div>
 
 						<!-- Duplicate Strategy -->
-						<div class="option-card">
+						<div class="option-group">
 							<div class="option-header">
 								<Copy size={14} class="option-icon" />
 								<span class="option-title">Duplicates</span>
@@ -522,7 +575,7 @@
 						</div>
 
 						<!-- Printing Preference -->
-						<div class="option-card">
+						<div class="option-group">
 							<div class="option-header">
 								<Sparkles size={14} class="option-icon" />
 								<span class="option-title">Printing Preference</span>
@@ -588,8 +641,11 @@
 							<span class="preview-title">Parsed Cards</span>
 							{#if previewCards.length > 0}
 								<div class="preview-badges">
-									<span class="badge count-badge">{totalParsedCount} unique</span>
+									<span class="badge count-badge">{totalParsedCount} parsed</span>
 									<span class="badge qty-badge">{importableQuantity} to import</span>
+									{#if unrecognizedCount > 0}
+										<span class="badge unrec-badge">{unrecognizedCount} unrecognized</span>
+									{/if}
 									{#if skippedDuplicatesCount > 0}
 										<span class="badge skip-badge">{skippedDuplicatesCount} skipped</span>
 									{/if}
@@ -598,6 +654,16 @@
 						</div>
 					</div>
 
+					<!-- Unrecognized Warning Banner -->
+					{#if unrecognizedCount > 0}
+						<div class="unrecognized-banner">
+							<AlertTriangle size={14} class="banner-icon" />
+							<span>
+								<strong>{unrecognizedCount}</strong> line{unrecognizedCount === 1 ? "" : "s"} not recognized as Magic cards (will be ignored)
+							</span>
+						</div>
+					{/if}
+
 					<div class="preview-list-container">
 						{#if previewCards.length === 0}
 							<div class="preview-empty">
@@ -605,37 +671,46 @@
 									<FileText size={24} />
 								</div>
 								<p class="empty-main-text">No cards parsed yet</p>
-								<p class="empty-sub-text">Type or paste card names in the box to see a live preview of your import.</p>
+								<p class="empty-sub-text">Type or paste card names into the left box to see a live preview of your import.</p>
 							</div>
 						{:else}
 							<div class="card-items-list" role="list">
 								{#each previewCards as card, i (i + '_' + card.name)}
 									<div
 										class="preview-card-item"
-										class:is-skipped={card.willSkip}
-										class:is-duplicate={card.isDuplicate}
+										class:is-unrecognized={card.isUnrecognized}
+										class:is-skipped={card.willSkip && !card.isUnrecognized}
+										class:is-duplicate={card.isDuplicate && !card.isUnrecognized}
 										role="listitem"
 									>
 										<div class="card-item-left">
 											<span class="card-qty-badge" class:muted={card.willSkip}>
 												{card.effectiveQty}×
 											</span>
-											<span class="card-name-text" class:strikethrough={card.willSkip}>
+											<span
+												class="card-name-text"
+												class:unrecognized-text={card.isUnrecognized}
+												class:strikethrough={card.willSkip && !card.isUnrecognized}
+											>
 												{card.name}
 											</span>
-											{#if card.set}
+											{#if card.set && !card.isUnrecognized}
 												<span class="card-set-badge">
-													{card.set.toUpperCase()}{card.collector_number ? ` #${card.collector_number}` : ''}
+													{card.set.toUpperCase()}{card.collector_number ? ` #${card.collector_number}` : ""}
 												</span>
 											{/if}
 										</div>
 
 										<div class="card-item-right">
-											{#if card.willSkip}
-												<span class="status-tag tag-skipped" title="Card already exists in {targetBoard}; skipping.">
-													Skipped (in deck)
+											{#if card.isUnrecognized}
+												<span class="status-tag tag-unrecognized" title="This line was not recognized in the Magic card database and will be ignored.">
+													Unrecognized
 												</span>
-											{:else if card.isDuplicate}
+											{:else if card.isDuplicate && duplicateStrategy === "skip"}
+												<span class="status-tag tag-skipped" title="Card already exists in {targetBoard}; skipping.">
+													In deck (skip)
+												</span>
+											{:else if card.isDuplicate && duplicateStrategy === "add"}
 												<span class="status-tag tag-duplicate" title="Already in deck. Will add {card.effectiveQty} more copies.">
 													+{card.effectiveQty} to existing
 												</span>
@@ -663,13 +738,22 @@
 						</div>
 					{:else if importableCards.length > 0}
 						<span class="ready-text">
-							Ready to import <strong>{importableQuantity}</strong> card{importableQuantity === 1 ? '' : 's'} into <strong>{targetBoard}</strong>
-							{#if skippedDuplicatesCount > 0}
-								<span class="skipped-hint">({skippedDuplicatesCount} duplicates skipped)</span>
+							Ready to import <strong>{importableQuantity}</strong> card{importableQuantity === 1 ? "" : "s"} into <strong>{targetBoard}</strong>
+							{#if skippedDuplicatesCount > 0 || unrecognizedCount > 0}
+								<span class="skipped-hint">
+									({[
+										skippedDuplicatesCount > 0 ? `${skippedDuplicatesCount} duplicates skipped` : null,
+										unrecognizedCount > 0 ? `${unrecognizedCount} unrecognized ignored` : null
+									].filter(Boolean).join(", ")})
+								</span>
 							{/if}
 						</span>
 					{:else if previewCards.length > 0}
-						<span class="warning-text">All parsed cards are duplicates and set to be skipped.</span>
+						{#if unrecognizedCount === totalParsedCount}
+							<span class="warning-text">⚠️ No recognized Magic cards found.</span>
+						{:else}
+							<span class="warning-text">All cards are duplicates and set to be skipped.</span>
+						{/if}
 					{/if}
 				</div>
 
@@ -681,17 +765,18 @@
 					>
 						Cancel
 					</Button>
-					<Button
-						variant="primary"
+					<button
+						type="button"
+						class="import-submit-btn"
 						onclick={handleImport}
 						disabled={isProcessing || importableCards.length === 0}
 					>
 						{#if isProcessing}
 							Importing...
 						{:else}
-							Import {importableQuantity > 0 ? `${importableQuantity} ` : ''}Card{importableQuantity === 1 ? '' : 's'}
+							Import {importableQuantity > 0 ? `${importableQuantity} ` : ""}Card{importableQuantity === 1 ? "" : "s"}
 						{/if}
-					</Button>
+					</button>
 				</div>
 			</div>
 		</div>
@@ -713,7 +798,7 @@
 	.modal-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(8, 10, 15, 0.78);
+		background: rgba(4, 6, 11, 0.78);
 		backdrop-filter: blur(8px);
 		-webkit-backdrop-filter: blur(8px);
 		z-index: -1;
@@ -722,14 +807,14 @@
 	.modal-container {
 		display: flex;
 		flex-direction: column;
-		width: 900px;
+		width: 920px;
 		max-width: 96vw;
 		height: 720px;
 		max-height: 90vh;
-		background: #11141c;
-		border: 1px solid rgba(255, 255, 255, 0.1);
+		background: #0f1219;
+		border: 1px solid rgba(255, 255, 255, 0.08);
 		border-radius: 14px;
-		box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+		box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
 		color: #e2e8f0;
 		overflow: hidden;
 	}
@@ -741,7 +826,7 @@
 		justify-content: space-between;
 		padding: 16px 20px;
 		border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-		background: rgba(255, 255, 255, 0.02);
+		background: rgba(255, 255, 255, 0.015);
 	}
 
 	.modal-title-group {
@@ -756,7 +841,7 @@
 		justify-content: center;
 		width: 36px;
 		height: 36px;
-		border-radius: 10px;
+		border-radius: 9px;
 		background: rgba(99, 102, 241, 0.12);
 		border: 1px solid rgba(99, 102, 241, 0.25);
 		color: #818cf8;
@@ -786,8 +871,8 @@
 		display: flex;
 		align-items: center;
 		gap: 3px;
-		background: rgba(255, 255, 255, 0.05);
-		border: 1px solid rgba(255, 255, 255, 0.1);
+		background: rgba(255, 255, 255, 0.04);
+		border: 1px solid rgba(255, 255, 255, 0.08);
 		border-radius: 6px;
 		padding: 3px 6px;
 	}
@@ -812,7 +897,7 @@
 		transition: all 0.15s ease;
 	}
 
-	.close-btn:hover {
+	.close-btn:hover:not(:disabled) {
 		background: rgba(255, 255, 255, 0.08);
 		color: #f8fafc;
 	}
@@ -829,7 +914,7 @@
 		width: 50%;
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: 18px;
 		padding: 20px;
 		border-right: 1px solid rgba(255, 255, 255, 0.07);
 		overflow-y: auto;
@@ -839,7 +924,7 @@
 		width: 50%;
 		display: flex;
 		flex-direction: column;
-		background: rgba(0, 0, 0, 0.15);
+		background: rgba(0, 0, 0, 0.2);
 		min-height: 0;
 		overflow: hidden;
 	}
@@ -858,10 +943,10 @@
 	}
 
 	.section-label {
-		font-size: 12px;
+		font-size: 11.5px;
 		font-weight: 600;
 		text-transform: uppercase;
-		letter-spacing: 0.04em;
+		letter-spacing: 0.05em;
 		color: #94a3b8;
 	}
 
@@ -878,7 +963,7 @@
 		padding: 4px 8px;
 		font-size: 11px;
 		font-weight: 500;
-		background: rgba(255, 255, 255, 0.05);
+		background: rgba(255, 255, 255, 0.04);
 		border: 1px solid rgba(255, 255, 255, 0.08);
 		border-radius: 6px;
 		color: #cbd5e1;
@@ -887,7 +972,7 @@
 	}
 
 	.tool-btn:hover:not(:disabled) {
-		background: rgba(255, 255, 255, 0.1);
+		background: rgba(255, 255, 255, 0.09);
 		color: #fff;
 	}
 
@@ -905,9 +990,9 @@
 
 	.import-textarea {
 		width: 100%;
-		height: 140px;
+		height: 130px;
 		padding: 10px 12px;
-		background: #090c12;
+		background: #080b11;
 		border: 1px solid rgba(255, 255, 255, 0.1);
 		border-radius: 8px;
 		color: #f1f5f9;
@@ -932,33 +1017,28 @@
 		font-size: 10px;
 		color: #64748b;
 		pointer-events: none;
-		background: rgba(9, 12, 18, 0.85);
+		background: rgba(8, 11, 17, 0.85);
 		padding: 2px 6px;
 		border-radius: 4px;
 	}
 
-	/* Options Grid */
-	.options-grid {
+	/* Options Container (Clean Spacing, No Visible Box Containers) */
+	.options-container {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: 16px;
 	}
 
-	.option-card {
+	.option-group {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
-		background: rgba(255, 255, 255, 0.025);
-		border: 1px solid rgba(255, 255, 255, 0.05);
-		border-radius: 8px;
-		padding: 10px 12px;
+		gap: 7px;
 	}
 
 	.option-header {
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		color: #94a3b8;
 		font-size: 12px;
 		font-weight: 500;
 	}
@@ -969,13 +1049,16 @@
 
 	.option-title {
 		color: #cbd5e1;
+		font-size: 12px;
+		font-weight: 500;
+		letter-spacing: -0.01em;
 	}
 
 	/* Segmented Control */
 	.segmented-control {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-		background: #090c12;
+		background: #080b11;
 		border: 1px solid rgba(255, 255, 255, 0.08);
 		border-radius: 7px;
 		padding: 3px;
@@ -1006,11 +1089,16 @@
 		color: #e2e8f0;
 	}
 
+	.segment-btn:focus-visible {
+		outline: 2px solid hsl(var(--primary));
+		outline-offset: -1px;
+	}
+
 	.segment-btn.active {
-		background: #1e2433;
+		background: #1c2230;
 		color: #f8fafc;
 		font-weight: 600;
-		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
 	}
 
 	/* Right Preview Column */
@@ -1026,10 +1114,10 @@
 	}
 
 	.preview-title {
-		font-size: 13px;
+		font-size: 12px;
 		font-weight: 600;
 		text-transform: uppercase;
-		letter-spacing: 0.04em;
+		letter-spacing: 0.05em;
 		color: #94a3b8;
 	}
 
@@ -1043,7 +1131,7 @@
 		font-size: 11px;
 		font-weight: 500;
 		padding: 2px 7px;
-		border-radius: 12px;
+		border-radius: 10px;
 	}
 
 	.count-badge {
@@ -1057,10 +1145,36 @@
 		border: 1px solid rgba(99, 102, 241, 0.25);
 	}
 
+	.unrec-badge {
+		background: rgba(234, 88, 12, 0.15);
+		color: #fb923c;
+		border: 1px solid rgba(234, 88, 12, 0.3);
+	}
+
 	.skip-badge {
 		background: rgba(239, 68, 68, 0.15);
 		color: #fca5a5;
 		border: 1px solid rgba(239, 68, 68, 0.25);
+	}
+
+	.unrecognized-banner {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 16px;
+		background: rgba(234, 88, 12, 0.12);
+		border-bottom: 1px solid rgba(234, 88, 12, 0.25);
+		color: #fdba74;
+		font-size: 12px;
+	}
+
+	.unrecognized-banner strong {
+		color: #fed7aa;
+	}
+
+	:global(.banner-icon) {
+		color: #f97316;
+		flex-shrink: 0;
 	}
 
 	.preview-list-container {
@@ -1135,6 +1249,11 @@
 		background: rgba(0, 0, 0, 0.2);
 	}
 
+	.preview-card-item.is-unrecognized {
+		background: rgba(234, 88, 12, 0.06);
+		border-color: rgba(234, 88, 12, 0.2);
+	}
+
 	.card-item-left {
 		display: flex;
 		align-items: center;
@@ -1162,6 +1281,11 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+
+	.card-name-text.unrecognized-text {
+		color: #f87171;
+		font-style: italic;
 	}
 
 	.card-name-text.strikethrough {
@@ -1211,6 +1335,12 @@
 		border: 1px solid rgba(239, 68, 68, 0.2);
 	}
 
+	.status-tag.tag-unrecognized {
+		background: rgba(234, 88, 12, 0.16);
+		color: #fb923c;
+		border: 1px solid rgba(234, 88, 12, 0.3);
+	}
+
 	/* Footer */
 	.modal-footer {
 		display: flex;
@@ -1218,7 +1348,7 @@
 		justify-content: space-between;
 		padding: 14px 20px;
 		border-top: 1px solid rgba(255, 255, 255, 0.07);
-		background: rgba(255, 255, 255, 0.02);
+		background: rgba(255, 255, 255, 0.015);
 	}
 
 	.footer-status {
@@ -1247,18 +1377,55 @@
 	}
 
 	.skipped-hint {
-		color: #64748b;
+		color: #94a3b8;
 		margin-left: 4px;
 	}
 
 	.warning-text {
 		color: #fca5a5;
+		font-weight: 500;
 	}
 
 	.footer-buttons {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: 10px;
+	}
+
+	/* Custom primary import button matching Budgericards theme */
+	.import-submit-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		height: 36px;
+		padding: 0 16px;
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: #ffffff;
+		background: hsl(var(--primary));
+		border: 1px solid transparent;
+		border-radius: var(--radius, 8px);
+		cursor: pointer;
+		box-shadow: 0 2px 8px hsl(var(--primary) / 0.25);
+		transition: all 0.15s ease;
+	}
+
+	.import-submit-btn:hover:not(:disabled) {
+		background: hsl(var(--primary-dark));
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px hsl(var(--primary) / 0.35);
+	}
+
+	.import-submit-btn:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
+		transform: none;
+		box-shadow: none;
+	}
+
+	.import-submit-btn:focus-visible {
+		outline: 2px solid hsl(var(--ring));
+		outline-offset: 2px;
 	}
 
 	/* Responsive for narrow screens */
