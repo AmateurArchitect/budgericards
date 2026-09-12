@@ -690,61 +690,79 @@
 			</div>
 		{:else}
 			<!-- View Mode Segmented Controls -->
-			<div class="view-mode-group">
-				<Button
-					variant={settingsStore.deckViewMode === "stacks" ? "toggle-active" : "ghost"}
-					size="icon"
+			<div class="view-mode-group" role="radiogroup" aria-label="Deck View Mode">
+				<button
+					type="button"
+					role="radio"
+					aria-checked={settingsStore.deckViewMode === "stacks"}
 					class="view-toggle-btn"
+					class:active={settingsStore.deckViewMode === "stacks"}
 					onclick={() => (settingsStore.deckViewMode = "stacks")}
 					title="Stacks View"
+					aria-label="Stacks View"
 				>
 					<Layers size={15} />
-				</Button>
-				<Button
-					variant={settingsStore.deckViewMode === "list" ? "toggle-active" : "ghost"}
-					size="icon"
+				</button>
+				<button
+					type="button"
+					role="radio"
+					aria-checked={settingsStore.deckViewMode === "list"}
 					class="view-toggle-btn"
+					class:active={settingsStore.deckViewMode === "list"}
 					onclick={() => (settingsStore.deckViewMode = "list")}
 					title="List / Text View"
+					aria-label="List / Text View"
 				>
 					<List size={15} />
-				</Button>
-				<Button
-					variant={settingsStore.deckViewMode === "spoiler" ? "toggle-active" : "ghost"}
-					size="icon"
+				</button>
+				<button
+					type="button"
+					role="radio"
+					aria-checked={settingsStore.deckViewMode === "spoiler"}
 					class="view-toggle-btn"
+					class:active={settingsStore.deckViewMode === "spoiler"}
 					onclick={() => (settingsStore.deckViewMode = "spoiler")}
 					title="Spoiler View"
+					aria-label="Spoiler View"
 				>
 					<Image size={15} />
-				</Button>
-				<Button
-					variant={settingsStore.deckViewMode === "table" ? "toggle-active" : "ghost"}
-					size="icon"
+				</button>
+				<button
+					type="button"
+					role="radio"
+					aria-checked={settingsStore.deckViewMode === "table"}
 					class="view-toggle-btn"
+					class:active={settingsStore.deckViewMode === "table"}
 					onclick={() => (settingsStore.deckViewMode = "table")}
 					title="Table View"
+					aria-label="Table View"
 				>
 					<Table size={15} />
-				</Button>
-				<Button
-					variant={settingsStore.deckViewMode === "stats" ? "toggle-active" : "ghost"}
-					size="icon"
+				</button>
+				<button
+					type="button"
+					role="radio"
+					aria-checked={settingsStore.deckViewMode === "stats"}
 					class="view-toggle-btn"
+					class:active={settingsStore.deckViewMode === "stats"}
 					onclick={() => (settingsStore.deckViewMode = "stats")}
 					title="Stats View"
+					aria-label="Stats View"
 				>
 					<BarChart2 size={15} />
-				</Button>
-				<Button
-					variant={settingsStore.deckViewMode === "settings" ? "toggle-active" : "ghost"}
-					size="icon"
+				</button>
+				<button
+					type="button"
+					role="radio"
+					aria-checked={settingsStore.deckViewMode === "settings"}
 					class="view-toggle-btn"
+					class:active={settingsStore.deckViewMode === "settings"}
 					onclick={() => (settingsStore.deckViewMode = "settings")}
 					title="Settings"
+					aria-label="Settings"
 				>
 					<Settings size={15} />
-				</Button>
+				</button>
 			</div>
 
 			<!-- Grouping Dropdown -->
@@ -752,6 +770,7 @@
 				<div class="grouping-container">
 					<button
 						class="header-select-trigger grouping-trigger"
+						class:active={showColumnsDropdown}
 						onclick={(e) => {
 							e.stopPropagation();
 							showColumnsDropdown = !showColumnsDropdown;
@@ -827,6 +846,7 @@
 					<div class="table-cols-container">
 						<button
 							class="header-select-trigger"
+							class:active={showTableColumnsDropdown}
 							onclick={(e) => {
 								e.stopPropagation();
 								showTableColumnsDropdown = !showTableColumnsDropdown;
@@ -891,39 +911,47 @@
 			{/if}
 
 			{#if settingsStore.deckViewMode === "stats"}
-				<div class="stats-subtabs-group">
-					<Button
-						variant={settingsStore.statsSubTab === "dashboard" ? "toggle-active" : "ghost"}
-						onclick={() => (settingsStore.statsSubTab = "dashboard")}
-						size="sm"
+				<div class="stats-subtabs-group" role="radiogroup" aria-label="Stats Sub-tab">
+					<button
+						type="button"
+						role="radio"
+						aria-checked={settingsStore.statsSubTab === "dashboard"}
 						class="stats-tab-btn"
+						class:active={settingsStore.statsSubTab === "dashboard"}
+						onclick={() => (settingsStore.statsSubTab = "dashboard")}
 					>
 						Dashboard
-					</Button>
-					<Button
-						variant={settingsStore.statsSubTab === "sample-hand" ? "toggle-active" : "ghost"}
-						onclick={() => (settingsStore.statsSubTab = "sample-hand")}
-						size="sm"
+					</button>
+					<button
+						type="button"
+						role="radio"
+						aria-checked={settingsStore.statsSubTab === "sample-hand"}
 						class="stats-tab-btn"
+						class:active={settingsStore.statsSubTab === "sample-hand"}
+						onclick={() => (settingsStore.statsSubTab = "sample-hand")}
 					>
 						Sample Hand
-					</Button>
-					<Button
-						variant={settingsStore.statsSubTab === "tokens" ? "toggle-active" : "ghost"}
-						onclick={() => (settingsStore.statsSubTab = "tokens")}
-						size="sm"
+					</button>
+					<button
+						type="button"
+						role="radio"
+						aria-checked={settingsStore.statsSubTab === "tokens"}
 						class="stats-tab-btn"
+						class:active={settingsStore.statsSubTab === "tokens"}
+						onclick={() => (settingsStore.statsSubTab = "tokens")}
 					>
 						Tokens
-					</Button>
-					<Button
-						variant={settingsStore.statsSubTab === "combos" ? "toggle-active" : "ghost"}
-						onclick={() => (settingsStore.statsSubTab = "combos")}
-						size="sm"
+					</button>
+					<button
+						type="button"
+						role="radio"
+						aria-checked={settingsStore.statsSubTab === "combos"}
 						class="stats-tab-btn"
+						class:active={settingsStore.statsSubTab === "combos"}
+						onclick={() => (settingsStore.statsSubTab = "combos")}
 					>
 						Combos
-					</Button>
+					</button>
 				</div>
 			{/if}
 		{/if}
@@ -1227,33 +1255,52 @@
 	.deck-controls-right {
 		display: flex;
 		align-items: center;
-		gap: 0.625rem;
+		gap: 0.5rem;
 		flex-shrink: 0;
 	}
 
 	.view-mode-group {
 		display: inline-flex;
 		align-items: center;
-		background: hsl(var(--muted) / 0.5);
-		border: 1px solid hsl(var(--border));
-		border-radius: var(--radius);
-		padding: 2px;
-		gap: 1px;
+		background: #080b11;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		border-radius: 8px;
+		padding: 3px;
+		gap: 2px;
 		height: 36px;
 		box-sizing: border-box;
 	}
 
-	:global(.view-toggle-btn) {
-		height: 30px !important;
-		width: 30px !important;
-		padding: 0 !important;
-		border-radius: 4px !important;
-		color: hsl(var(--muted-foreground)) !important;
+	.view-toggle-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		height: 28px;
+		width: 32px;
+		padding: 0;
+		border: none;
+		background: transparent;
+		border-radius: 5px;
+		color: #94a3b8;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		outline: none;
 	}
 
-	:global(.view-toggle-btn:hover) {
-		color: hsl(var(--foreground)) !important;
-		background: hsl(var(--muted) / 0.8) !important;
+	.view-toggle-btn:hover:not(.active) {
+		color: #f8fafc;
+		background: rgba(255, 255, 255, 0.06);
+	}
+
+	.view-toggle-btn:focus-visible {
+		outline: 2px solid hsl(var(--primary));
+		outline-offset: -1px;
+	}
+
+	.view-toggle-btn.active {
+		background: #1c2230;
+		color: #f8fafc;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
 	}
 
 	.grouping-container,
@@ -1268,16 +1315,22 @@
 		align-items: center;
 		gap: 0.45rem;
 		padding: 0 10px;
-		background: hsl(var(--muted) / 0.5);
-		border: 1px solid hsl(var(--border));
-		border-radius: var(--radius);
-		color: hsl(var(--foreground) / 0.85);
+		background: #080b11;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		border-radius: 8px;
+		color: #cbd5e1;
 		font-size: 13px;
 		font-weight: 500;
 		cursor: pointer;
 		transition: all 0.15s ease;
 		white-space: nowrap;
 		box-sizing: border-box;
+		outline: none;
+	}
+
+	.header-select-trigger:focus-visible {
+		outline: 2px solid hsl(var(--primary));
+		outline-offset: -1px;
 	}
 
 	.grouping-trigger {
@@ -1286,12 +1339,14 @@
 	}
 
 	:global(.grouping-icon) {
-		color: hsl(var(--muted-foreground));
+		color: #94a3b8;
 		flex-shrink: 0;
+		transition: color 0.15s ease;
 	}
 
-	.grouping-trigger:hover :global(.grouping-icon) {
-		color: hsl(var(--foreground));
+	.grouping-trigger:hover :global(.grouping-icon),
+	.grouping-trigger.active :global(.grouping-icon) {
+		color: #f8fafc;
 	}
 
 	.table-cols-container .header-select-trigger {
@@ -1299,8 +1354,16 @@
 	}
 
 	.header-select-trigger:hover {
-		background: hsl(var(--muted) / 0.8);
-		color: hsl(var(--foreground));
+		background: #141923;
+		color: #f8fafc;
+		border-color: rgba(255, 255, 255, 0.14);
+	}
+
+	.header-select-trigger.active {
+		background: #1c2230;
+		color: #f8fafc;
+		border-color: rgba(255, 255, 255, 0.16);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
 	}
 
 	.header-select-menu {
@@ -1308,10 +1371,10 @@
 		top: calc(100% + 4px);
 		right: 0;
 		min-width: 150px;
-		background: hsl(var(--popover));
-		border: 1px solid hsl(var(--border));
-		border-radius: var(--radius-md);
-		box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+		background: #0f1219;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 10px;
+		box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
 		padding: 4px;
 		z-index: 100;
 		display: flex;
@@ -1329,61 +1392,113 @@
 		padding: 6px 10px;
 		font-size: 0.8125rem;
 		font-weight: 500;
-		color: hsl(var(--muted-foreground));
+		color: #94a3b8;
 		background: none;
 		border: none;
-		border-radius: var(--radius-sm);
+		border-radius: 6px;
 		cursor: pointer;
 		transition: all 0.15s ease;
 	}
 
 	.select-item:hover {
-		background: hsl(var(--primary));
-		color: white;
+		background: rgba(255, 255, 255, 0.08);
+		color: #f8fafc;
 	}
 
 	.select-item.active {
-		background: hsl(var(--primary) / 0.15);
-		color: hsl(var(--primary));
+		background: rgba(99, 102, 241, 0.15);
+		color: #a5b4fc;
 		font-weight: 600;
 	}
 
 	.checkbox-indicator {
 		width: 14px;
 		height: 14px;
-		border: 1px solid hsl(var(--border));
+		border: 1px solid rgba(255, 255, 255, 0.15);
 		border-radius: 3px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: hsl(var(--background));
+		background: #080b11;
 	}
 
 	:global(.modifier-btn) {
 		height: 36px !important;
 		width: 36px !important;
 		padding: 0 !important;
-		border-radius: var(--radius) !important;
-		color: hsl(var(--muted-foreground)) !important;
-		border: 1px solid hsl(var(--border)) !important;
-		background: hsl(var(--muted) / 0.5) !important;
+		border-radius: 8px !important;
+		color: #94a3b8 !important;
+		border: 1px solid rgba(255, 255, 255, 0.08) !important;
+		background: #080b11 !important;
 		box-sizing: border-box !important;
+		transition: all 0.15s ease !important;
 	}
 
 	:global(.modifier-btn:hover) {
-		color: hsl(var(--foreground)) !important;
-		background: hsl(var(--muted) / 0.8) !important;
+		color: #f8fafc !important;
+		background: #141923 !important;
+		border-color: rgba(255, 255, 255, 0.14) !important;
+	}
+
+	:global(.modifier-btn.custom-sort-active),
+	:global(button.variant-toggle-active.modifier-btn) {
+		background: #1c2230 !important;
+		color: #f8fafc !important;
+		border-color: rgba(255, 255, 255, 0.16) !important;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08) inset !important;
 	}
 
 	:global(.modifier-btn.custom-sort-active) {
-		color: hsl(var(--primary)) !important;
-		background: hsl(var(--primary) / 0.15) !important;
-		border-color: hsl(var(--primary) / 0.45) !important;
+		color: #818cf8 !important;
 	}
 
 	:global(.modifier-btn.custom-sort-active:hover) {
-		background: hsl(var(--primary) / 0.25) !important;
-		border-color: hsl(var(--primary) / 0.7) !important;
+		background: #242c3d !important;
+		border-color: rgba(99, 102, 241, 0.4) !important;
+	}
+
+	.stats-subtabs-group {
+		display: inline-flex;
+		align-items: center;
+		background: #080b11;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		border-radius: 8px;
+		padding: 3px;
+		gap: 2px;
+		height: 36px;
+		box-sizing: border-box;
+	}
+
+	.stats-tab-btn {
+		height: 28px;
+		padding: 0 10px;
+		font-size: 12px;
+		font-weight: 500;
+		color: #94a3b8;
+		background: transparent;
+		border: none;
+		border-radius: 5px;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		white-space: nowrap;
+		outline: none;
+	}
+
+	.stats-tab-btn:hover:not(.active) {
+		color: #f8fafc;
+		background: rgba(255, 255, 255, 0.06);
+	}
+
+	.stats-tab-btn:focus-visible {
+		outline: 2px solid hsl(var(--primary));
+		outline-offset: -1px;
+	}
+
+	.stats-tab-btn.active {
+		background: #1c2230;
+		color: #f8fafc;
+		font-weight: 600;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
 	}
 
 	.global-nav-group-left {
