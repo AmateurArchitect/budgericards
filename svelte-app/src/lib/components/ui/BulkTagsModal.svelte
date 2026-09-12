@@ -22,11 +22,29 @@
 	let editingValue = $state("");
 
 	let isOpen = $derived(interactionStore.bulkTagsModal.isOpen);
+	let isSuggestionsOpen = $state(false);
+	let activeIndex = $state(-1);
+	/** @type {HTMLDivElement | null} */
+	let suggestionsListEl = $state(null);
 
 	// Reactively sync cards from the store when modal opens
 	$effect(() => {
 		if (isOpen) {
 			cards = interactionStore.bulkTagsModal.cards || [];
+			newTagInput = "";
+			isSuggestionsOpen = deckTagsList.length > 0;
+			activeIndex = -1;
+		}
+	});
+
+	// When user types, auto-highlight top suggestion if any
+	$effect(() => {
+		const query = newTagInput.trim();
+		if (query && filteredSuggestions.length > 0) {
+			activeIndex = 0;
+			isSuggestionsOpen = true;
+		} else if (!query) {
+			activeIndex = -1;
 		}
 	});
 
@@ -71,9 +89,7 @@
 			});
 	});
 
-	// Derived deck-wide suggestions (excluding tags already in the union)
-	let tagUnionSet = $derived(new Set(tagRows.map((r) => r.tag)));
-
+	// Derived deck-wide suggestions
 	let deckTagsList = $derived.by(() => {
 		const allTags = new Set();
 		const boards = [
@@ -92,10 +108,139 @@
 		return [...allTags].sort((a, b) => a.localeCompare(b));
 	});
 
+	// Derived deck-wide tag counts
+	let deckTagCounts = $derived.by(() => {
+		/** @type {Map<string, number>} */
+		const counts = new Map();
+		const boards = [
+			"commander",
+			"companion",
+			"mainboard",
+			"sideboard",
+			"maybeboard",
+		];
+		const storeAny = /** @type {any} */ (deckStore);
+		for (const board of boards) {
+			for (const c of storeAny[board] || []) {
+				if (c.tags) {
+					for (const t of c.tags) {
+						counts.set(t, (counts.get(t) || 0) + 1);
+					}
+				}
+			}
+		}
+		return counts;
+	});
+
+	// Tags from the deck not already shared by all selected cards
+	let availableTags = $derived.by(() => {
+		const sharedSet = new Set(
+			tagRows.filter((r) => r.isShared).map((r) => r.tag),
+		);
+		return deckTagsList.filter((t) => !sharedSet.has(t));
+	});
+
+	// Filtered & prioritized suggestions
+	let filteredSuggestions = $derived.by(() => {
+		const query = newTagInput.trim().toLowerCase();
+		if (!query) return availableTags;
+
+		return availableTags
+			.filter((t) => t.toLowerCase().includes(query))
+			.sort((a, b) => {
+				const aLower = a.toLowerCase();
+				const bLower = b.toLowerCase();
+				const aStarts = aLower.startsWith(query);
+				const bStarts = bLower.startsWith(query);
+				if (aStarts && !bStarts) return -1;
+				if (!aStarts && bStarts) return 1;
+				return aLower.localeCompare(bLower);
+			});
+	});
+
+	function scrollActiveSuggestionIntoView() {
+		requestAnimationFrame(() => {
+			if (!suggestionsListEl) return;
+			const activeEl = suggestionsListEl.querySelector(
+				".suggestion-item.active",
+			);
+			if (activeEl && typeof activeEl.scrollIntoView === "function") {
+				activeEl.scrollIntoView({ block: "nearest" });
+			}
+		});
+	}
+
+	/** @param {KeyboardEvent} e */
+	function handleInputKeydown(e) {
+		if (e.key === "Escape") {
+			if (isSuggestionsOpen) {
+				e.preventDefault();
+				e.stopPropagation();
+				isSuggestionsOpen = false;
+				return;
+			}
+		}
+
+		if (e.key === "ArrowDown") {
+			if (!isSuggestionsOpen && filteredSuggestions.length > 0) {
+				isSuggestionsOpen = true;
+				activeIndex = 0;
+				e.preventDefault();
+				return;
+			}
+			if (isSuggestionsOpen && filteredSuggestions.length > 0) {
+				e.preventDefault();
+				activeIndex = (activeIndex + 1) % filteredSuggestions.length;
+				scrollActiveSuggestionIntoView();
+				return;
+			}
+		}
+
+		if (e.key === "ArrowUp") {
+			if (isSuggestionsOpen && filteredSuggestions.length > 0) {
+				e.preventDefault();
+				activeIndex =
+					(activeIndex - 1 + filteredSuggestions.length) %
+					filteredSuggestions.length;
+				scrollActiveSuggestionIntoView();
+				return;
+			}
+		}
+
+		if (e.key === "Tab") {
+			if (
+				isSuggestionsOpen &&
+				filteredSuggestions.length > 0 &&
+				activeIndex >= 0 &&
+				activeIndex < filteredSuggestions.length
+			) {
+				e.preventDefault();
+				newTagInput = filteredSuggestions[activeIndex];
+				return;
+			}
+		}
+
+		if (e.key === "Enter") {
+			e.preventDefault();
+			if (
+				isSuggestionsOpen &&
+				filteredSuggestions.length > 0 &&
+				activeIndex >= 0 &&
+				activeIndex < filteredSuggestions.length
+			) {
+				addTagToAll(filteredSuggestions[activeIndex]);
+			} else if (newTagInput.trim().length > 0) {
+				addTagToAll(newTagInput);
+			}
+		}
+	}
+
 	function handleClose() {
 		editingTag = null;
 		editingValue = "";
 		newTagInput = "";
+		isSuggestionsOpen = false;
+		activeIndex = -1;
 		interactionStore.closeBulkTagsModal();
 	}
 
@@ -109,7 +254,7 @@
 	/** @param {string} tag */
 	function addTagToAll(tag) {
 		const trimmed = tag.trim();
-		if (!trimmed || tagUnionSet.has(trimmed)) return;
+		if (!trimmed) return;
 		deckStore.batchUpdate(() => {
 			for (const card of cards) {
 				const liveCard = deckStore.findCardById(card.id)?.card ?? card;
@@ -120,6 +265,7 @@
 			}
 		});
 		newTagInput = "";
+		activeIndex = -1;
 	}
 
 	/** @param {string} tag */
@@ -380,21 +526,25 @@
 					</p>
 				{/if}
 
-				<!-- Add tag input -->
+				<!-- Add tag section -->
 				<div class="add-tag-section">
 					<div class="tag-input-row">
 						<div class="tag-input-container">
 							<Input
 								id="bulk-tag-input"
 								type="text"
+								autocomplete="off"
+								autocorrect="off"
+								autocapitalize="off"
+								spellcheck="false"
 								placeholder="Add a tag to all {cards.length} cards..."
 								bind:value={newTagInput}
-								onkeydown={(/** @type {KeyboardEvent} */ e) => {
-									if (e.key === "Enter") {
-										e.preventDefault();
-										addTagToAll(newTagInput);
+								onfocus={() => {
+									if (availableTags.length > 0) {
+										isSuggestionsOpen = true;
 									}
 								}}
+								onkeydown={handleInputKeydown}
 							/>
 							{#if newTagInput.trim()}
 								<span
@@ -417,23 +567,84 @@
 						{/if}
 					</div>
 
-					<!-- Deck-wide tag suggestions -->
-					{#if deckTagsList.some((t) => !tagUnionSet.has(t))}
-						<div class="suggestions-section">
-							<span class="suggestions-label">Add from deck:</span
-							>
-							<div class="suggestions-list">
-								{#each deckTagsList as gTag}
-									{#if !tagUnionSet.has(gTag)}
+					<!-- Predictive tag suggestions menu -->
+					{#if isSuggestionsOpen && (filteredSuggestions.length > 0 || (newTagInput.trim() && deckTagsList.length > 0))}
+						<div
+							class="suggestions-panel"
+							transition:fly={{ y: -4, duration: 140 }}
+						>
+							<div class="suggestions-header">
+								<div class="suggestions-title">
+									<Tags size={12} class="suggestions-title-icon" />
+									<span>
+										{#if newTagInput.trim()}
+											Matching deck tags
+										{:else}
+											Existing tags in deck
+										{/if}
+									</span>
+								</div>
+								<div class="suggestions-header-actions">
+									<span class="suggestions-badge">
+										{filteredSuggestions.length}
+									</span>
+									<button
+										type="button"
+										class="close-suggestions-btn"
+										onclick={() => (isSuggestionsOpen = false)}
+										title="Hide suggestions (Esc)"
+										aria-label="Hide suggestions"
+									>
+										<X size={11} />
+									</button>
+								</div>
+							</div>
+
+							{#if filteredSuggestions.length > 0}
+								<div
+									class="suggestions-list-container"
+									bind:this={suggestionsListEl}
+									role="listbox"
+								>
+									{#each filteredSuggestions as tag, idx}
 										<button
 											type="button"
-											class="suggestion-pill"
-											onclick={() => addTagToAll(gTag)}
+											class="suggestion-item"
+											class:active={idx === activeIndex}
+											role="option"
+											aria-selected={idx === activeIndex}
+											onmouseenter={() => (activeIndex = idx)}
+											onmousedown={(e) => e.preventDefault()}
+											onclick={() => addTagToAll(tag)}
 										>
-											{gTag}
+											<div class="suggestion-item-left">
+												<span class="suggestion-bullet"></span>
+												<span class="suggestion-tag-name">
+													{tag}
+												</span>
+											</div>
+											{#if deckTagCounts.has(tag)}
+												<span class="suggestion-count-pill">
+													{deckTagCounts.get(tag)} card{deckTagCounts.get(tag) === 1 ? "" : "s"}
+												</span>
+											{/if}
 										</button>
-									{/if}
-								{/each}
+									{/each}
+								</div>
+							{:else if newTagInput.trim()}
+								<div class="suggestions-empty">
+									<span class="suggestions-empty-text">No matching existing tags</span>
+									<span class="suggestions-empty-hint">
+										Press <kbd class="hint-kbd">Enter</kbd> to add "{newTagInput.trim()}" as a new tag
+									</span>
+								</div>
+							{/if}
+
+							<div class="suggestions-footer-hint">
+								<span><kbd class="hint-kbd">↑↓</kbd> navigate</span>
+								<span><kbd class="hint-kbd">Tab</kbd> complete</span>
+								<span><kbd class="hint-kbd">↵</kbd> add</span>
+								<span><kbd class="hint-kbd">Esc</kbd> hide</span>
 							</div>
 						</div>
 					{/if}
@@ -801,40 +1012,199 @@
 		font-weight: 600;
 	}
 
-	/* ── Suggestions ── */
-	.suggestions-section {
+	/* ── Predictive suggestions panel ── */
+	.suggestions-panel {
+		background: hsla(var(--card) / 0.95);
+		border: 1px solid hsla(var(--border) / 0.55);
+		border-radius: var(--radius-md);
+		overflow: hidden;
 		display: flex;
 		flex-direction: column;
-		gap: 0.3rem;
+		box-shadow:
+			0 10px 25px -5px rgba(0, 0, 0, 0.45),
+			0 0 0 1px hsla(255, 100%, 100%, 0.03);
+		margin-top: 0.25rem;
 	}
 
-	.suggestions-label {
+	.suggestions-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.35rem 0.65rem;
+		border-bottom: 1px solid hsla(var(--border) / 0.3);
+		background: hsla(var(--muted) / 0.2);
+	}
+
+	.suggestions-title {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
 		font-size: 0.6875rem;
 		font-weight: 600;
 		color: hsl(var(--muted-foreground));
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
 	}
 
-	.suggestions-list {
+	:global(.suggestions-title-icon) {
+		color: hsl(var(--primary));
+		opacity: 0.8;
+	}
+
+	.suggestions-header-actions {
 		display: flex;
-		flex-wrap: wrap;
+		align-items: center;
 		gap: 0.35rem;
 	}
 
-	.suggestion-pill {
-		background: hsla(var(--muted) / 0.25);
-		border: 1px solid hsla(var(--border) / 0.3);
-		border-radius: var(--radius-sm);
-		padding: 2px 8px;
-		font-size: 0.6875rem;
+	.suggestions-badge {
+		font-size: 0.625rem;
+		font-weight: 600;
+		padding: 1px 5px;
+		border-radius: 99px;
+		background: hsla(var(--muted) / 0.5);
 		color: hsl(var(--muted-foreground));
-		cursor: pointer;
-		transition: all 0.1s;
 	}
 
-	.suggestion-pill:hover {
-		background: hsla(var(--muted) / 0.6);
+	.close-suggestions-btn {
+		background: transparent;
+		border: none;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		padding: 2px;
+		border-radius: var(--radius-sm);
+		display: flex;
+		align-items: center;
+		transition: color 0.1s;
+	}
+
+	.close-suggestions-btn:hover {
 		color: hsl(var(--foreground));
-		border-color: hsla(var(--border) / 0.6);
+	}
+
+	.suggestions-list-container {
+		max-height: 150px;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+		padding: 3px;
+		scrollbar-width: thin;
+		scrollbar-color: hsla(var(--border) / 0.6) transparent;
+	}
+
+	.suggestion-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.375rem 0.625rem;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		border: 1px solid transparent;
+		color: hsl(var(--foreground));
+		font-size: 0.8125rem;
+		font-weight: 500;
+		cursor: pointer;
+		text-align: left;
+		width: 100%;
+		transition:
+			background 0.1s,
+			border-color 0.1s;
+	}
+
+	.suggestion-item:hover {
+		background: hsl(var(--primary) / 0.1);
+	}
+
+	.suggestion-item.active {
+		background: hsl(var(--primary) / 0.18);
+		border-color: hsl(var(--primary) / 0.35);
+		font-weight: 600;
+	}
+
+	.suggestion-item-left {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		min-width: 0;
+	}
+
+	.suggestion-bullet {
+		width: 5px;
+		height: 5px;
+		border-radius: 50%;
+		background: hsl(var(--primary));
+		opacity: 0.7;
+		flex-shrink: 0;
+	}
+
+	.suggestion-item.active .suggestion-bullet {
+		opacity: 1;
+		box-shadow: 0 0 5px hsl(var(--primary));
+	}
+
+	.suggestion-tag-name {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.suggestion-count-pill {
+		font-size: 0.6875rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
+		background: hsla(var(--muted) / 0.35);
+		padding: 1px 6px;
+		border-radius: 99px;
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
+
+	.suggestion-item.active .suggestion-count-pill {
+		background: hsl(var(--primary) / 0.2);
+		color: hsl(var(--primary));
+	}
+
+	.suggestions-empty {
+		padding: 0.75rem 0.65rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		align-items: center;
+		text-align: center;
+	}
+
+	.suggestions-empty-text {
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.suggestions-empty-hint {
+		font-size: 0.71875rem;
+		color: hsl(var(--muted-foreground) / 0.8);
+	}
+
+	.suggestions-footer-hint {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 0.75rem;
+		padding: 0.3rem 0.65rem;
+		font-size: 0.65rem;
+		color: hsl(var(--muted-foreground));
+		border-top: 1px solid hsla(var(--border) / 0.25);
+		background: hsla(var(--muted) / 0.1);
+	}
+
+	.hint-kbd {
+		font-family: inherit;
+		font-size: 0.625rem;
+		font-weight: 600;
+		padding: 1px 4px;
+		border-radius: 3px;
+		background: hsla(var(--muted) / 0.6);
+		border: 1px solid hsla(var(--border) / 0.5);
 	}
 
 	/* ── Footer ── */
