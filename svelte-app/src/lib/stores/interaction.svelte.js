@@ -1418,6 +1418,12 @@ function createInteractionStore() {
 					}
 				},
 				{
+					label: "Edit Tags",
+					action: () => {
+						this.showBulkTagsModal(selectedCards);
+					}
+				},
+				{
 					label: "Change Printings",
 					action: () => {
 						this.showChangePrintingsModal(selectedCards);
