@@ -168,12 +168,20 @@
 		if (menuOpen && menuPos && interactionStore.menuCard) {
 			// FIXED position relative to context menu
 			const menuWidth = 200;
-			const menuOnRight = menuPos.x + menuWidth < window.innerWidth - 10;
+			let actualMenuLeft = menuPos.x;
+			if (actualMenuLeft + menuWidth > window.innerWidth - 10) {
+				actualMenuLeft = menuPos.x - menuWidth;
+			}
+			actualMenuLeft = Math.max(10, actualMenuLeft);
+
+			const safety = 20;
+			// Check if there is enough space to the right for BOTH the menu AND the tooltip
+			const menuOnRight = actualMenuLeft + menuWidth + padding + tooltipWidth + safety < window.innerWidth;
 
 			if (menuOnRight) {
-				nextX = menuPos.x + menuWidth + padding;
+				nextX = actualMenuLeft + menuWidth + padding;
 			} else {
-				nextX = menuPos.x - menuWidth - tooltipWidth - padding;
+				nextX = actualMenuLeft - tooltipWidth - padding;
 			}
 			nextY = menuPos.y;
 		} else if (trigger.closest(".context-menu")) {
