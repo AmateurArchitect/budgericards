@@ -174,7 +174,7 @@ export function createStacksEngine() {
 			if (deckStore.activeBoard === 'mainboard') {
 				if (key === "Special") {
 					// Show if format has a commander, OR if cards are set
-					return isCommanderFormat || deckStore.commander.length > 0 || deckStore.companion.length > 0;
+					return isCommander || deckStore.commander.length > 0 || deckStore.companion.length > 0;
 				}
 			}
 			const data = columnMap[key];
@@ -209,7 +209,7 @@ export function createStacksEngine() {
 				const companionCards = data.top.filter(c => c._forceStack === "Companions");
 
 				// Only show Commanders stack if format has one OR a card is set
-				if (isCommanderFormat || commanderCards.length > 0) {
+				if (isCommander || commanderCards.length > 0) {
 					stacks.push({ id: "commanders", label: "Commanders", cards: groupCards(commanderCards, splitView, effectiveGrouping) });
 				}
 
