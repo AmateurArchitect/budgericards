@@ -487,7 +487,7 @@
 						<!-- Target Board -->
 						<div class="option-group">
 							<div class="option-header">
-								<Layers size={14} class="option-icon" />
+								<Layers size={15} class="option-icon" />
 								<span class="option-title">Target Board</span>
 							</div>
 							<div class="segmented-control" role="radiogroup" aria-label="Target Board">
@@ -530,7 +530,7 @@
 						<!-- Quantity Mode -->
 						<div class="option-group">
 							<div class="option-header">
-								<Sliders size={14} class="option-icon" />
+								<Sliders size={15} class="option-icon" />
 								<span class="option-title">Quantity</span>
 							</div>
 							<div class="segmented-control" role="radiogroup" aria-label="Card Quantity Mode">
@@ -562,7 +562,7 @@
 						<!-- Duplicate Strategy -->
 						<div class="option-group">
 							<div class="option-header">
-								<Copy size={14} class="option-icon" />
+								<Copy size={15} class="option-icon" />
 								<span class="option-title">Duplicates</span>
 							</div>
 							<div class="segmented-control" role="radiogroup" aria-label="Duplicate Strategy">
@@ -594,7 +594,7 @@
 						<!-- Printing Preference -->
 						<div class="option-group">
 							<div class="option-header">
-								<Sparkles size={14} class="option-icon" />
+								<Sparkles size={15} class="option-icon" />
 								<span class="option-title">Printing Preference</span>
 							</div>
 							<div class="segmented-control four-items" role="radiogroup" aria-label="Printing Preference">
@@ -877,7 +877,7 @@
 
 	.modal-subtitle {
 		margin: 2px 0 0;
-		font-size: 12px;
+		font-size: 13px;
 		color: #94a3b8;
 	}
 
@@ -963,7 +963,7 @@
 	}
 
 	.section-label {
-		font-size: 11.5px;
+		font-size: 12px;
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
@@ -981,7 +981,7 @@
 		align-items: center;
 		gap: 5px;
 		padding: 4px 8px;
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 500;
 		background: rgba(255, 255, 255, 0.04);
 		border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1010,14 +1010,14 @@
 
 	.import-textarea {
 		width: 100%;
-		height: 130px;
+		height: 135px;
 		padding: 10px 12px;
 		background: #080b11;
 		border: 1px solid rgba(255, 255, 255, 0.1);
 		border-radius: 8px;
 		color: #f1f5f9;
 		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-		font-size: 12px;
+		font-size: 14px;
 		line-height: 1.5;
 		resize: none;
 		outline: none;
@@ -1034,7 +1034,7 @@
 		position: absolute;
 		bottom: 8px;
 		right: 10px;
-		font-size: 10px;
+		font-size: 11px;
 		color: #64748b;
 		pointer-events: none;
 		background: rgba(8, 11, 17, 0.85);
@@ -1058,8 +1058,8 @@
 	.option-header {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		font-size: 12px;
+		gap: 7px;
+		font-size: 14px;
 		font-weight: 500;
 	}
 
@@ -1069,7 +1069,7 @@
 
 	.option-title {
 		color: #cbd5e1;
-		font-size: 12px;
+		font-size: 14px;
 		font-weight: 500;
 		letter-spacing: -0.01em;
 	}
@@ -1093,9 +1093,9 @@
 		border: none;
 		background: transparent;
 		color: #94a3b8;
-		font-size: 12px;
+		font-size: 14px;
 		font-weight: 500;
-		padding: 6px 8px;
+		padding: 7px 8px;
 		border-radius: 5px;
 		cursor: pointer;
 		transition: all 0.15s ease;
@@ -1185,7 +1185,7 @@
 		background: rgba(234, 88, 12, 0.12);
 		border-bottom: 1px solid rgba(234, 88, 12, 0.25);
 		color: #fdba74;
-		font-size: 12px;
+		font-size: 14px;
 	}
 
 	.unrecognized-banner strong {
@@ -1283,11 +1283,11 @@
 	}
 
 	.card-qty-badge {
-		font-size: 11px;
+		font-size: 13px;
 		font-weight: 700;
 		color: #818cf8;
 		font-family: ui-monospace, monospace;
-		min-width: 20px;
+		min-width: 22px;
 	}
 
 	.card-qty-badge.muted {
@@ -1295,7 +1295,7 @@
 	}
 
 	.card-name-text {
-		font-size: 13px;
+		font-size: 14px;
 		font-weight: 500;
 		color: #f1f5f9;
 		white-space: nowrap;
@@ -1314,11 +1314,11 @@
 	}
 
 	.card-set-badge {
-		font-size: 10px;
+		font-size: 11px;
 		font-family: ui-monospace, monospace;
 		color: #94a3b8;
 		background: rgba(255, 255, 255, 0.06);
-		padding: 1px 4px;
+		padding: 1px 5px;
 		border-radius: 4px;
 		white-space: nowrap;
 	}
@@ -1329,9 +1329,9 @@
 	}
 
 	.status-tag {
-		font-size: 10px;
+		font-size: 11px;
 		font-weight: 600;
-		padding: 2px 6px;
+		padding: 2px 7px;
 		border-radius: 4px;
 		text-transform: uppercase;
 		letter-spacing: 0.03em;
@@ -1372,7 +1372,7 @@
 	}
 
 	.footer-status {
-		font-size: 12px;
+		font-size: 14px;
 		color: #94a3b8;
 	}
 
