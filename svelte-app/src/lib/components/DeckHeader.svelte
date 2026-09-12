@@ -1011,8 +1011,8 @@
 <style>
 	.deck-header {
 		height: 96px;
-		background: transparent;
-		border-bottom: 1px solid hsl(var(--border));
+		background: #0f1219;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -1025,9 +1025,9 @@
 
 	.deck-header.is-top-bar {
 		height: 96px;
-		background: transparent;
+		background: #0f1219;
 		backdrop-filter: none;
-		border-bottom: 1px solid hsl(var(--border));
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 	}
 
 	.deck-info-wrapper {
