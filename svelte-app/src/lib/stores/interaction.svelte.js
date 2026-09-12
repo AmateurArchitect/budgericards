@@ -4,6 +4,7 @@ import { fetchCollection } from "../api/scryfall.js";
 import { getCardByName } from "../localSearch";
 import { priceStore } from "./prices.svelte.js";
 import { toastStore } from "./toast.svelte.js";
+import { settingsStore } from "./settings.svelte.js";
 import { getPartnerLogic, canPair, canCardBeCommander } from "../utils/legality.js";
 
 /**
@@ -1392,8 +1393,22 @@ function createInteractionStore() {
 						options.onToggleCollapse?.();
 					}
 				});
-				items.push({ divider: true });
 			}
+
+			items.push({
+				label: isSection ? "Hide headers" : "Hide column headers",
+				action: () => {
+					settingsStore.showColumnHeaders = false;
+					toastStore.show(isSection ? "Headers hidden." : "Column headers hidden.", {
+						actionLabel: "Undo",
+						action: () => {
+							settingsStore.showColumnHeaders = true;
+						}
+					});
+				}
+			});
+
+			items.push({ divider: true });
 
 			items.push(
 				{
