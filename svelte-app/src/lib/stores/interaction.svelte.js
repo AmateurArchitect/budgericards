@@ -312,6 +312,9 @@ function getCardCellValue(card, columnKey) {
  * @property {Object} bulkTagsModal
  * @property {boolean} bulkTagsModal.isOpen
  * @property {any[]} bulkTagsModal.cards
+ * @property {Object} advancedImportModal
+ * @property {boolean} advancedImportModal.isOpen
+ * @property {string} advancedImportModal.initialText
  */
 
 function createInteractionStore() {
@@ -377,6 +380,10 @@ function createInteractionStore() {
 		bulkTagsModal: {
 			isOpen: false,
 			cards: []
+		},
+		advancedImportModal: {
+			isOpen: false,
+			initialText: ''
 		}
 	});
 
@@ -400,6 +407,10 @@ function createInteractionStore() {
 			if (state.isMenuOpen) return;
 			if (state.bulkTagsModal.isOpen) {
 				if (e.key === 'Escape') state.bulkTagsModal = { isOpen: false, cards: [] };
+				return;
+			}
+			if (state.advancedImportModal?.isOpen) {
+				if (e.key === 'Escape') interactionStore.closeAdvancedImportModal();
 				return;
 			}
 
@@ -441,8 +452,12 @@ function createInteractionStore() {
 				return;
 			}
 
-			if (isCmdCtrl && key === 'v') {
+			if (isCmdCtrl && (key === 'v' || e.code === 'KeyV')) {
 				e.preventDefault();
+				if (e.shiftKey) {
+					interactionStore.openAdvancedImportFromClipboard();
+					return;
+				}
 				interactionStore.pasteSelected(state.hoveredColumnKey);
 				return;
 			}
@@ -645,6 +660,7 @@ function createInteractionStore() {
 		get cardDataModal() { return state.cardDataModal; },
 		get maybeboardCleanupModal() { return state.maybeboardCleanupModal; },
 		get bulkTagsModal() { return state.bulkTagsModal; },
+		get advancedImportModal() { return state.advancedImportModal; },
 		get selectedCells() { return state.selectedCells; },
 		get selectionAnchor() { return state.selectionAnchor; },
 		get selectionFocus() { return state.selectionFocus; },
@@ -2017,6 +2033,27 @@ function createInteractionStore() {
 
 		closeBulkTagsModal() {
 			state.bulkTagsModal = { isOpen: false, cards: [] };
+		},
+
+		/**
+		 * @param {string} [initialText]
+		 */
+		openAdvancedImportModal(initialText = '') {
+			state.advancedImportModal = { isOpen: true, initialText };
+		},
+
+		async openAdvancedImportFromClipboard() {
+			let text = "";
+			try {
+				if (typeof navigator !== 'undefined' && navigator.clipboard) {
+					text = await navigator.clipboard.readText();
+				}
+			} catch (e) {}
+			state.advancedImportModal = { isOpen: true, initialText: text || "" };
+		},
+
+		closeAdvancedImportModal() {
+			state.advancedImportModal = { isOpen: false, initialText: '' };
 		},
 
 		/**

@@ -14,6 +14,7 @@
 	import PrintingPickerModal from '$lib/components/ui/PrintingPickerModal.svelte';
 	import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
 	import BulkTagsModal from '$lib/components/ui/BulkTagsModal.svelte';
+	import AdvancedImportModal from '$lib/components/ui/AdvancedImportModal.svelte';
 	import { syncManager } from '$lib/syncManager.svelte';
 	import { loginBgStore } from '$lib/stores/loginBg.svelte.js';
 	import { page } from '$app/stores';
@@ -199,6 +200,7 @@
 	<ChangePrintingsModal />
 	<PrintingPickerModal />
 	<BulkTagsModal />
+	<AdvancedImportModal />
 	<ToastContainer />
 </div>
 
