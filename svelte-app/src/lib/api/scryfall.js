@@ -1,3 +1,35 @@
+import { toastStore } from '$lib/stores/toast.svelte.js';
+
+let scryfallDownUntil = 0;
+let consecutiveFailures = 0;
+let lastOfflineToastTime = 0;
+
+export function isScryfallDown() {
+	return Date.now() < scryfallDownUntil;
+}
+
+export function reportScryfallDowntime(durationMs = 60000) {
+	const wasDown = isScryfallDown();
+	scryfallDownUntil = Math.max(scryfallDownUntil, Date.now() + durationMs);
+	if (!wasDown && typeof window !== 'undefined') {
+		console.warn(`[Scryfall] Downtime detected. Entering offline fallback mode for ${Math.round(durationMs / 1000)}s.`);
+		if (Date.now() - lastOfflineToastTime > 60000) {
+			lastOfflineToastTime = Date.now();
+			try {
+				toastStore.show('Scryfall is temporarily unreachable. Budgericards is operating in offline mode.', {
+					type: 'warning',
+					duration: 5000
+				});
+			} catch (e) {}
+		}
+	}
+}
+
+export function resetScryfallDowntime() {
+	scryfallDownUntil = 0;
+	consecutiveFailures = 0;
+}
+
 /**
  * Scryfall API Utility with built-in rate limiting and failsafes.
  */
@@ -217,10 +249,15 @@ if (typeof window !== 'undefined') {
 		console.info(`🎭 Mock Mode: ${on ? 'ON' : 'OFF'}`);
 	};
 
+	win['BUDGIE_RETRY_SCRYFALL'] = () => {
+		resetScryfallDowntime();
+		console.info('🔄 Scryfall downtime reset. Next request will hit Scryfall API.');
+	};
+
 	win['BUDGIE_STATS'] = () => {
 		console.table({
 			'Queue Depth': pendingCount,
-			'Circuit Breaker': isLocked ? 'LOCKED' : 'READY',
+			'Circuit Breaker': isLocked ? 'LOCKED' : (isScryfallDown() ? 'OFFLINE_COOLDOWN' : 'READY'),
 			'Emergency Stop': EMERGENCY_STOP ? 'ACTIVE' : 'OFF',
 			'Cached Items': Object.keys(scryfallCache).length,
 			'In-Flight': inFlightRequests.size
@@ -231,11 +268,16 @@ if (typeof window !== 'undefined') {
 /**
  * Executes a rate-limited fetch to Scryfall.
  * @param {string} url 
- * @param {RequestInit} options 
+ * @param {RequestInit & { force?: boolean }} [options] 
  */
 export async function scryfallFetch(url, options = {}) {
 	if (EMERGENCY_STOP) {
 		throw new Error('Scryfall request blocked: EMERGENCY_STOP is active.');
+	}
+
+	// Fast-fail if Scryfall is in offline cooldown (unless explicitly forced)
+	if (isScryfallDown() && !options.force) {
+		throw new Error('Scryfall service is currently unreachable (offline cooldown active).');
 	}
 
 	await initCache();
@@ -350,17 +392,24 @@ async function executeFetch(url, options) {
 			...options,
 			headers
 		});
+
+		if (response.ok) {
+			consecutiveFailures = 0;
+		} else if (response.status >= 500) {
+			consecutiveFailures++;
+			if (consecutiveFailures >= 2) {
+				reportScryfallDowntime(60000);
+			}
+		}
+
 		return response;
 	} catch (err) {
 		const error = /** @type {any} */ (err);
 		if (error.name === 'AbortError') throw error;
 		
-		console.error('Scryfall Network Error. This is often caused by a hidden 429 Rate Limit error being blocked by CORS:', error);
-		
-		// If we're seeing ERR_FAILED or TypeError, it might be a rate limit masquerading as CORS
-		if (error instanceof TypeError) {
-			console.warn('Network failure detected. If this is a 429, the app will auto-retry shortly.');
-		}
+		console.warn('Scryfall Network Error. Service may be down or blocked by CORS:', error);
+		consecutiveFailures++;
+		reportScryfallDowntime(60000);
 		
 		throw error;
 	}
@@ -372,8 +421,12 @@ async function executeFetch(url, options) {
  * @param {Array<{name?: string, id?: string, set?: string, collector_number?: string}>} identifiers
  */
 export async function fetchCollection(identifiers) {
-	if (identifiers.length === 0) return { data: [] };
+	if (identifiers.length === 0) return { data: [], not_found: [], isOffline: false };
 	
+	if (isScryfallDown()) {
+		return { data: [], not_found: identifiers, isOffline: true };
+	}
+
 	// Scryfall limit is 75 per request
 	const chunks = [];
 	for (let i = 0; i < identifiers.length; i += 75) {
@@ -382,20 +435,31 @@ export async function fetchCollection(identifiers) {
 
 	const allData = [];
 	const allNotFound = [];
-	for (const chunk of chunks) {
-		const response = await scryfallFetch('https://api.scryfall.com/cards/collection', {
-			method: 'POST',
-			body: JSON.stringify({ identifiers: chunk })
-		});
+	try {
+		for (const chunk of chunks) {
+			const response = await scryfallFetch('https://api.scryfall.com/cards/collection', {
+				method: 'POST',
+				body: JSON.stringify({ identifiers: chunk })
+			});
 
-		if (response.ok) {
-			const result = await response.json();
-			allData.push(...(result.data || []));
-			if (result.not_found) {
-				allNotFound.push(...result.not_found);
+			if (response.ok) {
+				const result = await response.json();
+				allData.push(...(result.data || []));
+				if (result.not_found) {
+					allNotFound.push(...result.not_found);
+				}
+			} else {
+				if (response.status >= 500) {
+					reportScryfallDowntime(60000);
+				}
+				allNotFound.push(...chunk);
 			}
 		}
+	} catch (err) {
+		console.warn('Scryfall fetchCollection failed. Activating offline fallback:', err);
+		reportScryfallDowntime(60000);
+		return { data: allData, not_found: [...allNotFound, ...identifiers], isOffline: true };
 	}
 
-	return { data: allData, not_found: allNotFound };
+	return { data: allData, not_found: allNotFound, isOffline: false };
 }

@@ -72,10 +72,13 @@
 	let backLowResLoaded = $state(false);
 	let frontHighResLoaded = $state(false);
 	let backHighResLoaded = $state(false);
+	let frontImageError = $state(false);
+	let backImageError = $state(false);
 
 	// Handle front image loading states and failsafe timeout
 	$effect(() => {
 		if (frontLowResUrl) {
+			frontImageError = false;
 			if (frontHighResUrl) {
 				const img = new Image();
 				img.src = frontHighResUrl;
@@ -116,6 +119,7 @@
 	// Handle back image loading states and failsafe timeout
 	$effect(() => {
 		if (backLowResUrl) {
+			backImageError = false;
 			if (backHighResUrl) {
 				const img = new Image();
 				img.src = backHighResUrl;
@@ -154,45 +158,72 @@
 	/**
 	 * Svelte action to handle image loading and prevent race conditions with cached images
 	 * @param {HTMLImageElement} node
-	 * @param {() => void} onLoadCallback
+	 * @param {{ onLoad: () => void, onError?: () => void }} callbacks
 	 */
-	function handleImageLoad(node, onLoadCallback) {
+	function handleImageLoad(node, callbacks) {
 		const check = () => {
 			if (node.complete) {
-				onLoadCallback();
+				if (node.naturalWidth === 0 && node.src) {
+					callbacks.onError?.();
+				} else {
+					callbacks.onLoad?.();
+				}
 			}
 		};
-		node.addEventListener('load', onLoadCallback);
-		node.addEventListener('error', onLoadCallback);
+		const onL = () => callbacks.onLoad?.();
+		const onE = () => callbacks.onError?.();
+
+		node.addEventListener('load', onL);
+		node.addEventListener('error', onE);
 		
 		check();
 
 		return {
-			/** @param {() => void} newCallback */
-			update(newCallback) {
-				node.removeEventListener('load', onLoadCallback);
-				node.removeEventListener('error', onLoadCallback);
-				onLoadCallback = newCallback;
-				node.addEventListener('load', onLoadCallback);
-				node.addEventListener('error', onLoadCallback);
+			/** @param {{ onLoad: () => void, onError?: () => void }} newCallbacks */
+			update(newCallbacks) {
+				node.removeEventListener('load', onL);
+				node.removeEventListener('error', onE);
+				callbacks = newCallbacks;
+				node.addEventListener('load', onL);
+				node.addEventListener('error', onE);
 				check();
 			},
 			destroy() {
-				node.removeEventListener('load', onLoadCallback);
-				node.removeEventListener('error', onLoadCallback);
+				node.removeEventListener('load', onL);
+				node.removeEventListener('error', onE);
 			}
 		};
 	}
 
-	/** @typedef {{ lowSrc: string, highSrc: string, isLoaded: boolean, card: any, onLowResLoad: () => void, loading?: boolean }} CardImageProps */
+	/** @typedef {{ lowSrc: string, highSrc: string, isLoaded: boolean, card: any, onLowResLoad: () => void, onImageError?: () => void, hasError?: boolean, loading?: boolean }} CardImageProps */
 </script>
 
-{#snippet CardImage(/** @type {CardImageProps} */ { lowSrc, highSrc, isLoaded, card, onLowResLoad, loading = false })}
-	{#if lowSrc}
+{#snippet CardImage(/** @type {CardImageProps} */ { lowSrc, highSrc, isLoaded, card, onLowResLoad, onImageError, hasError = false, loading = false })}
+	{#if hasError || (!lowSrc && !loading)}
+		<div class="card-fallback-face">
+			<div class="fallback-card-header">
+				<span class="fallback-card-name">{card.name || 'Unknown Card'}</span>
+				{#if card.mana_cost || card.mana}
+					<span class="fallback-card-mana">{card.mana_cost || card.mana}</span>
+				{/if}
+			</div>
+			<div class="fallback-art-box">
+				<span class="fallback-symbol">🎴</span>
+			</div>
+			<div class="fallback-card-type">
+				<span>{card.type_line || card.type || 'Card'}</span>
+			</div>
+			{#if card.oracle_text || card.text}
+				<div class="fallback-card-text">
+					{(card.oracle_text || card.text).slice(0, 120)}{(card.oracle_text || card.text).length > 120 ? '…' : ''}
+				</div>
+			{/if}
+		</div>
+	{:else if lowSrc}
 		<div class="image-wrapper" style="position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: inherit;">
 			<img
 				src={lowSrc}
-				use:handleImageLoad={onLowResLoad}
+				use:handleImageLoad={{ onLoad: onLowResLoad, onError: onImageError }}
 				class="card-image low-res"
 				class:blur-placeholder={!isLoaded}
 				alt={card.name}
@@ -230,16 +261,42 @@
 	{#if isDfc || isFlip}
 		<div class="flip-container">
 			<div class="flip-front">
-				{@render CardImage({ lowSrc: frontLowResUrl, highSrc: frontHighResUrl, isLoaded: frontHighResLoaded, card: actualCard, onLowResLoad: () => { frontLowResLoaded = true; }, loading })}
+				{@render CardImage({
+					lowSrc: frontLowResUrl,
+					highSrc: frontHighResUrl,
+					isLoaded: frontHighResLoaded,
+					card: actualCard?.card_faces?.[0] || actualCard,
+					onLowResLoad: () => { frontLowResLoaded = true; },
+					onImageError: () => { frontImageError = true; },
+					hasError: frontImageError,
+					loading
+				})}
 			</div>
 			{#if isDfc}
 				<div class="flip-back">
-					{@render CardImage({ lowSrc: backLowResUrl, highSrc: backHighResUrl, isLoaded: backHighResLoaded, card: actualCard, onLowResLoad: () => { backLowResLoaded = true; } })}
+					{@render CardImage({
+						lowSrc: backLowResUrl,
+						highSrc: backHighResUrl,
+						isLoaded: backHighResLoaded,
+						card: actualCard?.card_faces?.[1] || actualCard,
+						onLowResLoad: () => { backLowResLoaded = true; },
+						onImageError: () => { backImageError = true; },
+						hasError: backImageError
+					})}
 				</div>
 			{/if}
 		</div>
 	{:else}
-		{@render CardImage({ lowSrc: frontLowResUrl, highSrc: frontHighResUrl, isLoaded: frontHighResLoaded, card: actualCard, onLowResLoad: () => { frontLowResLoaded = true; }, loading })}
+		{@render CardImage({
+			lowSrc: frontLowResUrl,
+			highSrc: frontHighResUrl,
+			isLoaded: frontHighResLoaded,
+			card: actualCard,
+			onLowResLoad: () => { frontLowResLoaded = true; },
+			onImageError: () => { frontImageError = true; },
+			hasError: frontImageError,
+			loading
+		})}
 	{/if}
 
 	<!-- Flip Button for DFCs -->
@@ -501,5 +558,84 @@
 	.low-res.blur-placeholder {
 		/* No artificial blur or scale to keep low-res image as clear as possible */
 		transition: opacity 0.35s ease;
+	}
+
+	.card-fallback-face {
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(145deg, #1c1f26, #121418);
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		border-radius: inherit;
+		display: flex;
+		flex-direction: column;
+		padding: 7px;
+		box-sizing: border-box;
+		user-select: none;
+		overflow: hidden;
+		gap: 5px;
+	}
+
+	.fallback-card-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		background: rgba(255, 255, 255, 0.06);
+		padding: 3px 5px;
+		border-radius: 4px;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+	}
+
+	.fallback-card-name {
+		font-size: 10px;
+		font-weight: 700;
+		color: #f1f3f5;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.fallback-card-mana {
+		font-size: 9px;
+		color: #ced4da;
+		margin-left: 4px;
+		flex-shrink: 0;
+	}
+
+	.fallback-art-box {
+		flex: 1;
+		min-height: 36px;
+		background: rgba(0, 0, 0, 0.35);
+		border-radius: 4px;
+		border: 1px solid rgba(255, 255, 255, 0.05);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: rgba(255, 255, 255, 0.2);
+		font-size: 18px;
+	}
+
+	.fallback-card-type {
+		background: rgba(255, 255, 255, 0.06);
+		padding: 2px 5px;
+		border-radius: 4px;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		font-size: 8.5px;
+		color: #adb5bd;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.fallback-card-text {
+		background: rgba(0, 0, 0, 0.2);
+		border-radius: 4px;
+		padding: 4px 5px;
+		font-size: 8px;
+		line-height: 1.25;
+		color: #909296;
+		overflow: hidden;
+		display: -webkit-box;
+		-webkit-line-clamp: 4;
+		-webkit-box-orient: vertical;
 	}
 </style>

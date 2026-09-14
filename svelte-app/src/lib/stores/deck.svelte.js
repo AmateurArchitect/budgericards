@@ -1,4 +1,4 @@
-import { fetchCollection } from '$lib/api/scryfall.js';
+import { fetchCollection, isScryfallDown } from '$lib/api/scryfall.js';
 import { settingsStore } from '$lib/stores/settings.svelte.js';
 import { authStore } from '$lib/stores/auth.svelte.js';
 import { syncService } from '$lib/syncService';
@@ -986,12 +986,19 @@ function createDeck() {
 	function needsMetadataSync(deckState, name) {
 		const meta = deckState.metadata[name.toLowerCase()];
 		if (!meta) return true;
+		// If it has fallen back offline or was marked notFound during downtime, don't keep polling
+		if (meta.offlineFallback && isScryfallDown()) return false;
+		if (meta.notFound && isScryfallDown()) return false;
 		// If it's a partial preview metadata object (lacks image_uris and card_faces), it needs a full sync
-		if (!meta.image_uris && (!meta.card_faces || meta.card_faces.length === 0)) return true;
+		if (!meta.image_uris && (!meta.card_faces || meta.card_faces.length === 0)) {
+			if (meta.offlineFallback && isScryfallDown()) return false;
+			return true;
+		}
 		if ((meta.card_faces?.length === 0 || !meta.card_faces) && 
 			((meta.type_line && meta.type_line.includes(" // ")) || 
 			 (meta.name && meta.name.includes(" // ")) || 
 			 name.includes(" // "))) {
+			if (isScryfallDown() && meta.image_uris) return false;
 			return true;
 		}
 		return false;
@@ -1059,8 +1066,8 @@ function createDeck() {
 		if (missingNames.length === 0) return;
 
 		isSyncing = true;
+		const nextMetadata = { ...deckState.metadata };
 		try {
-			const nextMetadata = { ...deckState.metadata };
 			/** @type {string[]} */
 			const scryfallNames = [];
 			/** @type {Map<string, any>} */
@@ -1082,6 +1089,7 @@ function createDeck() {
 				if (localCard && !localCard.name.includes(" // ")) {
 					const priceRecord = await db.prices.get(localCard.id);
 					const metaObj = {
+						id: localCard.id,
 						image_uris: {
 							normal: localCard.image,
 							small: localCard.image ? localCard.image.replace('/normal/', '/small/') : null,
@@ -1099,6 +1107,35 @@ function createDeck() {
 						}
 					};
 					nextMetadata[lowName] = metaObj;
+				} else if (localCard && isScryfallDown()) {
+					// DFC or special card, but Scryfall is currently offline: use local database single-face fallback
+					const priceRecord = await db.prices.get(localCard.id);
+					const fallbackMeta = {
+						id: localCard.id,
+						name: localCard.name,
+						image_uris: {
+							normal: localCard.image,
+							small: localCard.image ? localCard.image.replace('/normal/', '/small/') : null,
+							art_crop: localCard.image ? localCard.image.replace('/normal/', '/art_crop/') : null
+						},
+						card_faces: [],
+						type_line: localCard.type,
+						mana_cost: localCard.mana,
+						cmc: localCard.cmc,
+						colors: localCard.colors || [],
+						color_identity: localCard.identity || [],
+						oracle_text: localCard.text || "",
+						prices: {
+							usd: priceRecord ? String(priceRecord.price) : null
+						},
+						offlineFallback: true
+					};
+					nextMetadata[lowName] = fallbackMeta;
+					if (localCard.name && localCard.name.includes(" // ")) {
+						nextMetadata[localCard.name.toLowerCase()] = fallbackMeta;
+						const short = localCard.name.split(" // ")[0].trim().toLowerCase();
+						nextMetadata[short] = fallbackMeta;
+					}
 				} else {
 					scryfallNames.push(requestedName);
 				}
@@ -1106,11 +1143,16 @@ function createDeck() {
 
 			if (scryfallNames.length > 0) {
 				console.info(`🔄 Local lookup missed ${scryfallNames.length} cards. Syncing via Scryfall:`, scryfallNames);
-				const results = await fetchCollection(scryfallNames.map(name => ({ name })));
+				let results = { data: [], isOffline: false };
+				try {
+					results = await fetchCollection(scryfallNames.map(name => ({ name })));
+				} catch (err) {
+					console.warn('Scryfall fetchCollection threw an unexpected error. Falling back:', err);
+				}
 
 				/** @type {Map<string, any>} */
 				const resultMap = new Map();
-				results.data.forEach(card => {
+				(results.data || []).forEach(card => {
 					if (card.name) {
 						resultMap.set(card.name.toLowerCase(), card);
 						if (card.card_faces) {
@@ -1121,7 +1163,7 @@ function createDeck() {
 					}
 				});
 
-				scryfallNames.forEach(requestedName => {
+				for (const requestedName of scryfallNames) {
 					const lowName = requestedName.toLowerCase();
 					const normalizedName = lowName.replace(/\s+\/\s+/g, ' // ');
 					const card = resultMap.get(lowName) || resultMap.get(normalizedName);
@@ -1151,7 +1193,9 @@ function createDeck() {
 							nextMetadata[short] = metaObj;
 						}
 					} else if (localCard) {
+						const priceRecord = await db.prices.get(localCard.id);
 						const localMeta = {
+							id: localCard.id,
 							name: localCard.name,
 							image_uris: {
 								normal: localCard.image,
@@ -1166,8 +1210,9 @@ function createDeck() {
 							color_identity: localCard.identity || [],
 							oracle_text: localCard.text || "",
 							prices: {
-								usd: null
-							}
+								usd: priceRecord ? String(priceRecord.price) : null
+							},
+							offlineFallback: true
 						};
 						nextMetadata[lowName] = localMeta;
 						if (localCard.name && localCard.name.includes(" // ")) {
@@ -1178,18 +1223,24 @@ function createDeck() {
 					} else {
 						nextMetadata[lowName] = {
 							notFound: true,
+							offlineFallback: true,
 							name: requestedName,
 							type_line: 'Unknown',
 							cmc: 0
 						};
 					}
-				});
+				}
 			}
 
 			nextMetadata.updatedAt = Date.now();
 			deckState.metadata = nextMetadata;
 		} catch (e) {
 			console.error('Metadata sync failed:', e);
+			// Safeguard: commit whatever metadata was resolved
+			if (Object.keys(nextMetadata).length > 0) {
+				nextMetadata.updatedAt = Date.now();
+				deckState.metadata = nextMetadata;
+			}
 		} finally {
 			setTimeout(() => { isSyncing = false; }, 100);
 		}

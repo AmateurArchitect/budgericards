@@ -1,4 +1,4 @@
-import { scryfallFetch } from "$lib/api/scryfall.js";
+import { scryfallFetch, isScryfallDown } from "$lib/api/scryfall.js";
 import { priceStore } from "$lib/stores/prices.svelte.js";
 import { deckStore } from "$lib/stores/deck.svelte.js";
 import { settingsStore } from "$lib/stores/settings.svelte.js";
@@ -560,7 +560,11 @@ function createSearch() {
 		} catch (err) {
 			const e = /** @type {any} */ (err);
 			if (e.name !== "AbortError") {
-				console.error("Search error:", e);
+				console.warn("Scryfall search error, attempting local search fallback:", e);
+				// If not a local board, fallback to local IndexedDB search
+				if (!['sideboard', 'maybeboard'].includes(state.collection)) {
+					return performLocalSearch();
+				}
 				state.results = [];
 				state.isSearching = false;
 			}
@@ -666,11 +670,13 @@ function createSearch() {
 
 		// Budget collections always use Scryfall (they rely on priceStore list filtering)
 		if (collection === 'budget-edh-26.2' || collection === 'budget-staples') {
+			if (isScryfallDown()) return performLocalSearch();
 			return performScryfallSearch();
 		}
 
 		// Printing-specific queries (set:, cn:) must go to Scryfall
 		if (q && isPrintingQuery(q)) {
+			if (isScryfallDown()) return performLocalSearch();
 			return performScryfallSearch();
 		}
 
