@@ -1102,6 +1102,9 @@ function createDeck() {
 						colors: localCard.colors || [],
 						color_identity: localCard.identity || [],
 						oracle_text: localCard.text || "",
+						power: localCard.power,
+						toughness: localCard.toughness,
+						loyalty: localCard.loyalty,
 						prices: {
 							usd: priceRecord ? String(priceRecord.price) : null
 						}
@@ -1125,6 +1128,9 @@ function createDeck() {
 						colors: localCard.colors || [],
 						color_identity: localCard.identity || [],
 						oracle_text: localCard.text || "",
+						power: localCard.power,
+						toughness: localCard.toughness,
+						loyalty: localCard.loyalty,
 						prices: {
 							usd: priceRecord ? String(priceRecord.price) : null
 						},
@@ -1184,6 +1190,9 @@ function createDeck() {
 							colors: card.colors || card.card_faces?.[0]?.colors || [],
 							color_identity: card.color_identity || [],
 							oracle_text: card.oracle_text || card.card_faces?.[0]?.oracle_text || "",
+							power: card.power || card.card_faces?.[0]?.power,
+							toughness: card.toughness || card.card_faces?.[0]?.toughness,
+							loyalty: card.loyalty || card.card_faces?.[0]?.loyalty,
 							prices: card.prices
 						};
 						nextMetadata[lowName] = metaObj;
@@ -1209,6 +1218,9 @@ function createDeck() {
 							colors: localCard.colors || [],
 							color_identity: localCard.identity || [],
 							oracle_text: localCard.text || "",
+							power: localCard.power,
+							toughness: localCard.toughness,
+							loyalty: localCard.loyalty,
 							prices: {
 								usd: priceRecord ? String(priceRecord.price) : null
 							},

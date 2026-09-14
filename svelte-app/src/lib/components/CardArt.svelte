@@ -1,5 +1,7 @@
 <script>
-	import { RefreshCw, RotateCw } from "lucide-svelte";
+import { RefreshCw, RotateCw, Layers } from "lucide-svelte";
+import ManaSymbol from "$lib/components/ui/ManaSymbol.svelte";
+import { parseManaCost } from "$lib/layouts/grouping.svelte.js";
 
 	/** @type {{
 	 * card: any,
@@ -200,24 +202,49 @@
 
 {#snippet CardImage(/** @type {CardImageProps} */ { lowSrc, highSrc, isLoaded, card, onLowResLoad, onImageError, hasError = false, loading = false })}
 	{#if hasError || (!lowSrc && !loading)}
+		{@const manaCostStr = card.mana_cost || card.mana || ""}
+		{@const manaSymbols = parseManaCost(manaCostStr)}
+		{@const hasPt = card.power !== undefined && card.toughness !== undefined && card.power !== null && card.toughness !== null}
 		<div class="card-fallback-face">
 			<div class="fallback-card-header">
-				<span class="fallback-card-name">{card.name || 'Unknown Card'}</span>
-				{#if card.mana_cost || card.mana}
-					<span class="fallback-card-mana">{card.mana_cost || card.mana}</span>
+				<span class="fallback-card-name" title={card.name}>{card.name || 'Unknown Card'}</span>
+				{#if manaSymbols.length > 0}
+					<div class="fallback-mana-cost">
+						{#each manaSymbols as sym}
+							{#if sym === "//"}
+								<span class="fallback-mana-slash">//</span>
+							{:else}
+								<ManaSymbol symbol={sym} size="12px" />
+							{/if}
+						{/each}
+					</div>
 				{/if}
 			</div>
 			<div class="fallback-art-box">
-				<span class="fallback-symbol">🎴</span>
+				<div class="fallback-art-watermark">
+					<Layers size={24} strokeWidth={1.5} />
+					<span class="fallback-art-label">Art Unavailable</span>
+				</div>
 			</div>
 			<div class="fallback-card-type">
 				<span>{card.type_line || card.type || 'Card'}</span>
 			</div>
-			{#if card.oracle_text || card.text}
-				<div class="fallback-card-text">
-					{(card.oracle_text || card.text).slice(0, 120)}{(card.oracle_text || card.text).length > 120 ? '…' : ''}
-				</div>
-			{/if}
+			<div class="fallback-card-body" class:has-pt={hasPt}>
+				{#if card.oracle_text || card.text}
+					<div class="fallback-card-text">
+						{card.oracle_text || card.text}
+					</div>
+				{/if}
+				{#if hasPt}
+					<div class="fallback-pt-box">
+						{card.power}/{card.toughness}
+					</div>
+				{:else if card.loyalty}
+					<div class="fallback-pt-box loyalty">
+						[{card.loyalty}]
+					</div>
+				{/if}
+			</div>
 		</div>
 	{:else if lowSrc}
 		<div class="image-wrapper" style="position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: inherit;">
@@ -563,12 +590,12 @@
 	.card-fallback-face {
 		width: 100%;
 		height: 100%;
-		background: linear-gradient(145deg, #1c1f26, #121418);
-		border: 1px solid rgba(255, 255, 255, 0.12);
+		background: #111317;
+		border: 1px solid rgba(255, 255, 255, 0.15);
 		border-radius: inherit;
 		display: flex;
 		flex-direction: column;
-		padding: 7px;
+		padding: 7px 7px 8px 7px;
 		box-sizing: border-box;
 		user-select: none;
 		overflow: hidden;
@@ -579,63 +606,137 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		background: rgba(255, 255, 255, 0.06);
-		padding: 3px 5px;
+		background: rgba(255, 255, 255, 0.08);
+		padding: 3px 6px;
 		border-radius: 4px;
-		border: 1px solid rgba(255, 255, 255, 0.08);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		min-height: 22px;
+		box-sizing: border-box;
+		gap: 4px;
 	}
 
 	.fallback-card-name {
-		font-size: 10px;
+		font-size: 11px;
 		font-weight: 700;
-		color: #f1f3f5;
+		color: #f8f9fa;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		flex: 1;
+		min-width: 0;
 	}
 
-	.fallback-card-mana {
-		font-size: 9px;
-		color: #ced4da;
-		margin-left: 4px;
+	.fallback-mana-cost {
+		display: flex;
+		align-items: center;
+		gap: 2px;
 		flex-shrink: 0;
 	}
 
+	.fallback-mana-slash {
+		font-size: 10px;
+		color: rgba(255, 255, 255, 0.5);
+		margin: 0 1px;
+	}
+
 	.fallback-art-box {
-		flex: 1;
-		min-height: 36px;
-		background: rgba(0, 0, 0, 0.35);
+		height: 44%;
+		background: radial-gradient(ellipse at center, rgba(35, 40, 50, 0.7) 0%, rgba(12, 14, 18, 0.95) 100%);
 		border-radius: 4px;
-		border: 1px solid rgba(255, 255, 255, 0.05);
+		border: 1px solid rgba(255, 255, 255, 0.06);
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		overflow: hidden;
+		position: relative;
+	}
+
+	.fallback-art-watermark {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
 		color: rgba(255, 255, 255, 0.2);
-		font-size: 18px;
+	}
+
+	.fallback-art-label {
+		font-size: 8.5px;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		font-weight: 600;
+		color: rgba(255, 255, 255, 0.25);
 	}
 
 	.fallback-card-type {
-		background: rgba(255, 255, 255, 0.06);
-		padding: 2px 5px;
+		background: rgba(255, 255, 255, 0.07);
+		padding: 3px 6px;
 		border-radius: 4px;
 		border: 1px solid rgba(255, 255, 255, 0.08);
-		font-size: 8.5px;
-		color: #adb5bd;
+		font-size: 9.5px;
+		font-weight: 600;
+		color: #d1d5db;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		min-height: 20px;
+		box-sizing: border-box;
+		display: flex;
+		align-items: center;
+	}
+
+	.fallback-card-body {
+		flex: 1;
+		background: rgba(0, 0, 0, 0.35);
+		border-radius: 4px;
+		border: 1px solid rgba(255, 255, 255, 0.05);
+		padding: 6px 8px;
+		display: flex;
+		flex-direction: column;
+		position: relative;
+		overflow: hidden;
+		box-sizing: border-box;
+		min-height: 0;
+	}
+
+	.fallback-card-body.has-pt {
+		padding-bottom: 20px;
 	}
 
 	.fallback-card-text {
-		background: rgba(0, 0, 0, 0.2);
+		font-size: 9px;
+		line-height: 1.35;
+		color: #cbd5e1;
+		white-space: pre-line;
+		word-break: break-word;
+		overflow-y: auto;
+		scrollbar-width: none;
+		flex: 1;
+	}
+
+	.fallback-card-text::-webkit-scrollbar {
+		display: none;
+	}
+
+	.fallback-pt-box {
+		position: absolute;
+		bottom: 3px;
+		right: 4px;
+		background: #181b22;
+		border: 1.5px solid rgba(255, 255, 255, 0.25);
 		border-radius: 4px;
-		padding: 4px 5px;
-		font-size: 8px;
-		line-height: 1.25;
-		color: #909296;
-		overflow: hidden;
-		display: -webkit-box;
-		-webkit-line-clamp: 4;
-		-webkit-box-orient: vertical;
+		padding: 1px 6px;
+		font-size: 11px;
+		font-weight: 800;
+		color: #f8fafc;
+		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+		line-height: 1.2;
+		z-index: 2;
+	}
+
+	.fallback-pt-box.loyalty {
+		background: #2b2316;
+		border-color: rgba(245, 158, 11, 0.5);
+		color: #fef3c7;
 	}
 </style>

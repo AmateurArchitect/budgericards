@@ -81,6 +81,12 @@
 		);
 	});
 
+	let deckImageError = $state(false);
+	$effect(() => {
+		const _ = deckImage();
+		deckImageError = false;
+	});
+
 	let isDragOverArt = $state(false);
 
 	/** @param {DragEvent} e */
@@ -445,11 +451,12 @@
 				role="region"
 			>
 				<div class="card-preview-slot">
-					{#if deckImage()}
+					{#if deckImage() && !deckImageError}
 						<img
 							src={deckImage()}
 							alt="Deck Preview"
 							class="deck-art"
+							onerror={() => { deckImageError = true; }}
 						/>
 					{:else}
 						<div class="deck-art-placeholder">
