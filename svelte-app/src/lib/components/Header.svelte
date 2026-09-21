@@ -291,7 +291,7 @@
 				class="global-nav-link action-btn"
 				onclick={handleNewDeck}
 			>
-				New Decks
+				New Deck
 			</button>
 
 			<a
