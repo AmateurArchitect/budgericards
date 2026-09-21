@@ -53,6 +53,26 @@
 		);
 	});
 
+	const searchHints = [
+		"Lightning Bolt",
+		"t:creature cmc<=2",
+		"is:commander id:esper",
+		"o:draw o:discard",
+		"c:green t:elf",
+		'o:"enters the battlefield"',
+		"t:planeswalker",
+		"mana:{2}{U}{U}",
+		"rarity:mythic",
+	];
+	let placeholderIndex = $state(0);
+
+	$effect(() => {
+		const interval = setInterval(() => {
+			placeholderIndex = (placeholderIndex + 1) % searchHints.length;
+		}, 3500);
+		return () => clearInterval(interval);
+	});
+
 	/** @type {HTMLElement | null} */
 	let viewOptionsBtn = $state(null);
 	/** @type {HTMLElement | null} */
@@ -875,42 +895,6 @@
 								triggerElement={viewOptionsBtn}
 							/>
 						</div>
-
-						<!-- Card Search Button with Label and Shortcut -->
-						<button
-							class="deck-search-btn"
-							onclick={() => {
-								if (searchStore.isOpen) {
-									searchStore.closeSearch();
-								} else {
-									searchStore.openSearch();
-									setTimeout(() => {
-										const inputEl =
-											document.querySelector(
-												".header-search-input input",
-											) ||
-											document.querySelector(
-												".header-search-input",
-											);
-										/** @type {HTMLElement | null} */ (
-											inputEl
-										)?.focus();
-									}, 50);
-								}
-							}}
-							aria-label="Card search (⌘/ or /)"
-							title="Card Search (⌘/ or /)"
-						>
-							<div class="deck-search-left">
-								<Search size={14} class="deck-search-icon" />
-								<span class="deck-search-text">Card Search</span
-								>
-							</div>
-							<div class="shortcut-keycaps">
-								<kbd class="key-cap">⌘</kbd>
-								<kbd class="key-cap">/</kbd>
-							</div>
-						</button>
 					</div>
 				</div>
 			{/if}
@@ -978,6 +962,48 @@
 					</div>
 				</div>
 			{/if}
+
+			<!-- Card Search Column with SEARCH eyebrow -->
+			<div class="control-column search-column">
+				<span class="eyebrow-label">SEARCH</span>
+				<button
+					class="deck-search-btn"
+					onclick={() => {
+						if (searchStore.isOpen) {
+							searchStore.closeSearch();
+						} else {
+							searchStore.openSearch();
+							setTimeout(() => {
+								const inputEl =
+									document.querySelector(
+										".header-search-input input",
+									) ||
+									document.querySelector(
+										".header-search-input",
+									);
+								/** @type {HTMLElement | null} */ (
+									inputEl
+								)?.focus();
+							}, 50);
+						}
+					}}
+					aria-label="Card search (⌘/ or /)"
+					title="Card Search (⌘/ or /)"
+				>
+					<div class="deck-search-left">
+						<Search size={14} class="deck-search-icon" />
+						{#key placeholderIndex}
+							<span class="deck-search-text" in:fade={{ duration: 160 }}>
+								{searchHints[placeholderIndex]}
+							</span>
+						{/key}
+					</div>
+					<div class="shortcut-keycaps">
+						<kbd class="key-cap">⌘</kbd>
+						<kbd class="key-cap">/</kbd>
+					</div>
+				</button>
+			</div>
 		{/if}
 	</div>
 </div>
@@ -1302,7 +1328,8 @@
 		justify-content: space-between;
 		gap: 0.65rem;
 		height: 36px;
-		padding: 0 10px 0 11px;
+		min-width: 195px;
+		padding: 0 10px 0 12px;
 		border-radius: 8px;
 		color: #94a3b8;
 		border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1320,6 +1347,11 @@
 		border-color: rgba(255, 255, 255, 0.14);
 	}
 
+	.deck-search-btn:hover :global(.deck-search-icon),
+	.deck-search-btn:hover .deck-search-text {
+		color: #e2e8f0;
+	}
+
 	.deck-search-btn:focus-visible {
 		outline: 2px solid hsl(var(--primary));
 		outline-offset: -1px;
@@ -1328,12 +1360,25 @@
 	.deck-search-left {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.45rem;
+		gap: 0.5rem;
+		min-width: 0;
+		overflow: hidden;
+	}
+
+	:global(.deck-search-icon) {
+		color: #94a3b8;
+		flex-shrink: 0;
+		transition: color 0.15s ease;
 	}
 
 	.deck-search-text {
 		font-size: 13px;
-		font-weight: 500;
+		font-weight: 400;
+		color: #94a3b8;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		transition: color 0.15s ease;
 	}
 
 	.shortcut-keycaps {
@@ -1659,6 +1704,7 @@
 		}
 		.deck-search-btn {
 			padding: 0 8px;
+			min-width: auto;
 		}
 		.board-label {
 			display: none;
