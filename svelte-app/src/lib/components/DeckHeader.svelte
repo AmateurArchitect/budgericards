@@ -1158,7 +1158,7 @@
 	.eyebrow-label {
 		font-size: 11px;
 		font-weight: 700;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.03em;
 		color: #94a3b8;
 		text-transform: uppercase;
 		line-height: 1;

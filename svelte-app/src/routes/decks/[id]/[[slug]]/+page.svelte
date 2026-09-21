@@ -269,7 +269,7 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		background: #080b11;
+		background: #000000;
 		color: hsl(var(--foreground));
 		overflow: hidden;
 	}

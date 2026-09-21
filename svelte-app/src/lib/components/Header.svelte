@@ -272,9 +272,46 @@
 <!-- Thin Global Header Bar -->
 <header class="global-header-bar" class:on-deck-page={isDeckPage}>
 	<div class="global-header-left">
-		<a href="/decks" class="brand-item" title="Budgie Deckbuilder">
-			<span class="brand-title">Budgie</span>
-		</a>
+		<div class="budgie-menu-container">
+			<button
+				type="button"
+				class="global-nav-link dropdown-trigger"
+				class:active={showBudgieDropdown}
+				onclick={(e) => {
+					e.stopPropagation();
+					showBudgieDropdown = !showBudgieDropdown;
+					if (showBudgieDropdown) closeAllDropdowns("budgie");
+				}}
+				aria-expanded={showBudgieDropdown}
+				aria-haspopup="menu"
+				aria-label="Budgie menu"
+			>
+				<span>Budgie</span>
+				<ChevronDown size={12} class="nav-chevron" />
+			</button>
+
+			{#if showBudgieDropdown}
+				<div class="budgie-dropdown" transition:fade={{ duration: 120 }}>
+					<a href="/decks" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+						<FolderOpen size={14} />
+						<span>Your Decks</span>
+					</a>
+					<a href="/browse" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+						<Search size={14} />
+						<span>Explore Decks</span>
+					</a>
+					<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+						<Palette size={14} />
+						<span>Art Gallery</span>
+					</a>
+					<div class="menu-divider"></div>
+					<button type="button" class="menu-item" onclick={() => { showBudgieDropdown = false; showAboutModal = true; }}>
+						<HelpCircle size={14} />
+						<span>About Budgie</span>
+					</button>
+				</div>
+			{/if}
+		</div>
 
 		<nav class="global-nav">
 			<a
@@ -291,7 +328,7 @@
 		<nav class="global-nav">
 			<button
 				type="button"
-				class="global-nav-link action-btn"
+				class="global-nav-link"
 				onclick={handleNewDeck}
 			>
 				New Deck
@@ -312,7 +349,8 @@
 				{:else if authStore.isAuthenticated && authStore.user}
 					<div class="profile-menu-container">
 						<button
-							class="global-nav-link user-trigger"
+							type="button"
+							class="global-nav-link dropdown-trigger"
 							class:active={showProfileDropdown}
 							onclick={(e) => {
 								e.stopPropagation();
@@ -326,7 +364,7 @@
 							<span class="user-display-name">
 								{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0] || "AmateurArchitect"}
 							</span>
-							<ChevronDown size={12} class="user-chevron" />
+							<ChevronDown size={12} class="nav-chevron" />
 						</button>
 
 						{#if showProfileDropdown}
@@ -335,7 +373,7 @@
 									<span class="dropdown-email">{authStore.user.email}</span>
 								</div>
 								<div class="menu-divider"></div>
-								<button class="menu-item" onclick={handleNewDeck}>
+								<button type="button" class="menu-item" onclick={handleNewDeck}>
 									<PlusCircle size={14} />
 									<span>New Deck</span>
 								</button>
@@ -343,12 +381,12 @@
 									<FolderOpen size={14} />
 									<span>Your Decks</span>
 								</a>
-								<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
+								<button type="button" class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
 									<SettingsIcon size={14} />
 									<span>Settings</span>
 								</button>
 								<div class="menu-divider"></div>
-								<button class="menu-item destructive" onclick={handleSignOut}>
+								<button type="button" class="menu-item destructive" onclick={handleSignOut}>
 									<LogOut size={14} />
 									<span>Log Out</span>
 								</button>
@@ -358,7 +396,7 @@
 				{:else}
 					<a
 						href="/login?redirectTo={encodeURIComponent($page.url.pathname)}"
-						class="global-nav-link login-link"
+						class="global-nav-link"
 						aria-label="Log In"
 					>
 						Log In
@@ -582,7 +620,7 @@
 <style>
 	.global-header-bar {
 		height: 48px;
-		background: #080b11;
+		background: #000000;
 		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 		display: flex;
 		align-items: center;
@@ -601,22 +639,8 @@
 	.global-header-left {
 		display: flex;
 		align-items: center;
-		gap: 1.25rem;
+		gap: 0.5rem;
 		min-width: 0;
-	}
-
-	.brand-item {
-		display: inline-flex;
-		align-items: center;
-		text-decoration: none;
-		flex-shrink: 0;
-	}
-
-	.brand-title {
-		font-size: 15px;
-		font-weight: 700;
-		letter-spacing: -0.01em;
-		color: #f8fafc;
 	}
 
 	.global-nav {
@@ -643,16 +667,17 @@
 		line-height: 1;
 		outline: none;
 		white-space: nowrap;
+		user-select: none;
 	}
 
 	.global-nav-link:hover {
 		color: #f8fafc;
-		background-color: rgba(255, 255, 255, 0.06);
+		background-color: rgba(255, 255, 255, 0.08);
 	}
 
 	.global-nav-link.active {
 		color: #f8fafc;
-		font-weight: 600;
+		background-color: rgba(255, 255, 255, 0.08);
 	}
 
 	.global-nav-link:focus-visible {
@@ -660,31 +685,32 @@
 		outline-offset: -1px;
 	}
 
-	.user-menu-wrapper {
+	:global(.nav-chevron) {
+		color: #94a3b8;
+		transition: transform 0.15s ease, color 0.15s ease;
+		flex-shrink: 0;
+	}
+
+	.global-nav-link:hover :global(.nav-chevron),
+	.global-nav-link.active :global(.nav-chevron) {
+		color: #f8fafc;
+	}
+
+	.global-nav-link.active :global(.nav-chevron) {
+		transform: rotate(180deg);
+	}
+
+	.budgie-menu-container,
+	.profile-menu-container {
 		position: relative;
 		display: flex;
 		align-items: center;
 	}
 
-	.profile-menu-container {
-		position: relative;
-	}
-
-	.user-trigger {
-		color: #cbd5e1;
-	}
-
-	.user-chevron {
-		color: #94a3b8;
-		transition: transform 0.15s ease;
-	}
-
+	.budgie-dropdown,
 	.profile-dropdown {
 		position: absolute;
 		top: calc(100% + 6px);
-		right: 0;
-		left: auto;
-		min-width: 180px;
 		background: #0f1219;
 		border: 1px solid rgba(255, 255, 255, 0.1);
 		border-radius: 8px;
@@ -694,6 +720,24 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
+	}
+
+	.budgie-dropdown {
+		left: 0;
+		right: auto;
+		width: 190px;
+	}
+
+	.profile-dropdown {
+		right: 0;
+		left: auto;
+		width: 200px;
+	}
+
+	.user-menu-wrapper {
+		position: relative;
+		display: flex;
+		align-items: center;
 	}
 
 	.global-header-right {
@@ -737,18 +781,6 @@
 	.close-search-btn:hover {
 		background: hsl(var(--muted) / 0.8);
 		color: hsl(var(--foreground));
-	}
-
-	.logo-text {
-		color: hsl(var(--foreground));
-	}
-
-	.search-bar {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		flex: 1;
-		min-width: 0;
 	}
 
 	.search-input-combo {
@@ -997,99 +1029,6 @@
 		color: hsl(var(--primary));
 	}
 
-	.header-right {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		padding-left: 0.75rem;
-		flex-shrink: 0;
-	}
-
-	.budgie-menu-container {
-		position: relative;
-		display: flex;
-		align-items: center;
-	}
-
-	.budgie-trigger,
-	.profile-trigger {
-		height: 36px;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.35rem;
-		padding: 0 9px 0 13px;
-		background: hsl(var(--muted) / 0.5);
-		border: 1px solid hsl(var(--border));
-		border-radius: var(--radius);
-		color: hsl(var(--foreground));
-		font-size: 13px;
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.15s ease;
-		white-space: nowrap;
-		box-sizing: border-box;
-		text-decoration: none;
-	}
-
-	.budgie-trigger:hover,
-	.profile-trigger:hover {
-		background: hsl(var(--muted) / 0.8);
-		color: hsl(var(--foreground));
-	}
-
-	.logo-text {
-		color: hsl(var(--foreground));
-		font-weight: 700;
-		font-size: 13px;
-		white-space: nowrap;
-		letter-spacing: -0.02em;
-	}
-
-	.budgie-dropdown {
-		position: absolute;
-		top: calc(100% + 6px);
-		left: 0;
-		right: auto;
-		width: 200px;
-		background: hsl(var(--popover));
-		border: 1px solid hsla(var(--border) / 0.6);
-		border-radius: var(--radius-lg);
-		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-		padding: 6px;
-		z-index: 1000;
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-	}
-
-	.user-auth-bug {
-		display: flex;
-		align-items: center;
-	}
-
-	.profile-menu-container {
-		position: relative;
-		display: flex;
-		align-items: center;
-	}
-
-	.profile-dropdown {
-		position: absolute;
-		top: calc(100% + 6px);
-		left: 0;
-		right: auto;
-		width: 220px;
-		background: hsl(var(--popover));
-		border: 1px solid hsla(var(--border) / 0.6);
-		border-radius: var(--radius-lg);
-		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-		padding: 6px;
-		z-index: 1000;
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-	}
-
 	.dropdown-header {
 		padding: 8px 12px;
 		display: flex;
@@ -1108,18 +1047,6 @@
 		text-overflow: ellipsis;
 		flex: 1;
 	}
-
-	.user-name {
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
-	}
-
-	:global(.chevron) {
-		opacity: 0.5;
-	}
-
-
 
 	.nav-link {
 		text-decoration: none;
