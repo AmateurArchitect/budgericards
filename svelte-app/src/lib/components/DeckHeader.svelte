@@ -1506,15 +1506,13 @@
 	}
 
 	@media (max-width: 1100px) {
-		.nav-label { display: none; }
 		.shortcut-keycaps { display: none; }
-		.search-trigger-btn { min-width: auto; }
 		.deck-title-text { max-width: 120px; }
 	}
 
 	@media (max-width: 950px) {
-		.search-trigger-text { display: none; }
-		.search-trigger-btn { padding: 0 0.5rem; }
+		.deck-search-text { display: none; }
+		.deck-search-btn { padding: 0 8px; }
 		.board-label { display: none; }
 	}
 
