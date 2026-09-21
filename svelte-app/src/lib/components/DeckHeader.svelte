@@ -901,8 +901,8 @@
 <style>
 	.deck-header {
 		height: 82px;
-		background: #0f1219;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		background: transparent;
+		border-bottom: none;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -915,9 +915,9 @@
 
 	.deck-header.is-top-bar {
 		height: 82px;
-		background: #0f1219;
+		background: transparent;
 		backdrop-filter: none;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		border-bottom: none;
 	}
 
 	.deck-info-wrapper {

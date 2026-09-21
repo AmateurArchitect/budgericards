@@ -286,6 +286,10 @@
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
+		background: #0f1219;
+		border-top-left-radius: 12px;
+		border-top-right-radius: 12px;
+		border-top: 1px solid rgba(255, 255, 255, 0.08);
 	}
 
 	:global(.search-panel) {
