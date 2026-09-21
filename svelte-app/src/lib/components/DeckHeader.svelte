@@ -48,7 +48,9 @@
 	let showDisplaySort = $state(false);
 
 	const isCustomDeckSortActive = $derived(() => {
-		return Boolean(deckStore.activeSorts && deckStore.activeSorts.length > 0);
+		return Boolean(
+			deckStore.activeSorts && deckStore.activeSorts.length > 0,
+		);
 	});
 
 	/** @type {HTMLElement | null} */
@@ -105,11 +107,14 @@
 		isDragOverArt = false;
 		if (!e.dataTransfer) return;
 
-		const internalData = e.dataTransfer.getData("application/x-budgericard");
+		const internalData = e.dataTransfer.getData(
+			"application/x-budgericard",
+		);
 		if (internalData) {
 			try {
 				const data = JSON.parse(internalData);
-				const meta = deckStore.metadata[data.name.toLowerCase()] || data.card;
+				const meta =
+					deckStore.metadata[data.name.toLowerCase()] || data.card;
 				if (meta) {
 					const art =
 						meta.image_uris?.art_crop ||
@@ -156,7 +161,11 @@
 	let showBoardDropdown = $state(false);
 	const columns = [
 		{ id: "cmc", label: "Mana Value", shortLabel: "MV" },
-		{ id: "creature", label: "Creature/Non-Creature", shortLabel: "Creature" },
+		{
+			id: "creature",
+			label: "Creature/Non-Creature",
+			shortLabel: "Creature",
+		},
 		{ id: "type", label: "Type", shortLabel: "Type" },
 		{ id: "color", label: "Color", shortLabel: "Color" },
 		{ id: "primarytag", label: "Primary Tag", shortLabel: "Tag" },
@@ -171,7 +180,7 @@
 	);
 
 	const curGroupingCol = $derived(
-		columns.find((c) => c.id === deckStore.grouping)
+		columns.find((c) => c.id === deckStore.grouping),
 	);
 
 	$effect(() => {
@@ -191,7 +200,9 @@
 			}
 
 			if (!sortIds.includes(deckStore.sorting) && sortIds.length > 0) {
-				deckStore.sorting = sortIds.includes("color") ? "color" : sortIds[0];
+				deckStore.sorting = sortIds.includes("color")
+					? "color"
+					: sortIds[0];
 			}
 
 			if (
@@ -380,7 +391,8 @@
 		const handleGlobalKeydown = (e) => {
 			const isCmdCtrl = e.metaKey || e.ctrlKey;
 			if (isCmdCtrl && e.key.toLowerCase() === "s") {
-				const isUnnamed = !deckStore.name || deckStore.name === "Untitled Deck";
+				const isUnnamed =
+					!deckStore.name || deckStore.name === "Untitled Deck";
 				if (isUnnamed) {
 					e.preventDefault();
 					showDeckOptionsModal = true;
@@ -433,7 +445,9 @@
 							src={deckImage()}
 							alt="Deck Preview"
 							class="deck-art"
-							onerror={() => { deckImageError = true; }}
+							onerror={() => {
+								deckImageError = true;
+							}}
 						/>
 					{:else}
 						<div class="deck-art-placeholder">
@@ -444,7 +458,10 @@
 			</div>
 
 			<div class="name-and-meta-column">
-				<div class="deck-title-wrapper" title={deckStore.name || "Untitled Deck"}>
+				<div
+					class="deck-title-wrapper"
+					title={deckStore.name || "Untitled Deck"}
+				>
 					{#if !deckStore.name || deckStore.name === "Untitled Deck"}
 						<h2 class="unnamed-prompt">Untitled Deck</h2>
 						<span class="draft-badge">Draft</span>
@@ -472,32 +489,44 @@
 							onclick={(e) => {
 								e.stopPropagation();
 								showBoardDropdown = !showBoardDropdown;
-								if (showBoardDropdown) closeAllDropdowns("board");
+								if (showBoardDropdown)
+									closeAllDropdowns("board");
 							}}
 							aria-expanded={showBoardDropdown}
 							aria-haspopup="listbox"
 						>
 							<span class="board-label">
-								{deckStore.currentBoardCount} Card {boards.find((b) => b.id === deckStore.activeBoard)?.label}
+								{deckStore.currentBoardCount} Card {boards.find(
+									(b) => b.id === deckStore.activeBoard,
+								)?.label}
 							</span>
 							<ChevronDown size={13} class="chevron" />
 						</button>
 
 						{#if showBoardDropdown}
-							<div class="board-dropdown-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
+							<div
+								class="board-dropdown-menu"
+								use:smartAlign
+								transition:fly={{ y: 4, duration: 150 }}
+							>
 								{#each boards as board}
 									<button
 										class="dropdown-item"
-										class:active={deckStore.activeBoard === board.id}
+										class:active={deckStore.activeBoard ===
+											board.id}
 										onclick={(e) => {
 											e.stopPropagation();
 											selectBoard(board.id);
 										}}
 									>
-										<span class="item-label">{board.label}</span>
+										<span class="item-label"
+											>{board.label}</span
+										>
 										<span class="item-count">
 											{board.id === "mainboard"
-												? deckStore.mainboard.length + deckStore.commander.length + deckStore.companion.length
+												? deckStore.mainboard.length +
+													deckStore.commander.length +
+													deckStore.companion.length
 												: deckStore[board.id].length}
 										</span>
 									</button>
@@ -506,7 +535,7 @@
 						{/if}
 					</div>
 
-					{#if deckStore.activeBoard === 'maybeboard' && deckStore.maybeboard.length >= 80}
+					{#if deckStore.activeBoard === "maybeboard" && deckStore.maybeboard.length >= 80}
 						<button
 							class="maybeboard-warning-btn"
 							class:full={deckStore.maybeboard.length === 100}
@@ -517,18 +546,29 @@
 							title="Maybeboard is near or at limit. Click to clean up."
 						>
 							<span class="warning-icon">⚠️</span>
-							<span class="warning-text">{deckStore.maybeboard.length}/100</span>
+							<span class="warning-text"
+								>{deckStore.maybeboard.length}/100</span
+							>
 						</button>
 					{/if}
 
 					{#if authStore.isAuthenticated && (deckStore.syncState.isSyncing || deckStore.syncState.error)}
 						<div class="sync-indicator-container">
 							{#if deckStore.syncState.isSyncing}
-								<span class="sync-status is-syncing" title="Syncing with cloud...">
-									<RefreshCw size={11} class="icon animate-spin" />
+								<span
+									class="sync-status is-syncing"
+									title="Syncing with cloud..."
+								>
+									<RefreshCw
+										size={11}
+										class="icon animate-spin"
+									/>
 								</span>
 							{:else if deckStore.syncState.error}
-								<span class="sync-status has-error" title={deckStore.syncState.error}>
+								<span
+									class="sync-status has-error"
+									title={deckStore.syncState.error}
+								>
 									<CloudOff size={11} class="icon" />
 								</span>
 							{/if}
@@ -569,7 +609,11 @@
 			<!-- Display Column with DISPLAY eyebrow -->
 			<div class="control-column">
 				<span class="eyebrow-label">DISPLAY</span>
-				<div class="view-mode-group" role="radiogroup" aria-label="Deck View Mode">
+				<div
+					class="view-mode-group"
+					role="radiogroup"
+					aria-label="Deck View Mode"
+				>
 					<button
 						type="button"
 						role="radio"
@@ -636,7 +680,8 @@
 						aria-checked={settingsStore.deckViewMode === "settings"}
 						class="view-toggle-btn"
 						class:active={settingsStore.deckViewMode === "settings"}
-						onclick={() => (settingsStore.deckViewMode = "settings")}
+						onclick={() =>
+							(settingsStore.deckViewMode = "settings")}
 						title="Settings"
 						aria-label="Settings"
 					>
@@ -658,23 +703,35 @@
 								onclick={(e) => {
 									e.stopPropagation();
 									showColumnsDropdown = !showColumnsDropdown;
-									if (showColumnsDropdown) closeAllDropdowns("grouping");
+									if (showColumnsDropdown)
+										closeAllDropdowns("grouping");
 								}}
 								aria-expanded={showColumnsDropdown}
 								aria-haspopup="listbox"
 								title="Group cards by"
 							>
-								<span class="trigger-value full-label">{curGroupingCol?.label || "Grouping"}</span>
-								<span class="trigger-value short-label">{curGroupingCol?.shortLabel || curGroupingCol?.label || "Grouping"}</span>
+								<span class="trigger-value full-label"
+									>{curGroupingCol?.label || "Grouping"}</span
+								>
+								<span class="trigger-value short-label"
+									>{curGroupingCol?.shortLabel ||
+										curGroupingCol?.label ||
+										"Grouping"}</span
+								>
 								<ChevronDown size={13} class="chevron" />
 							</button>
 
 							{#if showColumnsDropdown}
-								<div class="header-select-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
+								<div
+									class="header-select-menu"
+									use:smartAlign
+									transition:fly={{ y: 4, duration: 150 }}
+								>
 									{#each visibleGroupings as col}
 										<button
 											class="select-item"
-											class:active={deckStore.grouping === col.id}
+											class:active={deckStore.grouping ===
+												col.id}
 											onclick={(e) => {
 												e.stopPropagation();
 												selectGrouping(col.id);
@@ -690,10 +747,16 @@
 						<!-- Split View Modifier Button -->
 						{#if settingsStore.deckViewMode === "stacks" && deckStore.grouping !== "freeform"}
 							<Button
-								variant={deckStore.splitView ? "toggle-active" : "ghost"}
+								variant={deckStore.splitView
+									? "toggle-active"
+									: "ghost"}
 								size="icon"
-								class="modifier-btn {deckStore.splitView ? 'bg-secondary' : ''}"
-								onclick={() => (deckStore.splitView = !deckStore.splitView)}
+								class="modifier-btn {deckStore.splitView
+									? 'bg-secondary'
+									: ''}"
+								onclick={() =>
+									(deckStore.splitView =
+										!deckStore.splitView)}
 								title={deckStore.grouping === "type"
 									? "Toggle Type Split View (Creatures / Non-Creatures)"
 									: "Toggle Spell / Land Row Split View"}
@@ -709,11 +772,21 @@
 						<!-- Display Sort Button (to the right of split view toggle) -->
 						{#if ["stacks", "spoiler", "table"].includes(settingsStore.deckViewMode)}
 							<Button
-								variant={showDisplaySort || isCustomDeckSortActive() ? "toggle-active" : "ghost"}
+								variant={showDisplaySort ||
+								isCustomDeckSortActive()
+									? "toggle-active"
+									: "ghost"}
 								size="icon"
-								class="modifier-btn {isCustomDeckSortActive() ? 'custom-sort-active' : (showDisplaySort ? 'bg-secondary' : '')}"
-								onclick={() => (showDisplaySort = !showDisplaySort)}
-								title={isCustomDeckSortActive() ? "Custom sorting active (click to configure)" : "Sort Displayed Cards"}
+								class="modifier-btn {isCustomDeckSortActive()
+									? 'custom-sort-active'
+									: showDisplaySort
+										? 'bg-secondary'
+										: ''}"
+								onclick={() =>
+									(showDisplaySort = !showDisplaySort)}
+								title={isCustomDeckSortActive()
+									? "Custom sorting active (click to configure)"
+									: "Sort Displayed Cards"}
 								aria-label="Sort Displayed Cards"
 							>
 								<ArrowDownWideNarrow size={15} />
@@ -732,15 +805,18 @@
 									class:active={showTableColumnsDropdown}
 									onclick={(e) => {
 										e.stopPropagation();
-										showTableColumnsDropdown = !showTableColumnsDropdown;
-										if (showTableColumnsDropdown) closeAllDropdowns("tableCols");
+										showTableColumnsDropdown =
+											!showTableColumnsDropdown;
+										if (showTableColumnsDropdown)
+											closeAllDropdowns("tableCols");
 									}}
 									aria-expanded={showTableColumnsDropdown}
 									aria-haspopup="listbox"
 									title="Toggle visible columns"
 								>
 									<span class="trigger-value">
-										{settingsStore.visibleColumns.length === 8
+										{settingsStore.visibleColumns.length ===
+										8
 											? "All Cols"
 											: `${settingsStore.visibleColumns.length} Cols`}
 									</span>
@@ -748,11 +824,17 @@
 								</button>
 
 								{#if showTableColumnsDropdown}
-									<div class="header-select-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
+									<div
+										class="header-select-menu"
+										use:smartAlign
+										transition:fly={{ y: 4, duration: 150 }}
+									>
 										{#each toggleableColumns as col}
 											<button
 												class="select-item multi-select-item"
-												class:active={settingsStore.visibleColumns.includes(col.id)}
+												class:active={settingsStore.visibleColumns.includes(
+													col.id,
+												)}
 												onclick={(e) => {
 													e.stopPropagation();
 													toggleTableColumn(col.id);
@@ -774,7 +856,9 @@
 						<!-- View Options Modal Trigger -->
 						<div class="view-options-container">
 							<Button
-								variant={showViewOptionsModal ? "toggle-active" : "ghost"}
+								variant={showViewOptionsModal
+									? "toggle-active"
+									: "ghost"}
 								size="icon"
 								class="modifier-btn"
 								bind:el={viewOptionsBtn}
@@ -801,8 +885,16 @@
 								} else {
 									searchStore.openSearch();
 									setTimeout(() => {
-										const inputEl = document.querySelector(".header-search-input input") || document.querySelector(".header-search-input");
-										/** @type {HTMLElement | null} */ (inputEl)?.focus();
+										const inputEl =
+											document.querySelector(
+												".header-search-input input",
+											) ||
+											document.querySelector(
+												".header-search-input",
+											);
+										/** @type {HTMLElement | null} */ (
+											inputEl
+										)?.focus();
 									}, 50);
 								}
 							}}
@@ -811,7 +903,8 @@
 						>
 							<div class="deck-search-left">
 								<Search size={14} class="deck-search-icon" />
-								<span class="deck-search-text">Card Search</span>
+								<span class="deck-search-text">Card Search</span
+								>
 							</div>
 							<div class="shortcut-keycaps">
 								<kbd class="key-cap">⌘</kbd>
@@ -825,44 +918,60 @@
 			{#if settingsStore.deckViewMode === "stats"}
 				<div class="control-column">
 					<span class="eyebrow-label">SECTIONS</span>
-					<div class="stats-subtabs-group" role="radiogroup" aria-label="Stats Sub-tab">
+					<div
+						class="stats-subtabs-group"
+						role="radiogroup"
+						aria-label="Stats Sub-tab"
+					>
 						<button
 							type="button"
 							role="radio"
-							aria-checked={settingsStore.statsSubTab === "dashboard"}
+							aria-checked={settingsStore.statsSubTab ===
+								"dashboard"}
 							class="stats-tab-btn"
-							class:active={settingsStore.statsSubTab === "dashboard"}
-							onclick={() => (settingsStore.statsSubTab = "dashboard")}
+							class:active={settingsStore.statsSubTab ===
+								"dashboard"}
+							onclick={() =>
+								(settingsStore.statsSubTab = "dashboard")}
 						>
 							Dashboard
 						</button>
 						<button
 							type="button"
 							role="radio"
-							aria-checked={settingsStore.statsSubTab === "sample-hand"}
+							aria-checked={settingsStore.statsSubTab ===
+								"sample-hand"}
 							class="stats-tab-btn"
-							class:active={settingsStore.statsSubTab === "sample-hand"}
-							onclick={() => (settingsStore.statsSubTab = "sample-hand")}
+							class:active={settingsStore.statsSubTab ===
+								"sample-hand"}
+							onclick={() =>
+								(settingsStore.statsSubTab = "sample-hand")}
 						>
 							Sample Hand
 						</button>
 						<button
 							type="button"
 							role="radio"
-							aria-checked={settingsStore.statsSubTab === "tokens"}
+							aria-checked={settingsStore.statsSubTab ===
+								"tokens"}
 							class="stats-tab-btn"
-							class:active={settingsStore.statsSubTab === "tokens"}
-							onclick={() => (settingsStore.statsSubTab = "tokens")}
+							class:active={settingsStore.statsSubTab ===
+								"tokens"}
+							onclick={() =>
+								(settingsStore.statsSubTab = "tokens")}
 						>
 							Tokens
 						</button>
 						<button
 							type="button"
 							role="radio"
-							aria-checked={settingsStore.statsSubTab === "combos"}
+							aria-checked={settingsStore.statsSubTab ===
+								"combos"}
 							class="stats-tab-btn"
-							class:active={settingsStore.statsSubTab === "combos"}
-							onclick={() => (settingsStore.statsSubTab = "combos")}
+							class:active={settingsStore.statsSubTab ===
+								"combos"}
+							onclick={() =>
+								(settingsStore.statsSubTab = "combos")}
 						>
 							Combos
 						</button>
@@ -876,20 +985,31 @@
 {#if showAboutModal}
 	<div
 		class="about-backdrop"
-		onclick={(e) => { if (e.target === e.currentTarget) showAboutModal = false; }}
+		onclick={(e) => {
+			if (e.target === e.currentTarget) showAboutModal = false;
+		}}
 		role="presentation"
 		transition:fade={{ duration: 150 }}
 	>
 		<div class="about-card" transition:fly={{ y: 10, duration: 200 }}>
 			<div class="about-header">
 				<h3>About Budgie</h3>
-				<button class="close-btn" onclick={() => (showAboutModal = false)}>
+				<button
+					class="close-btn"
+					onclick={() => (showAboutModal = false)}
+				>
 					&times;
 				</button>
 			</div>
 			<div class="about-body">
-				<p><strong>Budgie</strong> is a fast, beautiful Magic: The Gathering deckbuilder built for rapid brewing and gorgeous visual sorting.</p>
-				<p>Syncs seamlessly with cloud storage and local database caching.</p>
+				<p>
+					<strong>Budgie</strong> is a fast, beautiful Magic: The Gathering
+					deckbuilder built for rapid brewing and gorgeous visual sorting.
+				</p>
+				<p>
+					Syncs seamlessly with cloud storage and local database
+					caching.
+				</p>
 				<div class="about-footer">
 					<span>Version 1.0.0</span>
 				</div>
@@ -907,7 +1027,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 20px;
+		padding: 12px 20px;
 		position: relative;
 		z-index: 20;
 		box-sizing: border-box;
@@ -965,7 +1085,9 @@
 		position: relative;
 		border-radius: 6px;
 		overflow: hidden;
-		box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+		box-shadow:
+			0 3px 10px rgba(0, 0, 0, 0.45),
+			inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 		background: hsl(var(--muted) / 0.2);
 		pointer-events: none;
 	}
@@ -1002,7 +1124,8 @@
 		min-width: 0;
 	}
 
-	.deck-title-text, .unnamed-prompt {
+	.deck-title-text,
+	.unnamed-prompt {
 		margin: 0;
 		font-size: 16px;
 		font-weight: 600;
@@ -1271,7 +1394,9 @@
 	.view-toggle-btn.active {
 		background: #1c2230;
 		color: #f8fafc;
-		box-shadow: 0 0 0 1.5px #3b82f6 inset, 0 1px 3px rgba(0, 0, 0, 0.4);
+		box-shadow:
+			0 0 0 1.5px #3b82f6 inset,
+			0 1px 3px rgba(0, 0, 0, 0.4);
 	}
 
 	.grouping-container,
@@ -1338,7 +1463,9 @@
 		background: #1c2230;
 		color: #f8fafc;
 		border-color: rgba(255, 255, 255, 0.16);
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+		box-shadow:
+			0 1px 3px rgba(0, 0, 0, 0.4),
+			0 0 0 1px rgba(255, 255, 255, 0.08) inset;
 	}
 
 	.header-select-menu {
@@ -1420,7 +1547,9 @@
 		background: #1c2230 !important;
 		color: #f8fafc !important;
 		border-color: rgba(255, 255, 255, 0.16) !important;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08) inset !important;
+		box-shadow:
+			0 1px 3px rgba(0, 0, 0, 0.4),
+			0 0 0 1px rgba(255, 255, 255, 0.08) inset !important;
 	}
 
 	:global(.modifier-btn.custom-sort-active) {
@@ -1473,10 +1602,10 @@
 		background: #1c2230;
 		color: #f8fafc;
 		font-weight: 600;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+		box-shadow:
+			0 1px 3px rgba(0, 0, 0, 0.4),
+			0 0 0 1px rgba(255, 255, 255, 0.08) inset;
 	}
-
-
 
 	.stats-subtabs-group {
 		display: inline-flex;
@@ -1495,25 +1624,45 @@
 
 	/* Responsive Breakpoint Adaptations */
 	@media (max-width: 1250px) {
-		.full-label { display: none; }
-		.short-label { display: inline; }
-		.deck-title-text { max-width: 150px; }
+		.full-label {
+			display: none;
+		}
+		.short-label {
+			display: inline;
+		}
+		.deck-title-text {
+			max-width: 150px;
+		}
 	}
 
 	@media (min-width: 1251px) {
-		.full-label { display: inline; }
-		.short-label { display: none; }
+		.full-label {
+			display: inline;
+		}
+		.short-label {
+			display: none;
+		}
 	}
 
 	@media (max-width: 1100px) {
-		.shortcut-keycaps { display: none; }
-		.deck-title-text { max-width: 120px; }
+		.shortcut-keycaps {
+			display: none;
+		}
+		.deck-title-text {
+			max-width: 120px;
+		}
 	}
 
 	@media (max-width: 950px) {
-		.deck-search-text { display: none; }
-		.deck-search-btn { padding: 0 8px; }
-		.board-label { display: none; }
+		.deck-search-text {
+			display: none;
+		}
+		.deck-search-btn {
+			padding: 0 8px;
+		}
+		.board-label {
+			display: none;
+		}
 	}
 
 	/* About Modal */
