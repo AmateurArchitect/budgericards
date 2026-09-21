@@ -56,20 +56,14 @@
 	const searchHints = [
 		"Lightning Bolt",
 		"t:creature cmc<=2",
-		"is:commander id:esper",
-		"o:draw o:discard",
-		"c:green t:elf",
-		'o:"enters the battlefield"',
-		"t:planeswalker",
-		"mana:{2}{U}{U}",
-		"rarity:mythic",
+		"is:commander",
 	];
 	let placeholderIndex = $state(0);
 
 	$effect(() => {
 		const interval = setInterval(() => {
 			placeholderIndex = (placeholderIndex + 1) % searchHints.length;
-		}, 3500);
+		}, 6000);
 		return () => clearInterval(interval);
 	});
 
@@ -963,9 +957,9 @@
 				</div>
 			{/if}
 
-			<!-- Card Search Column with SEARCH eyebrow -->
+			<!-- Card Search Column with CARD SEARCH eyebrow -->
 			<div class="control-column search-column">
-				<span class="eyebrow-label">SEARCH</span>
+				<span class="eyebrow-label">CARD SEARCH</span>
 				<button
 					class="deck-search-btn"
 					onclick={() => {
@@ -1314,6 +1308,7 @@
 		text-transform: uppercase;
 		line-height: 1;
 		user-select: none;
+		white-space: nowrap;
 	}
 
 	.grouping-controls-row {
@@ -1328,7 +1323,8 @@
 		justify-content: space-between;
 		gap: 0.65rem;
 		height: 36px;
-		min-width: 195px;
+		width: 215px;
+		min-width: 215px;
 		padding: 0 10px 0 12px;
 		border-radius: 8px;
 		color: #94a3b8;
@@ -1362,6 +1358,7 @@
 		align-items: center;
 		gap: 0.5rem;
 		min-width: 0;
+		flex: 1;
 		overflow: hidden;
 	}
 
@@ -1385,6 +1382,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 2px;
+		flex-shrink: 0;
 	}
 
 	.key-cap {
@@ -1704,6 +1702,7 @@
 		}
 		.deck-search-btn {
 			padding: 0 8px;
+			width: auto;
 			min-width: auto;
 		}
 		.board-label {
