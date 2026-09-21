@@ -285,7 +285,11 @@
 			>
 				Explore
 			</a>
+		</nav>
+	</div>
 
+	<div class="global-header-right">
+		<nav class="global-nav">
 			<button
 				type="button"
 				class="global-nav-link action-btn"
@@ -363,29 +367,6 @@
 				{/if}
 			</div>
 		</nav>
-	</div>
-
-	<div class="global-header-right">
-		<button
-			class="global-search-trigger"
-			class:active={searchStore.isOpen}
-			onclick={() => {
-				if (searchStore.isOpen) {
-					searchStore.closeSearch();
-				} else {
-					searchStore.openSearch();
-				}
-			}}
-			aria-label="Card search (⌘/ or /)"
-			title="Card search (⌘/ or /)"
-		>
-			<Search size={13} class="search-icon" />
-			<span class="search-text">Card Search</span>
-			<div class="shortcut-keycaps">
-				<kbd class="key-cap">⌘</kbd>
-				<kbd class="key-cap">/</kbd>
-			</div>
-		</button>
 	</div>
 </header>
 
@@ -601,13 +582,13 @@
 
 <style>
 	.global-header-bar {
-		height: 38px;
+		height: 48px;
 		background: #080b11;
 		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 16px;
+		padding: 0 20px;
 		z-index: 1000;
 		user-select: none;
 		box-sizing: border-box;
@@ -629,7 +610,7 @@
 	}
 
 	.brand-title {
-		font-size: 13.5px;
+		font-size: 15px;
 		font-weight: 700;
 		letter-spacing: -0.01em;
 		color: #f8fafc;
@@ -643,14 +624,14 @@
 	}
 
 	.global-nav-link {
-		font-size: 13px;
+		font-size: 13.5px;
 		font-weight: 500;
 		color: #94a3b8;
 		text-decoration: none;
 		background: transparent;
 		border: none;
-		padding: 4px 8px;
-		border-radius: 5px;
+		padding: 5px 10px;
+		border-radius: 6px;
 		cursor: pointer;
 		transition: color 0.15s ease, background-color 0.15s ease;
 		display: inline-flex;
@@ -698,7 +679,8 @@
 	.profile-dropdown {
 		position: absolute;
 		top: calc(100% + 6px);
-		left: 0;
+		right: 0;
+		left: auto;
 		min-width: 180px;
 		background: #0f1219;
 		border: 1px solid rgba(255, 255, 255, 0.1);
@@ -716,53 +698,6 @@
 		align-items: center;
 		gap: 0.5rem;
 		flex-shrink: 0;
-	}
-
-	.global-search-trigger {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45rem;
-		height: 26px;
-		padding: 0 8px;
-		border-radius: 6px;
-		background: rgba(255, 255, 255, 0.05);
-		border: 1px solid rgba(255, 255, 255, 0.08);
-		color: #94a3b8;
-		font-size: 12px;
-		font-weight: 500;
-		cursor: pointer;
-		transition: all 0.15s ease;
-		outline: none;
-	}
-
-	.global-search-trigger:hover {
-		color: #f8fafc;
-		background: rgba(255, 255, 255, 0.09);
-		border-color: rgba(255, 255, 255, 0.14);
-	}
-
-	.global-search-trigger.active {
-		background: rgba(99, 102, 241, 0.15);
-		border-color: rgba(99, 102, 241, 0.4);
-		color: #a5b4fc;
-	}
-
-	.global-search-trigger .shortcut-keycaps {
-		display: inline-flex;
-		align-items: center;
-		gap: 2px;
-		margin-left: 2px;
-	}
-
-	.global-search-trigger .key-cap {
-		font-size: 10px;
-		padding: 1px 3px;
-		background: rgba(255, 255, 255, 0.08);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		border-radius: 3px;
-		color: #94a3b8;
-		line-height: 1;
-		font-family: inherit;
 	}
 
 	.search-drawer {

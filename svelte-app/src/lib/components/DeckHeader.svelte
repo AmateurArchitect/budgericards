@@ -792,20 +792,31 @@
 							/>
 						</div>
 
-						<!-- Quick Search Icon Button (matching user screenshot) -->
+						<!-- Card Search Button with Label and Shortcut -->
 						<button
-							class="quick-search-icon-btn"
+							class="deck-search-btn"
 							onclick={() => {
 								if (searchStore.isOpen) {
 									searchStore.closeSearch();
 								} else {
 									searchStore.openSearch();
+									setTimeout(() => {
+										const inputEl = document.querySelector(".header-search-input input") || document.querySelector(".header-search-input");
+										/** @type {HTMLElement | null} */ (inputEl)?.focus();
+									}, 50);
 								}
 							}}
 							aria-label="Card search (⌘/ or /)"
 							title="Card Search (⌘/ or /)"
 						>
-							<Search size={15} />
+							<div class="deck-search-left">
+								<Search size={14} class="deck-search-icon" />
+								<span class="deck-search-text">Card Search</span>
+							</div>
+							<div class="shortcut-keycaps">
+								<kbd class="key-cap">⌘</kbd>
+								<kbd class="key-cap">/</kbd>
+							</div>
 						</button>
 					</div>
 				</div>
@@ -1160,13 +1171,13 @@
 		gap: 6px;
 	}
 
-	.quick-search-icon-btn {
+	.deck-search-btn {
 		display: inline-flex;
 		align-items: center;
-		justify-content: center;
+		justify-content: space-between;
+		gap: 0.65rem;
 		height: 36px;
-		width: 36px;
-		padding: 0;
+		padding: 0 10px 0 11px;
 		border-radius: 8px;
 		color: #94a3b8;
 		border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1175,17 +1186,46 @@
 		cursor: pointer;
 		transition: all 0.15s ease;
 		outline: none;
+		white-space: nowrap;
 	}
 
-	.quick-search-icon-btn:hover {
+	.deck-search-btn:hover {
 		color: #f8fafc;
 		background: #141923;
 		border-color: rgba(255, 255, 255, 0.14);
 	}
 
-	.quick-search-icon-btn:focus-visible {
+	.deck-search-btn:focus-visible {
 		outline: 2px solid hsl(var(--primary));
 		outline-offset: -1px;
+	}
+
+	.deck-search-left {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+	}
+
+	.deck-search-text {
+		font-size: 13px;
+		font-weight: 500;
+	}
+
+	.shortcut-keycaps {
+		display: inline-flex;
+		align-items: center;
+		gap: 2px;
+	}
+
+	.key-cap {
+		font-size: 10px;
+		padding: 1px 3.5px;
+		background: rgba(255, 255, 255, 0.08);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 3px;
+		color: #94a3b8;
+		line-height: 1;
+		font-family: inherit;
 	}
 
 	.view-mode-group {
