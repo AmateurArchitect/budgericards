@@ -269,7 +269,7 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		background: hsl(var(--background));
+		background: #080b11;
 		color: hsl(var(--foreground));
 		overflow: hidden;
 	}
@@ -289,7 +289,8 @@
 		background: #0f1219;
 		border-top-left-radius: 12px;
 		border-top-right-radius: 12px;
-		border-top: 1px solid rgba(255, 255, 255, 0.08);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		border-bottom: none;
 	}
 
 	:global(.search-panel) {

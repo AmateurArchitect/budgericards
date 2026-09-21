@@ -1600,7 +1600,7 @@
 		scrollbar-gutter: stable;
 		padding: 1.25rem 0;
 		scroll-behavior: smooth;
-		background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), transparent);
+		background: transparent;
 		position: relative;
 	}
 

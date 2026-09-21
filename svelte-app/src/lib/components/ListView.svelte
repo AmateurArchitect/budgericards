@@ -347,7 +347,7 @@
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
-		background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), transparent);
+		background: transparent;
 		padding: 1rem 0;
 		position: relative;
 		transition: background-color 0.2s ease;

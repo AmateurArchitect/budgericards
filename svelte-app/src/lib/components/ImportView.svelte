@@ -1116,7 +1116,7 @@
 		padding: 1.25rem;
 		height: calc(100vh - 88px);
 		box-sizing: border-box;
-		background: hsl(var(--background));
+		background: transparent;
 		overflow: hidden;
 	}
 

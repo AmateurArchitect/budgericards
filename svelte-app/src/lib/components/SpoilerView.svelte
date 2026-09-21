@@ -402,7 +402,7 @@
 		flex-direction: column;
 		overflow-y: auto;
 		overflow-x: hidden;
-		background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), transparent);
+		background: transparent;
 		transition: background-color 0.2s ease;
 		padding: 1.25rem var(--base-margin);
 		scrollbar-gutter: stable;

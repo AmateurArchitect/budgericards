@@ -483,7 +483,7 @@
 		flex: 1;
 		overflow-y: auto;
 		padding: 2rem;
-		background: hsl(var(--background));
+		background: transparent;
 		font-family: var(--font-sans), sans-serif;
 	}
 

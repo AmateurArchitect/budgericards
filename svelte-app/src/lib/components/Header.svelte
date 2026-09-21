@@ -80,8 +80,7 @@
 	});
 
 	const isDeckPage = $derived(
-		($page.url.pathname.startsWith("/decks/") && Boolean($page.params.id)) ||
-		$page.url.pathname === "/"
+		Boolean($page.params.id) && $page.url.pathname.startsWith("/decks/")
 	);
 
 	function handleNewDeck() {
@@ -271,7 +270,7 @@
 <svelte:window onclick={handleClickOutside} onkeydown={handleGlobalKeyDown} />
 
 <!-- Thin Global Header Bar -->
-<header class="global-header-bar">
+<header class="global-header-bar" class:on-deck-page={isDeckPage}>
 	<div class="global-header-left">
 		<a href="/decks" class="brand-item" title="Budgie Deckbuilder">
 			<span class="brand-title">Budgie</span>
@@ -593,6 +592,10 @@
 		user-select: none;
 		box-sizing: border-box;
 		position: relative;
+	}
+
+	.global-header-bar.on-deck-page {
+		border-bottom: none;
 	}
 
 	.global-header-left {
