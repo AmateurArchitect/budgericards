@@ -1955,14 +1955,16 @@
 	}
 
 	.scroll-spacer-left {
+		width: var(--base-margin);
 		min-width: var(--base-margin);
 		flex-shrink: 0;
 	}
 
 	.scroll-spacer-right {
-		/* Subtract the scrollbar gutter to maintain visual symmetry */
-		min-width: calc(var(--base-margin) - var(--scrollbar-width));
-		flex-shrink: 0;
+		/* Subtract the scrollbar gutter to maintain visual symmetry and allow flex-shrink so scrollbars never cause horizontal overflow */
+		width: calc(var(--base-margin) - var(--scrollbar-width));
+		min-width: 0;
+		flex-shrink: 1;
 	}
 
 	.drag-over {

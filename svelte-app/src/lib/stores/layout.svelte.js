@@ -48,11 +48,13 @@ class LayoutStore {
 
 	/** 
 	 * Total spacing for card width calculation:
-	 * [Left Margin] + [Right Margin] + [Internal Gaps]
-	 * Total Horizontal Spacing = (baseMargin * 2) + ((numCols - 1) * columnGap)
+	 * [Left Margin] + [Right Margin] + [Internal Gaps] + [Scrollbar & Border Allowance]
+	 * Total Horizontal Spacing = (baseMargin * 2) + ((numCols - 1) * columnGap) + scrollbarBuffer
 	 */
 	totalSpacing = $derived.by(() => {
-		const edgeMargins = this.baseMargin * 2;
+		// Include 8px scrollbar + 2px deck-area borders so vertical overflow does not trigger horizontal scrolling
+		const scrollbarBuffer = 10;
+		const edgeMargins = (this.baseMargin * 2) + scrollbarBuffer;
 		const internalGaps = (this.numCols - 1) * this.columnGap;
 		
 		// Add extra spacing for Type Grouping view boundaries
