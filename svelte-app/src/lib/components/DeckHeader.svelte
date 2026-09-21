@@ -900,13 +900,14 @@
 
 <style>
 	.deck-header {
-		height: 82px;
+		min-height: 82px;
+		height: auto;
 		background: transparent;
 		border-bottom: none;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 20px;
+		padding: 20px;
 		position: relative;
 		z-index: 20;
 		box-sizing: border-box;
@@ -914,7 +915,8 @@
 	}
 
 	.deck-header.is-top-bar {
-		height: 82px;
+		min-height: 82px;
+		height: auto;
 		background: transparent;
 		backdrop-filter: none;
 		border-bottom: none;
@@ -1152,7 +1154,7 @@
 	.control-column {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 8px;
 	}
 
 	.eyebrow-label {
@@ -1282,8 +1284,8 @@
 		height: 36px;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.45rem;
-		padding: 0 10px;
+		gap: 0.5rem;
+		padding: 0 12px;
 		background: #080b11;
 		border: 1px solid rgba(255, 255, 255, 0.08);
 		border-radius: 8px;
@@ -1303,8 +1305,10 @@
 	}
 
 	.grouping-trigger {
-		padding: 0 9px 0 10px;
-		gap: 0.45rem;
+		min-width: 125px;
+		padding: 0 12px;
+		justify-content: space-between;
+		gap: 0.5rem;
 	}
 
 	:global(.grouping-icon) {
@@ -1319,7 +1323,9 @@
 	}
 
 	.table-cols-container .header-select-trigger {
-		padding: 0 9px 0 13px;
+		min-width: 95px;
+		padding: 0 12px;
+		justify-content: space-between;
 	}
 
 	.header-select-trigger:hover {
