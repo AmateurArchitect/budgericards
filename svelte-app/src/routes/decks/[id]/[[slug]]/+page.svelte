@@ -202,11 +202,7 @@
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="deck-area" onclick={handleDeckAreaClick}>
-			{#if searchStore.isOpen}
-				<div class="lower-deck-header" transition:slide={{ duration: 200 }}>
-					<DeckHeader isTopBar={false} />
-				</div>
-			{/if}
+			<DeckHeader />
 			{#if settingsStore.deckViewMode === 'list'}
 				<ImportView />
 			{:else if settingsStore.deckViewMode === 'table'}

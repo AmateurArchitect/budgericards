@@ -44,8 +44,6 @@
 
 	let showDeckOptionsModal = $state(false);
 	let showViewOptionsModal = $state(false);
-	let showBudgieDropdown = $state(false);
-	let showProfileDropdown = $state(false);
 	let showAboutModal = $state(false);
 	let showDisplaySort = $state(false);
 
@@ -338,8 +336,6 @@
 		if (except !== "grouping") showColumnsDropdown = false;
 		if (except !== "sort") showSortDropdown = false;
 		if (except !== "tableCols") showTableColumnsDropdown = false;
-		if (except !== "budgie") showBudgieDropdown = false;
-		if (except !== "profile") showProfileDropdown = false;
 	}
 
 	/** @param {HTMLElement} node */
@@ -362,19 +358,6 @@
 		};
 	}
 
-	function handleNewDeck() {
-		showBudgieDropdown = false;
-		showProfileDropdown = false;
-		if (typeof window !== "undefined") {
-			window.open("/decks/new", "_blank");
-		}
-	}
-
-	async function handleSignOut() {
-		showProfileDropdown = false;
-		await authStore.signOut();
-	}
-
 	/** @param {MouseEvent} e */
 	function handleDocumentClick(e) {
 		const target = /** @type {HTMLElement} */ (e.target);
@@ -389,12 +372,6 @@
 		}
 		if (!target.closest(".table-cols-container")) {
 			showTableColumnsDropdown = false;
-		}
-		if (!target.closest(".budgie-menu-container")) {
-			showBudgieDropdown = false;
-		}
-		if (!target.closest(".profile-menu-container")) {
-			showProfileDropdown = false;
 		}
 	}
 
@@ -569,113 +546,6 @@
 	</div>
 
 	<div class="deck-controls-right">
-		{#if isTopBar}
-			<div class="global-nav-group-left">
-				<!-- Budgie Dropdown -->
-				<div class="budgie-menu-container">
-					<button
-						class="nav-dropdown-trigger"
-						onclick={(e) => {
-							e.stopPropagation();
-							showBudgieDropdown = !showBudgieDropdown;
-							if (showBudgieDropdown) closeAllDropdowns("budgie");
-						}}
-						aria-expanded={showBudgieDropdown}
-						aria-haspopup="menu"
-						title="Budgie Menu"
-					>
-						<span class="brand-text">Budgie</span>
-						<ChevronDown size={13} class="chevron" />
-					</button>
-
-					{#if showBudgieDropdown}
-						<div class="nav-dropdown-menu" use:smartAlign transition:fade={{ duration: 120 }}>
-							<a href="/decks" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
-								<FolderOpen size={14} />
-								<span>Browse Decks</span>
-							</a>
-							<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
-								<Palette size={14} />
-								<span>Art Gallery</span>
-							</a>
-							<button class="menu-item" onclick={() => { showAboutModal = true; showBudgieDropdown = false; }}>
-								<HelpCircle size={14} />
-								<span>About Budgie</span>
-							</button>
-							<a
-								href="https://scryfall.com/docs/syntax"
-								target="_blank"
-								rel="noopener noreferrer"
-								class="menu-item nav-link"
-								onclick={() => (showBudgieDropdown = false)}
-							>
-								<HelpCircle size={14} />
-								<span>Syntax Help</span>
-							</a>
-						</div>
-					{/if}
-				</div>
-
-				<!-- User Profile Dropdown -->
-				<div class="profile-menu-container">
-					{#if authStore.isAuthenticated && authStore.user}
-						<button
-							class="nav-dropdown-trigger user-trigger"
-							onclick={(e) => {
-								e.stopPropagation();
-								showProfileDropdown = !showProfileDropdown;
-								if (showProfileDropdown) closeAllDropdowns("profile");
-							}}
-							aria-expanded={showProfileDropdown}
-							aria-haspopup="menu"
-							aria-label="User menu"
-							title={authStore.user.email}
-						>
-							<span class="user-name nav-label">
-								{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0]}
-							</span>
-							<ChevronDown size={13} class="chevron" />
-						</button>
-
-						{#if showProfileDropdown}
-							<div class="nav-dropdown-menu profile-menu" use:smartAlign transition:fade={{ duration: 120 }}>
-								<div class="dropdown-header">
-									<span class="dropdown-email">{authStore.user.email}</span>
-								</div>
-								<div class="menu-divider"></div>
-								<button class="menu-item" onclick={handleNewDeck}>
-									<PlusCircle size={14} />
-									<span>New Deck</span>
-								</button>
-								<a href="/decks" class="menu-item nav-link" onclick={() => (showProfileDropdown = false)}>
-									<FolderOpen size={14} />
-									<span>Your Decks</span>
-								</a>
-								<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
-									<SettingsIcon size={14} />
-									<span>Settings</span>
-								</button>
-								<div class="menu-divider"></div>
-								<button class="menu-item destructive" onclick={handleSignOut}>
-									<LogOut size={14} />
-									<span>Log Out</span>
-								</button>
-							</div>
-						{/if}
-					{:else}
-						<a
-							href="/login?redirectTo={encodeURIComponent($page.url.pathname)}"
-							class="nav-dropdown-trigger font-semibold"
-							style="text-decoration: none;"
-							aria-label="Log In"
-						>
-							<span class="user-name">Log In</span>
-						</a>
-					{/if}
-				</div>
-			</div>
-		{/if}
-
 		{#if settingsStore.deckViewMode === "list" && deckStore.isImportDirty}
 			<div class="import-mode-actions">
 				<Button
@@ -696,296 +566,298 @@
 				</Button>
 			</div>
 		{:else}
-			<!-- View Mode Segmented Controls -->
-			<div class="view-mode-group" role="radiogroup" aria-label="Deck View Mode">
-				<button
-					type="button"
-					role="radio"
-					aria-checked={settingsStore.deckViewMode === "stacks"}
-					class="view-toggle-btn"
-					class:active={settingsStore.deckViewMode === "stacks"}
-					onclick={() => (settingsStore.deckViewMode = "stacks")}
-					title="Stacks View"
-					aria-label="Stacks View"
-				>
-					<Layers size={15} />
-				</button>
-				<button
-					type="button"
-					role="radio"
-					aria-checked={settingsStore.deckViewMode === "list"}
-					class="view-toggle-btn"
-					class:active={settingsStore.deckViewMode === "list"}
-					onclick={() => (settingsStore.deckViewMode = "list")}
-					title="List / Text View"
-					aria-label="List / Text View"
-				>
-					<List size={15} />
-				</button>
-				<button
-					type="button"
-					role="radio"
-					aria-checked={settingsStore.deckViewMode === "spoiler"}
-					class="view-toggle-btn"
-					class:active={settingsStore.deckViewMode === "spoiler"}
-					onclick={() => (settingsStore.deckViewMode = "spoiler")}
-					title="Spoiler View"
-					aria-label="Spoiler View"
-				>
-					<Image size={15} />
-				</button>
-				<button
-					type="button"
-					role="radio"
-					aria-checked={settingsStore.deckViewMode === "table"}
-					class="view-toggle-btn"
-					class:active={settingsStore.deckViewMode === "table"}
-					onclick={() => (settingsStore.deckViewMode = "table")}
-					title="Table View"
-					aria-label="Table View"
-				>
-					<Table size={15} />
-				</button>
-				<button
-					type="button"
-					role="radio"
-					aria-checked={settingsStore.deckViewMode === "stats"}
-					class="view-toggle-btn"
-					class:active={settingsStore.deckViewMode === "stats"}
-					onclick={() => (settingsStore.deckViewMode = "stats")}
-					title="Stats View"
-					aria-label="Stats View"
-				>
-					<BarChart2 size={15} />
-				</button>
-				<button
-					type="button"
-					role="radio"
-					aria-checked={settingsStore.deckViewMode === "settings"}
-					class="view-toggle-btn"
-					class:active={settingsStore.deckViewMode === "settings"}
-					onclick={() => (settingsStore.deckViewMode = "settings")}
-					title="Settings"
-					aria-label="Settings"
-				>
-					<Settings size={15} />
-				</button>
+			<!-- Display Column with DISPLAY eyebrow -->
+			<div class="control-column">
+				<span class="eyebrow-label">DISPLAY</span>
+				<div class="view-mode-group" role="radiogroup" aria-label="Deck View Mode">
+					<button
+						type="button"
+						role="radio"
+						aria-checked={settingsStore.deckViewMode === "stacks"}
+						class="view-toggle-btn"
+						class:active={settingsStore.deckViewMode === "stacks"}
+						onclick={() => (settingsStore.deckViewMode = "stacks")}
+						title="Stacks View"
+						aria-label="Stacks View"
+					>
+						<Layers size={15} />
+					</button>
+					<button
+						type="button"
+						role="radio"
+						aria-checked={settingsStore.deckViewMode === "list"}
+						class="view-toggle-btn"
+						class:active={settingsStore.deckViewMode === "list"}
+						onclick={() => (settingsStore.deckViewMode = "list")}
+						title="List / Text View"
+						aria-label="List / Text View"
+					>
+						<List size={15} />
+					</button>
+					<button
+						type="button"
+						role="radio"
+						aria-checked={settingsStore.deckViewMode === "spoiler"}
+						class="view-toggle-btn"
+						class:active={settingsStore.deckViewMode === "spoiler"}
+						onclick={() => (settingsStore.deckViewMode = "spoiler")}
+						title="Spoiler View"
+						aria-label="Spoiler View"
+					>
+						<Image size={15} />
+					</button>
+					<button
+						type="button"
+						role="radio"
+						aria-checked={settingsStore.deckViewMode === "table"}
+						class="view-toggle-btn"
+						class:active={settingsStore.deckViewMode === "table"}
+						onclick={() => (settingsStore.deckViewMode = "table")}
+						title="Table View"
+						aria-label="Table View"
+					>
+						<Table size={15} />
+					</button>
+					<button
+						type="button"
+						role="radio"
+						aria-checked={settingsStore.deckViewMode === "stats"}
+						class="view-toggle-btn"
+						class:active={settingsStore.deckViewMode === "stats"}
+						onclick={() => (settingsStore.deckViewMode = "stats")}
+						title="Stats View"
+						aria-label="Stats View"
+					>
+						<BarChart2 size={15} />
+					</button>
+					<button
+						type="button"
+						role="radio"
+						aria-checked={settingsStore.deckViewMode === "settings"}
+						class="view-toggle-btn"
+						class:active={settingsStore.deckViewMode === "settings"}
+						onclick={() => (settingsStore.deckViewMode = "settings")}
+						title="Settings"
+						aria-label="Settings"
+					>
+						<Settings size={15} />
+					</button>
+				</div>
 			</div>
 
-			<!-- Grouping Dropdown -->
+			<!-- Grouping Column with GROUPING eyebrow -->
 			{#if settingsStore.deckViewMode !== "settings" && settingsStore.deckViewMode !== "list" && settingsStore.deckViewMode !== "stats"}
-				<div class="grouping-container">
-					<button
-						class="header-select-trigger grouping-trigger"
-						class:active={showColumnsDropdown}
-						onclick={(e) => {
-							e.stopPropagation();
-							showColumnsDropdown = !showColumnsDropdown;
-							if (showColumnsDropdown) closeAllDropdowns("grouping");
-						}}
-						aria-expanded={showColumnsDropdown}
-						aria-haspopup="listbox"
-						title="Group cards by"
-					>
-						<LayoutGrid size={14} class="grouping-icon" />
-						<span class="trigger-value full-label">{curGroupingCol?.label || "Grouping"}</span>
-						<span class="trigger-value short-label">{curGroupingCol?.shortLabel || curGroupingCol?.label || "Grouping"}</span>
-						<ChevronDown size={13} class="chevron" />
-					</button>
+				<div class="control-column">
+					<span class="eyebrow-label">GROUPING</span>
+					<div class="grouping-controls-row">
+						<!-- Grouping Dropdown -->
+						<div class="grouping-container">
+							<button
+								class="header-select-trigger grouping-trigger"
+								class:active={showColumnsDropdown}
+								onclick={(e) => {
+									e.stopPropagation();
+									showColumnsDropdown = !showColumnsDropdown;
+									if (showColumnsDropdown) closeAllDropdowns("grouping");
+								}}
+								aria-expanded={showColumnsDropdown}
+								aria-haspopup="listbox"
+								title="Group cards by"
+							>
+								<span class="trigger-value full-label">{curGroupingCol?.label || "Grouping"}</span>
+								<span class="trigger-value short-label">{curGroupingCol?.shortLabel || curGroupingCol?.label || "Grouping"}</span>
+								<ChevronDown size={13} class="chevron" />
+							</button>
 
-					{#if showColumnsDropdown}
-						<div class="header-select-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
-							{#each visibleGroupings as col}
+							{#if showColumnsDropdown}
+								<div class="header-select-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
+									{#each visibleGroupings as col}
+										<button
+											class="select-item"
+											class:active={deckStore.grouping === col.id}
+											onclick={(e) => {
+												e.stopPropagation();
+												selectGrouping(col.id);
+											}}
+										>
+											{col.label}
+										</button>
+									{/each}
+								</div>
+							{/if}
+						</div>
+
+						<!-- Split View Modifier Button -->
+						{#if settingsStore.deckViewMode === "stacks" && deckStore.grouping !== "freeform"}
+							<Button
+								variant={deckStore.splitView ? "toggle-active" : "ghost"}
+								size="icon"
+								class="modifier-btn {deckStore.splitView ? 'bg-secondary' : ''}"
+								onclick={() => (deckStore.splitView = !deckStore.splitView)}
+								title={deckStore.grouping === "type"
+									? "Toggle Type Split View (Creatures / Non-Creatures)"
+									: "Toggle Spell / Land Row Split View"}
+							>
+								{#if deckStore.grouping === "type"}
+									<StretchVertical size={15} />
+								{:else}
+									<StretchHorizontal size={15} />
+								{/if}
+							</Button>
+						{/if}
+
+						<!-- Display Sort Button (to the right of split view toggle) -->
+						{#if ["stacks", "spoiler", "table"].includes(settingsStore.deckViewMode)}
+							<Button
+								variant={showDisplaySort || isCustomDeckSortActive() ? "toggle-active" : "ghost"}
+								size="icon"
+								class="modifier-btn {isCustomDeckSortActive() ? 'custom-sort-active' : (showDisplaySort ? 'bg-secondary' : '')}"
+								onclick={() => (showDisplaySort = !showDisplaySort)}
+								title={isCustomDeckSortActive() ? "Custom sorting active (click to configure)" : "Sort Displayed Cards"}
+								aria-label="Sort Displayed Cards"
+							>
+								<ArrowDownWideNarrow size={15} />
+							</Button>
+							<MultiSortModal
+								bind:isOpen={showDisplaySort}
+								target="deck"
+							/>
+						{/if}
+
+						<!-- Table Columns Multi-select -->
+						{#if settingsStore.deckViewMode === "table"}
+							<div class="table-cols-container">
 								<button
-									class="select-item"
-									class:active={deckStore.grouping === col.id}
+									class="header-select-trigger"
+									class:active={showTableColumnsDropdown}
 									onclick={(e) => {
 										e.stopPropagation();
-										selectGrouping(col.id);
+										showTableColumnsDropdown = !showTableColumnsDropdown;
+										if (showTableColumnsDropdown) closeAllDropdowns("tableCols");
 									}}
+									aria-expanded={showTableColumnsDropdown}
+									aria-haspopup="listbox"
+									title="Toggle visible columns"
 								>
-									{col.label}
+									<span class="trigger-value">
+										{settingsStore.visibleColumns.length === 8
+											? "All Cols"
+											: `${settingsStore.visibleColumns.length} Cols`}
+									</span>
+									<ChevronDown size={13} class="chevron" />
 								</button>
-							{/each}
-						</div>
-					{/if}
-				</div>
 
-				<!-- Split View Modifier Button -->
-				{#if settingsStore.deckViewMode === "stacks" && deckStore.grouping !== "freeform"}
-					<Button
-						variant={deckStore.splitView ? "toggle-active" : "ghost"}
-						size="icon"
-						class="modifier-btn {deckStore.splitView ? 'bg-secondary' : ''}"
-						onclick={() => (deckStore.splitView = !deckStore.splitView)}
-						title={deckStore.grouping === "type"
-							? "Toggle Type Split View (Creatures / Non-Creatures)"
-							: "Toggle Spell / Land Row Split View"}
-					>
-						{#if deckStore.grouping === "type"}
-							<StretchVertical size={15} />
-						{:else}
-							<StretchHorizontal size={15} />
-						{/if}
-					</Button>
-				{/if}
-
-				<!-- Display Sort Button (to the right of split view toggle) -->
-				{#if ["stacks", "spoiler", "table"].includes(settingsStore.deckViewMode)}
-					<Button
-						variant={showDisplaySort || isCustomDeckSortActive() ? "toggle-active" : "ghost"}
-						size="icon"
-						class="modifier-btn {isCustomDeckSortActive() ? 'custom-sort-active' : (showDisplaySort ? 'bg-secondary' : '')}"
-						onclick={() => (showDisplaySort = !showDisplaySort)}
-						title={isCustomDeckSortActive() ? "Custom sorting active (click to configure)" : "Sort Displayed Cards"}
-						aria-label="Sort Displayed Cards"
-					>
-						<ArrowDownWideNarrow size={15} />
-					</Button>
-					<MultiSortModal
-						bind:isOpen={showDisplaySort}
-						target="deck"
-					/>
-				{/if}
-
-				<!-- Table Columns Multi-select -->
-				{#if settingsStore.deckViewMode === "table"}
-					<div class="table-cols-container">
-						<button
-							class="header-select-trigger"
-							class:active={showTableColumnsDropdown}
-							onclick={(e) => {
-								e.stopPropagation();
-								showTableColumnsDropdown = !showTableColumnsDropdown;
-								if (showTableColumnsDropdown) closeAllDropdowns("tableCols");
-							}}
-							aria-expanded={showTableColumnsDropdown}
-							aria-haspopup="listbox"
-							title="Toggle visible columns"
-						>
-							<span class="trigger-value">
-								{settingsStore.visibleColumns.length === 8
-									? "All Cols"
-									: `${settingsStore.visibleColumns.length} Cols`}
-							</span>
-							<ChevronDown size={13} class="chevron" />
-						</button>
-
-						{#if showTableColumnsDropdown}
-							<div class="header-select-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
-								{#each toggleableColumns as col}
-									<button
-										class="select-item multi-select-item"
-										class:active={settingsStore.visibleColumns.includes(col.id)}
-										onclick={(e) => {
-											e.stopPropagation();
-											toggleTableColumn(col.id);
-										}}
-									>
-										<div class="checkbox-indicator">
-											{#if settingsStore.visibleColumns.includes(col.id)}
-												<Check size={10} />
-											{/if}
-										</div>
-										<span>{col.label}</span>
-									</button>
-								{/each}
+								{#if showTableColumnsDropdown}
+									<div class="header-select-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
+										{#each toggleableColumns as col}
+											<button
+												class="select-item multi-select-item"
+												class:active={settingsStore.visibleColumns.includes(col.id)}
+												onclick={(e) => {
+													e.stopPropagation();
+													toggleTableColumn(col.id);
+												}}
+											>
+												<div class="checkbox-indicator">
+													{#if settingsStore.visibleColumns.includes(col.id)}
+														<Check size={10} />
+													{/if}
+												</div>
+												<span>{col.label}</span>
+											</button>
+										{/each}
+									</div>
+								{/if}
 							</div>
 						{/if}
-					</div>
-				{/if}
 
-				<!-- View Options Modal Trigger -->
-				<div class="view-options-container">
-					<Button
-						variant={showViewOptionsModal ? "toggle-active" : "ghost"}
-						size="icon"
-						class="modifier-btn"
-						bind:el={viewOptionsBtn}
-						onclick={(/** @type {MouseEvent} */ e) => {
-							e.stopPropagation();
-							showViewOptionsModal = true;
-						}}
-						title="View Options"
-					>
-						<MoreVertical size={15} />
-					</Button>
-					<ViewOptionsModal
-						bind:isOpen={showViewOptionsModal}
-						triggerElement={viewOptionsBtn}
-					/>
+						<!-- View Options Modal Trigger -->
+						<div class="view-options-container">
+							<Button
+								variant={showViewOptionsModal ? "toggle-active" : "ghost"}
+								size="icon"
+								class="modifier-btn"
+								bind:el={viewOptionsBtn}
+								onclick={(/** @type {MouseEvent} */ e) => {
+									e.stopPropagation();
+									showViewOptionsModal = true;
+								}}
+								title="View Options"
+							>
+								<MoreVertical size={15} />
+							</Button>
+							<ViewOptionsModal
+								bind:isOpen={showViewOptionsModal}
+								triggerElement={viewOptionsBtn}
+							/>
+						</div>
+
+						<!-- Quick Search Icon Button (matching user screenshot) -->
+						<button
+							class="quick-search-icon-btn"
+							onclick={() => {
+								if (searchStore.isOpen) {
+									searchStore.closeSearch();
+								} else {
+									searchStore.openSearch();
+								}
+							}}
+							aria-label="Card search (⌘/ or /)"
+							title="Card Search (⌘/ or /)"
+						>
+							<Search size={15} />
+						</button>
+					</div>
 				</div>
 			{/if}
 
 			{#if settingsStore.deckViewMode === "stats"}
-				<div class="stats-subtabs-group" role="radiogroup" aria-label="Stats Sub-tab">
-					<button
-						type="button"
-						role="radio"
-						aria-checked={settingsStore.statsSubTab === "dashboard"}
-						class="stats-tab-btn"
-						class:active={settingsStore.statsSubTab === "dashboard"}
-						onclick={() => (settingsStore.statsSubTab = "dashboard")}
-					>
-						Dashboard
-					</button>
-					<button
-						type="button"
-						role="radio"
-						aria-checked={settingsStore.statsSubTab === "sample-hand"}
-						class="stats-tab-btn"
-						class:active={settingsStore.statsSubTab === "sample-hand"}
-						onclick={() => (settingsStore.statsSubTab = "sample-hand")}
-					>
-						Sample Hand
-					</button>
-					<button
-						type="button"
-						role="radio"
-						aria-checked={settingsStore.statsSubTab === "tokens"}
-						class="stats-tab-btn"
-						class:active={settingsStore.statsSubTab === "tokens"}
-						onclick={() => (settingsStore.statsSubTab = "tokens")}
-					>
-						Tokens
-					</button>
-					<button
-						type="button"
-						role="radio"
-						aria-checked={settingsStore.statsSubTab === "combos"}
-						class="stats-tab-btn"
-						class:active={settingsStore.statsSubTab === "combos"}
-						onclick={() => (settingsStore.statsSubTab = "combos")}
-					>
-						Combos
-					</button>
+				<div class="control-column">
+					<span class="eyebrow-label">SECTIONS</span>
+					<div class="stats-subtabs-group" role="radiogroup" aria-label="Stats Sub-tab">
+						<button
+							type="button"
+							role="radio"
+							aria-checked={settingsStore.statsSubTab === "dashboard"}
+							class="stats-tab-btn"
+							class:active={settingsStore.statsSubTab === "dashboard"}
+							onclick={() => (settingsStore.statsSubTab = "dashboard")}
+						>
+							Dashboard
+						</button>
+						<button
+							type="button"
+							role="radio"
+							aria-checked={settingsStore.statsSubTab === "sample-hand"}
+							class="stats-tab-btn"
+							class:active={settingsStore.statsSubTab === "sample-hand"}
+							onclick={() => (settingsStore.statsSubTab = "sample-hand")}
+						>
+							Sample Hand
+						</button>
+						<button
+							type="button"
+							role="radio"
+							aria-checked={settingsStore.statsSubTab === "tokens"}
+							class="stats-tab-btn"
+							class:active={settingsStore.statsSubTab === "tokens"}
+							onclick={() => (settingsStore.statsSubTab = "tokens")}
+						>
+							Tokens
+						</button>
+						<button
+							type="button"
+							role="radio"
+							aria-checked={settingsStore.statsSubTab === "combos"}
+							class="stats-tab-btn"
+							class:active={settingsStore.statsSubTab === "combos"}
+							onclick={() => (settingsStore.statsSubTab = "combos")}
+						>
+							Combos
+						</button>
+					</div>
 				</div>
 			{/if}
-		{/if}
-
-		<!-- Search Trigger Button -->
-		{#if isTopBar}
-			<button
-				class="search-trigger-btn"
-				onclick={() => {
-					searchStore.openSearch();
-					setTimeout(() => {
-						const inputEl = document.querySelector(".header-search-input input") || document.querySelector(".header-search-input");
-						/** @type {HTMLElement | null} */ (inputEl)?.focus();
-					}, 50);
-				}}
-				aria-label="Card search (⌘/ or /)"
-				title="Card Search (⌘/ or /)"
-			>
-				<div class="search-trigger-left">
-					<Search size={14} class="search-trigger-icon" />
-					<span class="search-trigger-text">Card Search</span>
-				</div>
-				<div class="shortcut-keycaps">
-					<kbd class="key-cap">⌘</kbd>
-					<kbd class="key-cap">/</kbd>
-				</div>
-			</button>
 		{/if}
 	</div>
 </div>
@@ -1017,7 +889,7 @@
 
 <style>
 	.deck-header {
-		height: 96px;
+		height: 82px;
 		background: #0f1219;
 		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 		display: flex;
@@ -1031,7 +903,7 @@
 	}
 
 	.deck-header.is-top-bar {
-		height: 96px;
+		height: 82px;
 		background: #0f1219;
 		backdrop-filter: none;
 		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -1261,9 +1133,59 @@
 
 	.deck-controls-right {
 		display: flex;
-		align-items: center;
-		gap: 0.5rem;
+		align-items: flex-end;
+		gap: 1.15rem;
 		flex-shrink: 0;
+	}
+
+	.control-column {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.eyebrow-label {
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		color: #94a3b8;
+		text-transform: uppercase;
+		line-height: 1;
+		user-select: none;
+	}
+
+	.grouping-controls-row {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.quick-search-icon-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		height: 36px;
+		width: 36px;
+		padding: 0;
+		border-radius: 8px;
+		color: #94a3b8;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		background: #080b11;
+		box-sizing: border-box;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		outline: none;
+	}
+
+	.quick-search-icon-btn:hover {
+		color: #f8fafc;
+		background: #141923;
+		border-color: rgba(255, 255, 255, 0.14);
+	}
+
+	.quick-search-icon-btn:focus-visible {
+		outline: 2px solid hsl(var(--primary));
+		outline-offset: -1px;
 	}
 
 	.view-mode-group {
@@ -1307,7 +1229,7 @@
 	.view-toggle-btn.active {
 		background: #1c2230;
 		color: #f8fafc;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+		box-shadow: 0 0 0 1.5px #3b82f6 inset, 0 1px 3px rgba(0, 0, 0, 0.4);
 	}
 
 	.grouping-container,
@@ -1508,196 +1430,7 @@
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
 	}
 
-	.global-nav-group-left {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin-right: 0.25rem;
-		padding-right: 0.5rem;
-		border-right: 1px solid hsl(var(--border));
-	}
 
-	.budgie-menu-container,
-	.profile-menu-container {
-		position: relative;
-	}
-
-	.nav-dropdown-trigger {
-		height: 36px;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.35rem;
-		padding: 0 9px 0 13px;
-		background: hsl(var(--muted) / 0.5);
-		border: 1px solid hsl(var(--border));
-		border-radius: var(--radius);
-		color: hsl(var(--foreground));
-		font-size: 13px;
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.15s ease;
-		white-space: nowrap;
-		box-sizing: border-box;
-	}
-
-	.nav-dropdown-trigger:hover {
-		background: hsl(var(--muted) / 0.8);
-		color: hsl(var(--foreground));
-	}
-
-	.brand-text {
-		font-weight: 700;
-		letter-spacing: -0.02em;
-	}
-
-	.nav-dropdown-menu {
-		position: absolute;
-		top: calc(100% + 4px);
-		left: 0;
-		right: auto;
-		width: 190px;
-		background: hsl(var(--popover));
-		border: 1px solid hsl(var(--border));
-		border-radius: var(--radius-md);
-		box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
-		padding: 4px;
-		z-index: 1000;
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-	}
-
-	.dropdown-header {
-		padding: 6px 10px;
-	}
-
-	.dropdown-email {
-		font-size: 0.75rem;
-		font-weight: 500;
-		color: hsl(var(--muted-foreground));
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		display: block;
-	}
-
-	.menu-item {
-		width: 100%;
-		text-align: left;
-		padding: 6px 10px;
-		font-size: 13px;
-		font-weight: 500;
-		color: hsl(var(--muted-foreground));
-		background: none;
-		border: none;
-		border-radius: var(--radius-sm);
-		cursor: pointer;
-		transition: all 0.15s ease;
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		text-decoration: none;
-	}
-
-	.menu-item:hover {
-		background: hsl(var(--primary));
-		color: white !important;
-	}
-
-	.menu-item.destructive {
-		color: #f87171;
-	}
-
-	.menu-item.destructive:hover {
-		background: #ef4444 !important;
-		color: white !important;
-	}
-
-	.menu-divider {
-		height: 1px;
-		background: hsl(var(--border) / 0.4);
-		margin: 3px 6px;
-	}
-
-	.search-trigger-btn {
-		height: 36px;
-		min-width: 175px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.85rem;
-		background: hsl(var(--muted) / 0.5);
-		border: 1px solid hsl(var(--border));
-		color: hsl(var(--muted-foreground));
-		padding: 0 0.65rem 0 0.85rem;
-		border-radius: 9999px;
-		cursor: pointer;
-		transition: all 0.15s ease;
-		white-space: nowrap;
-		box-sizing: border-box;
-	}
-
-	.search-trigger-btn:hover {
-		background: hsl(var(--muted) / 0.8);
-		border-color: hsl(var(--border));
-		color: hsl(var(--foreground));
-	}
-
-	.search-trigger-left {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45rem;
-	}
-
-	:global(.search-trigger-icon) {
-		color: hsl(var(--muted-foreground));
-		transition: color 0.15s ease;
-	}
-
-	.search-trigger-btn:hover :global(.search-trigger-icon) {
-		color: hsl(var(--foreground));
-	}
-
-	.search-trigger-text {
-		font-size: 13px;
-		font-weight: 500;
-		color: inherit;
-		letter-spacing: -0.01em;
-	}
-
-	.shortcut-keycaps {
-		display: inline-flex;
-		align-items: center;
-		gap: 3px;
-	}
-
-	.key-cap {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 18px;
-		height: 18px;
-		padding: 0 4px;
-		font-family: system-ui, -apple-system, sans-serif;
-		font-size: 11px;
-		font-weight: 600;
-		color: hsl(var(--foreground) / 0.75);
-		background: hsl(var(--muted) / 0.8);
-		border: 1px solid hsl(var(--border));
-		border-radius: var(--radius-sm, 4px);
-		box-shadow:
-			0 1px 0 hsla(var(--border) / 0.6),
-			inset 0 1px 0 hsla(255, 100%, 100%, 0.04);
-		line-height: 1;
-		user-select: none;
-		transition: all 0.1s ease;
-	}
-
-	.search-trigger-btn:hover .key-cap {
-		border-color: hsl(var(--border));
-		color: hsl(var(--foreground));
-		background: hsl(var(--muted));
-	}
 
 	.stats-subtabs-group {
 		display: inline-flex;

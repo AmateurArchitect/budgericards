@@ -30,7 +30,6 @@
 	import ViewOptionsModal from "./ViewOptionsModal.svelte";
 	import DisplayNamePromptModal from "./DisplayNamePromptModal.svelte";
 	import ConfirmModal from "./ConfirmModal.svelte";
-	import DeckHeader from "./DeckHeader.svelte";
 	import MultiSortModal from "./MultiSortModal.svelte";
 
 	let showCollectionDropdown = $state(false);
@@ -271,299 +270,304 @@
 
 <svelte:window onclick={handleClickOutside} onkeydown={handleGlobalKeyDown} />
 
-{#if isDeckPage && !searchStore.isOpen}
-	<!-- Single Unified Top Bar when Search is Closed -->
-	<DeckHeader isTopBar={true} />
-{:else}
-	<!-- Search Bar Top Row (when Search is Open or on non-deck pages) -->
-	<header class="app-header" class:search-open={isDeckPage && searchStore.isOpen}>
-		<div class="header-left">
-			<!-- Budgie Menu Container -->
-			<div class="budgie-menu-container">
-				<button
-					class="budgie-trigger"
-					onclick={() => {
-						showBudgieDropdown = !showBudgieDropdown;
-						if (showBudgieDropdown) closeAllDropdowns("budgie");
-					}}
-					aria-expanded={showBudgieDropdown}
-					aria-haspopup="menu"
-					title="Budgie Menu"
-				>
-					<span class="logo-text">Budgie</span>
-					<ChevronDown size={14} class="chevron" />
-				</button>
+<!-- Thin Global Header Bar -->
+<header class="global-header-bar">
+	<div class="global-header-left">
+		<a href="/decks" class="brand-item" title="Budgie Deckbuilder">
+			<span class="brand-title">Budgie</span>
+		</a>
 
-				{#if showBudgieDropdown}
-					<div class="budgie-dropdown" use:smartAlign transition:fade={{ duration: 150 }}>
-						<a href="/decks" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
-							<FolderOpen size={14} />
-							<span>Browse Decks</span>
-						</a>
-						<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
-							<Palette size={14} />
-							<span>Art Gallery</span>
-						</a>
-						<button class="menu-item" onclick={() => { showAboutModal = true; showBudgieDropdown = false; }}>
-							<HelpCircle size={14} />
-							<span>About Budgie</span>
-						</button>
-						<a
-							href="https://scryfall.com/docs/syntax"
-							target="_blank"
-							rel="noopener noreferrer"
-							class="menu-item nav-link"
-							onclick={() => (showBudgieDropdown = false)}
-						>
-							<HelpCircle size={14} />
-							<span>Help</span>
-						</a>
-					</div>
-				{/if}
-			</div>
+		<nav class="global-nav">
+			<a
+				href="/browse"
+				class="global-nav-link"
+				class:active={$page.url.pathname === "/browse"}
+			>
+				Explore
+			</a>
 
-			<!-- User Profile / Auth on Left -->
-			<div class="user-auth-bug">
+			<button
+				type="button"
+				class="global-nav-link action-btn"
+				onclick={handleNewDeck}
+			>
+				New Decks
+			</button>
+
+			<a
+				href="/decks"
+				class="global-nav-link"
+				class:active={$page.url.pathname === "/decks"}
+			>
+				Your Decks
+			</a>
+
+			<!-- AmateurArchitect / User Profile Item -->
+			<div class="user-menu-wrapper">
 				{#if authStore.isLoading}
 					<div class="auth-loading-spinner spinner"></div>
-				{:else}
-					{#if authStore.isAuthenticated && authStore.user}
-						<div class="profile-menu-container">
-							<button
-								class="profile-trigger"
-								onclick={() => {
-									showProfileDropdown = !showProfileDropdown;
-									if (showProfileDropdown) closeAllDropdowns("profile");
-								}}
-								aria-expanded={showProfileDropdown}
-								aria-haspopup="menu"
-								aria-label="User menu"
-							>
-								<span class="user-name">
-									{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0]}
-								</span>
-								<ChevronDown size={14} class="chevron" />
-							</button>
-
-							{#if showProfileDropdown}
-								<div class="profile-dropdown" use:smartAlign transition:fade={{ duration: 150 }}>
-									<div class="dropdown-header">
-										<span class="dropdown-email">{authStore.user.email}</span>
-									</div>
-									<div class="menu-divider"></div>
-									<button class="menu-item" onclick={handleNewDeck}>
-										<PlusCircle size={14} />
-										<span>New Deck</span>
-									</button>
-									<a href="/decks" class="menu-item nav-link" onclick={() => (showProfileDropdown = false)}>
-										<FolderOpen size={14} />
-										<span>Your Decks</span>
-									</a>
-									<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
-										<SettingsIcon size={14} />
-										<span>Settings</span>
-									</button>
-									<div class="menu-divider"></div>
-									<button class="menu-item destructive" onclick={handleSignOut}>
-										<LogOut size={14} />
-										<span>Log Out</span>
-									</button>
-								</div>
-							{/if}
-						</div>
-					{:else}
-						<a
-							href="/login?redirectTo={encodeURIComponent($page.url.pathname)}"
-							class="profile-trigger font-semibold"
-							style="text-decoration: none;"
-							aria-label="Log In"
+				{:else if authStore.isAuthenticated && authStore.user}
+					<div class="profile-menu-container">
+						<button
+							class="global-nav-link user-trigger"
+							class:active={showProfileDropdown}
+							onclick={(e) => {
+								e.stopPropagation();
+								showProfileDropdown = !showProfileDropdown;
+								if (showProfileDropdown) closeAllDropdowns("profile");
+							}}
+							aria-expanded={showProfileDropdown}
+							aria-haspopup="menu"
+							aria-label="User menu"
 						>
-							<span class="user-name">Log In</span>
-						</a>
-					{/if}
+							<span class="user-display-name">
+								{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0] || "AmateurArchitect"}
+							</span>
+							<ChevronDown size={12} class="user-chevron" />
+						</button>
+
+						{#if showProfileDropdown}
+							<div class="profile-dropdown" use:smartAlign transition:fade={{ duration: 120 }}>
+								<div class="dropdown-header">
+									<span class="dropdown-email">{authStore.user.email}</span>
+								</div>
+								<div class="menu-divider"></div>
+								<button class="menu-item" onclick={handleNewDeck}>
+									<PlusCircle size={14} />
+									<span>New Deck</span>
+								</button>
+								<a href="/decks" class="menu-item nav-link" onclick={() => (showProfileDropdown = false)}>
+									<FolderOpen size={14} />
+									<span>Your Decks</span>
+								</a>
+								<button class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
+									<SettingsIcon size={14} />
+									<span>Settings</span>
+								</button>
+								<div class="menu-divider"></div>
+								<button class="menu-item destructive" onclick={handleSignOut}>
+									<LogOut size={14} />
+									<span>Log Out</span>
+								</button>
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<a
+						href="/login?redirectTo={encodeURIComponent($page.url.pathname)}"
+						class="global-nav-link login-link"
+						aria-label="Log In"
+					>
+						Log In
+					</a>
 				{/if}
 			</div>
-		</div>
+		</nav>
+	</div>
 
-		<div class="header-right">
-			{#if isDeckPage && searchStore.isOpen}
-				<div class="search-bar">
-					<!-- Switch to Vertical Layout Button -->
+	<div class="global-header-right">
+		<button
+			class="global-search-trigger"
+			class:active={searchStore.isOpen}
+			onclick={() => {
+				if (searchStore.isOpen) {
+					searchStore.closeSearch();
+				} else {
+					searchStore.openSearch();
+				}
+			}}
+			aria-label="Card search (⌘/ or /)"
+			title="Card search (⌘/ or /)"
+		>
+			<Search size={13} class="search-icon" />
+			<span class="search-text">Card Search</span>
+			<div class="shortcut-keycaps">
+				<kbd class="key-cap">⌘</kbd>
+				<kbd class="key-cap">/</kbd>
+			</div>
+		</button>
+	</div>
+</header>
+
+<!-- Search Input Drawer (when Search is Open) -->
+{#if searchStore.isOpen}
+	<div class="search-drawer" transition:slide={{ duration: 180 }}>
+		<div class="search-drawer-inner">
+			<!-- Switch to Vertical Layout Button -->
+			<button
+				class="search-tool-btn"
+				class:active={isVerticalLayout}
+				onclick={() => (isVerticalLayout = !isVerticalLayout)}
+				aria-label="Switch to vertical layout"
+				title="Switch to vertical layout"
+			>
+				<PanelLeft size={15} />
+			</button>
+
+			<!-- Interlocking Curved Search Container (3-piece matching system) -->
+			<div class="search-input-combo">
+				<div class="collection-selector">
 					<button
-						class="search-tool-btn"
-						class:active={isVerticalLayout}
-						onclick={() => (isVerticalLayout = !isVerticalLayout)}
-						aria-label="Switch to vertical layout"
-						title="Switch to vertical layout"
+						class="collection-trigger"
+						bind:clientWidth={collectionWidth}
+						onclick={(e) => {
+							e.stopPropagation();
+							showCollectionDropdown = !showCollectionDropdown;
+							if (showCollectionDropdown) closeAllDropdowns("collection");
+						}}
+						aria-expanded={showCollectionDropdown}
+						aria-haspopup="listbox"
 					>
-						<PanelLeft size={15} />
+						<svg
+							class="curved-bg"
+							viewBox="0 0 {collectionWidth || 150} 36"
+							preserveAspectRatio="none"
+						>
+							<path d={curvedPathD()} />
+						</svg>
+						<span class="value-text">{collectionButtonText}</span>
+						<ChevronDown size={13} class="chevron" />
 					</button>
 
-					<!-- Interlocking Curved Search Container (3-piece matching system) -->
-					<div class="search-input-combo">
-						<div class="collection-selector">
-							<button
-								class="collection-trigger"
-								bind:clientWidth={collectionWidth}
-								onclick={() => {
-									showCollectionDropdown = !showCollectionDropdown;
-									if (showCollectionDropdown) closeAllDropdowns("collection");
-								}}
-								aria-expanded={showCollectionDropdown}
-								aria-haspopup="listbox"
-							>
-								<svg
-									class="curved-bg"
-									viewBox="0 0 {collectionWidth || 150} 36"
-									preserveAspectRatio="none"
-								>
-									<path d={curvedPathD()} />
-								</svg>
-								<span class="value-text">{collectionButtonText}</span>
-								<ChevronDown size={13} class="chevron" />
-							</button>
-
-							{#if showCollectionDropdown}
-								<div class="collection-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
-									{#each collections as item}
-										{#if item.divider}
-											<div class="menu-divider"></div>
-										{:else}
-											<button
-												class="menu-item"
-												class:active={searchStore.collection === item.id}
-												class:disabled={item.disabled}
-												onclick={() => !item.disabled && item.id && selectCollection(item.id)}
-												disabled={item.disabled}
-											>
-												{item.label}
-											</button>
-										{/if}
-									{/each}
-								</div>
-							{/if}
-						</div>
-
-						<!-- Rounded Pill Search Input -->
-						<div
-							class="search-input-group"
-							class:is-focused={searchStore.isFocused}
-						>
-							<Search size={14} class="search-icon" />
-							<div class="search-input-wrapper">
-								<Input
-									placeholder={searchPlaceholders[placeholderIndex]}
-									class="header-search-input"
-									bind:value={searchStore.query}
-									onfocus={() => searchStore.setFocus(true)}
-									onblur={() => searchStore.setFocus(false)}
-									onkeydown={(/** @type {KeyboardEvent} */ e) => {
-										if (e.key === "Escape") {
-											searchStore.closeSearch();
-											return;
-										}
-										if (e.key === "Tab") {
-											const results = searchStore.results;
-											if (!searchStore.isSearching && results.length > 0 && results.length <= 8 && searchStore.query.trim().length > 0) {
-												e.preventDefault();
-												searchStore.cycleHighlight(e.shiftKey ? -1 : 1);
-											}
-											return;
-										}
-										if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
-											const results = searchStore.results;
-											if (!searchStore.isSearching && results.length > 0 && results.length <= 8 && searchStore.query.trim().length > 0) {
-												e.preventDefault();
-												const targetIndex = Math.min(searchStore.highlightedIndex, results.length - 1);
-												const targetCard = results[targetIndex] || results[0];
-												addSearchCard(targetCard);
-												const inputEl = /** @type {HTMLInputElement | null} */ (e.target);
-												inputEl?.select();
-											}
-										}
-									}}
-								/>
-								{#if searchStore.query !== ""}
+					{#if showCollectionDropdown}
+						<div class="collection-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
+							{#each collections as item}
+								{#if item.divider}
+									<div class="menu-divider"></div>
+								{:else}
 									<button
-										class="search-action-btn"
-										title="Clear search"
-										onclick={() => (searchStore.query = "")}
-										onmousedown={(e) => e.preventDefault()}
-										transition:fade={{ duration: 150 }}
+										class="menu-item"
+										class:active={searchStore.collection === item.id}
+										class:disabled={item.disabled}
+										onclick={() => !item.disabled && item.id && selectCollection(item.id)}
+										disabled={item.disabled}
 									>
-										<X size={14} />
+										{item.label}
 									</button>
-								{:else if showHelpIcon}
-									<a
-										href="https://scryfall.com/docs/syntax"
-										target="_blank"
-										rel="noopener noreferrer"
-										class="search-action-btn"
-										title="Scryfall Search Syntax Guide"
-										onmousedown={(e) => e.preventDefault()}
-										transition:fade={{ duration: 150 }}
-									>
-										<HelpCircle size={14} />
-									</a>
 								{/if}
-							</div>
+							{/each}
 						</div>
-
-						<!-- Sort Search Results Tool Button with Left Concave Cutout -->
-						<button
-							class="search-sort-btn"
-							class:active={showSearchSort || isCustomSearchSortActive()}
-							bind:clientWidth={sortBtnWidth}
-							onclick={() => (showSearchSort = !showSearchSort)}
-							aria-label="Sort search results"
-							title={isCustomSearchSortActive() ? "Custom sorting active (click to configure)" : "Sort search results"}
-						>
-							<svg
-								class="curved-bg"
-								viewBox="0 0 {sortBtnWidth || 54} 36"
-								preserveAspectRatio="none"
-							>
-								<path d={rightCurvedPathD()} />
-							</svg>
-							<ArrowDownWideNarrow size={14} />
-						</button>
-					</div>
-
-					<!-- Search Settings / Options Tool Button (Outside search container) -->
-					<button
-						bind:this={searchSettingsBtn}
-						class="search-tool-btn"
-						class:active={showSearchOptions}
-						onclick={() => (showSearchOptions = !showSearchOptions)}
-						aria-label="Search Settings"
-						title="Search Settings"
-					>
-						<SlidersHorizontal size={15} />
-					</button>
-
-					<!-- Collapse Search Button (Right side) -->
-					<button
-						class="close-search-btn"
-						onclick={() => searchStore.closeSearch()}
-						aria-label="Close search (Esc)"
-						title="Close search (Esc)"
-					>
-						<ChevronUp size={16} />
-					</button>
+					{/if}
 				</div>
 
-				<SearchOptionsModal
-					bind:isOpen={showSearchOptions}
-					triggerElement={searchSettingsBtn}
-				/>
+				<!-- Rounded Pill Search Input -->
+				<div
+					class="search-input-group"
+					class:is-focused={searchStore.isFocused}
+				>
+					<Search size={14} class="search-icon" />
+					<div class="search-input-wrapper">
+						<Input
+							placeholder={searchPlaceholders[placeholderIndex]}
+							class="header-search-input"
+							bind:value={searchStore.query}
+							onfocus={() => searchStore.setFocus(true)}
+							onblur={() => searchStore.setFocus(false)}
+							onkeydown={(/** @type {KeyboardEvent} */ e) => {
+								if (e.key === "Escape") {
+									searchStore.closeSearch();
+									return;
+								}
+								if (e.key === "Tab") {
+									const results = searchStore.results;
+									if (!searchStore.isSearching && results.length > 0 && results.length <= 8 && searchStore.query.trim().length > 0) {
+										e.preventDefault();
+										searchStore.cycleHighlight(e.shiftKey ? -1 : 1);
+									}
+									return;
+								}
+								if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+									const results = searchStore.results;
+									if (!searchStore.isSearching && results.length > 0 && results.length <= 8 && searchStore.query.trim().length > 0) {
+										e.preventDefault();
+										const targetIndex = Math.min(searchStore.highlightedIndex, results.length - 1);
+										const targetCard = results[targetIndex] || results[0];
+										addSearchCard(targetCard);
+										const inputEl = /** @type {HTMLInputElement | null} */ (e.target);
+										inputEl?.select();
+									}
+								}
+							}}
+						/>
+						{#if searchStore.query !== ""}
+							<button
+								class="search-action-btn"
+								title="Clear search"
+								onclick={() => (searchStore.query = "")}
+								onmousedown={(e) => e.preventDefault()}
+								transition:fade={{ duration: 150 }}
+							>
+								<X size={14} />
+							</button>
+						{:else if showHelpIcon}
+							<a
+								href="https://scryfall.com/docs/syntax"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="search-action-btn"
+								title="Scryfall Search Syntax Guide"
+								onmousedown={(e) => e.preventDefault()}
+								transition:fade={{ duration: 150 }}
+							>
+								<HelpCircle size={14} />
+							</a>
+						{/if}
+					</div>
+				</div>
 
-				<MultiSortModal
-					bind:isOpen={showSearchSort}
-					target="search"
-				/>
-			{/if}
+				<!-- Sort Search Results Tool Button with Left Concave Cutout -->
+				<button
+					class="search-sort-btn"
+					class:active={showSearchSort || isCustomSearchSortActive()}
+					bind:clientWidth={sortBtnWidth}
+					onclick={() => (showSearchSort = !showSearchSort)}
+					aria-label="Sort search results"
+					title={isCustomSearchSortActive() ? "Custom sorting active (click to configure)" : "Sort search results"}
+				>
+					<svg
+						class="curved-bg"
+						viewBox="0 0 {sortBtnWidth || 54} 36"
+						preserveAspectRatio="none"
+					>
+						<path d={rightCurvedPathD()} />
+					</svg>
+					<ArrowDownWideNarrow size={14} />
+				</button>
+			</div>
+
+			<!-- Search Settings / Options Tool Button (Outside search container) -->
+			<button
+				bind:this={searchSettingsBtn}
+				class="search-tool-btn"
+				class:active={showSearchOptions}
+				onclick={() => (showSearchOptions = !showSearchOptions)}
+				aria-label="Search Settings"
+				title="Search Settings"
+			>
+				<SlidersHorizontal size={15} />
+			</button>
+
+			<!-- Collapse Search Button (Right side) -->
+			<button
+				class="close-search-btn"
+				onclick={() => searchStore.closeSearch()}
+				aria-label="Close search (Esc)"
+				title="Close search (Esc)"
+			>
+				<ChevronUp size={16} />
+			</button>
 		</div>
-	</header>
+
+		<SearchOptionsModal
+			bind:isOpen={showSearchOptions}
+			triggerElement={searchSettingsBtn}
+		/>
+
+		<MultiSortModal
+			bind:isOpen={showSearchSort}
+			target="search"
+		/>
+	</div>
 {/if}
 
 <ViewOptionsModal bind:isOpen={showViewOptionsModal} triggerElement={null} />
@@ -596,50 +600,184 @@
 {/if}
 
 <style>
-	.app-header {
-		height: 76px;
-		padding: 20px;
-		background: transparent;
-		border-bottom: 1px solid hsl(var(--border));
+	.global-header-bar {
+		height: 38px;
+		background: #080b11;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		padding: 0 16px;
 		z-index: 1000;
 		user-select: none;
 		box-sizing: border-box;
+		position: relative;
 	}
 
-	.app-header.search-open {
-		border-bottom: none;
-		padding: 20px 20px 0 20px;
-		height: 56px;
+	.global-header-left {
+		display: flex;
+		align-items: center;
+		gap: 1.25rem;
+		min-width: 0;
 	}
 
-	.app-header.search-open .header-left {
-		flex: 0 0 auto;
+	.brand-item {
+		display: inline-flex;
+		align-items: center;
+		text-decoration: none;
+		flex-shrink: 0;
+	}
+
+	.brand-title {
+		font-size: 13.5px;
+		font-weight: 700;
+		letter-spacing: -0.01em;
+		color: #f8fafc;
+	}
+
+	.global-nav {
+		display: flex;
+		align-items: center;
 		gap: 0.5rem;
-	}
-
-	.app-header.search-open .header-right {
-		flex: 1;
-		display: flex;
-		align-items: center;
-		padding-left: 1.5rem;
 		min-width: 0;
 	}
 
-	.header-left .budgie-dropdown,
-	.header-left .profile-dropdown {
+	.global-nav-link {
+		font-size: 13px;
+		font-weight: 500;
+		color: #94a3b8;
+		text-decoration: none;
+		background: transparent;
+		border: none;
+		padding: 4px 8px;
+		border-radius: 5px;
+		cursor: pointer;
+		transition: color 0.15s ease, background-color 0.15s ease;
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		line-height: 1;
+		outline: none;
+		white-space: nowrap;
+	}
+
+	.global-nav-link:hover {
+		color: #f8fafc;
+		background-color: rgba(255, 255, 255, 0.06);
+	}
+
+	.global-nav-link.active {
+		color: #f8fafc;
+		font-weight: 600;
+	}
+
+	.global-nav-link:focus-visible {
+		outline: 2px solid hsl(var(--primary));
+		outline-offset: -1px;
+	}
+
+	.user-menu-wrapper {
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+
+	.profile-menu-container {
+		position: relative;
+	}
+
+	.user-trigger {
+		color: #cbd5e1;
+	}
+
+	.user-chevron {
+		color: #94a3b8;
+		transition: transform 0.15s ease;
+	}
+
+	.profile-dropdown {
+		position: absolute;
+		top: calc(100% + 6px);
 		left: 0;
-		right: auto;
+		min-width: 180px;
+		background: #0f1219;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 8px;
+		box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+		padding: 4px;
+		z-index: 1000;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
 	}
 
-	.header-left {
+	.global-header-right {
 		display: flex;
 		align-items: center;
-		gap: 0.625rem;
-		flex: 1;
-		min-width: 0;
+		gap: 0.5rem;
+		flex-shrink: 0;
+	}
+
+	.global-search-trigger {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		height: 26px;
+		padding: 0 8px;
+		border-radius: 6px;
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		color: #94a3b8;
+		font-size: 12px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		outline: none;
+	}
+
+	.global-search-trigger:hover {
+		color: #f8fafc;
+		background: rgba(255, 255, 255, 0.09);
+		border-color: rgba(255, 255, 255, 0.14);
+	}
+
+	.global-search-trigger.active {
+		background: rgba(99, 102, 241, 0.15);
+		border-color: rgba(99, 102, 241, 0.4);
+		color: #a5b4fc;
+	}
+
+	.global-search-trigger .shortcut-keycaps {
+		display: inline-flex;
+		align-items: center;
+		gap: 2px;
+		margin-left: 2px;
+	}
+
+	.global-search-trigger .key-cap {
+		font-size: 10px;
+		padding: 1px 3px;
+		background: rgba(255, 255, 255, 0.08);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 3px;
+		color: #94a3b8;
+		line-height: 1;
+		font-family: inherit;
+	}
+
+	.search-drawer {
+		background: #0b0e16;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		padding: 8px 16px;
+		z-index: 990;
+		box-sizing: border-box;
+	}
+
+	.search-drawer-inner {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		width: 100%;
 	}
 
 	.close-search-btn {
