@@ -1,47 +1,13 @@
 <script>
 	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
-	import { deckStore, generateId } from "$lib/stores/deck.svelte.js";
-	import { searchStore } from "$lib/stores/search.svelte.js";
-
-	// Helper to create a URL-safe slug
-	/** @param {string} name */
-	function slugify(name) {
-		if (!name) return "new-deck";
-		return name
-			.toLowerCase()
-			.trim()
-			.replace(/[^\w\s-]/g, "")
-			.replace(/[\s_-]+/g, "-")
-			.replace(/^-+|-+$/g, "");
-	}
 
 	onMount(() => {
-		searchStore.reset();
-		const urlParams = new URLSearchParams(window.location.search);
-		const isNewDeck = urlParams.get('new_deck') === 'true';
-
-		let activeId;
-		if (isNewDeck) {
-			activeId = generateId();
-			sessionStorage.setItem('budgericards_active_deck_id', activeId);
-			sessionStorage.setItem('budgericards_is_new_draft', 'true');
-		} else {
-			activeId = sessionStorage.getItem('budgericards_active_deck_id');
-			if (!activeId) {
-				activeId = generateId();
-				sessionStorage.setItem('budgericards_active_deck_id', activeId);
-			}
-		}
-
-		// Select the deck ID to boot up the store
-		deckStore.selectDeckId(activeId);
-		
-		const slug = slugify(deckStore.name);
-		goto(`/decks/${activeId}/${slug}`, { replaceState: true });
+		goto("/decks", { replaceState: true });
 	});
 </script>
 
 <div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: hsl(var(--background)); color: hsl(var(--muted-foreground)); font-family: var(--font-sans), sans-serif;">
-	Redirecting to deckbuilder...
+	Redirecting to deck library...
 </div>
+
