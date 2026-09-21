@@ -71,6 +71,58 @@
 	let viewOptionsBtn = $state(null);
 	/** @type {HTMLElement | null} */
 	let deckInfoBtn = $state(null);
+	/** @type {HTMLElement | null} */
+	let headerEl = $state(null);
+	let isScrolled = $state(false);
+
+	$effect(() => {
+		if (typeof window === "undefined") return;
+
+		const handleScroll = (/** @type {Event} */ e) => {
+			const target = /** @type {HTMLElement} */ (e.target);
+			if (
+				target &&
+				headerEl?.parentElement &&
+				headerEl.parentElement.contains(target) &&
+				target !== headerEl
+			) {
+				isScrolled = target.scrollTop > 2;
+			}
+		};
+
+		window.addEventListener("scroll", handleScroll, {
+			capture: true,
+			passive: true,
+		});
+		return () => {
+			window.removeEventListener("scroll", handleScroll, {
+				capture: true,
+			});
+		};
+	});
+
+	$effect(() => {
+		// Track viewMode and board changes to reset or update scroll state
+		const _mode = settingsStore.deckViewMode;
+		const _board = deckStore.activeBoard;
+
+		requestAnimationFrame(() => {
+			if (!headerEl?.parentElement) return;
+			const elements = headerEl.parentElement.querySelectorAll("*");
+			let scrolled = false;
+			for (const el of elements) {
+				if (
+					el !== headerEl &&
+					!headerEl.contains(el) &&
+					el.scrollTop > 2
+				) {
+					scrolled = true;
+					break;
+				}
+			}
+			isScrolled = scrolled;
+		});
+	});
 
 	const allCards = $derived([
 		...deckStore.commander,
@@ -422,7 +474,12 @@
 
 <svelte:window onclick={handleDocumentClick} />
 
-<div class="deck-header" class:is-top-bar={isTopBar}>
+<div
+	class="deck-header"
+	class:is-top-bar={isTopBar}
+	class:is-scrolled={isScrolled}
+	bind:this={headerEl}
+>
 	<div class="deck-info-wrapper">
 		<div
 			class="deck-info"
@@ -1043,7 +1100,7 @@
 		min-height: 82px;
 		height: auto;
 		background: transparent;
-		border-bottom: none;
+		border-bottom: 1px solid transparent;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -1052,6 +1109,11 @@
 		z-index: 20;
 		box-sizing: border-box;
 		user-select: none;
+		transition: border-bottom-color 0.2s ease;
+	}
+
+	.deck-header.is-scrolled {
+		border-bottom-color: rgba(255, 255, 255, 0.08);
 	}
 
 	.deck-header.is-top-bar {
@@ -1059,7 +1121,11 @@
 		height: auto;
 		background: transparent;
 		backdrop-filter: none;
-		border-bottom: none;
+		border-bottom: 1px solid transparent;
+	}
+
+	.deck-header.is-top-bar.is-scrolled {
+		border-bottom-color: rgba(255, 255, 255, 0.08);
 	}
 
 	.deck-info-wrapper {
