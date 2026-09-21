@@ -1099,8 +1099,11 @@
 	.deck-header {
 		min-height: 82px;
 		height: auto;
-		background: transparent;
+		background: #0f1219;
+		border-top-left-radius: 11px;
+		border-top-right-radius: 11px;
 		border-bottom: 1px solid transparent;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -1109,23 +1112,26 @@
 		z-index: 20;
 		box-sizing: border-box;
 		user-select: none;
-		transition: border-bottom-color 0.2s ease;
+		transition: border-bottom-color 0.2s ease, box-shadow 0.2s ease;
 	}
 
 	.deck-header.is-scrolled {
 		border-bottom-color: rgba(255, 255, 255, 0.08);
+		box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
 	}
 
 	.deck-header.is-top-bar {
 		min-height: 82px;
 		height: auto;
-		background: transparent;
+		background: #0f1219;
 		backdrop-filter: none;
 		border-bottom: 1px solid transparent;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0);
 	}
 
 	.deck-header.is-top-bar.is-scrolled {
 		border-bottom-color: rgba(255, 255, 255, 0.08);
+		box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
 	}
 
 	.deck-info-wrapper {
