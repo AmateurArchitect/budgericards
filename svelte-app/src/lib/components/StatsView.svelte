@@ -211,7 +211,7 @@
 
 		// Modal Double Faced Lands (MDFCs)
 		if (typeLine.includes("//")) {
-			const faces = typeLine.split("//").map(s => s.trim());
+			const faces = typeLine.split("//").map((/** @type {string} */ s) => s.trim());
 			const frontIsLand = faces[0].includes("land");
 			const backIsLand = faces.length > 1 && faces[1].includes("land");
 
@@ -241,7 +241,7 @@
 	 * @returns {number}
 	 */
 	function countLands(cards, strictParity) {
-		return cards.reduce((sum, name) => sum + getCardLandValue(name, strictParity), 0);
+		return cards.reduce((/** @type {number} */ sum, /** @type {string} */ name) => sum + getCardLandValue(name, strictParity), 0);
 	}
 
 	/**
@@ -285,7 +285,7 @@
 		}
 
 		// Select a candidate randomly with probability proportional to weight
-		const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
+		const totalWeight = candidates.reduce((/** @type {number} */ sum, c) => sum + c.weight, 0);
 		const rand = Math.random() * totalWeight;
 		let cumulative = 0;
 		let chosen = candidates[0];
