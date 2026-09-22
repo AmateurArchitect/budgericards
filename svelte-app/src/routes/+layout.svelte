@@ -223,6 +223,7 @@
 		flex: 0 0 calc(100vw - var(--right-sidebar-width, 0px));
 		overflow: hidden;
 		min-width: 0;
+		position: relative;
 		transition:
 			width 0.24s cubic-bezier(0.4, 0, 0.2, 1),
 			max-width 0.24s cubic-bezier(0.4, 0, 0.2, 1),

@@ -25,6 +25,7 @@ function createSettings() {
 	let statsSubTab = $state("dashboard");
 	let sampleHandSmoother = $state(false);
 	let sampleHandArenaParity = $state(false);
+	let autoHideDeckbuilderNav = $state(false);
 
 	if (browser) {
 		const isMac = navigator.userAgent.includes('Mac');
@@ -64,6 +65,7 @@ function createSettings() {
 		moveToMaybeboardOnDelete = localStorage.getItem('budgericards_move_to_maybeboard_on_delete') !== 'false';
 		sampleHandSmoother = localStorage.getItem('budgericards_sample_hand_smoother') === 'true';
 		sampleHandArenaParity = localStorage.getItem('budgericards_sample_hand_arena_parity') === 'true';
+		autoHideDeckbuilderNav = localStorage.getItem('budgericards_auto_hide_deckbuilder_nav') === 'true';
 	}
 
 	return {
@@ -196,6 +198,11 @@ function createSettings() {
 		set sampleHandArenaParity(val) {
 			sampleHandArenaParity = val;
 			if (browser) localStorage.setItem('budgericards_sample_hand_arena_parity', String(val));
+		},
+		get autoHideDeckbuilderNav() { return autoHideDeckbuilderNav; },
+		set autoHideDeckbuilderNav(val) {
+			autoHideDeckbuilderNav = val;
+			if (browser) localStorage.setItem('budgericards_auto_hide_deckbuilder_nav', String(val));
 		}
 	};
 }

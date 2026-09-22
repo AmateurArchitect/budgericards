@@ -179,6 +179,33 @@
 						</div>
 					</section>
 
+					<!-- Section: Deckbuilder Display & Navigation -->
+					<section class="settings-section">
+						<div class="section-header">
+							<h2>Deckbuilder Display</h2>
+							<p>Customize the workspace layout and interface behavior while editing decks.</p>
+						</div>
+						<div class="section-content" style="display: flex; flex-direction: column; gap: 1.5rem;">
+							<div class="toggle-group-row">
+								<div class="toggle-text-block">
+									<label for="auto-hide-deckbuilder-nav" class="toggle-label-main">Auto-Hide Top Navigation</label>
+									<p class="toggle-description">
+										Hides the top global navigation bar while in the deckbuilder to maximize screen workspace. The top nav appears when your cursor moves close to the top of the screen.
+									</p>
+								</div>
+								<label class="switch">
+									<input
+										type="checkbox"
+										id="auto-hide-deckbuilder-nav"
+										bind:checked={settingsStore.autoHideDeckbuilderNav}
+										disabled={isSubmitting}
+									/>
+									<span class="slider"></span>
+								</label>
+							</div>
+						</div>
+					</section>
+
 					<!-- Section: Favorite Formats -->
 					<section class="settings-section">
 						<div class="section-header">

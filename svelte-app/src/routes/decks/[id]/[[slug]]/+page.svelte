@@ -201,7 +201,11 @@
 		
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="deck-area" onclick={handleDeckAreaClick}>
+		<div
+			class="deck-area"
+			class:top-flush={settingsStore.autoHideDeckbuilderNav && !searchStore.isOpen}
+			onclick={handleDeckAreaClick}
+		>
 			<DeckHeader />
 			{#if settingsStore.deckViewMode === 'list'}
 				<ImportView />
@@ -291,6 +295,12 @@
 		border-top-right-radius: 12px;
 		border: 1px solid rgba(255, 255, 255, 0.08);
 		border-bottom: none;
+	}
+
+	.deck-area.top-flush {
+		border-top-left-radius: 0;
+		border-top-right-radius: 0;
+		border-top: none;
 	}
 
 	:global(.search-panel) {

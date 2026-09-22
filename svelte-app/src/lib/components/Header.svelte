@@ -86,6 +86,86 @@
 		Boolean($page.params.id) && $page.url.pathname.startsWith("/decks/"),
 	);
 
+	const isAutoHideActive = $derived(
+		isDeckPage && settingsStore.autoHideDeckbuilderNav
+	);
+
+	let isNearTop = $state(false);
+	let isHeaderHovered = $state(false);
+	let isFocusedWithin = $state(false);
+	/** @type {ReturnType<typeof setTimeout> | null} */
+	let leaveTimer = null;
+
+	const isHeaderRevealed = $derived(
+		!isAutoHideActive ||
+		searchStore.isOpen ||
+		isNearTop ||
+		isHeaderHovered ||
+		isFocusedWithin ||
+		showBudgieDropdown ||
+		showProfileDropdown ||
+		showAboutModal ||
+		showSearchOptions ||
+		showViewOptionsModal ||
+		showSearchSort
+	);
+
+	function handleTriggerMouseEnter() {
+		if (leaveTimer) {
+			clearTimeout(leaveTimer);
+			leaveTimer = null;
+		}
+		isNearTop = true;
+	}
+
+	function handleHeaderMouseEnter() {
+		if (leaveTimer) {
+			clearTimeout(leaveTimer);
+			leaveTimer = null;
+		}
+		isHeaderHovered = true;
+	}
+
+	function handleHeaderMouseLeave() {
+		isHeaderHovered = false;
+		if (leaveTimer) clearTimeout(leaveTimer);
+		leaveTimer = setTimeout(() => {
+			isNearTop = false;
+			leaveTimer = null;
+		}, 250);
+	}
+
+	function handleHeaderFocusIn() {
+		isFocusedWithin = true;
+	}
+
+	/** @param {FocusEvent} e */
+	function handleHeaderFocusOut(e) {
+		const currentTarget = /** @type {HTMLElement} */ (e.currentTarget);
+		if (!currentTarget.contains(/** @type {Node | null} */ (e.relatedTarget))) {
+			isFocusedWithin = false;
+		}
+	}
+
+	/** @param {MouseEvent} e */
+	function handleWindowMouseMove(e) {
+		if (!isAutoHideActive || searchStore.isOpen) return;
+		if (e.clientY <= 12) {
+			if (leaveTimer) {
+				clearTimeout(leaveTimer);
+				leaveTimer = null;
+			}
+			isNearTop = true;
+		} else if (e.clientY > 54 && !isHeaderHovered && isNearTop) {
+			if (!leaveTimer) {
+				leaveTimer = setTimeout(() => {
+					isNearTop = false;
+					leaveTimer = null;
+				}, 220);
+			}
+		}
+	}
+
 	function handleNewDeck() {
 		showBudgieDropdown = false;
 		showProfileDropdown = false;
@@ -314,10 +394,33 @@
 	}
 </script>
 
-<svelte:window onclick={handleClickOutside} onkeydown={handleGlobalKeyDown} />
+<svelte:window
+	onclick={handleClickOutside}
+	onkeydown={handleGlobalKeyDown}
+	onmousemove={handleWindowMouseMove}
+/>
+
+{#if isAutoHideActive && !searchStore.isOpen}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="top-nav-trigger-zone"
+		onmouseenter={handleTriggerMouseEnter}
+		aria-hidden="true"
+	></div>
+{/if}
 
 <!-- Thin Global Header Bar -->
-<header class="global-header-bar" class:on-deck-page={isDeckPage}>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<header
+	class="global-header-bar"
+	class:on-deck-page={isDeckPage}
+	class:is-auto-hide={isAutoHideActive && !searchStore.isOpen}
+	class:is-revealed={isHeaderRevealed}
+	onmouseenter={handleHeaderMouseEnter}
+	onmouseleave={handleHeaderMouseLeave}
+	onfocusin={handleHeaderFocusIn}
+	onfocusout={handleHeaderFocusOut}
+>
 	<div class="global-header-left">
 		<div class="budgie-menu-container">
 			<button
@@ -728,6 +831,16 @@
 {/if}
 
 <style>
+	.top-nav-trigger-zone {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: calc(100vw - var(--right-sidebar-width, 0px));
+		height: 12px;
+		z-index: 999;
+		pointer-events: auto;
+	}
+
 	.global-header-bar {
 		height: 48px;
 		background: #000000;
@@ -744,6 +857,26 @@
 
 	.global-header-bar.on-deck-page {
 		border-bottom: none;
+	}
+
+	.global-header-bar.is-auto-hide {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		width: 100%;
+		z-index: 1000;
+		transform: translateY(-100%);
+		transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
+		box-shadow: none;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+		pointer-events: none;
+	}
+
+	.global-header-bar.is-auto-hide.is-revealed {
+		transform: translateY(0);
+		pointer-events: auto;
+		box-shadow: 0 6px 24px rgba(0, 0, 0, 0.75), 0 2px 6px rgba(0, 0, 0, 0.5);
 	}
 
 	.global-header-left {
