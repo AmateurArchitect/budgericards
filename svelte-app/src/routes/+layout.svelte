@@ -235,11 +235,5 @@
 		width: 100%;
 		min-height: 0;
 		overflow: hidden;
-		transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-		will-change: transform;
-	}
-
-	.app-shell-main:not(.top-nav-hidden) .app-content-wrapper {
-		transform: translateY(48px);
 	}
 </style>

@@ -295,7 +295,13 @@
 		border: 1px solid rgba(255, 255, 255, 0.08);
 		border-bottom: none;
 		transition:
+			transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
 			border-top-color 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+		will-change: transform;
+	}
+
+	:global(.app-shell-main:not(.top-nav-hidden)) .deck-area {
+		transform: translateY(48px);
 	}
 
 	:global(.top-nav-hidden) .deck-area {
