@@ -377,21 +377,75 @@
 		}
 	}
 
-	/** @param {string} id */
-	function selectSorting(id) {
-		deckStore.sorting = id;
-		deckStore.sortAscending = id !== "price" && id !== "added";
-		showSortDropdown = false;
+	const basicSortOptions = [
+		{ id: "cmc", label: "Mana Value" },
+		{ id: "color-cat", label: "Color" },
+		{ id: "type", label: "Type" },
+		{ id: "price", label: "Price" },
+		{ id: "rarity", label: "Rarity" },
+		{ id: "name", label: "Alphabetical" },
+		{ id: "added", label: "Recently Added" },
+	];
 
-		if (deckStore.grouping === id) {
-			/** @type {Record<string, string>} */
-			const defaultGroupings = {
-				cmc: "type",
-				type: "cmc",
-				color: "cmc",
-			};
-			deckStore.grouping = defaultGroupings[id] || "cmc";
+	/** @type {Record<string, string>} */
+	const sortLabelMap = {
+		cmc: "Mana Value",
+		"color-cat": "Color",
+		color: "Color",
+		"color-id": "Color",
+		type: "Type",
+		price: "Price",
+		rarity: "Rarity",
+		name: "Alphabetical",
+		added: "Recently Added",
+	};
+
+	const isDefaultSort = $derived(
+		!deckStore.activeSorts || deckStore.activeSorts.length === 0,
+	);
+
+	const isMultiSort = $derived(
+		Boolean(deckStore.activeSorts && deckStore.activeSorts.length > 1),
+	);
+
+	const currentSortLabel = $derived.by(() => {
+		if (!deckStore.activeSorts || deckStore.activeSorts.length === 0) {
+			return "Default";
 		}
+		const topSort = deckStore.activeSorts[0];
+		return sortLabelMap[topSort.type] || topSort.type;
+	});
+
+	/** @param {string} id */
+	function isSingleSortActive(id) {
+		if (!deckStore.activeSorts || deckStore.activeSorts.length !== 1)
+			return false;
+		const s = deckStore.activeSorts[0];
+		if (id === "color-cat") {
+			return (
+				s.type === "color-cat" ||
+				s.type === "color" ||
+				s.type === "color-id"
+			);
+		}
+		return s.type === id;
+	}
+
+	/** @param {string} id */
+	function selectSortOption(id) {
+		if (id === "default") {
+			deckStore.activeSorts = [];
+			deckStore.sorting = "color";
+		} else {
+			deckStore.activeSorts = [{ type: id, direction: "default" }];
+			deckStore.sorting = id === "color-cat" ? "color" : id;
+		}
+		showSortDropdown = false;
+	}
+
+	function openAdvancedSort() {
+		showSortDropdown = false;
+		showDisplaySort = true;
 	}
 
 	/** @type {{ id: 'mainboard' | 'sideboard' | 'maybeboard' | 'garbage', label: string }[]} */
@@ -840,34 +894,6 @@
 							</Button>
 						{/if}
 
-						<!-- Display Sort Button (to the right of split view toggle) -->
-						{#if ["stacks", "spoiler", "table"].includes(settingsStore.deckViewMode)}
-							<Button
-								variant={showDisplaySort ||
-								isCustomDeckSortActive()
-									? "toggle-active"
-									: "ghost"}
-								size="icon"
-								class="modifier-btn {isCustomDeckSortActive()
-									? 'custom-sort-active'
-									: showDisplaySort
-										? 'bg-secondary'
-										: ''}"
-								onclick={() =>
-									(showDisplaySort = !showDisplaySort)}
-								title={isCustomDeckSortActive()
-									? "Custom sorting active (click to configure)"
-									: "Sort Displayed Cards"}
-								aria-label="Sort Displayed Cards"
-							>
-								<ArrowDownWideNarrow size={15} />
-							</Button>
-							<MultiSortModal
-								bind:isOpen={showDisplaySort}
-								target="deck"
-							/>
-						{/if}
-
 						<!-- Table Columns Multi-select -->
 						{#if settingsStore.deckViewMode === "table"}
 							<div class="table-cols-container">
@@ -948,6 +974,88 @@
 						</div>
 					</div>
 				</div>
+			{/if}
+
+			<!-- Sort Column with SORT eyebrow -->
+			{#if ["stacks", "spoiler", "table"].includes(settingsStore.deckViewMode)}
+				<div class="control-column">
+					<span class="eyebrow-label">SORT</span>
+					<div class="sort-container">
+						<button
+							class="header-select-trigger sort-trigger"
+							class:active={showSortDropdown}
+							onclick={(e) => {
+								e.stopPropagation();
+								showSortDropdown = !showSortDropdown;
+								if (showSortDropdown)
+									closeAllDropdowns("sort");
+							}}
+							aria-expanded={showSortDropdown}
+							aria-haspopup="listbox"
+							title={isMultiSort
+								? `${deckStore.activeSorts.length} sort levels active (click to configure)`
+								: "Sort cards by"}
+						>
+							<span class="trigger-value">
+								{currentSortLabel}
+								{#if isMultiSort}
+									<span class="sort-plus-badge">+</span>
+								{/if}
+							</span>
+							<ChevronDown size={13} class="chevron" />
+						</button>
+
+						{#if showSortDropdown}
+							<div
+								class="header-select-menu"
+								use:smartAlign
+								transition:fly={{ y: 4, duration: 150 }}
+							>
+								<button
+									class="select-item"
+									class:active={isDefaultSort}
+									onclick={(e) => {
+										e.stopPropagation();
+										selectSortOption("default");
+									}}
+								>
+									Default
+								</button>
+								{#each basicSortOptions as opt}
+									<button
+										class="select-item"
+										class:active={isSingleSortActive(opt.id)}
+										onclick={(e) => {
+											e.stopPropagation();
+											selectSortOption(opt.id);
+										}}
+									>
+										{opt.label}
+									</button>
+								{/each}
+								<div class="menu-divider"></div>
+								<button
+									class="select-item advanced-item"
+									class:active={isMultiSort}
+									onclick={(e) => {
+										e.stopPropagation();
+										openAdvancedSort();
+									}}
+								>
+									<span>Advanced...</span>
+									{#if isMultiSort}
+										<span class="advanced-count-pill">{deckStore.activeSorts.length}</span>
+									{/if}
+								</button>
+							</div>
+						{/if}
+					</div>
+				</div>
+
+				<MultiSortModal
+					bind:isOpen={showDisplaySort}
+					target="deck"
+				/>
 			{/if}
 
 			{#if settingsStore.deckViewMode === "stats"}
@@ -1517,6 +1625,7 @@
 	}
 
 	.grouping-container,
+	.sort-container,
 	.table-cols-container,
 	.view-options-container {
 		position: relative;
@@ -1551,6 +1660,51 @@
 		padding: 0 12px;
 		justify-content: space-between;
 		gap: 0.5rem;
+	}
+
+	.sort-trigger {
+		min-width: 110px;
+		padding: 0 12px;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.sort-plus-badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 11px;
+		font-weight: 700;
+		color: hsl(var(--primary));
+		background: hsl(var(--primary) / 0.16);
+		border-radius: 3px;
+		padding: 0 4px;
+		margin-left: 5px;
+		line-height: 1.2;
+		vertical-align: middle;
+	}
+
+	.menu-divider {
+		height: 1px;
+		background: rgba(255, 255, 255, 0.08);
+		margin: 3px 6px;
+	}
+
+	.advanced-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		font-weight: 500;
+	}
+
+	.advanced-count-pill {
+		font-size: 10px;
+		font-weight: 700;
+		background: hsl(var(--primary) / 0.2);
+		color: hsl(var(--primary));
+		border-radius: 9999px;
+		padding: 1px 6px;
+		line-height: 1.2;
 	}
 
 	:global(.grouping-icon) {
