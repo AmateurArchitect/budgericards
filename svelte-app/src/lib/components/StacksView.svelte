@@ -1599,9 +1599,9 @@
 		overflow-y: auto;
 		scrollbar-gutter: stable;
 		padding: 1.25rem 0;
-		scroll-behavior: smooth;
 		background: transparent;
 		position: relative;
+		contain: layout;
 	}
 
 	.curve-layout {
@@ -1612,7 +1612,7 @@
 		align-items: start;
 		align-content: start;
 		/* Enforce header rows to stay compact while allowing stacks to grow */
-		grid-template-rows: repeat(2, min-content) 1fr;
+		grid-template-rows: repeat(2, min-content) min-content;
 		position: relative;
 		isolation: isolate;
 	}
@@ -1718,12 +1718,12 @@
 	.grid-cell {
 		width: var(--card-width);
 		transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1);
-		will-change: transform;
 	}
 
 	.grid-cell.shifted-right {
 		transform: translateX(24px);
 		transition-delay: 50ms;
+		will-change: transform;
 	}
 
 	.row-header-cell {

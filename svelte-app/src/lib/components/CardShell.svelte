@@ -258,15 +258,14 @@
 		min-height: 0; 
 		transition: 
 			transform 0.2s ease,
-			box-shadow 0.2s ease,
-			margin-top 0.2s ease;
+			box-shadow 0.2s ease;
 		transition-delay: 0ms !important;
-		will-change: transform;
 		overflow: visible;
 	}
 
 	.card-shell:hover {
 		transition-delay: 0ms !important;
+		will-change: transform;
 		/* We no longer lift z-index on hover to maintain stack order */
 	}
 </style>
