@@ -885,11 +885,6 @@
 					<span class="meta-pill count"
 						>{hand.length} Cards in Hand</span
 					>
-					{#if mulliganCount > 0}
-						<span class="meta-pill mulligan"
-							>Mulligan ({mulliganCount})</span
-						>
-					{/if}
 				</div>
 
 				<div class="arena-actions">
@@ -1238,6 +1233,7 @@
 		text-align: right;
 		font-weight: 600;
 		color: hsl(var(--foreground));
+		font-variant-numeric: tabular-nums;
 	}
 
 	.color-badge {
@@ -1282,11 +1278,13 @@
 		font-size: 0.75rem;
 		font-weight: 600;
 		color: hsl(var(--primary));
+		font-variant-numeric: tabular-nums;
 	}
 
 	.bar-value {
 		font-size: 0.75rem;
 		color: hsl(var(--muted-foreground));
+		font-variant-numeric: tabular-nums;
 	}
 
 	/* Price Breakdown styles */
@@ -1373,6 +1371,7 @@
 		flex-wrap: wrap;
 		margin-bottom: 0.75rem;
 		z-index: 10;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.arena-hand-meta {
@@ -1392,16 +1391,11 @@
 		color: hsl(var(--muted-foreground));
 		backdrop-filter: blur(8px);
 		-webkit-backdrop-filter: blur(8px);
+		font-variant-numeric: tabular-nums;
 	}
 
 	.meta-pill.count {
 		color: hsl(var(--foreground));
-	}
-
-	.meta-pill.mulligan {
-		color: hsl(38 92% 50%);
-		border-color: hsl(38 92% 50% / 0.3);
-		background: hsl(38 92% 50% / 0.08);
 	}
 
 	.arena-actions {
@@ -1434,6 +1428,7 @@
 		transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 		white-space: nowrap;
 		box-sizing: border-box;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.arena-action-btn:hover:not(:disabled) {
