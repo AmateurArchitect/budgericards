@@ -151,6 +151,156 @@
 		return arr;
 	}
 
+	/**
+	 * Returns the effective land value of a card name according to current settings.
+	 * @param {string} cardName
+	 * @param {boolean} strictParity
+	 * @returns {number}
+	 */
+	function getCardLandValue(cardName, strictParity) {
+		const meta = getMeta(cardName);
+		const typeLine = (meta.type_line || "").toLowerCase();
+
+		if (strictParity) {
+			const isLand = (meta.card_faces?.[0]?.type_line || typeLine.split("//")[0] || typeLine).includes("land");
+			return isLand ? 1.0 : 0.0;
+		}
+
+		const cleanName = cardName
+			.toLowerCase()
+			.normalize("NFD")
+			.replace(/[\u0300-\u036f]/g, "")
+			.trim();
+
+		// Full land overrides (1.0)
+		const fullLandOverrides = new Set([
+			"mox pearl",
+			"mox sapphire",
+			"mox jet",
+			"mox ruby",
+			"mox emerald",
+			"black lotus",
+			"blacker lotus",
+			"jeweled lotus",
+			"sol ring",
+			"mana crypt"
+		]);
+
+		if (fullLandOverrides.has(cleanName)) {
+			return 1.0;
+		}
+
+		// Half land overrides (0.5)
+		// 1-mana landcyclers from Lord of the Rings:
+		const lotr1ManaLandcyclers = new Set([
+			"lorien revealed",
+			"troll of khazad-dum",
+			"oliphaunt",
+			"generous ent",
+			"eagles of the north"
+		]);
+
+		if (lotr1ManaLandcyclers.has(cleanName)) {
+			return 0.5;
+		}
+
+		// Chrome Mox & Mox Diamond (0.5)
+		if (cleanName === "chrome mox" || cleanName === "mox diamond") {
+			return 0.5;
+		}
+
+		// Modal Double Faced Lands (MDFCs)
+		if (typeLine.includes("//")) {
+			const faces = typeLine.split("//").map(s => s.trim());
+			const frontIsLand = faces[0].includes("land");
+			const backIsLand = faces.length > 1 && faces[1].includes("land");
+
+			if (frontIsLand && backIsLand) {
+				return 1.0;
+			} else if (!frontIsLand && backIsLand) {
+				return 0.5;
+			}
+		}
+
+		if (meta.card_faces && meta.card_faces.length > 1) {
+			const frontLand = (meta.card_faces[0]?.type_line || "").toLowerCase().includes("land");
+			const backLand = (meta.card_faces[1]?.type_line || "").toLowerCase().includes("land");
+			if (frontLand && backLand) {
+				return 1.0;
+			} else if (!frontLand && backLand) {
+				return 0.5;
+			}
+		}
+
+		return typeLine.includes("land") ? 1.0 : 0.0;
+	}
+
+	/**
+	 * @param {string[]} cards
+	 * @param {boolean} strictParity
+	 * @returns {number}
+	 */
+	function countLands(cards, strictParity) {
+		return cards.reduce((sum, name) => sum + getCardLandValue(name, strictParity), 0);
+	}
+
+	/**
+	 * @param {string[]} decklist
+	 */
+	function drawHand(decklist) {
+		const toDraw = Math.max(7 - mulliganCount, 0);
+		if (toDraw === 0 || decklist.length === 0) {
+			hand = [];
+			library = shuffle(decklist);
+			return;
+		}
+
+		if (decklist.length <= toDraw || !settingsStore.sampleHandSmoother) {
+			const shuffled = shuffle(decklist);
+			hand = shuffled.slice(0, toDraw);
+			library = shuffled.slice(toDraw);
+			return;
+		}
+
+		// MTG Arena Hand Smoother algorithm
+		const strictParity = settingsStore.sampleHandArenaParity;
+		const totalLands = countLands(decklist, strictParity);
+		const lAvg = toDraw * (totalLands / decklist.length);
+
+		// Draw 3 candidate shuffles
+		/** @type {{ shuffled: string[], hand: string[], weight: number }[]} */
+		const candidates = [];
+		for (let i = 0; i < 3; i++) {
+			const candidateShuffled = shuffle(decklist);
+			const candidateHand = candidateShuffled.slice(0, toDraw);
+			const l = countLands(candidateHand, strictParity);
+			const delta = Math.abs(l - lAvg);
+			// Weight formula: w(l) = 4^(-|l - lAvg|^2.5)
+			const weight = Math.pow(4, -Math.pow(delta, 2.5));
+			candidates.push({
+				shuffled: candidateShuffled,
+				hand: candidateHand,
+				weight: Math.max(weight, 1e-9)
+			});
+		}
+
+		// Select a candidate randomly with probability proportional to weight
+		const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
+		const rand = Math.random() * totalWeight;
+		let cumulative = 0;
+		let chosen = candidates[0];
+		for (const candidate of candidates) {
+			cumulative += candidate.weight;
+			if (rand <= cumulative) {
+				chosen = candidate;
+				break;
+			}
+		}
+
+		hand = chosen.hand;
+		library = chosen.shuffled.slice(toDraw);
+	}
+
 	function resetSampleHand() {
 		dealKey++;
 		isOpeningDeal = true;
@@ -165,16 +315,9 @@
 			}
 		};
 		deckStore.mainboard.forEach(addCardNames);
-		library = shuffle(decklist);
 		hand = [];
 		mulliganCount = 0;
-		drawHand();
-	}
-
-	function drawHand() {
-		const toDraw = Math.max(7 - mulliganCount, 0);
-		hand = library.slice(0, toDraw);
-		library = library.slice(toDraw);
+		drawHand(decklist);
 	}
 
 	function mulligan() {
@@ -192,8 +335,7 @@
 			}
 		};
 		deckStore.mainboard.forEach(addCardNames);
-		library = shuffle(decklist);
-		drawHand();
+		drawHand(decklist);
 	}
 
 	function drawCard() {
@@ -433,11 +575,12 @@
 						<span>Draw Card ({library.length} left)</span>
 					</button>
 
+					<div class="arena-actions-separator"></div>
+
 					<!-- Additional Options Trigger & Menu -->
 					<div class="arena-options-container">
 						<button
-							onclick={(e) => {
-								e.stopPropagation();
+							onclick={() => {
 								showHandOptions = !showHandOptions;
 							}}
 							class="arena-action-btn icon-only"
@@ -453,9 +596,9 @@
 							<div
 								class="arena-options-menu"
 								transition:fly={{ y: 4, duration: 150 }}
-								onclick={(e) => e.stopPropagation()}
 							>
-								<div class="options-menu-header">Options</div>
+								<div class="options-menu-header">Hand Options</div>
+
 								<div class="options-menu-item">
 									<div class="options-item-info">
 										<span class="options-item-title">Hand Smoother</span>
@@ -465,6 +608,23 @@
 										<input
 											type="checkbox"
 											bind:checked={settingsStore.sampleHandSmoother}
+										/>
+										<span class="slider"></span>
+									</label>
+								</div>
+
+								<div class="options-menu-divider"></div>
+
+								<div class="options-menu-item" class:disabled={!settingsStore.sampleHandSmoother}>
+									<div class="options-item-info">
+										<span class="options-item-title">Arena Parity</span>
+										<span class="options-item-desc">Strictly count only actual lands</span>
+									</div>
+									<label class="switch">
+										<input
+											type="checkbox"
+											bind:checked={settingsStore.sampleHandArenaParity}
+											disabled={!settingsStore.sampleHandSmoother}
 										/>
 										<span class="slider"></span>
 									</label>
@@ -848,7 +1008,7 @@
 	.arena-actions {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.35rem;
 		background: hsl(var(--card) / 0.6);
 		backdrop-filter: blur(12px);
 		-webkit-backdrop-filter: blur(12px);
@@ -859,19 +1019,22 @@
 	}
 
 	.arena-action-btn {
+		height: 32px;
 		background: transparent;
 		border: none;
 		color: hsl(var(--muted-foreground));
-		padding: 0.45rem 0.9rem;
+		padding: 0 0.85rem;
 		border-radius: 9999px;
-		font-size: 0.825rem;
+		font-size: 0.8125rem;
 		font-weight: 500;
-		display: flex;
+		display: inline-flex;
 		align-items: center;
+		justify-content: center;
 		gap: 0.4rem;
 		cursor: pointer;
 		transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 		white-space: nowrap;
+		box-sizing: border-box;
 	}
 
 	.arena-action-btn:hover:not(:disabled) {
@@ -900,12 +1063,32 @@
 	}
 
 	.arena-action-btn.icon-only {
-		padding: 0.45rem 0.55rem;
+		width: 32px;
+		height: 32px;
+		padding: 0;
+		border-radius: 9999px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		color: hsl(var(--muted-foreground));
 	}
 
-	.arena-action-btn.active {
-		background: hsl(var(--foreground) / 0.12);
+	.arena-action-btn.icon-only:hover:not(:disabled) {
+		background: hsl(var(--foreground) / 0.1);
 		color: hsl(var(--foreground));
+	}
+
+	.arena-action-btn.icon-only.active {
+		background: hsl(var(--foreground) / 0.14);
+		color: hsl(var(--foreground));
+	}
+
+	.arena-actions-separator {
+		width: 1px;
+		height: 18px;
+		background: hsl(var(--border) / 0.7);
+		margin: 0 2px;
+		flex-shrink: 0;
 	}
 
 	.arena-options-container {
@@ -919,75 +1102,91 @@
 		top: calc(100% + 8px);
 		right: 0;
 		z-index: 50;
-		min-width: 260px;
+		width: 290px;
 		background: #0f131a;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		border-radius: 8px;
-		padding: 8px 12px;
-		box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
-		backdrop-filter: blur(16px);
-		-webkit-backdrop-filter: blur(16px);
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		border-radius: 10px;
+		padding: 12px 14px;
+		box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
+		backdrop-filter: blur(20px);
+		-webkit-backdrop-filter: blur(20px);
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
 	}
 
 	.options-menu-header {
-		font-size: 0.6875rem;
+		font-size: 0.65rem;
 		font-weight: 700;
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
-		color: hsl(var(--muted-foreground));
-		padding-bottom: 6px;
-		margin-bottom: 6px;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		color: hsl(var(--muted-foreground) / 0.8);
+		padding: 0 0 2px 0;
+	}
+
+	.options-menu-divider {
+		height: 1px;
+		background: rgba(255, 255, 255, 0.08);
+		margin: 2px 0;
 	}
 
 	.options-menu-item {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
+		gap: 14px;
 		padding: 4px 0;
+		transition: opacity 0.15s ease;
+	}
+
+	.options-menu-item.disabled {
+		opacity: 0.35;
+		pointer-events: none;
 	}
 
 	.options-item-info {
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
+		flex: 1;
+		min-width: 0;
 	}
 
 	.options-item-title {
 		font-size: 0.8125rem;
 		font-weight: 500;
-		color: hsl(var(--foreground));
+		color: #f1f5f9;
+		line-height: 1.25;
 	}
 
 	.options-item-desc {
 		font-size: 0.7rem;
-		color: hsl(var(--muted-foreground));
+		color: #94a3b8;
+		line-height: 1.35;
 	}
 
 	.switch {
 		position: relative;
 		display: inline-block;
-		width: 32px;
-		height: 18px;
+		width: 34px;
+		height: 20px;
 		flex-shrink: 0;
+		cursor: pointer;
 	}
 
 	.switch input {
 		opacity: 0;
 		width: 0;
 		height: 0;
+		position: absolute;
 	}
 
 	.slider {
 		position: absolute;
 		cursor: pointer;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background-color: hsl(var(--muted));
-		transition: 0.2s;
+		inset: 0;
+		background-color: hsl(var(--muted) / 0.8);
+		transition: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 		border-radius: 9999px;
 		border: 1px solid hsl(var(--border));
 	}
@@ -995,18 +1194,19 @@
 	.slider:before {
 		position: absolute;
 		content: "";
-		height: 12px;
-		width: 12px;
+		height: 14px;
+		width: 14px;
 		left: 2px;
 		bottom: 2px;
 		background-color: hsl(var(--muted-foreground));
-		transition: 0.2s;
+		transition: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 		border-radius: 50%;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 	}
 
 	input:checked + .slider {
-		background-color: hsl(var(--primary) / 0.2);
-		border-color: hsl(var(--primary) / 0.5);
+		background-color: hsl(var(--primary) / 0.25);
+		border-color: hsl(var(--primary) / 0.6);
 	}
 
 	input:checked + .slider:before {
