@@ -115,6 +115,8 @@
 		layoutStore.isTopNavVisible = isHeaderRevealed;
 	});
 
+	let cachedDeckHeaderBottom = 135;
+
 	function cancelLeaveTimer() {
 		if (leaveTimer) {
 			clearTimeout(leaveTimer);
@@ -124,17 +126,28 @@
 
 	function revealTopNav() {
 		cancelLeaveTimer();
-		isNearTop = true;
+		if (!isNearTop) {
+			isNearTop = true;
+		}
 	}
 
-	function getDeckHeaderBottom() {
-		if (typeof document === "undefined") return 130;
+	function updateDeckHeaderBottom() {
+		if (typeof document === "undefined") return;
 		const deckHeader = document.querySelector(".deck-header");
 		if (deckHeader) {
-			return deckHeader.getBoundingClientRect().bottom;
+			const rect = deckHeader.getBoundingClientRect();
+			if (rect.bottom > 0) {
+				cachedDeckHeaderBottom = rect.bottom;
+			}
 		}
-		return 130;
 	}
+
+	$effect(() => {
+		if (isAutoHideActive) {
+			const timer = setTimeout(updateDeckHeaderBottom, 300);
+			return () => clearTimeout(timer);
+		}
+	});
 
 	function handleTriggerMouseEnter() {
 		revealTopNav();
@@ -148,7 +161,7 @@
 	/** @param {MouseEvent} e */
 	function handleHeaderMouseLeave(e) {
 		isHeaderHovered = false;
-		if (e.clientY > getDeckHeaderBottom()) {
+		if (e.clientY > cachedDeckHeaderBottom) {
 			cancelLeaveTimer();
 			leaveTimer = setTimeout(() => {
 				isNearTop = false;
@@ -169,28 +182,39 @@
 		}
 	}
 
+	/** @param {TransitionEvent} e */
+	function handleHeaderTransitionEnd(e) {
+		if (e.propertyName === "margin-top" && isHeaderRevealed) {
+			updateDeckHeaderBottom();
+		}
+	}
+
 	/** @param {MouseEvent} e */
 	function handleWindowMouseMove(e) {
 		if (!isAutoHideActive || searchStore.isOpen) return;
 
 		// 1. Hovering near the top edge triggers immediately
 		if (e.clientY <= 12) {
-			revealTopNav();
+			if (!isNearTop) {
+				revealTopNav();
+			} else if (leaveTimer) {
+				cancelLeaveTimer();
+			}
+			return;
 		}
 
 		// 2. While top nav is revealed, don't close until cursor leaves the entire height of the deck header
 		if (isNearTop || isHeaderHovered) {
-			const bottomThreshold = getDeckHeaderBottom();
-			if (e.clientY <= bottomThreshold) {
-				cancelLeaveTimer();
-			} else {
-				if (!leaveTimer) {
-					leaveTimer = setTimeout(() => {
-						isNearTop = false;
-						isHeaderHovered = false;
-						leaveTimer = null;
-					}, 250);
+			if (e.clientY <= cachedDeckHeaderBottom) {
+				if (leaveTimer) {
+					cancelLeaveTimer();
 				}
+			} else if (!leaveTimer) {
+				leaveTimer = setTimeout(() => {
+					isNearTop = false;
+					isHeaderHovered = false;
+					leaveTimer = null;
+				}, 250);
 			}
 		}
 	}
@@ -427,6 +451,7 @@
 	onclick={handleClickOutside}
 	onkeydown={handleGlobalKeyDown}
 	onmousemove={handleWindowMouseMove}
+	onresize={updateDeckHeaderBottom}
 />
 
 {#if isAutoHideActive && !searchStore.isOpen}
@@ -449,6 +474,7 @@
 	onmouseleave={handleHeaderMouseLeave}
 	onfocusin={handleHeaderFocusIn}
 	onfocusout={handleHeaderFocusOut}
+	ontransitionend={handleHeaderTransitionEnd}
 >
 	<div class="global-header-left">
 		<div class="budgie-menu-container">
@@ -892,6 +918,7 @@
 		margin-top: -48px;
 		transition: margin-top 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 		pointer-events: none;
+		will-change: margin-top;
 	}
 
 	.global-header-bar.is-auto-hide.is-revealed {
