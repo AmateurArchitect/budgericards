@@ -2,7 +2,8 @@
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { onMount } from "svelte";
-	import { Loader, RotateCcw, AlertTriangle } from "lucide-svelte";
+	import { fly } from "svelte/transition";
+	import { Loader, RotateCcw, AlertTriangle, SlidersHorizontal } from "lucide-svelte";
 
 	// Gather all active cards (mainboard + commander + companion)
 	const activeCards = $derived([
@@ -128,6 +129,15 @@
 
 	let dealKey = $state(0);
 	let isOpeningDeal = $state(true);
+	let showHandOptions = $state(false);
+
+	/** @param {MouseEvent} e */
+	function handleDocumentClick(e) {
+		const target = /** @type {HTMLElement} */ (e.target);
+		if (showHandOptions && !target.closest(".arena-options-container")) {
+			showHandOptions = false;
+		}
+	}
 
 	/**
 	 * @param {any[]} array
@@ -311,6 +321,8 @@
 	});
 </script>
 
+<svelte:window onclick={handleDocumentClick} />
+
 <div class="stats-container">
 	{#if settingsStore.statsSubTab === "dashboard"}
 		<!-- Main Analytics Dashboard -->
@@ -402,6 +414,9 @@
 					{#if mulliganCount > 0}
 						<span class="meta-pill mulligan">Mulligan ({mulliganCount})</span>
 					{/if}
+					{#if settingsStore.sampleHandSmoother}
+						<span class="meta-pill smoother" title="MTG Arena-style Hand Smoother is enabled">Smoother On</span>
+					{/if}
 				</div>
 
 				<div class="arena-actions">
@@ -417,6 +432,46 @@
 					<button onclick={drawCard} class="arena-action-btn primary" disabled={library.length === 0} title="Draw 1 card">
 						<span>Draw Card ({library.length} left)</span>
 					</button>
+
+					<!-- Additional Options Trigger & Menu -->
+					<div class="arena-options-container">
+						<button
+							onclick={(e) => {
+								e.stopPropagation();
+								showHandOptions = !showHandOptions;
+							}}
+							class="arena-action-btn icon-only"
+							class:active={showHandOptions}
+							title="Sample Hand Options"
+							aria-label="Sample Hand Options"
+							aria-expanded={showHandOptions}
+						>
+							<SlidersHorizontal size={14} />
+						</button>
+
+						{#if showHandOptions}
+							<div
+								class="arena-options-menu"
+								transition:fly={{ y: 4, duration: 150 }}
+								onclick={(e) => e.stopPropagation()}
+							>
+								<div class="options-menu-header">Options</div>
+								<div class="options-menu-item">
+									<div class="options-item-info">
+										<span class="options-item-title">Hand Smoother</span>
+										<span class="options-item-desc">MTG Arena opening hand algorithm</span>
+									</div>
+									<label class="switch">
+										<input
+											type="checkbox"
+											bind:checked={settingsStore.sampleHandSmoother}
+										/>
+										<span class="slider"></span>
+									</label>
+								</div>
+							</div>
+						{/if}
+					</div>
 				</div>
 			</div>
 
@@ -784,6 +839,12 @@
 		background: hsl(38 92% 50% / 0.08);
 	}
 
+	.meta-pill.smoother {
+		color: hsl(190 90% 50%);
+		border-color: hsl(190 90% 50% / 0.3);
+		background: hsl(190 90% 50% / 0.08);
+	}
+
 	.arena-actions {
 		display: flex;
 		align-items: center;
@@ -836,6 +897,121 @@
 	.arena-action-btn:disabled {
 		opacity: 0.35;
 		cursor: not-allowed;
+	}
+
+	.arena-action-btn.icon-only {
+		padding: 0.45rem 0.55rem;
+	}
+
+	.arena-action-btn.active {
+		background: hsl(var(--foreground) / 0.12);
+		color: hsl(var(--foreground));
+	}
+
+	.arena-options-container {
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+
+	.arena-options-menu {
+		position: absolute;
+		top: calc(100% + 8px);
+		right: 0;
+		z-index: 50;
+		min-width: 260px;
+		background: #0f131a;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 8px;
+		padding: 8px 12px;
+		box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+	}
+
+	.options-menu-header {
+		font-size: 0.6875rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: hsl(var(--muted-foreground));
+		padding-bottom: 6px;
+		margin-bottom: 6px;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	}
+
+	.options-menu-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 4px 0;
+	}
+
+	.options-item-info {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.options-item-title {
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: hsl(var(--foreground));
+	}
+
+	.options-item-desc {
+		font-size: 0.7rem;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.switch {
+		position: relative;
+		display: inline-block;
+		width: 32px;
+		height: 18px;
+		flex-shrink: 0;
+	}
+
+	.switch input {
+		opacity: 0;
+		width: 0;
+		height: 0;
+	}
+
+	.slider {
+		position: absolute;
+		cursor: pointer;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: hsl(var(--muted));
+		transition: 0.2s;
+		border-radius: 9999px;
+		border: 1px solid hsl(var(--border));
+	}
+
+	.slider:before {
+		position: absolute;
+		content: "";
+		height: 12px;
+		width: 12px;
+		left: 2px;
+		bottom: 2px;
+		background-color: hsl(var(--muted-foreground));
+		transition: 0.2s;
+		border-radius: 50%;
+	}
+
+	input:checked + .slider {
+		background-color: hsl(var(--primary) / 0.2);
+		border-color: hsl(var(--primary) / 0.5);
+	}
+
+	input:checked + .slider:before {
+		transform: translateX(14px);
+		background-color: hsl(var(--primary));
 	}
 
 	.empty-arena-state {

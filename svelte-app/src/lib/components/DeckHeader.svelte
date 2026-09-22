@@ -53,11 +53,7 @@
 		);
 	});
 
-	const searchHints = [
-		"Lightning Bolt",
-		"t:creature cmc<=2",
-		"is:commander",
-	];
+	const searchHints = ["Lightning Bolt", "t:creature cmc<=2", "is:commander"];
 	let placeholderIndex = $state(0);
 
 	$effect(() => {
@@ -918,7 +914,7 @@
 						>
 							<span class="trigger-value">
 								{settingsStore.visibleColumns.length === 8
-									? "All Cols"
+									? "All"
 									: `${settingsStore.visibleColumns.length} Cols`}
 							</span>
 							<ChevronDown size={13} class="chevron" />
@@ -966,8 +962,7 @@
 							onclick={(e) => {
 								e.stopPropagation();
 								showSortDropdown = !showSortDropdown;
-								if (showSortDropdown)
-									closeAllDropdowns("sort");
+								if (showSortDropdown) closeAllDropdowns("sort");
 							}}
 							aria-expanded={showSortDropdown}
 							aria-haspopup="listbox"
@@ -1003,7 +998,9 @@
 								{#each basicSortOptions as opt}
 									<button
 										class="select-item"
-										class:active={isSingleSortActive(opt.id)}
+										class:active={isSingleSortActive(
+											opt.id,
+										)}
 										onclick={(e) => {
 											e.stopPropagation();
 											selectSortOption(opt.id);
@@ -1023,7 +1020,10 @@
 								>
 									<span>Advanced...</span>
 									{#if isMultiSort}
-										<span class="advanced-count-pill">{deckStore.activeSorts.length}</span>
+										<span class="advanced-count-pill"
+											>{deckStore.activeSorts
+												.length}</span
+										>
 									{/if}
 								</button>
 							</div>
@@ -1031,10 +1031,7 @@
 					</div>
 				</div>
 
-				<MultiSortModal
-					bind:isOpen={showDisplaySort}
-					target="deck"
-				/>
+				<MultiSortModal bind:isOpen={showDisplaySort} target="deck" />
 
 				<!-- View Options Modal Trigger -->
 				<div class="view-options-container">
@@ -1154,7 +1151,10 @@
 					<div class="deck-search-left">
 						<Search size={14} class="deck-search-icon" />
 						{#key placeholderIndex}
-							<span class="deck-search-text" in:fade={{ duration: 160 }}>
+							<span
+								class="deck-search-text"
+								in:fade={{ duration: 160 }}
+							>
 								{searchHints[placeholderIndex]}
 							</span>
 						{/key}
@@ -1222,12 +1222,16 @@
 		z-index: 20;
 		box-sizing: border-box;
 		user-select: none;
-		transition: border-bottom-color 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			border-bottom-color 0.2s ease,
+			box-shadow 0.2s ease;
 	}
 
 	.deck-header.is-scrolled {
 		border-bottom-color: rgba(255, 255, 255, 0.08);
-		box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+		box-shadow:
+			0 6px 20px -2px rgba(0, 0, 0, 0.5),
+			0 2px 6px rgba(0, 0, 0, 0.3);
 	}
 
 	.deck-header.is-top-bar {
@@ -1241,7 +1245,9 @@
 
 	.deck-header.is-top-bar.is-scrolled {
 		border-bottom-color: rgba(255, 255, 255, 0.08);
-		box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+		box-shadow:
+			0 6px 20px -2px rgba(0, 0, 0, 0.5),
+			0 2px 6px rgba(0, 0, 0, 0.3);
 	}
 
 	.deck-info-wrapper {

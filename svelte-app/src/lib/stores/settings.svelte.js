@@ -23,6 +23,7 @@ function createSettings() {
 	let showDeletionToasts = $state(true);
 	let moveToMaybeboardOnDelete = $state(true);
 	let statsSubTab = $state("dashboard");
+	let sampleHandSmoother = $state(false);
 
 	if (browser) {
 		const isMac = navigator.userAgent.includes('Mac');
@@ -60,6 +61,7 @@ function createSettings() {
 		enableClipboardPreload = localStorage.getItem('budgericards_enable_clipboard_preload') === 'true';
 		showDeletionToasts = localStorage.getItem('budgericards_show_deletion_toasts') !== 'false';
 		moveToMaybeboardOnDelete = localStorage.getItem('budgericards_move_to_maybeboard_on_delete') !== 'false';
+		sampleHandSmoother = localStorage.getItem('budgericards_sample_hand_smoother') === 'true';
 	}
 
 	return {
@@ -182,6 +184,11 @@ function createSettings() {
 		get statsSubTab() { return statsSubTab; },
 		set statsSubTab(val) {
 			statsSubTab = val;
+		},
+		get sampleHandSmoother() { return sampleHandSmoother; },
+		set sampleHandSmoother(val) {
+			sampleHandSmoother = val;
+			if (browser) localStorage.setItem('budgericards_sample_hand_smoother', String(val));
 		}
 	};
 }
