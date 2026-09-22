@@ -95,8 +95,6 @@
 	let isHeaderHovered = $state(false);
 	let isFocusedWithin = $state(false);
 	/** @type {ReturnType<typeof setTimeout> | null} */
-	let enterTimer = null;
-	/** @type {ReturnType<typeof setTimeout> | null} */
 	let leaveTimer = null;
 
 	const isHeaderRevealed = $derived(
@@ -117,13 +115,6 @@
 		layoutStore.isTopNavVisible = isHeaderRevealed;
 	});
 
-	function cancelEnterTimer() {
-		if (enterTimer) {
-			clearTimeout(enterTimer);
-			enterTimer = null;
-		}
-	}
-
 	function cancelLeaveTimer() {
 		if (leaveTimer) {
 			clearTimeout(leaveTimer);
@@ -131,13 +122,9 @@
 		}
 	}
 
-	function startEnterTimer() {
+	function revealTopNav() {
 		cancelLeaveTimer();
-		if (isNearTop || enterTimer) return;
-		enterTimer = setTimeout(() => {
-			isNearTop = true;
-			enterTimer = null;
-		}, 150);
+		isNearTop = true;
 	}
 
 	function getDeckHeaderBottom() {
@@ -150,15 +137,10 @@
 	}
 
 	function handleTriggerMouseEnter() {
-		startEnterTimer();
-	}
-
-	function handleTriggerMouseLeave() {
-		cancelEnterTimer();
+		revealTopNav();
 	}
 
 	function handleHeaderMouseEnter() {
-		cancelEnterTimer();
 		cancelLeaveTimer();
 		isHeaderHovered = true;
 	}
@@ -191,11 +173,9 @@
 	function handleWindowMouseMove(e) {
 		if (!isAutoHideActive || searchStore.isOpen) return;
 
-		// 1. Hovering near the top edge triggers with a 150ms delay
+		// 1. Hovering near the top edge triggers immediately
 		if (e.clientY <= 12) {
-			startEnterTimer();
-		} else if (!isNearTop) {
-			cancelEnterTimer();
+			revealTopNav();
 		}
 
 		// 2. While top nav is revealed, don't close until cursor leaves the entire height of the deck header
@@ -454,7 +434,6 @@
 	<div
 		class="top-nav-trigger-zone"
 		onmouseenter={handleTriggerMouseEnter}
-		onmouseleave={handleTriggerMouseLeave}
 		aria-hidden="true"
 	></div>
 {/if}

@@ -302,7 +302,7 @@
 	:global(.top-nav-hidden) .deck-area {
 		border-top-left-radius: 0;
 		border-top-right-radius: 0;
-		border-top: none;
+		border-top-color: transparent;
 	}
 
 	:global(.search-panel) {
