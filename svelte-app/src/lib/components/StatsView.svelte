@@ -929,7 +929,7 @@
 	}
 
 	.arena-card-wrapper:hover {
-		transform: translate3d(var(--x), calc(var(--y) - 18px), 0) rotate(0deg) scale(1.04);
+		transform: translate3d(var(--x), calc(var(--y) - 20px), 0) rotate(var(--rot)) scale(1.04);
 		z-index: 100 !important;
 		transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), 
 		            box-shadow 0.22s ease, 
