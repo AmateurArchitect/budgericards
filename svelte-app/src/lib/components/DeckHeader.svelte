@@ -1373,7 +1373,7 @@
 	}
 
 	.eyebrow-label {
-		font-size: 11px;
+		font-size: 10px;
 		font-weight: 700;
 		letter-spacing: 0.03em;
 		color: #94a3b8;
