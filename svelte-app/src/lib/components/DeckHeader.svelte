@@ -1475,7 +1475,7 @@
 		border: 1px solid rgba(255, 255, 255, 0.08);
 		border-radius: 8px;
 		padding: 3px;
-		gap: 2px;
+		gap: 0;
 		height: 36px;
 		box-sizing: border-box;
 	}
@@ -1485,15 +1485,42 @@
 		align-items: center;
 		justify-content: center;
 		height: 28px;
-		width: 32px;
+		width: 28px;
 		padding: 0;
 		border: none;
 		background: transparent;
-		border-radius: 5px;
+		border-radius: 6px;
 		color: #94a3b8;
 		cursor: pointer;
 		transition: all 0.15s ease;
 		outline: none;
+		margin: 0;
+	}
+
+	/* Leftmost button */
+	.view-toggle-btn:first-child {
+		margin-left: 2px;
+		margin-right: 0;
+	}
+	.view-toggle-btn:first-child.active {
+		margin-left: 0;
+		margin-right: 2px;
+	}
+
+	/* Rightmost button */
+	.view-toggle-btn:last-child {
+		margin-left: 0;
+		margin-right: 2px;
+	}
+	.view-toggle-btn:last-child.active {
+		margin-left: 2px;
+		margin-right: 0;
+	}
+
+	/* Middle buttons when active */
+	.view-toggle-btn:not(:first-child):not(:last-child).active {
+		margin-left: 2px;
+		margin-right: 2px;
 	}
 
 	.view-toggle-btn:hover:not(.active) {
@@ -1507,10 +1534,10 @@
 	}
 
 	.view-toggle-btn.active {
-		background: #1c2230;
-		color: #f8fafc;
+		background: #252b3b;
+		color: #ffffff;
 		box-shadow:
-			0 0 0 1.5px #3b82f6 inset,
+			0 0 0 1px rgba(255, 255, 255, 0.14) inset,
 			0 1px 3px rgba(0, 0, 0, 0.4);
 	}
 
