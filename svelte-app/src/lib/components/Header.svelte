@@ -20,6 +20,7 @@
 	import { priceStore } from "$lib/stores/prices.svelte.js";
 	import { toastStore } from "$lib/stores/toast.svelte.js";
 	import { isCommanderFormat } from "$lib/constants/formats.js";
+	import { layoutStore } from "$lib/stores/layout.svelte.js";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/stores";
 
@@ -94,6 +95,8 @@
 	let isHeaderHovered = $state(false);
 	let isFocusedWithin = $state(false);
 	/** @type {ReturnType<typeof setTimeout> | null} */
+	let enterTimer = null;
+	/** @type {ReturnType<typeof setTimeout> | null} */
 	let leaveTimer = null;
 
 	const isHeaderRevealed = $derived(
@@ -110,29 +113,66 @@
 		showSearchSort
 	);
 
-	function handleTriggerMouseEnter() {
+	$effect(() => {
+		layoutStore.isTopNavVisible = isHeaderRevealed;
+	});
+
+	function cancelEnterTimer() {
+		if (enterTimer) {
+			clearTimeout(enterTimer);
+			enterTimer = null;
+		}
+	}
+
+	function cancelLeaveTimer() {
 		if (leaveTimer) {
 			clearTimeout(leaveTimer);
 			leaveTimer = null;
 		}
-		isNearTop = true;
+	}
+
+	function startEnterTimer() {
+		cancelLeaveTimer();
+		if (isNearTop || enterTimer) return;
+		enterTimer = setTimeout(() => {
+			isNearTop = true;
+			enterTimer = null;
+		}, 150);
+	}
+
+	function getDeckHeaderBottom() {
+		if (typeof document === "undefined") return 130;
+		const deckHeader = document.querySelector(".deck-header");
+		if (deckHeader) {
+			return deckHeader.getBoundingClientRect().bottom;
+		}
+		return 130;
+	}
+
+	function handleTriggerMouseEnter() {
+		startEnterTimer();
+	}
+
+	function handleTriggerMouseLeave() {
+		cancelEnterTimer();
 	}
 
 	function handleHeaderMouseEnter() {
-		if (leaveTimer) {
-			clearTimeout(leaveTimer);
-			leaveTimer = null;
-		}
+		cancelEnterTimer();
+		cancelLeaveTimer();
 		isHeaderHovered = true;
 	}
 
-	function handleHeaderMouseLeave() {
+	/** @param {MouseEvent} e */
+	function handleHeaderMouseLeave(e) {
 		isHeaderHovered = false;
-		if (leaveTimer) clearTimeout(leaveTimer);
-		leaveTimer = setTimeout(() => {
-			isNearTop = false;
-			leaveTimer = null;
-		}, 250);
+		if (e.clientY > getDeckHeaderBottom()) {
+			cancelLeaveTimer();
+			leaveTimer = setTimeout(() => {
+				isNearTop = false;
+				leaveTimer = null;
+			}, 250);
+		}
 	}
 
 	function handleHeaderFocusIn() {
@@ -150,18 +190,27 @@
 	/** @param {MouseEvent} e */
 	function handleWindowMouseMove(e) {
 		if (!isAutoHideActive || searchStore.isOpen) return;
+
+		// 1. Hovering near the top edge triggers with a 150ms delay
 		if (e.clientY <= 12) {
-			if (leaveTimer) {
-				clearTimeout(leaveTimer);
-				leaveTimer = null;
-			}
-			isNearTop = true;
-		} else if (e.clientY > 54 && !isHeaderHovered && isNearTop) {
-			if (!leaveTimer) {
-				leaveTimer = setTimeout(() => {
-					isNearTop = false;
-					leaveTimer = null;
-				}, 220);
+			startEnterTimer();
+		} else if (!isNearTop) {
+			cancelEnterTimer();
+		}
+
+		// 2. While top nav is revealed, don't close until cursor leaves the entire height of the deck header
+		if (isNearTop || isHeaderHovered) {
+			const bottomThreshold = getDeckHeaderBottom();
+			if (e.clientY <= bottomThreshold) {
+				cancelLeaveTimer();
+			} else {
+				if (!leaveTimer) {
+					leaveTimer = setTimeout(() => {
+						isNearTop = false;
+						isHeaderHovered = false;
+						leaveTimer = null;
+					}, 250);
+				}
 			}
 		}
 	}
@@ -405,6 +454,7 @@
 	<div
 		class="top-nav-trigger-zone"
 		onmouseenter={handleTriggerMouseEnter}
+		onmouseleave={handleTriggerMouseLeave}
 		aria-hidden="true"
 	></div>
 {/if}

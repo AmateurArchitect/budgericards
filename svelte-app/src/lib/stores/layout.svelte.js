@@ -71,6 +71,7 @@ class LayoutStore {
 	cardWidth = $derived(`clamp(120px, min(${this.cardWidthCalc}, 23.5vh), 240px)`);
 
 	rightSidebarWidth = $state(0);
+	isTopNavVisible = $state(true);
 
 	/** Layout utility for CSS variables */
 	cssVariables = $derived({

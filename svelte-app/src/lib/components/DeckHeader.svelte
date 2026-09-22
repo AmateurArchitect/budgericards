@@ -1224,7 +1224,13 @@
 		user-select: none;
 		transition:
 			border-bottom-color 0.2s ease,
-			box-shadow 0.2s ease;
+			box-shadow 0.2s ease,
+			border-radius 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	:global(.top-nav-hidden) .deck-header {
+		border-top-left-radius: 0;
+		border-top-right-radius: 0;
 	}
 
 
