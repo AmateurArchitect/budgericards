@@ -882,8 +882,8 @@
 		<div class="arena-hand-view">
 			<div class="arena-controls-bar">
 				<div class="arena-hand-meta">
-					<span class="meta-pill count"
-						>{hand.length} Cards in Hand</span
+					<span class="hand-count-text"
+						>{hand.length} {hand.length === 1 ? "Card" : "Cards"} in Hand</span
 					>
 				</div>
 
@@ -1380,22 +1380,13 @@
 		gap: 0.5rem;
 	}
 
-	.meta-pill {
-		font-size: 0.775rem;
-		font-weight: 600;
-		letter-spacing: 0.02em;
-		padding: 0.4rem 0.85rem;
-		border-radius: 9999px;
-		background: hsl(var(--card) / 0.6);
-		border: 1px solid hsl(var(--border) / 0.5);
+	.hand-count-text {
+		font-size: 0.8125rem;
+		font-weight: 500;
 		color: hsl(var(--muted-foreground));
-		backdrop-filter: blur(8px);
-		-webkit-backdrop-filter: blur(8px);
 		font-variant-numeric: tabular-nums;
-	}
-
-	.meta-pill.count {
-		color: hsl(var(--foreground));
+		user-select: none;
+		letter-spacing: 0.01em;
 	}
 
 	.arena-actions {
@@ -1414,7 +1405,7 @@
 	.arena-action-btn {
 		height: 32px;
 		background: transparent;
-		border: none;
+		border: 1px solid transparent;
 		color: hsl(var(--muted-foreground));
 		padding: 0 0.85rem;
 		border-radius: 9999px;
@@ -1442,12 +1433,14 @@
 
 	.arena-action-btn.primary {
 		background: hsl(var(--primary) / 0.15);
+		border-color: hsl(var(--primary) / 0.35);
 		color: hsl(var(--primary));
 		font-weight: 600;
 	}
 
 	.arena-action-btn.primary:hover:not(:disabled) {
 		background: hsl(var(--primary) / 0.25);
+		border-color: hsl(var(--primary) / 0.5);
 		color: hsl(var(--primary));
 	}
 
@@ -1475,16 +1468,19 @@
 	.arena-action-btn.icon-only.active {
 		background: hsl(var(--foreground) / 0.14);
 		color: hsl(var(--foreground));
+		border-color: hsl(var(--foreground) / 0.2);
 	}
 
 	.arena-action-btn.icon-only.smoother-active {
 		background: hsl(var(--primary) / 0.15);
+		border-color: hsl(var(--primary) / 0.35);
 		color: hsl(var(--primary));
 	}
 
 	.arena-action-btn.icon-only.smoother-active:hover:not(:disabled),
 	.arena-action-btn.icon-only.smoother-active.active {
 		background: hsl(var(--primary) / 0.25);
+		border-color: hsl(var(--primary) / 0.5);
 		color: hsl(var(--primary));
 	}
 
