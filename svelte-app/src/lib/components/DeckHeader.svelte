@@ -893,63 +893,64 @@
 								{/if}
 							</Button>
 						{/if}
+					</div>
+				</div>
+			{/if}
 
-						<!-- Table Columns Multi-select -->
-						{#if settingsStore.deckViewMode === "table"}
-							<div class="table-cols-container">
-								<button
-									class="header-select-trigger"
-									class:active={showTableColumnsDropdown}
-									onclick={(e) => {
-										e.stopPropagation();
-										showTableColumnsDropdown =
-											!showTableColumnsDropdown;
-										if (showTableColumnsDropdown)
-											closeAllDropdowns("tableCols");
-									}}
-									aria-expanded={showTableColumnsDropdown}
-									aria-haspopup="listbox"
-									title="Toggle visible columns"
-								>
-									<span class="trigger-value">
-										{settingsStore.visibleColumns.length ===
-										8
-											? "All Cols"
-											: `${settingsStore.visibleColumns.length} Cols`}
-									</span>
-									<ChevronDown size={13} class="chevron" />
-								</button>
+			<!-- Table Columns Column with COLUMNS eyebrow -->
+			{#if settingsStore.deckViewMode === "table"}
+				<div class="control-column">
+					<span class="eyebrow-label">COLUMNS</span>
+					<div class="table-cols-container">
+						<button
+							class="header-select-trigger"
+							class:active={showTableColumnsDropdown}
+							onclick={(e) => {
+								e.stopPropagation();
+								showTableColumnsDropdown =
+									!showTableColumnsDropdown;
+								if (showTableColumnsDropdown)
+									closeAllDropdowns("tableCols");
+							}}
+							aria-expanded={showTableColumnsDropdown}
+							aria-haspopup="listbox"
+							title="Toggle visible columns"
+						>
+							<span class="trigger-value">
+								{settingsStore.visibleColumns.length === 8
+									? "All Cols"
+									: `${settingsStore.visibleColumns.length} Cols`}
+							</span>
+							<ChevronDown size={13} class="chevron" />
+						</button>
 
-								{#if showTableColumnsDropdown}
-									<div
-										class="header-select-menu"
-										use:smartAlign
-										transition:fly={{ y: 4, duration: 150 }}
+						{#if showTableColumnsDropdown}
+							<div
+								class="header-select-menu"
+								use:smartAlign
+								transition:fly={{ y: 4, duration: 150 }}
+							>
+								{#each toggleableColumns as col}
+									<button
+										class="select-item multi-select-item"
+										class:active={settingsStore.visibleColumns.includes(
+											col.id,
+										)}
+										onclick={(e) => {
+											e.stopPropagation();
+											toggleTableColumn(col.id);
+										}}
 									>
-										{#each toggleableColumns as col}
-											<button
-												class="select-item multi-select-item"
-												class:active={settingsStore.visibleColumns.includes(
-													col.id,
-												)}
-												onclick={(e) => {
-													e.stopPropagation();
-													toggleTableColumn(col.id);
-												}}
-											>
-												<div class="checkbox-indicator">
-													{#if settingsStore.visibleColumns.includes(col.id)}
-														<Check size={10} />
-													{/if}
-												</div>
-												<span>{col.label}</span>
-											</button>
-										{/each}
-									</div>
-								{/if}
+										<div class="checkbox-indicator">
+											{#if settingsStore.visibleColumns.includes(col.id)}
+												<Check size={10} />
+											{/if}
+										</div>
+										<span>{col.label}</span>
+									</button>
+								{/each}
 							</div>
 						{/if}
-
 					</div>
 				</div>
 			{/if}
