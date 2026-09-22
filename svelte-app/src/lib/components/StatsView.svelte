@@ -332,8 +332,42 @@
 		return typeLine.includes("land") ? 1.0 : 0.0;
 	}
 
+	const BASIC_LAND_NAMES = new Set([
+		"plains", "island", "swamp", "mountain", "forest", "wastes",
+		"snow-covered plains", "snow-covered island", "snow-covered swamp", 
+		"snow-covered mountain", "snow-covered forest"
+	]);
+
 	/**
-	 * Sorts cards: highest mana value on left, descending to lowest, lands on far right.
+	 * @param {string} name
+	 * @param {any} meta
+	 * @returns {boolean}
+	 */
+	function isBasicLand(name, meta) {
+		const typeLine = (meta.type_line || "").toLowerCase();
+		if (typeLine.includes("basic")) return true;
+		const cleanName = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+		return BASIC_LAND_NAMES.has(cleanName);
+	}
+
+	/**
+	 * Returns the WUBRG order index (0 to 5) for basic lands.
+	 * @param {string} name
+	 * @returns {number}
+	 */
+	function getBasicLandOrder(name) {
+		const n = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+		if (n.includes("plains")) return 0;   // W
+		if (n.includes("island")) return 1;   // U
+		if (n.includes("swamp")) return 2;    // B
+		if (n.includes("mountain")) return 3; // R
+		if (n.includes("forest")) return 4;   // G
+		if (n.includes("wastes")) return 5;   // C
+		return 6;
+	}
+
+	/**
+	 * Sorts cards: highest mana value on left descending, then nonbasic lands (alphabetical), then basic lands on far right (WUBRG).
 	 * @param {{ id: string, name: string }[]} cards
 	 * @returns {{ id: string, name: string }[]}
 	 */
@@ -354,7 +388,22 @@
 				return a.name.localeCompare(b.name);
 			}
 
-			// Both are lands: sort alphabetically
+			// Both are lands:
+			// Nonbasic lands to the left (alphabetical), basic lands to the right (WUBRG order)
+			const aIsBasic = isBasicLand(a.name, metaA);
+			const bIsBasic = isBasicLand(b.name, metaB);
+
+			if (!aIsBasic && bIsBasic) return -1;
+			if (aIsBasic && !bIsBasic) return 1;
+
+			if (!aIsBasic && !bIsBasic) {
+				return a.name.localeCompare(b.name);
+			}
+
+			// Both are basic lands: WUBRG order, then alphabetical
+			const orderA = getBasicLandOrder(a.name);
+			const orderB = getBasicLandOrder(b.name);
+			if (orderA !== orderB) return orderA - orderB;
 			return a.name.localeCompare(b.name);
 		});
 	}
