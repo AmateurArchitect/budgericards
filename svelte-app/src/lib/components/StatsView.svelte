@@ -3,13 +3,18 @@
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { onMount } from "svelte";
 	import { fly } from "svelte/transition";
-	import { Loader, RotateCcw, AlertTriangle, SlidersHorizontal } from "lucide-svelte";
+	import {
+		Loader,
+		RotateCcw,
+		AlertTriangle,
+		SlidersHorizontal,
+	} from "lucide-svelte";
 
 	// Gather all active cards (mainboard + commander + companion)
 	const activeCards = $derived([
 		...deckStore.commander,
 		...deckStore.companion,
-		...deckStore.mainboard
+		...deckStore.mainboard,
 	]);
 
 	/**
@@ -23,14 +28,14 @@
 	// CMC Curve (excluding lands)
 	const cmcCounts = $derived.by(() => {
 		const counts = Array(8).fill(0); // 0, 1, 2, 3, 4, 5, 6, 7+
-		activeCards.forEach(c => {
+		activeCards.forEach((c) => {
 			const meta = getMeta(c.name);
 			const type = meta.type_line || "";
 			if (type.toLowerCase().includes("land")) return;
 			const cmc = Math.floor(meta.cmc ?? 0);
 			if (cmc < 0) return;
 			const index = Math.min(cmc, 7);
-			counts[index] += (c.quantity || 1);
+			counts[index] += c.quantity || 1;
 		});
 		return counts;
 	});
@@ -47,18 +52,20 @@
 			Enchantments: 0,
 			Planeswalkers: 0,
 			Lands: 0,
-			Other: 0
+			Other: 0,
 		};
-		activeCards.forEach(c => {
+		activeCards.forEach((c) => {
 			const meta = getMeta(c.name);
 			const typeLine = (meta.type_line || "").toLowerCase();
 			const qty = c.quantity || 1;
 			if (typeLine.includes("creature")) counts.Creatures += qty;
 			else if (typeLine.includes("instant")) counts.Instants += qty;
 			else if (typeLine.includes("sorcery")) counts.Sorceries += qty;
-			else if (typeLine.includes("planeswalker")) counts.Planeswalkers += qty;
+			else if (typeLine.includes("planeswalker"))
+				counts.Planeswalkers += qty;
 			else if (typeLine.includes("artifact")) counts.Artifacts += qty;
-			else if (typeLine.includes("enchantment")) counts.Enchantments += qty;
+			else if (typeLine.includes("enchantment"))
+				counts.Enchantments += qty;
 			else if (typeLine.includes("land")) counts.Lands += qty;
 			else counts.Other += qty;
 		});
@@ -68,14 +75,14 @@
 	// Colors breakdown
 	const colorCounts = $derived.by(() => {
 		const counts = {
-			White: { code: 'W', count: 0, color: '#f9fafb' },
-			Blue: { code: 'U', count: 0, color: '#3b82f6' },
-			Black: { code: 'B', count: 0, color: '#111827' },
-			Red: { code: 'R', count: 0, color: '#ef4444' },
-			Green: { code: 'G', count: 0, color: '#22c55e' },
-			Colorless: { code: 'C', count: 0, color: '#6b7280' }
+			White: { code: "W", count: 0, color: "#f9fafb" },
+			Blue: { code: "U", count: 0, color: "#3b82f6" },
+			Black: { code: "B", count: 0, color: "#111827" },
+			Red: { code: "R", count: 0, color: "#ef4444" },
+			Green: { code: "G", count: 0, color: "#22c55e" },
+			Colorless: { code: "C", count: 0, color: "#6b7280" },
 		};
-		activeCards.forEach(c => {
+		activeCards.forEach((c) => {
 			const meta = getMeta(c.name);
 			const colors = meta.colors || [];
 			const qty = c.quantity || 1;
@@ -100,15 +107,21 @@
 	 * @param {any} c
 	 * @returns {number}
 	 */
-	const sumPrices = (sum, c) => sum + ((c.price || 0) * (c.quantity || 1));
+	const sumPrices = (sum, c) => sum + (c.price || 0) * (c.quantity || 1);
 
 	// Total pricing summaries
 	const boardPrices = $derived.by(() => {
-		const boards = ['commander', 'companion', 'mainboard', 'sideboard', 'maybeboard'];
+		const boards = [
+			"commander",
+			"companion",
+			"mainboard",
+			"sideboard",
+			"maybeboard",
+		];
 		/** @type {Record<string, number>} */
 		const prices = {};
 		let total = 0;
-		boards.forEach(b => {
+		boards.forEach((b) => {
 			const store = /** @type {any} */ (deckStore);
 			/** @type {any[]} */
 			const list = store[b] || [];
@@ -138,7 +151,10 @@
 	 */
 	function createHandCard(name) {
 		cardInstanceId++;
-		return { id: `card-${cardInstanceId}-${Math.random().toString(36).slice(2, 7)}`, name };
+		return {
+			id: `card-${cardInstanceId}-${Math.random().toString(36).slice(2, 7)}`,
+			name,
+		};
 	}
 
 	// Drag and drop state for sample hand
@@ -195,13 +211,16 @@
 		const mid = (n - 1) / 2;
 		const stepX = Math.min(115, Math.max(34, 760 / (n - 1)));
 
-		const sourceIndex = hand.findIndex(c => c.id === draggingCardId);
+		const sourceIndex = hand.findIndex((c) => c.id === draggingCardId);
 		if (sourceIndex === -1) return;
 
 		const sourceNominalX = (sourceIndex - mid) * stepX;
 		const currentCardX = sourceNominalX + dx;
 
-		const targetIdx = Math.max(0, Math.min(n - 1, Math.round((currentCardX / stepX) + mid)));
+		const targetIdx = Math.max(
+			0,
+			Math.min(n - 1, Math.round(currentCardX / stepX + mid)),
+		);
 		dragHoverTargetIndex = targetIdx;
 	}
 
@@ -212,8 +231,12 @@
 		window.removeEventListener("pointercancel", handleWindowPointerUp);
 
 		if (isCardDragging && draggingCardId) {
-			const sourceIndex = hand.findIndex(c => c.id === draggingCardId);
-			if (sourceIndex !== -1 && dragHoverTargetIndex !== null && dragHoverTargetIndex !== sourceIndex) {
+			const sourceIndex = hand.findIndex((c) => c.id === draggingCardId);
+			if (
+				sourceIndex !== -1 &&
+				dragHoverTargetIndex !== null &&
+				dragHoverTargetIndex !== sourceIndex
+			) {
 				const newHand = [...hand];
 				const [moved] = newHand.splice(sourceIndex, 1);
 				newHand.splice(dragHoverTargetIndex, 0, moved);
@@ -259,7 +282,11 @@
 		const typeLine = (meta.type_line || "").toLowerCase();
 
 		if (strictParity) {
-			const isLand = (meta.card_faces?.[0]?.type_line || typeLine.split("//")[0] || typeLine).includes("land");
+			const isLand = (
+				meta.card_faces?.[0]?.type_line ||
+				typeLine.split("//")[0] ||
+				typeLine
+			).includes("land");
 			return isLand ? 1.0 : 0.0;
 		}
 
@@ -280,7 +307,7 @@
 			"blacker lotus",
 			"jeweled lotus",
 			"sol ring",
-			"mana crypt"
+			"mana crypt",
 		]);
 
 		if (fullLandOverrides.has(cleanName)) {
@@ -294,7 +321,7 @@
 			"troll of khazad-dum",
 			"oliphaunt",
 			"generous ent",
-			"eagles of the north"
+			"eagles of the north",
 		]);
 
 		if (lotr1ManaLandcyclers.has(cleanName)) {
@@ -308,7 +335,9 @@
 
 		// Modal Double Faced Lands (MDFCs)
 		if (typeLine.includes("//")) {
-			const faces = typeLine.split("//").map((/** @type {string} */ s) => s.trim());
+			const faces = typeLine
+				.split("//")
+				.map((/** @type {string} */ s) => s.trim());
 			const frontIsLand = faces[0].includes("land");
 			const backIsLand = faces.length > 1 && faces[1].includes("land");
 
@@ -320,8 +349,12 @@
 		}
 
 		if (meta.card_faces && meta.card_faces.length > 1) {
-			const frontLand = (meta.card_faces[0]?.type_line || "").toLowerCase().includes("land");
-			const backLand = (meta.card_faces[1]?.type_line || "").toLowerCase().includes("land");
+			const frontLand = (meta.card_faces[0]?.type_line || "")
+				.toLowerCase()
+				.includes("land");
+			const backLand = (meta.card_faces[1]?.type_line || "")
+				.toLowerCase()
+				.includes("land");
 			if (frontLand && backLand) {
 				return 1.0;
 			} else if (!frontLand && backLand) {
@@ -333,9 +366,17 @@
 	}
 
 	const BASIC_LAND_NAMES = new Set([
-		"plains", "island", "swamp", "mountain", "forest", "wastes",
-		"snow-covered plains", "snow-covered island", "snow-covered swamp", 
-		"snow-covered mountain", "snow-covered forest"
+		"plains",
+		"island",
+		"swamp",
+		"mountain",
+		"forest",
+		"wastes",
+		"snow-covered plains",
+		"snow-covered island",
+		"snow-covered swamp",
+		"snow-covered mountain",
+		"snow-covered forest",
 	]);
 
 	/**
@@ -346,7 +387,11 @@
 	function isBasicLand(name, meta) {
 		const typeLine = (meta.type_line || "").toLowerCase();
 		if (typeLine.includes("basic")) return true;
-		const cleanName = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+		const cleanName = name
+			.toLowerCase()
+			.normalize("NFD")
+			.replace(/[\u0300-\u036f]/g, "")
+			.trim();
 		return BASIC_LAND_NAMES.has(cleanName);
 	}
 
@@ -356,13 +401,16 @@
 	 * @returns {number}
 	 */
 	function getBasicLandOrder(name) {
-		const n = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-		if (n.includes("plains")) return 0;   // W
-		if (n.includes("island")) return 1;   // U
-		if (n.includes("swamp")) return 2;    // B
+		const n = name
+			.toLowerCase()
+			.normalize("NFD")
+			.replace(/[\u0300-\u036f]/g, "");
+		if (n.includes("plains")) return 0; // W
+		if (n.includes("island")) return 1; // U
+		if (n.includes("swamp")) return 2; // B
 		if (n.includes("mountain")) return 3; // R
-		if (n.includes("forest")) return 4;   // G
-		if (n.includes("wastes")) return 5;   // C
+		if (n.includes("forest")) return 4; // G
+		if (n.includes("wastes")) return 5; // C
 		return 6;
 	}
 
@@ -375,8 +423,12 @@
 		return [...cards].sort((a, b) => {
 			const metaA = getMeta(a.name);
 			const metaB = getMeta(b.name);
-			const aIsLand = (metaA.type_line || "").toLowerCase().includes("land");
-			const bIsLand = (metaB.type_line || "").toLowerCase().includes("land");
+			const aIsLand = (metaA.type_line || "")
+				.toLowerCase()
+				.includes("land");
+			const bIsLand = (metaB.type_line || "")
+				.toLowerCase()
+				.includes("land");
 
 			if (!aIsLand && bIsLand) return -1;
 			if (aIsLand && !bIsLand) return 1;
@@ -462,12 +514,15 @@
 			candidates.push({
 				shuffled: candidateShuffled,
 				hand: candidateHand,
-				weight: Math.max(weight, 1e-9)
+				weight: Math.max(weight, 1e-9),
 			});
 		}
 
 		// Select a candidate randomly with probability proportional to weight
-		const totalWeight = candidates.reduce((/** @type {number} */ sum, c) => sum + c.weight, 0);
+		const totalWeight = candidates.reduce(
+			(/** @type {number} */ sum, c) => sum + c.weight,
+			0,
+		);
 		const rand = Math.random() * totalWeight;
 		let cumulative = 0;
 		let chosen = candidates[0];
@@ -492,7 +547,7 @@
 		/**
 		 * @param {any} c
 		 */
-		const addCardNames = c => {
+		const addCardNames = (c) => {
 			for (let i = 0; i < (c.quantity || 1); i++) {
 				decklist.push(c.name);
 			}
@@ -512,7 +567,7 @@
 		/**
 		 * @param {any} c
 		 */
-		const addCardNames = c => {
+		const addCardNames = (c) => {
 			for (let i = 0; i < (c.quantity || 1); i++) {
 				decklist.push(c.name);
 			}
@@ -534,7 +589,11 @@
 	 */
 	function getCardImg(name) {
 		const meta = getMeta(name);
-		return meta.image_uris?.normal || meta.card_faces?.[0]?.image_uris?.normal || null;
+		return (
+			meta.image_uris?.normal ||
+			meta.card_faces?.[0]?.image_uris?.normal ||
+			null
+		);
 	}
 
 	// Arena-style arc calculations for sample hand with drag-and-drop support
@@ -548,19 +607,27 @@
 		const maxAngle = n > 1 ? Math.min(17, Math.max(3.5, (n - 1) * 2.8)) : 0;
 		const arcDepth = n > 1 ? Math.min(42, Math.max(8, (n - 1) * 6.5)) : 0;
 
-		const sourceIndex = isCardDragging && draggingCardId 
-			? hand.findIndex(c => c.id === draggingCardId)
-			: -1;
-		const targetIndex = isCardDragging && dragHoverTargetIndex !== null
-			? dragHoverTargetIndex
-			: -1;
+		const sourceIndex =
+			isCardDragging && draggingCardId
+				? hand.findIndex((c) => c.id === draggingCardId)
+				: -1;
+		const targetIndex =
+			isCardDragging && dragHoverTargetIndex !== null
+				? dragHoverTargetIndex
+				: -1;
 
 		return hand.map((cardItem, i) => {
-			const isThisCardDragging = isCardDragging && cardItem.id === draggingCardId;
+			const isThisCardDragging =
+				isCardDragging && cardItem.id === draggingCardId;
 
 			// Calculate effective slot index during drag to make room for dragged card
 			let visualSlot = i;
-			if (isCardDragging && sourceIndex !== -1 && targetIndex !== -1 && !isThisCardDragging) {
+			if (
+				isCardDragging &&
+				sourceIndex !== -1 &&
+				targetIndex !== -1 &&
+				!isThisCardDragging
+			) {
 				if (targetIndex > sourceIndex) {
 					if (i > sourceIndex && i <= targetIndex) {
 						visualSlot = i - 1;
@@ -582,10 +649,11 @@
 			if (isThisCardDragging) {
 				const nominalNorm = mid > 0 ? (sourceIndex - mid) / mid : 0;
 				const nominalX = (sourceIndex - mid) * stepX;
-				const nominalY = Math.pow(Math.abs(nominalNorm), 1.65) * arcDepth;
+				const nominalY =
+					Math.pow(Math.abs(nominalNorm), 1.65) * arcDepth;
 				x = nominalX + dragCurrentX;
 				y = nominalY + dragCurrentY - 14;
-				rot = (nominalNorm * maxAngle) * 0.35;
+				rot = nominalNorm * maxAngle * 0.35;
 				z = 350;
 				scale = 1.08;
 			}
@@ -603,7 +671,7 @@
 				scale,
 				delay,
 				isDragging: isThisCardDragging,
-				i
+				i,
 			};
 		});
 	});
@@ -613,18 +681,21 @@
 		/** @type {any[]} */
 		const tokens = [];
 		const seen = new Set();
-		activeCards.forEach(c => {
+		activeCards.forEach((c) => {
 			const meta = getMeta(c.name);
 			if (meta.all_parts) {
 				/**
 				 * @param {any} part
 				 */
-				const processPart = part => {
+				const processPart = (part) => {
 					if (part.component === "token" && !seen.has(part.name)) {
 						seen.add(part.name);
 						tokens.push({
 							name: part.name,
-							image_uri: part.image_uris?.normal || part.image_uris?.large || null
+							image_uri:
+								part.image_uris?.normal ||
+								part.image_uris?.large ||
+								null,
 						});
 					}
 				};
@@ -646,20 +717,26 @@
 		combosError = "";
 		combos = [];
 		try {
-			const cardNames = Array.from(new Set(activeCards.map(c => c.name)));
-			const res = await fetch("https://backend.commanderspellbook.com/find-my-combos", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json"
+			const cardNames = Array.from(
+				new Set(activeCards.map((c) => c.name)),
+			);
+			const res = await fetch(
+				"https://backend.commanderspellbook.com/find-my-combos",
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({ cards: cardNames }),
 				},
-				body: JSON.stringify({ cards: cardNames })
-			});
+			);
 			if (!res.ok) throw new Error("API returned status " + res.status);
 			const data = await res.json();
 			combos = data.results || data || [];
 		} catch (e) {
 			console.error("Failed to load combos:", e);
-			combosError = "Failed to load combinations from Commander Spellbook.";
+			combosError =
+				"Failed to load combinations from Commander Spellbook.";
 		} finally {
 			combosError = "";
 			isCombosLoading = false;
@@ -671,7 +748,11 @@
 	 * @returns {string}
 	 */
 	function getComboTitle(combo) {
-		return combo.results?.map(/** @param {any} r */ r => r.name).join(", ") || "Alternative Synergy";
+		return (
+			combo.results
+				?.map(/** @param {any} r */ (r) => r.name)
+				.join(", ") || "Alternative Synergy"
+		);
 	}
 
 	onMount(() => {
@@ -703,12 +784,12 @@
 					{#each cmcCounts as count, i}
 						<div class="chart-bar-wrapper">
 							<div class="bar-label">{count}</div>
-							<div 
-								class="chart-bar" 
+							<div
+								class="chart-bar"
 								style="height: {(count / maxCmcCount) * 80}%;"
 								title="{count} cards with CMC {i}"
 							></div>
-							<div class="bar-value">{i === 7 ? '7+' : i}</div>
+							<div class="bar-value">{i === 7 ? "7+" : i}</div>
 						</div>
 					{/each}
 				</div>
@@ -722,7 +803,12 @@
 						<li>
 							<span class="list-label">{type}</span>
 							<div class="progress-bar-bg">
-								<div class="progress-bar" style="width: {(count / activeCards.length) * 100}%;"></div>
+								<div
+									class="progress-bar"
+									style="width: {(count /
+										activeCards.length) *
+										100}%;"
+								></div>
 							</div>
 							<span class="list-value">{count}</span>
 						</li>
@@ -736,9 +822,17 @@
 				<ul class="stats-list">
 					{#each colorCounts as [name, info]}
 						<li>
-							<span class="list-label color-badge" style="border-color: {info.color}">{name}</span>
+							<span
+								class="list-label color-badge"
+								style="border-color: {info.color}">{name}</span
+							>
 							<div class="progress-bar-bg">
-								<div class="progress-bar" style="width: {(info.count / activeCards.length) * 100}%; background-color: {info.color};"></div>
+								<div
+									class="progress-bar"
+									style="width: {(info.count /
+										activeCards.length) *
+										100}%; background-color: {info.color};"
+								></div>
 							</div>
 							<span class="list-value">{info.count}</span>
 						</li>
@@ -752,53 +846,84 @@
 				<ul class="stats-list price-list">
 					<li>
 						<span class="list-label">Total Value</span>
-						<span class="list-value highlight-price">${boardPrices.total.toFixed(2)}</span>
+						<span class="list-value highlight-price"
+							>${boardPrices.total.toFixed(2)}</span
+						>
 					</li>
 					<li>
 						<span class="list-label">Mainboard</span>
-						<span class="list-value">${boardPrices.mainboard.toFixed(2)}</span>
+						<span class="list-value"
+							>${boardPrices.mainboard.toFixed(2)}</span
+						>
 					</li>
 					<li>
 						<span class="list-label">Commander</span>
-						<span class="list-value">${boardPrices.commander.toFixed(2)}</span>
+						<span class="list-value"
+							>${boardPrices.commander.toFixed(2)}</span
+						>
 					</li>
 					<li>
 						<span class="list-label">Sideboard</span>
-						<span class="list-value">${boardPrices.sideboard.toFixed(2)}</span>
+						<span class="list-value"
+							>${boardPrices.sideboard.toFixed(2)}</span
+						>
 					</li>
 					<li>
 						<span class="list-label">Maybeboard</span>
-						<span class="list-value">${boardPrices.maybeboard.toFixed(2)}</span>
+						<span class="list-value"
+							>${boardPrices.maybeboard.toFixed(2)}</span
+						>
 					</li>
 				</ul>
 			</div>
 		</div>
-
 	{:else if settingsStore.statsSubTab === "sample-hand"}
 		<!-- Sample Hand Simulator (Arena-style Fan) -->
 		<div class="arena-hand-view">
 			<div class="arena-controls-bar">
 				<div class="arena-hand-meta">
-					<span class="meta-pill count">{hand.length} Cards in Hand</span>
+					<span class="meta-pill count"
+						>{hand.length} Cards in Hand</span
+					>
 					{#if mulliganCount > 0}
-						<span class="meta-pill mulligan">Mulligan ({mulliganCount})</span>
+						<span class="meta-pill mulligan"
+							>Mulligan ({mulliganCount})</span
+						>
 					{/if}
 					{#if settingsStore.sampleHandSmoother}
-						<span class="meta-pill smoother" title="MTG Arena-style Hand Smoother is enabled">Smoother On</span>
+						<span
+							class="meta-pill smoother"
+							title="MTG Arena-style Hand Smoother is enabled"
+							>Smoother On</span
+						>
 					{/if}
 				</div>
 
 				<div class="arena-actions">
-					<button onclick={resetSampleHand} class="arena-action-btn" title="Reshuffle deck and draw an opening hand">
+					<button
+						onclick={resetSampleHand}
+						class="arena-action-btn"
+						title="Reshuffle deck and draw an opening hand"
+					>
 						<RotateCcw size={14} />
-						<span>Reset Hand</span>
+						<span>New Hand</span>
 					</button>
 
-					<button onclick={mulligan} class="arena-action-btn" disabled={mulliganCount >= 7} title="Mulligan hand">
+					<button
+						onclick={mulligan}
+						class="arena-action-btn"
+						disabled={mulliganCount >= 7}
+						title="Mulligan hand"
+					>
 						<span>Mulligan ({mulliganCount})</span>
 					</button>
 
-					<button onclick={drawCard} class="arena-action-btn primary" disabled={library.length === 0} title="Draw 1 card">
+					<button
+						onclick={drawCard}
+						class="arena-action-btn primary"
+						disabled={library.length === 0}
+						title="Draw 1 card"
+					>
 						<span>Draw Card ({library.length} left)</span>
 					</button>
 
@@ -824,17 +949,25 @@
 								class="arena-options-menu"
 								transition:fly={{ y: 4, duration: 150 }}
 							>
-								<div class="options-menu-header">Hand Options</div>
+								<div class="options-menu-header">
+									Hand Options
+								</div>
 
 								<div class="options-menu-item">
 									<div class="options-item-info">
-										<span class="options-item-title">Hand Smoother</span>
-										<span class="options-item-desc">MTG Arena opening hand algorithm</span>
+										<span class="options-item-title"
+											>Hand Smoother</span
+										>
+										<span class="options-item-desc"
+											>MTG Arena opening hand algorithm</span
+										>
 									</div>
 									<label class="switch">
 										<input
 											type="checkbox"
-											bind:checked={settingsStore.sampleHandSmoother}
+											bind:checked={
+												settingsStore.sampleHandSmoother
+											}
 										/>
 										<span class="slider"></span>
 									</label>
@@ -842,15 +975,24 @@
 
 								<div class="options-menu-divider"></div>
 
-								<div class="options-menu-item" class:disabled={!settingsStore.sampleHandSmoother}>
+								<div
+									class="options-menu-item"
+									class:disabled={!settingsStore.sampleHandSmoother}
+								>
 									<div class="options-item-info">
-										<span class="options-item-title">Arena Parity</span>
-										<span class="options-item-desc">Strictly count only actual lands</span>
+										<span class="options-item-title"
+											>Arena Parity</span
+										>
+										<span class="options-item-desc"
+											>Strictly count only actual lands</span
+										>
 									</div>
 									<label class="switch">
 										<input
 											type="checkbox"
-											bind:checked={settingsStore.sampleHandArenaParity}
+											bind:checked={
+												settingsStore.sampleHandArenaParity
+											}
 											disabled={!settingsStore.sampleHandSmoother}
 										/>
 										<span class="slider"></span>
@@ -859,9 +1001,9 @@
 
 								<div class="options-menu-divider"></div>
 
-								<button 
-									type="button" 
-									class="options-menu-btn" 
+								<button
+									type="button"
+									class="options-menu-btn"
 									onclick={manualSortHand}
 								>
 									<span>Sort by Mana Value</span>
@@ -875,7 +1017,10 @@
 			{#if hand.length === 0}
 				<div class="empty-arena-state">
 					<p>Your opening hand is currently empty.</p>
-					<button onclick={resetSampleHand} class="arena-action-btn primary">
+					<button
+						onclick={resetSampleHand}
+						class="arena-action-btn primary"
+					>
 						<RotateCcw size={15} />
 						<span>Draw 7-Card Hand</span>
 					</button>
@@ -884,20 +1029,30 @@
 				<div class="arena-stage">
 					<div class="arena-mat-glow"></div>
 					{#key dealKey}
-						<div class="arena-fan" class:is-dragging-active={isCardDragging} role="list" aria-label="Sample Hand Cards">
+						<div
+							class="arena-fan"
+							class:is-dragging-active={isCardDragging}
+							role="list"
+							aria-label="Sample Hand Cards"
+						>
 							{#each handCards as card (card.id)}
-								<div 
-									class="arena-card-wrapper" 
+								<div
+									class="arena-card-wrapper"
 									class:is-dragging={card.isDragging}
 									style="--x: {card.x}px; --y: {card.y}px; --rot: {card.rot}deg; --z: {card.z}; --scale: {card.scale}; --deal-delay: {card.delay}ms;"
-									title="{card.name}"
+									title={card.name}
 									role="listitem"
-									onpointerdown={(e) => handleCardPointerDown(e, card.id, card.i)}
+									onpointerdown={(e) =>
+										handleCardPointerDown(
+											e,
+											card.id,
+											card.i,
+										)}
 								>
 									{#if card.img}
-										<img 
-											src={card.img} 
-											alt={card.name} 
+										<img
+											src={card.img}
+											alt={card.name}
 											class="arena-card-img"
 											loading="eager"
 											draggable="false"
@@ -905,7 +1060,10 @@
 									{:else}
 										<div class="arena-card-fallback">
 											<div class="fallback-frame">
-												<span class="fallback-card-title">{card.name}</span>
+												<span
+													class="fallback-card-title"
+													>{card.name}</span
+												>
 											</div>
 										</div>
 									{/if}
@@ -916,7 +1074,6 @@
 				</div>
 			{/if}
 		</div>
-
 	{:else if settingsStore.statsSubTab === "tokens"}
 		<!-- Tokens Panel -->
 		<div class="panel-card">
@@ -933,7 +1090,11 @@
 					{#each requiredTokens as token}
 						<div class="token-card-wrapper">
 							{#if token.image_uri}
-								<img src={token.image_uri} alt={token.name} class="token-img" />
+								<img
+									src={token.image_uri}
+									alt={token.name}
+									class="token-img"
+								/>
 							{:else}
 								<div class="token-fallback">
 									<span>{token.name}</span>
@@ -945,7 +1106,6 @@
 				</div>
 			{/if}
 		</div>
-
 	{:else if settingsStore.statsSubTab === "combos"}
 		<!-- Combos Panel -->
 		<div class="panel-card">
@@ -965,7 +1125,10 @@
 				</div>
 			{:else if combos.length === 0}
 				<div class="empty-panel-state">
-					<p>No combinations from Commander Spellbook detected in this decklist.</p>
+					<p>
+						No combinations from Commander Spellbook detected in
+						this decklist.
+					</p>
 				</div>
 			{:else}
 				<div class="combos-list">
@@ -979,7 +1142,9 @@
 									<strong>Required Cards:</strong>
 									<div class="combo-cards-tags">
 										{#each combo.cards || [] as card}
-											<span class="card-tag">{card.card.name}</span>
+											<span class="card-tag"
+												>{card.card.name}</span
+											>
 										{/each}
 									</div>
 								</div>
@@ -1103,7 +1268,11 @@
 
 	.chart-bar {
 		width: 22px;
-		background: linear-gradient(to top, hsl(var(--primary)), hsl(var(--primary-dark, var(--primary))));
+		background: linear-gradient(
+			to top,
+			hsl(var(--primary)),
+			hsl(var(--primary-dark, var(--primary)))
+		);
 		border-radius: 4px 4px 0 0;
 		transition: height 0.3s ease;
 		cursor: pointer;
@@ -1164,7 +1333,6 @@
 		flex-wrap: wrap;
 		gap: 1rem;
 	}
-
 
 	.empty-panel-state,
 	.loading-state,
@@ -1348,7 +1516,9 @@
 		border: 1px solid rgba(255, 255, 255, 0.12);
 		border-radius: 10px;
 		padding: 12px 14px;
-		box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
+		box-shadow:
+			0 12px 30px -4px rgba(0, 0, 0, 0.6),
+			0 4px 12px rgba(0, 0, 0, 0.4);
 		backdrop-filter: blur(20px);
 		-webkit-backdrop-filter: blur(20px);
 		display: flex;
@@ -1508,7 +1678,11 @@
 		transform: translateX(-50%);
 		width: 75%;
 		height: 120px;
-		background: radial-gradient(ellipse 65% 50% at 50% 50%, rgba(56, 189, 248, 0.06) 0%, rgba(0, 0, 0, 0) 70%);
+		background: radial-gradient(
+			ellipse 65% 50% at 50% 50%,
+			rgba(56, 189, 248, 0.06) 0%,
+			rgba(0, 0, 0, 0) 70%
+		);
 		pointer-events: none;
 		filter: blur(10px);
 	}
@@ -1534,14 +1708,20 @@
 	@keyframes dealCard {
 		0% {
 			opacity: 0;
-			transform: translate3d(calc(var(--x) * 0.57), calc(var(--y) + 79px), 0) rotate(calc(var(--rot) * 0.48)) scale(0.82);
+			transform: translate3d(
+					calc(var(--x) * 0.57),
+					calc(var(--y) + 79px),
+					0
+				)
+				rotate(calc(var(--rot) * 0.48)) scale(0.82);
 		}
 		50% {
 			opacity: 1;
 		}
 		100% {
 			opacity: 1;
-			transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot)) scale(1);
+			transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot))
+				scale(1);
 		}
 	}
 
@@ -1554,33 +1734,37 @@
 		margin-left: -107.5px;
 		margin-top: 0;
 		transform-origin: 50% 120%;
-		transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot)) scale(var(--scale, 1));
+		transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot))
+			scale(var(--scale, 1));
 		z-index: var(--z);
 		animation: dealCard 0.33s cubic-bezier(0.18, 0.89, 0.32, 1.15) backwards;
 		animation-delay: var(--deal-delay, 0ms);
-		transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), 
-		            box-shadow 0.22s ease, 
-		            filter 0.2s ease,
-		            z-index 0.05s step-end;
+		transition:
+			transform 0.22s cubic-bezier(0.2, 0, 0, 1),
+			box-shadow 0.22s ease,
+			filter 0.2s ease,
+			z-index 0.05s step-end;
 		cursor: grab;
 		touch-action: none;
 		border-radius: 11px;
 		user-select: none;
 		-webkit-user-select: none;
-		box-shadow: 
+		box-shadow:
 			0 12px 28px -6px rgba(0, 0, 0, 0.8),
 			0 4px 10px -2px rgba(0, 0, 0, 0.6),
 			0 0 0 1px rgba(255, 255, 255, 0.08);
 	}
 
 	.arena-card-wrapper:hover:not(.is-dragging) {
-		transform: translate3d(var(--x), calc(var(--y) - 8px), 0) rotate(var(--rot)) scale(1.04);
+		transform: translate3d(var(--x), calc(var(--y) - 8px), 0)
+			rotate(var(--rot)) scale(1.04);
 		z-index: 100 !important;
-		transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), 
-		            box-shadow 0.22s ease, 
-		            filter 0.2s ease,
-		            z-index 0s;
-		box-shadow: 
+		transition:
+			transform 0.22s cubic-bezier(0.2, 0, 0, 1),
+			box-shadow 0.22s ease,
+			filter 0.2s ease,
+			z-index 0s;
+		box-shadow:
 			0 18px 36px -8px rgba(0, 0, 0, 0.85),
 			0 8px 16px -4px rgba(0, 0, 0, 0.6),
 			0 0 0 1px rgba(255, 255, 255, 0.18),
@@ -1590,7 +1774,7 @@
 	.arena-card-wrapper.is-dragging {
 		cursor: grabbing !important;
 		transition: none !important;
-		box-shadow: 
+		box-shadow:
 			0 26px 54px -8px rgba(0, 0, 0, 0.95),
 			0 12px 28px -4px rgba(0, 0, 0, 0.7),
 			0 0 0 2px rgba(56, 189, 248, 0.7),
@@ -1676,7 +1860,11 @@
 	.token-fallback {
 		width: 100%;
 		aspect-ratio: 2.5/3.5;
-		background: linear-gradient(135deg, hsl(var(--muted) / 0.2) 0%, hsl(var(--border) / 0.4) 100%);
+		background: linear-gradient(
+			135deg,
+			hsl(var(--muted) / 0.2) 0%,
+			hsl(var(--border) / 0.4) 100%
+		);
 		border-radius: var(--radius-md);
 		display: flex;
 		align-items: center;
