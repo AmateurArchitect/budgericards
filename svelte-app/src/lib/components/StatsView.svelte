@@ -890,19 +890,12 @@
 							>Mulligan ({mulliganCount})</span
 						>
 					{/if}
-					{#if settingsStore.sampleHandSmoother}
-						<span
-							class="meta-pill smoother"
-							title="MTG Arena-style Hand Smoother is enabled"
-							>Smoother On</span
-						>
-					{/if}
 				</div>
 
 				<div class="arena-actions">
 					<button
 						onclick={resetSampleHand}
-						class="arena-action-btn"
+						class="arena-action-btn primary"
 						title="Reshuffle deck and draw an opening hand"
 					>
 						<RotateCcw size={14} />
@@ -915,12 +908,12 @@
 						disabled={mulliganCount >= 7}
 						title="Mulligan hand"
 					>
-						<span>Mulligan ({mulliganCount})</span>
+						<span>Mulligan to {Math.max(0, 7 - (mulliganCount + 1))}</span>
 					</button>
 
 					<button
 						onclick={drawCard}
-						class="arena-action-btn primary"
+						class="arena-action-btn"
 						disabled={library.length === 0}
 						title="Draw 1 card"
 					>
@@ -937,7 +930,10 @@
 							}}
 							class="arena-action-btn icon-only"
 							class:active={showHandOptions}
-							title="Sample Hand Options"
+							class:smoother-active={settingsStore.sampleHandSmoother}
+							title={settingsStore.sampleHandSmoother
+								? "Sample Hand Options (Hand Smoother On)"
+								: "Sample Hand Options"}
 							aria-label="Sample Hand Options"
 							aria-expanded={showHandOptions}
 						>
@@ -1408,12 +1404,6 @@
 		background: hsl(38 92% 50% / 0.08);
 	}
 
-	.meta-pill.smoother {
-		color: hsl(190 90% 50%);
-		border-color: hsl(190 90% 50% / 0.3);
-		background: hsl(190 90% 50% / 0.08);
-	}
-
 	.arena-actions {
 		display: flex;
 		align-items: center;
@@ -1490,6 +1480,17 @@
 	.arena-action-btn.icon-only.active {
 		background: hsl(var(--foreground) / 0.14);
 		color: hsl(var(--foreground));
+	}
+
+	.arena-action-btn.icon-only.smoother-active {
+		background: hsl(var(--primary) / 0.15);
+		color: hsl(var(--primary));
+	}
+
+	.arena-action-btn.icon-only.smoother-active:hover:not(:disabled),
+	.arena-action-btn.icon-only.smoother-active.active {
+		background: hsl(var(--primary) / 0.25);
+		color: hsl(var(--primary));
 	}
 
 	.arena-actions-separator {
