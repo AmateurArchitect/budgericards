@@ -310,14 +310,6 @@
 
 	<div class="global-header-right">
 		<nav class="global-nav">
-			<button
-				type="button"
-				class="global-nav-link"
-				onclick={handleNewDeck}
-			>
-				New Deck
-			</button>
-
 			<a
 				href="/decks"
 				class="global-nav-link"
@@ -325,6 +317,14 @@
 			>
 				Your Decks
 			</a>
+
+			<button
+				type="button"
+				class="global-nav-link"
+				onclick={handleNewDeck}
+			>
+				New Deck
+			</button>
 
 			<!-- AmateurArchitect / User Profile Item -->
 			<div class="user-menu-wrapper">
