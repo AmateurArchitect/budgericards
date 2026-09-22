@@ -1018,7 +1018,6 @@
 				</div>
 			{:else}
 				<div class="arena-stage">
-					<div class="arena-mat-glow"></div>
 					{#key dealKey}
 						<div
 							class="arena-fan"
@@ -1663,22 +1662,6 @@
 		margin-top: 0;
 	}
 
-	.arena-mat-glow {
-		position: absolute;
-		bottom: 15px;
-		left: 50%;
-		transform: translateX(-50%);
-		width: 75%;
-		height: 120px;
-		background: radial-gradient(
-			ellipse 65% 50% at 50% 50%,
-			rgba(56, 189, 248, 0.06) 0%,
-			rgba(0, 0, 0, 0) 70%
-		);
-		pointer-events: none;
-		filter: blur(10px);
-	}
-
 	.arena-fan {
 		position: relative;
 		width: 100%;
@@ -1754,13 +1737,11 @@
 		transition:
 			transform 0.22s cubic-bezier(0.2, 0, 0, 1),
 			box-shadow 0.22s ease,
-			filter 0.2s ease,
 			z-index 0s;
 		box-shadow:
 			0 18px 36px -8px rgba(0, 0, 0, 0.85),
 			0 8px 16px -4px rgba(0, 0, 0, 0.6),
-			0 0 0 1px rgba(255, 255, 255, 0.18),
-			0 0 20px rgba(56, 189, 248, 0.22);
+			0 0 0 1px rgba(255, 255, 255, 0.18);
 	}
 
 	.arena-card-wrapper.is-dragging {
@@ -1769,8 +1750,7 @@
 		box-shadow:
 			0 26px 54px -8px rgba(0, 0, 0, 0.95),
 			0 12px 28px -4px rgba(0, 0, 0, 0.7),
-			0 0 0 2px rgba(56, 189, 248, 0.7),
-			0 0 32px rgba(56, 189, 248, 0.4) !important;
+			0 0 0 1px rgba(255, 255, 255, 0.25) !important;
 	}
 
 	.arena-card-img {
