@@ -915,14 +915,18 @@
 	}
 
 	.global-header-bar.is-auto-hide {
-		margin-top: -48px;
-		transition: margin-top 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		transform: translateY(-100%);
+		transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 		pointer-events: none;
-		will-change: margin-top;
+		will-change: transform;
 	}
 
 	.global-header-bar.is-auto-hide.is-revealed {
-		margin-top: 0;
+		transform: translateY(0);
 		pointer-events: auto;
 	}
 
