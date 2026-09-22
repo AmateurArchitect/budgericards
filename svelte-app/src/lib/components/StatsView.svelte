@@ -126,6 +126,9 @@
 	let library = $state([]);
 	let mulliganCount = $state(0);
 
+	let dealKey = $state(0);
+	let isOpeningDeal = $state(true);
+
 	/**
 	 * @param {any[]} array
 	 */
@@ -139,6 +142,8 @@
 	}
 
 	function resetSampleHand() {
+		dealKey++;
+		isOpeningDeal = true;
 		/** @type {string[]} */
 		const decklist = [];
 		/**
@@ -163,6 +168,8 @@
 	}
 
 	function mulligan() {
+		dealKey++;
+		isOpeningDeal = true;
 		mulliganCount++;
 		/** @type {string[]} */
 		const decklist = [];
@@ -181,6 +188,7 @@
 
 	function drawCard() {
 		if (library.length > 0) {
+			isOpeningDeal = false;
 			hand = [...hand, library[0]];
 			library = library.slice(1);
 		}
@@ -211,6 +219,7 @@
 			const y = Math.pow(Math.abs(norm), 1.65) * arcDepth;
 			const rot = norm * maxAngle;
 			const z = i + 1;
+			const delay = isOpeningDeal ? i * 50 : 0;
 
 			return {
 				name: cardName,
@@ -219,6 +228,7 @@
 				y: Math.round(y * 10) / 10,
 				rot: Math.round(rot * 10) / 10,
 				z,
+				delay,
 				i
 			};
 		});
@@ -421,33 +431,32 @@
 			{:else}
 				<div class="arena-stage">
 					<div class="arena-mat-glow"></div>
-					<div class="arena-fan">
-						{#each handCards as card (card.i + '-' + card.name)}
-							<div 
-								class="arena-card-wrapper" 
-								style="--x: {card.x}px; --y: {card.y}px; --rot: {card.rot}deg; --z: {card.z};"
-								title="{card.name}"
-								tabindex="0"
-								role="img"
-								aria-label="{card.name}"
-							>
-								{#if card.img}
-									<img 
-										src={card.img} 
-										alt={card.name} 
-										class="arena-card-img"
-										loading="eager"
-									/>
-								{:else}
-									<div class="arena-card-fallback">
-										<div class="fallback-frame">
-											<span class="fallback-card-title">{card.name}</span>
+					{#key dealKey}
+						<div class="arena-fan">
+							{#each handCards as card (card.i + '-' + card.name)}
+								<div 
+									class="arena-card-wrapper" 
+									style="--x: {card.x}px; --y: {card.y}px; --rot: {card.rot}deg; --z: {card.z}; --deal-delay: {card.delay}ms;"
+									title="{card.name}"
+								>
+									{#if card.img}
+										<img 
+											src={card.img} 
+											alt={card.name} 
+											class="arena-card-img"
+											loading="eager"
+										/>
+									{:else}
+										<div class="arena-card-fallback">
+											<div class="fallback-frame">
+												<span class="fallback-card-title">{card.name}</span>
+											</div>
 										</div>
-									</div>
-								{/if}
-							</div>
-						{/each}
-					</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/key}
 				</div>
 			{/if}
 		</div>
@@ -700,36 +709,6 @@
 		gap: 1rem;
 	}
 
-	.panel-actions {
-		display: flex;
-		gap: 0.75rem;
-	}
-
-	.btn-action {
-		background: hsl(var(--muted) / 0.15);
-		border: 1px solid hsl(var(--border) / 0.6);
-		color: hsl(var(--foreground));
-		padding: 0.5rem 1rem;
-		border-radius: var(--radius-md);
-		font-size: 0.825rem;
-		font-weight: 500;
-		display: flex;
-		align-items: center;
-		gap: 0.35rem;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.btn-action:hover:not(:disabled) {
-		background: hsl(var(--primary) / 0.15);
-		border-color: hsl(var(--primary) / 0.5);
-		color: hsl(var(--primary));
-	}
-
-	.btn-action:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
 
 	.empty-panel-state,
 	.loading-state,
@@ -772,7 +751,7 @@
 		justify-content: center;
 		gap: 1rem;
 		flex-wrap: wrap;
-		margin-bottom: 2rem;
+		margin-bottom: 0.75rem;
 		z-index: 10;
 	}
 
@@ -875,22 +854,22 @@
 		position: relative;
 		width: 100%;
 		max-width: 1200px;
-		height: 480px;
+		height: 400px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		overflow: visible;
-		margin-top: 1rem;
+		margin-top: 0;
 	}
 
 	.arena-mat-glow {
 		position: absolute;
-		bottom: 10px;
+		bottom: 15px;
 		left: 50%;
 		transform: translateX(-50%);
 		width: 75%;
-		height: 140px;
-		background: radial-gradient(ellipse 65% 50% at 50% 50%, rgba(56, 189, 248, 0.07) 0%, rgba(0, 0, 0, 0) 70%);
+		height: 120px;
+		background: radial-gradient(ellipse 65% 50% at 50% 50%, rgba(56, 189, 248, 0.06) 0%, rgba(0, 0, 0, 0) 70%);
 		pointer-events: none;
 		filter: blur(10px);
 	}
@@ -909,44 +888,58 @@
 		filter: brightness(0.8);
 	}
 
+	@keyframes dealCard {
+		0% {
+			opacity: 0;
+			transform: translate3d(calc(var(--x) * 0.15), 160px, 0) rotate(0deg) scale(0.65);
+		}
+		60% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 1;
+			transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot)) scale(1);
+		}
+	}
+
 	.arena-card-wrapper {
 		position: absolute;
 		left: 50%;
-		top: 50%;
+		top: 35px;
 		width: 215px;
 		height: 300px;
 		margin-left: -107.5px;
-		margin-top: -120px;
+		margin-top: 0;
 		transform-origin: 50% 120%;
 		transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot));
 		z-index: var(--z);
-		transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), 
-		            box-shadow 0.25s ease, 
-		            filter 0.22s ease,
+		animation: dealCard 0.42s cubic-bezier(0.18, 0.89, 0.32, 1.15) backwards;
+		animation-delay: var(--deal-delay, 0ms);
+		transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), 
+		            box-shadow 0.22s ease, 
+		            filter 0.2s ease,
 		            z-index 0.05s step-end;
 		cursor: pointer;
 		border-radius: 11px;
 		user-select: none;
-		outline: none;
 		box-shadow: 
 			0 12px 28px -6px rgba(0, 0, 0, 0.8),
 			0 4px 10px -2px rgba(0, 0, 0, 0.6),
 			0 0 0 1px rgba(255, 255, 255, 0.08);
 	}
 
-	.arena-card-wrapper:hover,
-	.arena-card-wrapper:focus-visible {
-		transform: translate3d(var(--x), -56px, 0) rotate(0deg) scale(1.15);
+	.arena-card-wrapper:hover {
+		transform: translate3d(var(--x), calc(var(--y) - 18px), 0) rotate(0deg) scale(1.04);
 		z-index: 100 !important;
-		transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), 
-		            box-shadow 0.25s ease, 
-		            filter 0.22s ease,
+		transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), 
+		            box-shadow 0.22s ease, 
+		            filter 0.2s ease,
 		            z-index 0s;
 		box-shadow: 
-			0 32px 64px -12px rgba(0, 0, 0, 0.95),
-			0 16px 32px -6px rgba(0, 0, 0, 0.7),
-			0 0 0 1px rgba(255, 255, 255, 0.22),
-			0 0 32px rgba(56, 189, 248, 0.35);
+			0 18px 36px -8px rgba(0, 0, 0, 0.85),
+			0 8px 16px -4px rgba(0, 0, 0, 0.6),
+			0 0 0 1px rgba(255, 255, 255, 0.18),
+			0 0 20px rgba(56, 189, 248, 0.22);
 	}
 
 	.arena-card-img {
