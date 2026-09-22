@@ -121,7 +121,7 @@
 	});
 
 	// 2. Sample Hand Simulator
-	/** @type {string[]} */
+	/** @type {{ id: string, name: string }[]} */
 	let hand = $state([]);
 	/** @type {string[]} */
 	let library = $state([]);
@@ -130,6 +130,103 @@
 	let dealKey = $state(0);
 	let isOpeningDeal = $state(true);
 	let showHandOptions = $state(false);
+
+	let cardInstanceId = 0;
+	/**
+	 * @param {string} name
+	 * @returns {{ id: string, name: string }}
+	 */
+	function createHandCard(name) {
+		cardInstanceId++;
+		return { id: `card-${cardInstanceId}-${Math.random().toString(36).slice(2, 7)}`, name };
+	}
+
+	// Drag and drop state for sample hand
+	let draggingCardId = $state(/** @type {string | null} */ (null));
+	let dragPointerStartX = $state(0);
+	let dragPointerStartY = $state(0);
+	let dragCurrentX = $state(0);
+	let dragCurrentY = $state(0);
+	let isCardDragging = $state(false);
+	let dragHoverTargetIndex = $state(/** @type {number | null} */ (null));
+
+	/**
+	 * @param {PointerEvent} e
+	 * @param {string} cardId
+	 * @param {number} cardIndex
+	 */
+	function handleCardPointerDown(e, cardId, cardIndex) {
+		if (e.button !== 0) return;
+		draggingCardId = cardId;
+		dragPointerStartX = e.clientX;
+		dragPointerStartY = e.clientY;
+		dragCurrentX = 0;
+		dragCurrentY = 0;
+		isCardDragging = false;
+		dragHoverTargetIndex = cardIndex;
+
+		window.addEventListener("pointermove", handleWindowPointerMove);
+		window.addEventListener("pointerup", handleWindowPointerUp);
+		window.addEventListener("pointercancel", handleWindowPointerUp);
+	}
+
+	/** @param {PointerEvent} e */
+	function handleWindowPointerMove(e) {
+		if (!draggingCardId) return;
+
+		const dx = e.clientX - dragPointerStartX;
+		const dy = e.clientY - dragPointerStartY;
+
+		if (!isCardDragging) {
+			if (Math.hypot(dx, dy) > 5) {
+				isCardDragging = true;
+				isOpeningDeal = false;
+			} else {
+				return;
+			}
+		}
+
+		dragCurrentX = dx;
+		dragCurrentY = dy;
+
+		const n = hand.length;
+		if (n <= 1) return;
+
+		const mid = (n - 1) / 2;
+		const stepX = Math.min(115, Math.max(34, 760 / (n - 1)));
+
+		const sourceIndex = hand.findIndex(c => c.id === draggingCardId);
+		if (sourceIndex === -1) return;
+
+		const sourceNominalX = (sourceIndex - mid) * stepX;
+		const currentCardX = sourceNominalX + dx;
+
+		const targetIdx = Math.max(0, Math.min(n - 1, Math.round((currentCardX / stepX) + mid)));
+		dragHoverTargetIndex = targetIdx;
+	}
+
+	/** @param {PointerEvent} e */
+	function handleWindowPointerUp(e) {
+		window.removeEventListener("pointermove", handleWindowPointerMove);
+		window.removeEventListener("pointerup", handleWindowPointerUp);
+		window.removeEventListener("pointercancel", handleWindowPointerUp);
+
+		if (isCardDragging && draggingCardId) {
+			const sourceIndex = hand.findIndex(c => c.id === draggingCardId);
+			if (sourceIndex !== -1 && dragHoverTargetIndex !== null && dragHoverTargetIndex !== sourceIndex) {
+				const newHand = [...hand];
+				const [moved] = newHand.splice(sourceIndex, 1);
+				newHand.splice(dragHoverTargetIndex, 0, moved);
+				hand = newHand;
+			}
+		}
+
+		draggingCardId = null;
+		isCardDragging = false;
+		dragCurrentX = 0;
+		dragCurrentY = 0;
+		dragHoverTargetIndex = null;
+	}
 
 	/** @param {MouseEvent} e */
 	function handleDocumentClick(e) {
@@ -236,12 +333,47 @@
 	}
 
 	/**
-	 * @param {string[]} cards
+	 * Sorts cards: highest mana value on left, descending to lowest, lands on far right.
+	 * @param {{ id: string, name: string }[]} cards
+	 * @returns {{ id: string, name: string }[]}
+	 */
+	function sortHandCards(cards) {
+		return [...cards].sort((a, b) => {
+			const metaA = getMeta(a.name);
+			const metaB = getMeta(b.name);
+			const aIsLand = (metaA.type_line || "").toLowerCase().includes("land");
+			const bIsLand = (metaB.type_line || "").toLowerCase().includes("land");
+
+			if (!aIsLand && bIsLand) return -1;
+			if (aIsLand && !bIsLand) return 1;
+
+			if (!aIsLand && !bIsLand) {
+				const cmcA = metaA.cmc ?? 0;
+				const cmcB = metaB.cmc ?? 0;
+				if (cmcB !== cmcA) return cmcB - cmcA;
+				return a.name.localeCompare(b.name);
+			}
+
+			// Both are lands: sort alphabetically
+			return a.name.localeCompare(b.name);
+		});
+	}
+
+	function manualSortHand() {
+		isOpeningDeal = false;
+		hand = sortHandCards(hand);
+	}
+
+	/**
+	 * @param {any[]} cards
 	 * @param {boolean} strictParity
 	 * @returns {number}
 	 */
 	function countLands(cards, strictParity) {
-		return cards.reduce((/** @type {number} */ sum, /** @type {string} */ name) => sum + getCardLandValue(name, strictParity), 0);
+		return cards.reduce((/** @type {number} */ sum, c) => {
+			const name = typeof c === "string" ? c : c.name;
+			return sum + getCardLandValue(name, strictParity);
+		}, 0);
 	}
 
 	/**
@@ -257,7 +389,8 @@
 
 		if (decklist.length <= toDraw || !settingsStore.sampleHandSmoother) {
 			const shuffled = shuffle(decklist);
-			hand = shuffled.slice(0, toDraw);
+			const rawHand = shuffled.slice(0, toDraw).map(createHandCard);
+			hand = sortHandCards(rawHand);
 			library = shuffled.slice(toDraw);
 			return;
 		}
@@ -297,7 +430,8 @@
 			}
 		}
 
-		hand = chosen.hand;
+		const rawHand = chosen.hand.map(createHandCard);
+		hand = sortHandCards(rawHand);
 		library = chosen.shuffled.slice(toDraw);
 	}
 
@@ -341,7 +475,7 @@
 	function drawCard() {
 		if (library.length > 0) {
 			isOpeningDeal = false;
-			hand = [...hand, library[0]];
+			hand = [...hand, createHandCard(library[0])];
 			library = library.slice(1);
 		}
 	}
@@ -354,7 +488,7 @@
 		return meta.image_uris?.normal || meta.card_faces?.[0]?.image_uris?.normal || null;
 	}
 
-	// Arena-style arc calculations for sample hand
+	// Arena-style arc calculations for sample hand with drag-and-drop support
 	const handCards = $derived.by(() => {
 		const n = hand.length;
 		if (n === 0) return [];
@@ -365,22 +499,61 @@
 		const maxAngle = n > 1 ? Math.min(17, Math.max(3.5, (n - 1) * 2.8)) : 0;
 		const arcDepth = n > 1 ? Math.min(42, Math.max(8, (n - 1) * 6.5)) : 0;
 
-		return hand.map((cardName, i) => {
-			const norm = mid > 0 ? (i - mid) / mid : 0; // -1 (leftmost) to +1 (rightmost)
-			const x = (i - mid) * stepX;
-			const y = Math.pow(Math.abs(norm), 1.65) * arcDepth;
-			const rot = norm * maxAngle;
-			const z = i + 1;
+		const sourceIndex = isCardDragging && draggingCardId 
+			? hand.findIndex(c => c.id === draggingCardId)
+			: -1;
+		const targetIndex = isCardDragging && dragHoverTargetIndex !== null
+			? dragHoverTargetIndex
+			: -1;
+
+		return hand.map((cardItem, i) => {
+			const isThisCardDragging = isCardDragging && cardItem.id === draggingCardId;
+
+			// Calculate effective slot index during drag to make room for dragged card
+			let visualSlot = i;
+			if (isCardDragging && sourceIndex !== -1 && targetIndex !== -1 && !isThisCardDragging) {
+				if (targetIndex > sourceIndex) {
+					if (i > sourceIndex && i <= targetIndex) {
+						visualSlot = i - 1;
+					}
+				} else if (targetIndex < sourceIndex) {
+					if (i >= targetIndex && i < sourceIndex) {
+						visualSlot = i + 1;
+					}
+				}
+			}
+
+			const norm = mid > 0 ? (visualSlot - mid) / mid : 0; // -1 (leftmost) to +1 (rightmost)
+			let x = (visualSlot - mid) * stepX;
+			let y = Math.pow(Math.abs(norm), 1.65) * arcDepth;
+			let rot = norm * maxAngle;
+			let z = visualSlot + 1;
+			let scale = 1;
+
+			if (isThisCardDragging) {
+				const nominalNorm = mid > 0 ? (sourceIndex - mid) / mid : 0;
+				const nominalX = (sourceIndex - mid) * stepX;
+				const nominalY = Math.pow(Math.abs(nominalNorm), 1.65) * arcDepth;
+				x = nominalX + dragCurrentX;
+				y = nominalY + dragCurrentY - 14;
+				rot = (nominalNorm * maxAngle) * 0.35;
+				z = 350;
+				scale = 1.08;
+			}
+
 			const delay = isOpeningDeal ? i * 33 : 0;
 
 			return {
-				name: cardName,
-				img: getCardImg(cardName),
+				id: cardItem.id,
+				name: cardItem.name,
+				img: getCardImg(cardItem.name),
 				x: Math.round(x * 10) / 10,
 				y: Math.round(y * 10) / 10,
 				rot: Math.round(rot * 10) / 10,
 				z,
+				scale,
 				delay,
+				isDragging: isThisCardDragging,
 				i
 			};
 		});
@@ -454,6 +627,11 @@
 
 	onMount(() => {
 		resetSampleHand();
+		return () => {
+			window.removeEventListener("pointermove", handleWindowPointerMove);
+			window.removeEventListener("pointerup", handleWindowPointerUp);
+			window.removeEventListener("pointercancel", handleWindowPointerUp);
+		};
 	});
 
 	$effect(() => {
@@ -629,6 +807,16 @@
 										<span class="slider"></span>
 									</label>
 								</div>
+
+								<div class="options-menu-divider"></div>
+
+								<button 
+									type="button" 
+									class="options-menu-btn" 
+									onclick={manualSortHand}
+								>
+									<span>Sort by Mana Value</span>
+								</button>
 							</div>
 						{/if}
 					</div>
@@ -647,12 +835,15 @@
 				<div class="arena-stage">
 					<div class="arena-mat-glow"></div>
 					{#key dealKey}
-						<div class="arena-fan">
-							{#each handCards as card (card.i + '-' + card.name)}
+						<div class="arena-fan" class:is-dragging-active={isCardDragging} role="list" aria-label="Sample Hand Cards">
+							{#each handCards as card (card.id)}
 								<div 
 									class="arena-card-wrapper" 
-									style="--x: {card.x}px; --y: {card.y}px; --rot: {card.rot}deg; --z: {card.z}; --deal-delay: {card.delay}ms;"
+									class:is-dragging={card.isDragging}
+									style="--x: {card.x}px; --y: {card.y}px; --rot: {card.rot}deg; --z: {card.z}; --scale: {card.scale}; --deal-delay: {card.delay}ms;"
 									title="{card.name}"
+									role="listitem"
+									onpointerdown={(e) => handleCardPointerDown(e, card.id, card.i)}
 								>
 									{#if card.img}
 										<img 
@@ -660,6 +851,7 @@
 											alt={card.name} 
 											class="arena-card-img"
 											loading="eager"
+											draggable="false"
 										/>
 									{:else}
 										<div class="arena-card-fallback">
@@ -1165,6 +1357,28 @@
 		line-height: 1.35;
 	}
 
+	.options-menu-btn {
+		width: 100%;
+		background: hsl(var(--foreground) / 0.06);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		color: #f1f5f9;
+		padding: 6px 10px;
+		border-radius: 6px;
+		font-size: 0.75rem;
+		font-weight: 500;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.15s ease;
+		box-sizing: border-box;
+	}
+
+	.options-menu-btn:hover {
+		background: hsl(var(--foreground) / 0.12);
+		border-color: rgba(255, 255, 255, 0.18);
+	}
+
 	.switch {
 		position: relative;
 		display: inline-block;
@@ -1253,11 +1467,15 @@
 	.arena-fan {
 		position: relative;
 		width: 100%;
-		height: 100%;
+		height: 340px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		overflow: visible;
+	}
+
+	.arena-fan.is-dragging-active .arena-card-wrapper:not(.is-dragging) {
+		pointer-events: none;
 	}
 
 	.arena-fan:has(.arena-card-wrapper:hover) .arena-card-wrapper:not(:hover) {
@@ -1287,7 +1505,7 @@
 		margin-left: -107.5px;
 		margin-top: 0;
 		transform-origin: 50% 120%;
-		transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot));
+		transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot)) scale(var(--scale, 1));
 		z-index: var(--z);
 		animation: dealCard 0.33s cubic-bezier(0.18, 0.89, 0.32, 1.15) backwards;
 		animation-delay: var(--deal-delay, 0ms);
@@ -1295,16 +1513,18 @@
 		            box-shadow 0.22s ease, 
 		            filter 0.2s ease,
 		            z-index 0.05s step-end;
-		cursor: pointer;
+		cursor: grab;
+		touch-action: none;
 		border-radius: 11px;
 		user-select: none;
+		-webkit-user-select: none;
 		box-shadow: 
 			0 12px 28px -6px rgba(0, 0, 0, 0.8),
 			0 4px 10px -2px rgba(0, 0, 0, 0.6),
 			0 0 0 1px rgba(255, 255, 255, 0.08);
 	}
 
-	.arena-card-wrapper:hover {
+	.arena-card-wrapper:hover:not(.is-dragging) {
 		transform: translate3d(var(--x), calc(var(--y) - 8px), 0) rotate(var(--rot)) scale(1.04);
 		z-index: 100 !important;
 		transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), 
@@ -1316,6 +1536,16 @@
 			0 8px 16px -4px rgba(0, 0, 0, 0.6),
 			0 0 0 1px rgba(255, 255, 255, 0.18),
 			0 0 20px rgba(56, 189, 248, 0.22);
+	}
+
+	.arena-card-wrapper.is-dragging {
+		cursor: grabbing !important;
+		transition: none !important;
+		box-shadow: 
+			0 26px 54px -8px rgba(0, 0, 0, 0.95),
+			0 12px 28px -4px rgba(0, 0, 0, 0.7),
+			0 0 0 2px rgba(56, 189, 248, 0.7),
+			0 0 32px rgba(56, 189, 248, 0.4) !important;
 	}
 
 	.arena-card-img {
