@@ -128,6 +128,33 @@
 
 	let dealKey = $state(0);
 	let isOpeningDeal = $state(true);
+	let animIntensity = $state(40); // 0 to 100 (temporary slider)
+
+	// Correlated animation factors derived from intensity (0 = minimal/instant, 100 = full sweeping)
+	const animFactors = $derived.by(() => {
+		const t = animIntensity / 100;
+		// xFactor: from 0.98 down to 0.15
+		const xFactor = (0.98 - t * 0.83).toFixed(2);
+		// yOffset: from 8px up to 150px
+		const yOffset = Math.round(8 + t * 142);
+		// rotFactor: from 0.95 down to 0.0
+		const rotFactor = Math.max(0, 0.95 - t * 0.95).toFixed(2);
+		// scale: from 0.98 down to 0.65
+		const scale = (0.98 - t * 0.33).toFixed(2);
+		// duration: from 0.20s up to 0.45s
+		const duration = `${(0.20 + t * 0.25).toFixed(2)}s`;
+		// stagger: from 10ms up to 55ms
+		const stagger = Math.round(10 + t * 45);
+
+		return {
+			xFactor,
+			yOffset,
+			rotFactor,
+			scale,
+			duration,
+			stagger
+		};
+	});
 
 	/**
 	 * @param {any[]} array
@@ -219,7 +246,7 @@
 			const y = Math.pow(Math.abs(norm), 1.65) * arcDepth;
 			const rot = norm * maxAngle;
 			const z = i + 1;
-			const delay = isOpeningDeal ? i * 35 : 0;
+			const delay = isOpeningDeal ? i * animFactors.stagger : 0;
 
 			return {
 				name: cardName,
@@ -418,6 +445,25 @@
 						<span>Draw Card ({library.length} left)</span>
 					</button>
 				</div>
+
+				<!-- Temporary Deal Animation Tuning Slider -->
+				<div class="arena-slider-pill">
+					<span class="slider-label">Deal Anim: <strong>{animIntensity}%</strong></span>
+					<input 
+						type="range" 
+						min="0" 
+						max="100" 
+						step="5"
+						bind:value={animIntensity} 
+						oninput={() => { dealKey++; }}
+						class="arena-slider-input"
+						aria-label="Deal animation intensity slider"
+					/>
+					<button type="button" class="slider-replay-btn" onclick={() => { dealKey++; }} title="Replay deal animation">
+						<RotateCcw size={11} />
+						<span>Replay</span>
+					</button>
+				</div>
 			</div>
 
 			{#if hand.length === 0}
@@ -432,7 +478,10 @@
 				<div class="arena-stage">
 					<div class="arena-mat-glow"></div>
 					{#key dealKey}
-						<div class="arena-fan">
+						<div 
+							class="arena-fan"
+							style="--anim-x: {animFactors.xFactor}; --anim-y: {animFactors.yOffset}px; --anim-rot: {animFactors.rotFactor}; --anim-scale: {animFactors.scale}; --anim-dur: {animFactors.duration};"
+						>
 							{#each handCards as card (card.i + '-' + card.name)}
 								<div 
 									class="arena-card-wrapper" 
@@ -838,6 +887,64 @@
 		cursor: not-allowed;
 	}
 
+	/* Temporary Deal Animation Tuning Slider */
+	.arena-slider-pill {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		background: hsl(var(--card) / 0.6);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		border: 1px dashed hsl(var(--primary) / 0.5);
+		padding: 4px 10px 4px 12px;
+		border-radius: 9999px;
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+	}
+
+	.slider-label {
+		font-size: 0.775rem;
+		color: hsl(var(--muted-foreground));
+		white-space: nowrap;
+	}
+
+	.slider-label strong {
+		color: hsl(var(--primary));
+		font-variant-numeric: tabular-nums;
+		display: inline-block;
+		min-width: 32px;
+	}
+
+	.arena-slider-input {
+		width: 90px;
+		height: 4px;
+		accent-color: hsl(var(--primary));
+		cursor: pointer;
+	}
+
+	.slider-replay-btn {
+		background: hsl(var(--primary) / 0.12);
+		border: 1px solid hsl(var(--primary) / 0.3);
+		color: hsl(var(--primary));
+		padding: 0.25rem 0.55rem;
+		border-radius: 9999px;
+		font-size: 0.75rem;
+		font-weight: 500;
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.slider-replay-btn:hover {
+		background: hsl(var(--primary) / 0.22);
+		border-color: hsl(var(--primary) / 0.5);
+	}
+
+	.slider-replay-btn:active {
+		transform: scale(0.95);
+	}
+
 	.empty-arena-state {
 		display: flex;
 		flex-direction: column;
@@ -891,7 +998,7 @@
 	@keyframes dealCard {
 		0% {
 			opacity: 0;
-			transform: translate3d(calc(var(--x) * 0.72), calc(var(--y) + 48px), 0) rotate(calc(var(--rot) * 0.6)) scale(0.9);
+			transform: translate3d(calc(var(--x) * var(--anim-x, 0.72)), calc(var(--y) + var(--anim-y, 48px)), 0) rotate(calc(var(--rot) * var(--anim-rot, 0.6))) scale(var(--anim-scale, 0.9));
 		}
 		50% {
 			opacity: 1;
@@ -913,7 +1020,7 @@
 		transform-origin: 50% 120%;
 		transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot));
 		z-index: var(--z);
-		animation: dealCard 0.34s cubic-bezier(0.18, 0.89, 0.32, 1.15) backwards;
+		animation: dealCard var(--anim-dur, 0.34s) cubic-bezier(0.18, 0.89, 0.32, 1.15) backwards;
 		animation-delay: var(--deal-delay, 0ms);
 		transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), 
 		            box-shadow 0.22s ease, 
