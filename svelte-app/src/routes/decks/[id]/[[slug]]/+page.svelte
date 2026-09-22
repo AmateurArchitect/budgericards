@@ -295,7 +295,6 @@
 		border: 1px solid rgba(255, 255, 255, 0.08);
 		border-bottom: none;
 		transition:
-			border-radius 0.24s cubic-bezier(0.16, 1, 0.3, 1),
 			border-top-color 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 

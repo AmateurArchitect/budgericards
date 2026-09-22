@@ -915,20 +915,15 @@
 	}
 
 	.global-header-bar.is-auto-hide {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		transform: translateY(-100%);
-		transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+		margin-top: -48px;
+		transition: margin-top 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 		pointer-events: none;
-		will-change: transform;
+		will-change: margin-top;
 	}
 
 	.global-header-bar.is-auto-hide.is-revealed {
-		transform: translateY(0);
+		margin-top: 0;
 		pointer-events: auto;
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
 	}
 
 	.global-header-left {
