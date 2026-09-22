@@ -950,6 +950,86 @@
 							</div>
 						{/if}
 
+					</div>
+				</div>
+			{/if}
+
+			<!-- Sort Column with SORT eyebrow -->
+			{#if ["stacks", "spoiler", "table"].includes(settingsStore.deckViewMode)}
+				<div class="control-column">
+					<span class="eyebrow-label">SORT</span>
+					<div class="sort-controls-row">
+						<div class="sort-container">
+							<button
+								class="header-select-trigger sort-trigger"
+								class:active={showSortDropdown}
+								onclick={(e) => {
+									e.stopPropagation();
+									showSortDropdown = !showSortDropdown;
+									if (showSortDropdown)
+										closeAllDropdowns("sort");
+								}}
+								aria-expanded={showSortDropdown}
+								aria-haspopup="listbox"
+								title={isMultiSort
+									? `${deckStore.activeSorts.length} sort levels active (click to configure)`
+									: "Sort cards by"}
+							>
+								<span class="trigger-value">
+									{currentSortLabel}
+									{#if isMultiSort}
+										<span class="sort-plus-badge">+</span>
+									{/if}
+								</span>
+								<ChevronDown size={13} class="chevron" />
+							</button>
+
+							{#if showSortDropdown}
+								<div
+									class="header-select-menu"
+									use:smartAlign
+									transition:fly={{ y: 4, duration: 150 }}
+								>
+									<button
+										class="select-item"
+										class:active={isDefaultSort}
+										onclick={(e) => {
+											e.stopPropagation();
+											selectSortOption("default");
+										}}
+									>
+										Default
+									</button>
+									{#each basicSortOptions as opt}
+										<button
+											class="select-item"
+											class:active={isSingleSortActive(opt.id)}
+											onclick={(e) => {
+												e.stopPropagation();
+												selectSortOption(opt.id);
+											}}
+										>
+											{opt.label}
+										</button>
+									{/each}
+									<div class="menu-divider"></div>
+									<button
+										class="select-item advanced-item"
+										class:active={isMultiSort}
+										onclick={(e) => {
+											e.stopPropagation();
+											openAdvancedSort();
+										}}
+									>
+										<span>Advanced...</span>
+										{#if isMultiSort}
+											<span class="advanced-count-pill">{deckStore.activeSorts.length}</span>
+										{/if}
+									</button>
+								</div>
+							{/if}
+						</div>
+
 						<!-- View Options Modal Trigger -->
 						<div class="view-options-container">
 							<Button
@@ -972,83 +1052,6 @@
 								triggerElement={viewOptionsBtn}
 							/>
 						</div>
-					</div>
-				</div>
-			{/if}
-
-			<!-- Sort Column with SORT eyebrow -->
-			{#if ["stacks", "spoiler", "table"].includes(settingsStore.deckViewMode)}
-				<div class="control-column">
-					<span class="eyebrow-label">SORT</span>
-					<div class="sort-container">
-						<button
-							class="header-select-trigger sort-trigger"
-							class:active={showSortDropdown}
-							onclick={(e) => {
-								e.stopPropagation();
-								showSortDropdown = !showSortDropdown;
-								if (showSortDropdown)
-									closeAllDropdowns("sort");
-							}}
-							aria-expanded={showSortDropdown}
-							aria-haspopup="listbox"
-							title={isMultiSort
-								? `${deckStore.activeSorts.length} sort levels active (click to configure)`
-								: "Sort cards by"}
-						>
-							<span class="trigger-value">
-								{currentSortLabel}
-								{#if isMultiSort}
-									<span class="sort-plus-badge">+</span>
-								{/if}
-							</span>
-							<ChevronDown size={13} class="chevron" />
-						</button>
-
-						{#if showSortDropdown}
-							<div
-								class="header-select-menu"
-								use:smartAlign
-								transition:fly={{ y: 4, duration: 150 }}
-							>
-								<button
-									class="select-item"
-									class:active={isDefaultSort}
-									onclick={(e) => {
-										e.stopPropagation();
-										selectSortOption("default");
-									}}
-								>
-									Default
-								</button>
-								{#each basicSortOptions as opt}
-									<button
-										class="select-item"
-										class:active={isSingleSortActive(opt.id)}
-										onclick={(e) => {
-											e.stopPropagation();
-											selectSortOption(opt.id);
-										}}
-									>
-										{opt.label}
-									</button>
-								{/each}
-								<div class="menu-divider"></div>
-								<button
-									class="select-item advanced-item"
-									class:active={isMultiSort}
-									onclick={(e) => {
-										e.stopPropagation();
-										openAdvancedSort();
-									}}
-								>
-									<span>Advanced...</span>
-									{#if isMultiSort}
-										<span class="advanced-count-pill">{deckStore.activeSorts.length}</span>
-									{/if}
-								</button>
-							</div>
-						{/if}
 					</div>
 				</div>
 
@@ -1491,7 +1494,8 @@
 		white-space: nowrap;
 	}
 
-	.grouping-controls-row {
+	.grouping-controls-row,
+	.sort-controls-row {
 		display: flex;
 		align-items: center;
 		gap: 6px;
