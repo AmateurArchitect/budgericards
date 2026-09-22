@@ -55,7 +55,9 @@
 	});
 
 	const isCustomSearchSortActive = $derived(() => {
-		return Boolean(searchStore.activeSorts && searchStore.activeSorts.length > 0);
+		return Boolean(
+			searchStore.activeSorts && searchStore.activeSorts.length > 0,
+		);
 	});
 
 	const searchPlaceholders = ["Lightning Bolt", "is:commander id=gw"];
@@ -63,7 +65,8 @@
 
 	$effect(() => {
 		const interval = setInterval(() => {
-			placeholderIndex = (placeholderIndex + 1) % searchPlaceholders.length;
+			placeholderIndex =
+				(placeholderIndex + 1) % searchPlaceholders.length;
 		}, 4000);
 		return () => clearInterval(interval);
 	});
@@ -71,14 +74,16 @@
 	$effect(() => {
 		if (searchStore.isOpen) {
 			setTimeout(() => {
-				const inputEl = document.querySelector(".header-search-input input") || document.querySelector(".header-search-input");
+				const inputEl =
+					document.querySelector(".header-search-input input") ||
+					document.querySelector(".header-search-input");
 				/** @type {HTMLElement | null} */ (inputEl)?.focus();
 			}, 60);
 		}
 	});
 
 	const isDeckPage = $derived(
-		Boolean($page.params.id) && $page.url.pathname.startsWith("/decks/")
+		Boolean($page.params.id) && $page.url.pathname.startsWith("/decks/"),
 	);
 
 	function handleNewDeck() {
@@ -177,29 +182,49 @@
 		}
 	}
 
-
-
 	/** @param {any} card */
 	function addSearchCard(card) {
 		if (!card) return;
-		const isLocalBoard = ["sideboard", "maybeboard"].includes(searchStore.collection);
+		const isLocalBoard = ["sideboard", "maybeboard"].includes(
+			searchStore.collection,
+		);
 		const currentBoard = searchStore.collection;
-		const price = searchStore.collection === "scryfall"
-			? (card.prices?.usd ? parseFloat(card.prices.usd) : null)
-			: priceStore.getPrice(card.name);
+		const price =
+			searchStore.collection === "scryfall"
+				? card.prices?.usd
+					? parseFloat(card.prices.usd)
+					: null
+				: priceStore.getPrice(card.name);
 
 		if (isLocalBoard) {
-			deckStore.moveCard(card.name, currentBoard, deckStore.activeBoard, card.id, price);
+			deckStore.moveCard(
+				card.name,
+				currentBoard,
+				deckStore.activeBoard,
+				card.id,
+				price,
+			);
 		} else {
 			let targetBoard = deckStore.activeBoard;
-			const meta = card.type_line ? card : (deckStore.metadata[card.name?.toLowerCase()] || card);
+			const meta = card.type_line
+				? card
+				: deckStore.metadata[card.name?.toLowerCase()] || card;
 			const typeLine = (meta.type_line || "").toLowerCase();
 			const oracle = (meta.oracle_text || "").toLowerCase();
-			const facesOracle = (meta.card_faces || []).map((/** @type {any} */ f) => (f.oracle_text || "").toLowerCase()).join(" ");
-			const isLegendaryCreature = typeLine.includes("legendary") && typeLine.includes("creature");
+			const facesOracle = (meta.card_faces || [])
+				.map((/** @type {any} */ f) =>
+					(f.oracle_text || "").toLowerCase(),
+				)
+				.join(" ");
+			const isLegendaryCreature =
+				typeLine.includes("legendary") && typeLine.includes("creature");
 			const isPlaneswalker = typeLine.includes("planeswalker");
-			const canBeCommander = oracle.includes("can be your commander") || facesOracle.includes("can be your commander");
-			const isCompanion = oracle.includes("companion —") || facesOracle.includes("companion —");
+			const canBeCommander =
+				oracle.includes("can be your commander") ||
+				facesOracle.includes("can be your commander");
+			const isCompanion =
+				oracle.includes("companion —") ||
+				facesOracle.includes("companion —");
 			const isCommander = isCommanderFormat(deckStore.format);
 
 			const isCommanderCandidate =
@@ -208,13 +233,23 @@
 				(deckStore.format === "Brawl" && isPlaneswalker);
 
 			const isDeckEmpty = deckStore.totalCount === 0;
-			const isFormatUnset = !deckStore.format || deckStore.format === "List" || deckStore.format === "None" || deckStore.format === "Draft";
+			const isFormatUnset =
+				!deckStore.format ||
+				deckStore.format === "List" ||
+				deckStore.format === "None" ||
+				deckStore.format === "Draft";
 
 			if (isDeckEmpty && isFormatUnset && isCommanderCandidate) {
 				deckStore.format = "Commander";
 				targetBoard = "commander";
-				toastStore.show(`Set format to Commander with ${card.name} as your commander.`);
-			} else if (isCommander && deckStore.commander.length === 0 && isCommanderCandidate) {
+				toastStore.show(
+					`Set format to Commander with ${card.name} as your commander.`,
+				);
+			} else if (
+				isCommander &&
+				deckStore.commander.length === 0 &&
+				isCommanderCandidate
+			) {
 				targetBoard = "commander";
 			} else if (isCompanion && deckStore.companion.length === 0) {
 				targetBoard = "companion";
@@ -226,19 +261,31 @@
 	/** @param {KeyboardEvent} e */
 	function handleGlobalKeyDown(e) {
 		const isCmdOrCtrl = e.metaKey || e.ctrlKey;
-		const target = /** @type {HTMLElement | null} */ (document.activeElement);
-		const isInput = ["INPUT", "TEXTAREA", "SELECT"].includes(target?.tagName || "") || target?.isContentEditable;
-		const isModalOpen = document.querySelector(".modal-backdrop, .about-backdrop, [role='dialog']") !== null;
+		const target = /** @type {HTMLElement | null} */ (
+			document.activeElement
+		);
+		const isInput =
+			["INPUT", "TEXTAREA", "SELECT"].includes(target?.tagName || "") ||
+			target?.isContentEditable;
+		const isModalOpen =
+			document.querySelector(
+				".modal-backdrop, .about-backdrop, [role='dialog']",
+			) !== null;
 
 		// Primary: Cmd + / or Ctrl + / (and Cmd + K / Cmd + Space as secondary fallbacks)
-		if (isCmdOrCtrl && (e.key === "/" || e.key.toLowerCase() === "k" || e.key === " ")) {
+		if (
+			isCmdOrCtrl &&
+			(e.key === "/" || e.key.toLowerCase() === "k" || e.key === " ")
+		) {
 			e.preventDefault();
 			if (searchStore.isOpen) {
 				searchStore.closeSearch();
 			} else {
 				searchStore.openSearch();
 				setTimeout(() => {
-					const inputEl = document.querySelector(".header-search-input input") || document.querySelector(".header-search-input");
+					const inputEl =
+						document.querySelector(".header-search-input input") ||
+						document.querySelector(".header-search-input");
 					/** @type {HTMLElement | null} */ (inputEl)?.focus();
 				}, 50);
 			}
@@ -252,7 +299,9 @@
 				searchStore.openSearch();
 			}
 			setTimeout(() => {
-				const inputEl = document.querySelector(".header-search-input input") || document.querySelector(".header-search-input");
+				const inputEl =
+					document.querySelector(".header-search-input input") ||
+					document.querySelector(".header-search-input");
 				/** @type {HTMLElement | null} */ (inputEl)?.focus();
 			}, 50);
 			return;
@@ -289,17 +338,35 @@
 			</button>
 
 			{#if showBudgieDropdown}
-				<div class="budgie-dropdown" transition:fade={{ duration: 120 }}>
-					<a href="/browse" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+				<div
+					class="budgie-dropdown"
+					transition:fade={{ duration: 120 }}
+				>
+					<a
+						href="/browse"
+						class="menu-item nav-link"
+						onclick={() => (showBudgieDropdown = false)}
+					>
 						<Search size={14} />
 						<span>Explore Decks</span>
 					</a>
-					<a href="/gallery" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
+					<a
+						href="/gallery"
+						class="menu-item nav-link"
+						onclick={() => (showBudgieDropdown = false)}
+					>
 						<Palette size={14} />
 						<span>Art Gallery</span>
 					</a>
 					<div class="menu-divider"></div>
-					<button type="button" class="menu-item" onclick={() => { showBudgieDropdown = false; showAboutModal = true; }}>
+					<button
+						type="button"
+						class="menu-item"
+						onclick={() => {
+							showBudgieDropdown = false;
+							showAboutModal = true;
+						}}
+					>
 						<HelpCircle size={14} />
 						<span>About Budgie</span>
 					</button>
@@ -339,30 +406,50 @@
 							onclick={(e) => {
 								e.stopPropagation();
 								showProfileDropdown = !showProfileDropdown;
-								if (showProfileDropdown) closeAllDropdowns("profile");
+								if (showProfileDropdown)
+									closeAllDropdowns("profile");
 							}}
 							aria-expanded={showProfileDropdown}
 							aria-haspopup="menu"
 							aria-label="User menu"
 						>
 							<span class="user-display-name">
-								{authStore.user.user_metadata?.display_name || authStore.user.email?.split("@")[0] || "AmateurArchitect"}
+								{authStore.user.user_metadata?.display_name ||
+									authStore.user.email?.split("@")[0] ||
+									"AmateurArchitect"}
 							</span>
 							<ChevronDown size={12} class="nav-chevron" />
 						</button>
 
 						{#if showProfileDropdown}
-							<div class="profile-dropdown" use:smartAlign transition:fade={{ duration: 120 }}>
+							<div
+								class="profile-dropdown"
+								use:smartAlign
+								transition:fade={{ duration: 120 }}
+							>
 								<div class="dropdown-header">
-									<span class="dropdown-email">{authStore.user.email}</span>
+									<span class="dropdown-email"
+										>{authStore.user.email}</span
+									>
 								</div>
 								<div class="menu-divider"></div>
-								<button type="button" class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
+								<button
+									type="button"
+									class="menu-item"
+									onclick={() => {
+										showProfileDropdown = false;
+										goto("/settings");
+									}}
+								>
 									<SettingsIcon size={14} />
 									<span>Settings</span>
 								</button>
 								<div class="menu-divider"></div>
-								<button type="button" class="menu-item destructive" onclick={handleSignOut}>
+								<button
+									type="button"
+									class="menu-item destructive"
+									onclick={handleSignOut}
+								>
 									<LogOut size={14} />
 									<span>Log Out</span>
 								</button>
@@ -371,7 +458,9 @@
 					</div>
 				{:else}
 					<a
-						href="/login?redirectTo={encodeURIComponent($page.url.pathname)}"
+						href="/login?redirectTo={encodeURIComponent(
+							$page.url.pathname,
+						)}"
 						class="global-nav-link"
 						aria-label="Log In"
 					>
@@ -407,7 +496,8 @@
 						onclick={(e) => {
 							e.stopPropagation();
 							showCollectionDropdown = !showCollectionDropdown;
-							if (showCollectionDropdown) closeAllDropdowns("collection");
+							if (showCollectionDropdown)
+								closeAllDropdowns("collection");
 						}}
 						aria-expanded={showCollectionDropdown}
 						aria-haspopup="listbox"
@@ -424,16 +514,24 @@
 					</button>
 
 					{#if showCollectionDropdown}
-						<div class="collection-menu" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
+						<div
+							class="collection-menu"
+							use:smartAlign
+							transition:fly={{ y: 4, duration: 150 }}
+						>
 							{#each collections as item}
 								{#if item.divider}
 									<div class="menu-divider"></div>
 								{:else}
 									<button
 										class="menu-item"
-										class:active={searchStore.collection === item.id}
+										class:active={searchStore.collection ===
+											item.id}
 										class:disabled={item.disabled}
-										onclick={() => !item.disabled && item.id && selectCollection(item.id)}
+										onclick={() =>
+											!item.disabled &&
+											item.id &&
+											selectCollection(item.id)}
 										disabled={item.disabled}
 									>
 										{item.label}
@@ -464,20 +562,45 @@
 								}
 								if (e.key === "Tab") {
 									const results = searchStore.results;
-									if (!searchStore.isSearching && results.length > 0 && results.length <= 8 && searchStore.query.trim().length > 0) {
+									if (
+										!searchStore.isSearching &&
+										results.length > 0 &&
+										results.length <= 8 &&
+										searchStore.query.trim().length > 0
+									) {
 										e.preventDefault();
-										searchStore.cycleHighlight(e.shiftKey ? -1 : 1);
+										searchStore.cycleHighlight(
+											e.shiftKey ? -1 : 1,
+										);
 									}
 									return;
 								}
-								if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+								if (
+									e.key === "Enter" &&
+									!e.shiftKey &&
+									!e.metaKey &&
+									!e.ctrlKey &&
+									!e.altKey
+								) {
 									const results = searchStore.results;
-									if (!searchStore.isSearching && results.length > 0 && results.length <= 8 && searchStore.query.trim().length > 0) {
+									if (
+										!searchStore.isSearching &&
+										results.length > 0 &&
+										results.length <= 8 &&
+										searchStore.query.trim().length > 0
+									) {
 										e.preventDefault();
-										const targetIndex = Math.min(searchStore.highlightedIndex, results.length - 1);
-										const targetCard = results[targetIndex] || results[0];
+										const targetIndex = Math.min(
+											searchStore.highlightedIndex,
+											results.length - 1,
+										);
+										const targetCard =
+											results[targetIndex] || results[0];
 										addSearchCard(targetCard);
-										const inputEl = /** @type {HTMLInputElement | null} */ (e.target);
+										const inputEl =
+											/** @type {HTMLInputElement | null} */ (
+												e.target
+											);
 										inputEl?.select();
 									}
 								}
@@ -516,7 +639,9 @@
 					bind:clientWidth={sortBtnWidth}
 					onclick={() => (showSearchSort = !showSearchSort)}
 					aria-label="Sort search results"
-					title={isCustomSearchSortActive() ? "Custom sorting active (click to configure)" : "Sort search results"}
+					title={isCustomSearchSortActive()
+						? "Custom sorting active (click to configure)"
+						: "Sort search results"}
 				>
 					<svg
 						class="curved-bg"
@@ -557,10 +682,7 @@
 			triggerElement={searchSettingsBtn}
 		/>
 
-		<MultiSortModal
-			bind:isOpen={showSearchSort}
-			target="search"
-		/>
+		<MultiSortModal bind:isOpen={showSearchSort} target="search" />
 	</div>
 {/if}
 
@@ -571,20 +693,32 @@
 {#if showAboutModal}
 	<div
 		class="about-backdrop"
-		onclick={(e) => { if (e.target === e.currentTarget) showAboutModal = false; }}
+		onclick={(e) => {
+			if (e.target === e.currentTarget) showAboutModal = false;
+		}}
 		role="presentation"
 		transition:fade={{ duration: 150 }}
 	>
 		<div class="about-card" transition:fly={{ y: 10, duration: 200 }}>
 			<div class="about-header">
 				<h3>About Budgie</h3>
-				<button class="close-btn" onclick={() => (showAboutModal = false)}>
+				<button
+					class="close-btn"
+					onclick={() => (showAboutModal = false)}
+				>
 					<X size={16} />
 				</button>
 			</div>
 			<div class="about-body">
-				<p><strong>Budgie</strong> is a premium, high-fidelity Magic: The Gathering deckbuilder designed for rapid construction, visual pricing analysis, and gorgeous organization.</p>
-				<p>Built using Svelte 5 and Supabase, Budgie syncs your decks seamlessly across all your devices.</p>
+				<p>
+					<strong>Budgie</strong> is a premium, high-fidelity Magic: The
+					Gathering deckbuilder designed for rapid construction, visual
+					pricing analysis, and gorgeous organization.
+				</p>
+				<p>
+					Built using Svelte 5 and Supabase, Budgie syncs your decks
+					seamlessly across all your devices.
+				</p>
 				<div class="about-footer">
 					<span>Version 1.0.0</span>
 				</div>
@@ -601,7 +735,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 20px;
+		padding: 0 12px;
 		z-index: 1000;
 		user-select: none;
 		box-sizing: border-box;
@@ -636,7 +770,9 @@
 		padding: 5px 10px;
 		border-radius: 6px;
 		cursor: pointer;
-		transition: color 0.15s ease, background-color 0.15s ease;
+		transition:
+			color 0.15s ease,
+			background-color 0.15s ease;
 		display: inline-flex;
 		align-items: center;
 		gap: 4px;
@@ -663,7 +799,9 @@
 
 	:global(.nav-chevron) {
 		color: #94a3b8;
-		transition: transform 0.15s ease, color 0.15s ease;
+		transition:
+			transform 0.15s ease,
+			color 0.15s ease;
 		flex-shrink: 0;
 	}
 
@@ -803,7 +941,9 @@
 		fill: hsl(var(--muted) / 0.5);
 		stroke: hsl(var(--border));
 		stroke-width: 1;
-		transition: fill 0.15s ease, stroke 0.15s ease;
+		transition:
+			fill 0.15s ease,
+			stroke 0.15s ease;
 	}
 
 	.collection-trigger:hover .curved-bg path {
