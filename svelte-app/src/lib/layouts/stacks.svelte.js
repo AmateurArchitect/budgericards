@@ -160,7 +160,10 @@ export function createStacksEngine() {
 			else columnMap[key].bottom.push(finalCard);
 		}
 
-		if (effectiveGrouping === "cmc") ensureCmcColumns(columnMap);
+		let cmcBounds = { min: null, max: null };
+		if (effectiveGrouping === "cmc") {
+			cmcBounds = fillCmcGaps(columnMap);
+		}
 
 		const colOrder = getColumnOrder(columnMap, grouping, effectiveGrouping, freeformColumnOrder);
 
@@ -179,7 +182,21 @@ export function createStacksEngine() {
 			}
 			const data = columnMap[key];
 			if (!data) return false;
-			if (effectiveGrouping === "cmc" && key !== "Unknown" && key !== "Lands" && key !== "6+") return true;
+
+			if (effectiveGrouping === "cmc") {
+				if (key === "Unknown" || key === "Lands") {
+					return data.top.length > 0 || data.bottom.length > 0;
+				}
+				if (cmcBounds.min === null) {
+					return false;
+				}
+				if (data.top.length > 0 || data.bottom.length > 0) {
+					return true;
+				}
+				const val = getCmcValue(key);
+				return val !== null && val >= cmcBounds.min && val <= cmcBounds.max;
+			}
+
 			return data.top.length > 0 || data.bottom.length > 0;
 		});
 
@@ -364,10 +381,56 @@ export function createStacksEngine() {
 		}
 	}
 
-	function ensureCmcColumns(columnMap) {
-		if (settingsStore.combine01Drops) { if (!columnMap["0-1"]) columnMap["0-1"] = { top: [], bottom: [] }; }
-		else { if (!columnMap["1"]) columnMap["1"] = { top: [], bottom: [] }; }
-		for (let i = 2; i <= 3; i++) { if (!columnMap[i.toString()]) columnMap[i.toString()] = { top: [], bottom: [] }; }
+	function getCmcValue(key) {
+		if (key === "0-1") {
+			return settingsStore.combine01Drops ? 1 : null;
+		}
+		if (key === "6+") {
+			return settingsStore.combine6PlusDrops ? 6 : null;
+		}
+		if (typeof key === "string" && key.match(/^\d+$/)) {
+			const num = parseInt(key, 10);
+			if (settingsStore.combine01Drops && (num === 0 || num === 1)) return null;
+			if (settingsStore.combine6PlusDrops && num >= 6) return null;
+			return num;
+		}
+		return null;
+	}
+
+	function getCmcKeyForValue(val) {
+		if (settingsStore.combine01Drops && (val === 0 || val === 1)) {
+			return "0-1";
+		}
+		if (settingsStore.combine6PlusDrops && val >= 6) {
+			return "6+";
+		}
+		return val.toString();
+	}
+
+	function fillCmcGaps(columnMap) {
+		const cmcKeysWithCards = Object.keys(columnMap).filter(key => {
+			const val = getCmcValue(key);
+			if (val === null) return false;
+			const col = columnMap[key];
+			return (col?.top?.length || 0) > 0 || (col?.bottom?.length || 0) > 0;
+		});
+
+		if (cmcKeysWithCards.length === 0) {
+			return { min: null, max: null };
+		}
+
+		const values = cmcKeysWithCards.map(k => getCmcValue(k));
+		const min = Math.min(...values);
+		const max = Math.max(...values);
+
+		for (let i = min; i <= max; i++) {
+			const key = getCmcKeyForValue(i);
+			if (!columnMap[key]) {
+				columnMap[key] = { top: [], bottom: [] };
+			}
+		}
+
+		return { min, max };
 	}
 
 	function createSortFn(sorting) {
