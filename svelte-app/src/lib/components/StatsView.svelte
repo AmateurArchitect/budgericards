@@ -194,6 +194,36 @@
 		return meta.image_uris?.normal || meta.card_faces?.[0]?.image_uris?.normal || null;
 	}
 
+	// Arena-style arc calculations for sample hand
+	const handCards = $derived.by(() => {
+		const n = hand.length;
+		if (n === 0) return [];
+		const mid = (n - 1) / 2;
+
+		// Dynamic horizontal step based on card count (compresses naturally when > 7 cards)
+		const stepX = n > 1 ? Math.min(115, Math.max(34, 760 / (n - 1))) : 0;
+		const maxAngle = n > 1 ? Math.min(17, Math.max(3.5, (n - 1) * 2.8)) : 0;
+		const arcDepth = n > 1 ? Math.min(42, Math.max(8, (n - 1) * 6.5)) : 0;
+
+		return hand.map((cardName, i) => {
+			const norm = mid > 0 ? (i - mid) / mid : 0; // -1 (leftmost) to +1 (rightmost)
+			const x = (i - mid) * stepX;
+			const y = Math.pow(Math.abs(norm), 1.65) * arcDepth;
+			const rot = norm * maxAngle;
+			const z = i + 1;
+
+			return {
+				name: cardName,
+				img: getCardImg(cardName),
+				x: Math.round(x * 10) / 10,
+				y: Math.round(y * 10) / 10,
+				rot: Math.round(rot * 10) / 10,
+				z,
+				i
+			};
+		});
+	});
+
 	// 3. Required Tokens Finder (Scryfall metadata all_parts)
 	const requiredTokens = $derived.by(() => {
 		/** @type {any[]} */
@@ -354,45 +384,70 @@
 		</div>
 
 	{:else if settingsStore.statsSubTab === "sample-hand"}
-		<!-- Sample Hand Simulator -->
-		<div class="panel-card">
-			<div class="panel-header">
-				<h3>Sample Hand Simulator</h3>
-				<div class="panel-actions">
-					<button onclick={resetSampleHand} class="btn-action">
+		<!-- Sample Hand Simulator (Arena-style Fan) -->
+		<div class="arena-hand-view">
+			<div class="arena-controls-bar">
+				<div class="arena-hand-meta">
+					<span class="meta-pill count">{hand.length} Cards in Hand</span>
+					{#if mulliganCount > 0}
+						<span class="meta-pill mulligan">Mulligan ({mulliganCount})</span>
+					{/if}
+				</div>
+
+				<div class="arena-actions">
+					<button onclick={resetSampleHand} class="arena-action-btn" title="Reshuffle deck and draw an opening hand">
 						<RotateCcw size={14} />
-						Reset Hand
+						<span>Reset Hand</span>
 					</button>
-					<button onclick={mulligan} class="btn-action" disabled={mulliganCount >= 7}>
-						Mulligan ({mulliganCount})
+
+					<button onclick={mulligan} class="arena-action-btn" disabled={mulliganCount >= 7} title="Mulligan hand">
+						<span>Mulligan ({mulliganCount})</span>
 					</button>
-					<button onclick={drawCard} class="btn-action" disabled={library.length === 0}>
-						Draw Card ({library.length} left)
+
+					<button onclick={drawCard} class="arena-action-btn primary" disabled={library.length === 0} title="Draw 1 card">
+						<span>Draw Card ({library.length} left)</span>
 					</button>
 				</div>
 			</div>
 
 			{#if hand.length === 0}
-				<div class="empty-panel-state">
-					<p>Click Reset Hand to draw an opening hand.</p>
+				<div class="empty-arena-state">
+					<p>Your opening hand is currently empty.</p>
+					<button onclick={resetSampleHand} class="arena-action-btn primary">
+						<RotateCcw size={15} />
+						<span>Draw 7-Card Hand</span>
+					</button>
 				</div>
 			{:else}
-				<div class="hand-grid">
-					{#each hand as cardName, i}
-						<div class="hand-card-wrapper" style="--card-idx: {i}">
-							{#if getCardImg(cardName)}
-								<img 
-									src={getCardImg(cardName)} 
-									alt={cardName} 
-									class="hand-card-img"
-								/>
-							{:else}
-								<div class="hand-card-fallback">
-									<span class="fallback-card-title">{cardName}</span>
-								</div>
-							{/if}
-						</div>
-					{/each}
+				<div class="arena-stage">
+					<div class="arena-mat-glow"></div>
+					<div class="arena-fan">
+						{#each handCards as card (card.i + '-' + card.name)}
+							<div 
+								class="arena-card-wrapper" 
+								style="--x: {card.x}px; --y: {card.y}px; --rot: {card.rot}deg; --z: {card.z};"
+								title="{card.name}"
+								tabindex="0"
+								role="img"
+								aria-label="{card.name}"
+							>
+								{#if card.img}
+									<img 
+										src={card.img} 
+										alt={card.name} 
+										class="arena-card-img"
+										loading="eager"
+									/>
+								{:else}
+									<div class="arena-card-fallback">
+										<div class="fallback-frame">
+											<span class="fallback-card-title">{card.name}</span>
+										</div>
+									</div>
+								{/if}
+							</div>
+						{/each}
+					</div>
 				</div>
 			{/if}
 		</div>
@@ -699,49 +754,253 @@
 		}
 	}
 
-	/* Sample Hand Grid */
-	.hand-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-		gap: 1.25rem;
-		justify-content: center;
-	}
-
-	.hand-card-wrapper {
-		aspect-ratio: 2.5/3.5;
+	/* Arena-style Sample Hand */
+	.arena-hand-view {
+		width: 100%;
+		max-width: 1400px;
+		margin: 0 auto;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 0.5rem 1rem 3rem;
 		position: relative;
-		border-radius: var(--radius-md);
-		overflow: hidden;
-		box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
-		transition: transform 0.2s ease;
 	}
 
-	.hand-card-wrapper:hover {
-		transform: translateY(-8px) scale(1.05);
-		z-index: 10;
-	}
-
-	.hand-card-img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-
-	.hand-card-fallback {
-		width: 100%;
-		height: 100%;
-		background: linear-gradient(135deg, hsl(var(--muted) / 0.3) 0%, hsl(var(--border) / 0.6) 100%);
+	.arena-controls-bar {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 0.5rem;
+		gap: 1rem;
+		flex-wrap: wrap;
+		margin-bottom: 2rem;
+		z-index: 10;
+	}
+
+	.arena-hand-meta {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.meta-pill {
+		font-size: 0.775rem;
+		font-weight: 600;
+		letter-spacing: 0.02em;
+		padding: 0.4rem 0.85rem;
+		border-radius: 9999px;
+		background: hsl(var(--card) / 0.6);
+		border: 1px solid hsl(var(--border) / 0.5);
+		color: hsl(var(--muted-foreground));
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+	}
+
+	.meta-pill.count {
+		color: hsl(var(--foreground));
+	}
+
+	.meta-pill.mulligan {
+		color: hsl(38 92% 50%);
+		border-color: hsl(38 92% 50% / 0.3);
+		background: hsl(38 92% 50% / 0.08);
+	}
+
+	.arena-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		background: hsl(var(--card) / 0.6);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		border: 1px solid hsl(var(--border) / 0.5);
+		padding: 4px;
+		border-radius: 9999px;
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+	}
+
+	.arena-action-btn {
+		background: transparent;
+		border: none;
+		color: hsl(var(--muted-foreground));
+		padding: 0.45rem 0.9rem;
+		border-radius: 9999px;
+		font-size: 0.825rem;
+		font-weight: 500;
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		cursor: pointer;
+		transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+		white-space: nowrap;
+	}
+
+	.arena-action-btn:hover:not(:disabled) {
+		background: hsl(var(--foreground) / 0.08);
+		color: hsl(var(--foreground));
+	}
+
+	.arena-action-btn:active:not(:disabled) {
+		transform: scale(0.97);
+	}
+
+	.arena-action-btn.primary {
+		background: hsl(var(--primary) / 0.15);
+		color: hsl(var(--primary));
+		font-weight: 600;
+	}
+
+	.arena-action-btn.primary:hover:not(:disabled) {
+		background: hsl(var(--primary) / 0.25);
+		color: hsl(var(--primary));
+	}
+
+	.arena-action-btn:disabled {
+		opacity: 0.35;
+		cursor: not-allowed;
+	}
+
+	.empty-arena-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 1.25rem;
+		padding: 6rem 2rem;
+		color: hsl(var(--muted-foreground));
+		font-size: 0.95rem;
+	}
+
+	/* Arena Stage & Curved Fan */
+	.arena-stage {
+		position: relative;
+		width: 100%;
+		max-width: 1200px;
+		height: 480px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		overflow: visible;
+		margin-top: 1rem;
+	}
+
+	.arena-mat-glow {
+		position: absolute;
+		bottom: 10px;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 75%;
+		height: 140px;
+		background: radial-gradient(ellipse 65% 50% at 50% 50%, rgba(56, 189, 248, 0.07) 0%, rgba(0, 0, 0, 0) 70%);
+		pointer-events: none;
+		filter: blur(10px);
+	}
+
+	.arena-fan {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		overflow: visible;
+	}
+
+	.arena-fan:has(.arena-card-wrapper:hover) .arena-card-wrapper:not(:hover) {
+		filter: brightness(0.8);
+	}
+
+	.arena-card-wrapper {
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		width: 215px;
+		height: 300px;
+		margin-left: -107.5px;
+		margin-top: -120px;
+		transform-origin: 50% 120%;
+		transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot));
+		z-index: var(--z);
+		transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), 
+		            box-shadow 0.25s ease, 
+		            filter 0.22s ease,
+		            z-index 0.05s step-end;
+		cursor: pointer;
+		border-radius: 11px;
+		user-select: none;
+		outline: none;
+		box-shadow: 
+			0 12px 28px -6px rgba(0, 0, 0, 0.8),
+			0 4px 10px -2px rgba(0, 0, 0, 0.6),
+			0 0 0 1px rgba(255, 255, 255, 0.08);
+	}
+
+	.arena-card-wrapper:hover,
+	.arena-card-wrapper:focus-visible {
+		transform: translate3d(var(--x), -56px, 0) rotate(0deg) scale(1.15);
+		z-index: 100 !important;
+		transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), 
+		            box-shadow 0.25s ease, 
+		            filter 0.22s ease,
+		            z-index 0s;
+		box-shadow: 
+			0 32px 64px -12px rgba(0, 0, 0, 0.95),
+			0 16px 32px -6px rgba(0, 0, 0, 0.7),
+			0 0 0 1px rgba(255, 255, 255, 0.22),
+			0 0 32px rgba(56, 189, 248, 0.35);
+	}
+
+	.arena-card-img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
+		border-radius: 11px;
+		pointer-events: none;
+	}
+
+	.arena-card-fallback {
+		width: 100%;
+		height: 100%;
+		border-radius: 11px;
+		background: #11141a;
+		border: 4px solid #1a202c;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 1rem;
+		box-sizing: border-box;
+	}
+
+	.fallback-frame {
+		width: 100%;
+		height: 100%;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 6px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.75rem;
+		background: rgba(255, 255, 255, 0.02);
 		text-align: center;
 	}
 
 	.fallback-card-title {
-		font-size: 0.8rem;
-		font-weight: 600;
+		font-size: 0.85rem;
+		font-weight: 700;
 		color: hsl(var(--foreground));
+		line-height: 1.3;
+	}
+
+	@media (max-width: 900px) {
+		.arena-card-wrapper {
+			width: 170px;
+			height: 238px;
+			margin-left: -85px;
+			margin-top: -95px;
+		}
+		.arena-stage {
+			height: 400px;
+		}
 	}
 
 	/* Tokens Grid */
