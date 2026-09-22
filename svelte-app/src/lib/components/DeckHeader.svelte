@@ -958,100 +958,75 @@
 			{#if ["stacks", "spoiler", "table"].includes(settingsStore.deckViewMode)}
 				<div class="control-column">
 					<span class="eyebrow-label">SORT</span>
-					<div class="sort-controls-row">
-						<div class="sort-container">
-							<button
-								class="header-select-trigger sort-trigger"
-								class:active={showSortDropdown}
-								onclick={(e) => {
-									e.stopPropagation();
-									showSortDropdown = !showSortDropdown;
-									if (showSortDropdown)
-										closeAllDropdowns("sort");
-								}}
-								aria-expanded={showSortDropdown}
-								aria-haspopup="listbox"
-								title={isMultiSort
-									? `${deckStore.activeSorts.length} sort levels active (click to configure)`
-									: "Sort cards by"}
-							>
-								<span class="trigger-value">
-									{currentSortLabel}
-									{#if isMultiSort}
-										<span class="sort-plus-badge">+</span>
-									{/if}
-								</span>
-								<ChevronDown size={13} class="chevron" />
-							</button>
+					<div class="sort-container">
+						<button
+							class="header-select-trigger sort-trigger"
+							class:active={showSortDropdown}
+							onclick={(e) => {
+								e.stopPropagation();
+								showSortDropdown = !showSortDropdown;
+								if (showSortDropdown)
+									closeAllDropdowns("sort");
+							}}
+							aria-expanded={showSortDropdown}
+							aria-haspopup="listbox"
+							title={isMultiSort
+								? `${deckStore.activeSorts.length} sort levels active (click to configure)`
+								: "Sort cards by"}
+						>
+							<span class="trigger-value">
+								{currentSortLabel}
+								{#if isMultiSort}
+									<span class="sort-plus-badge">+</span>
+								{/if}
+							</span>
+							<ChevronDown size={13} class="chevron" />
+						</button>
 
-							{#if showSortDropdown}
-								<div
-									class="header-select-menu"
-									use:smartAlign
-									transition:fly={{ y: 4, duration: 150 }}
+						{#if showSortDropdown}
+							<div
+								class="header-select-menu"
+								use:smartAlign
+								transition:fly={{ y: 4, duration: 150 }}
+							>
+								<button
+									class="select-item"
+									class:active={isDefaultSort}
+									onclick={(e) => {
+										e.stopPropagation();
+										selectSortOption("default");
+									}}
 								>
+									Default
+								</button>
+								{#each basicSortOptions as opt}
 									<button
 										class="select-item"
-										class:active={isDefaultSort}
+										class:active={isSingleSortActive(opt.id)}
 										onclick={(e) => {
 											e.stopPropagation();
-											selectSortOption("default");
+											selectSortOption(opt.id);
 										}}
 									>
-										Default
+										{opt.label}
 									</button>
-									{#each basicSortOptions as opt}
-										<button
-											class="select-item"
-											class:active={isSingleSortActive(opt.id)}
-											onclick={(e) => {
-												e.stopPropagation();
-												selectSortOption(opt.id);
-											}}
-										>
-											{opt.label}
-										</button>
-									{/each}
-									<div class="menu-divider"></div>
-									<button
-										class="select-item advanced-item"
-										class:active={isMultiSort}
-										onclick={(e) => {
-											e.stopPropagation();
-											openAdvancedSort();
-										}}
-									>
-										<span>Advanced...</span>
-										{#if isMultiSort}
-											<span class="advanced-count-pill">{deckStore.activeSorts.length}</span>
-										{/if}
-									</button>
-								</div>
-							{/if}
-						</div>
-
-						<!-- View Options Modal Trigger -->
-						<div class="view-options-container">
-							<Button
-								variant={showViewOptionsModal
-									? "toggle-active"
-									: "ghost"}
-								size="icon"
-								class="modifier-btn"
-								bind:el={viewOptionsBtn}
-								onclick={(/** @type {MouseEvent} */ e) => {
-									e.stopPropagation();
-									showViewOptionsModal = true;
-								}}
-								title="View Options"
-							>
-								<MoreVertical size={15} />
-							</Button>
-							<ViewOptionsModal
-								bind:isOpen={showViewOptionsModal}
-								triggerElement={viewOptionsBtn}
-							/>
-						</div>
+								{/each}
+								<div class="menu-divider"></div>
+								<button
+									class="select-item advanced-item"
+									class:active={isMultiSort}
+									onclick={(e) => {
+										e.stopPropagation();
+										openAdvancedSort();
+									}}
+								>
+									<span>Advanced...</span>
+									{#if isMultiSort}
+										<span class="advanced-count-pill">{deckStore.activeSorts.length}</span>
+									{/if}
+								</button>
+							</div>
+						{/if}
 					</div>
 				</div>
 
@@ -1059,6 +1034,29 @@
 					bind:isOpen={showDisplaySort}
 					target="deck"
 				/>
+
+				<!-- View Options Modal Trigger -->
+				<div class="view-options-container">
+					<Button
+						variant={showViewOptionsModal
+							? "toggle-active"
+							: "ghost"}
+						size="icon"
+						class="modifier-btn"
+						bind:el={viewOptionsBtn}
+						onclick={(/** @type {MouseEvent} */ e) => {
+							e.stopPropagation();
+							showViewOptionsModal = true;
+						}}
+						title="View Options"
+					>
+						<MoreVertical size={15} />
+					</Button>
+					<ViewOptionsModal
+						bind:isOpen={showViewOptionsModal}
+						triggerElement={viewOptionsBtn}
+					/>
+				</div>
 			{/if}
 
 			{#if settingsStore.deckViewMode === "stats"}
@@ -1494,8 +1492,7 @@
 		white-space: nowrap;
 	}
 
-	.grouping-controls-row,
-	.sort-controls-row {
+	.grouping-controls-row {
 		display: flex;
 		align-items: center;
 		gap: 6px;
