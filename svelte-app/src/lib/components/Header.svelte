@@ -860,23 +860,14 @@
 	}
 
 	.global-header-bar.is-auto-hide {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		width: 100%;
-		z-index: 1000;
-		transform: translateY(-100%);
-		transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
-		box-shadow: none;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+		margin-top: -48px;
+		transition: margin-top 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 		pointer-events: none;
 	}
 
 	.global-header-bar.is-auto-hide.is-revealed {
-		transform: translateY(0);
+		margin-top: 0;
 		pointer-events: auto;
-		box-shadow: 0 6px 24px rgba(0, 0, 0, 0.75), 0 2px 6px rgba(0, 0, 0, 0.5);
 	}
 
 	.global-header-left {
@@ -894,13 +885,14 @@
 	}
 
 	.global-nav-link {
+		height: 28px;
 		font-size: 13.5px;
 		font-weight: 500;
 		color: #94a3b8;
 		text-decoration: none;
 		background: transparent;
 		border: none;
-		padding: 5px 10px;
+		padding: 0 10px;
 		border-radius: 6px;
 		cursor: pointer;
 		transition:
@@ -908,11 +900,13 @@
 			background-color 0.15s ease;
 		display: inline-flex;
 		align-items: center;
+		justify-content: center;
 		gap: 4px;
 		line-height: 1;
 		outline: none;
 		white-space: nowrap;
 		user-select: none;
+		box-sizing: border-box;
 	}
 
 	.global-nav-link:hover {

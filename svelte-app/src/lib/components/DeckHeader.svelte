@@ -528,7 +528,6 @@
 	class="deck-header"
 	class:is-top-bar={isTopBar}
 	class:is-scrolled={isScrolled}
-	class:top-flush={settingsStore.autoHideDeckbuilderNav && !searchStore.isOpen}
 	bind:this={headerEl}
 >
 	<div class="deck-info-wrapper">
@@ -1228,10 +1227,6 @@
 			box-shadow 0.2s ease;
 	}
 
-	.deck-header.top-flush {
-		border-top-left-radius: 0;
-		border-top-right-radius: 0;
-	}
 
 	.deck-header.is-scrolled {
 		border-bottom-color: rgba(255, 255, 255, 0.08);
