@@ -219,7 +219,7 @@
 			const y = Math.pow(Math.abs(norm), 1.65) * arcDepth;
 			const rot = norm * maxAngle;
 			const z = i + 1;
-			const delay = isOpeningDeal ? i * 50 : 0;
+			const delay = isOpeningDeal ? i * 35 : 0;
 
 			return {
 				name: cardName,
@@ -891,9 +891,9 @@
 	@keyframes dealCard {
 		0% {
 			opacity: 0;
-			transform: translate3d(calc(var(--x) * 0.15), 160px, 0) rotate(0deg) scale(0.65);
+			transform: translate3d(calc(var(--x) * 0.85), calc(var(--y) + 24px), 0) rotate(calc(var(--rot) * 0.75)) scale(0.95);
 		}
-		60% {
+		40% {
 			opacity: 1;
 		}
 		100% {
@@ -913,7 +913,7 @@
 		transform-origin: 50% 120%;
 		transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot));
 		z-index: var(--z);
-		animation: dealCard 0.42s cubic-bezier(0.18, 0.89, 0.32, 1.15) backwards;
+		animation: dealCard 0.32s cubic-bezier(0.2, 0.8, 0.3, 1.1) backwards;
 		animation-delay: var(--deal-delay, 0ms);
 		transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), 
 		            box-shadow 0.22s ease, 
@@ -929,7 +929,7 @@
 	}
 
 	.arena-card-wrapper:hover {
-		transform: translate3d(var(--x), calc(var(--y) - 6px), 0) rotate(var(--rot)) scale(1.04);
+		transform: translate3d(var(--x), calc(var(--y) - 8px), 0) rotate(var(--rot)) scale(1.04);
 		z-index: 100 !important;
 		transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), 
 		            box-shadow 0.22s ease, 
