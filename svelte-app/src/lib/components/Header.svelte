@@ -6,11 +6,9 @@
 		Search,
 		HelpCircle,
 		SlidersHorizontal,
-		PlusCircle,
 		X,
 		LogOut,
 		Palette,
-		FolderOpen,
 		Settings as SettingsIcon,
 		ArrowDownWideNarrow,
 		PanelLeft,
@@ -292,10 +290,6 @@
 
 			{#if showBudgieDropdown}
 				<div class="budgie-dropdown" transition:fade={{ duration: 120 }}>
-					<a href="/decks" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
-						<FolderOpen size={14} />
-						<span>Your Decks</span>
-					</a>
 					<a href="/browse" class="menu-item nav-link" onclick={() => (showBudgieDropdown = false)}>
 						<Search size={14} />
 						<span>Explore Decks</span>
@@ -312,16 +306,6 @@
 				</div>
 			{/if}
 		</div>
-
-		<nav class="global-nav">
-			<a
-				href="/browse"
-				class="global-nav-link"
-				class:active={$page.url.pathname === "/browse"}
-			>
-				Explore
-			</a>
-		</nav>
 	</div>
 
 	<div class="global-header-right">
@@ -373,14 +357,6 @@
 									<span class="dropdown-email">{authStore.user.email}</span>
 								</div>
 								<div class="menu-divider"></div>
-								<button type="button" class="menu-item" onclick={handleNewDeck}>
-									<PlusCircle size={14} />
-									<span>New Deck</span>
-								</button>
-								<a href="/decks" class="menu-item nav-link" onclick={() => (showProfileDropdown = false)}>
-									<FolderOpen size={14} />
-									<span>Your Decks</span>
-								</a>
 								<button type="button" class="menu-item" onclick={() => { showProfileDropdown = false; goto("/settings"); }}>
 									<SettingsIcon size={14} />
 									<span>Settings</span>
