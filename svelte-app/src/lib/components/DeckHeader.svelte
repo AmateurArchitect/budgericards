@@ -1397,8 +1397,8 @@
 		height: 36px;
 		width: 215px;
 		min-width: 215px;
-		padding: 0 10px 0 12px;
-		border-radius: 8px;
+		padding: 0 10px 0 14px;
+		border-radius: 9999px;
 		color: #94a3b8;
 		border: 1px solid rgba(255, 255, 255, 0.08);
 		background: #080b11;
@@ -1473,9 +1473,9 @@
 		align-items: center;
 		background: #080b11;
 		border: 1px solid rgba(255, 255, 255, 0.08);
-		border-radius: 8px;
-		padding: 3px;
-		gap: 0;
+		border-radius: var(--radius-md, 6px);
+		padding: 2px;
+		gap: 2px;
 		height: 36px;
 		box-sizing: border-box;
 	}
@@ -1484,43 +1484,18 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		height: 28px;
-		width: 28px;
+		height: 30px;
+		width: 30px;
 		padding: 0;
 		border: none;
 		background: transparent;
-		border-radius: 6px;
+		border-radius: var(--radius-sm, 3px);
 		color: #94a3b8;
 		cursor: pointer;
 		transition: all 0.15s ease;
 		outline: none;
 		margin: 0;
-	}
-
-	/* Leftmost button */
-	.view-toggle-btn:first-child {
-		margin-left: 2px;
-		margin-right: 0;
-	}
-	.view-toggle-btn:first-child.active {
-		margin-left: 0;
-		margin-right: 2px;
-	}
-
-	/* Rightmost button */
-	.view-toggle-btn:last-child {
-		margin-left: 0;
-		margin-right: 2px;
-	}
-	.view-toggle-btn:last-child.active {
-		margin-left: 2px;
-		margin-right: 0;
-	}
-
-	/* Middle buttons when active */
-	.view-toggle-btn:not(:first-child):not(:last-child).active {
-		margin-left: 2px;
-		margin-right: 2px;
+		box-sizing: border-box;
 	}
 
 	.view-toggle-btn:hover:not(.active) {
@@ -1555,7 +1530,7 @@
 		padding: 0 12px;
 		background: #080b11;
 		border: 1px solid rgba(255, 255, 255, 0.08);
-		border-radius: 8px;
+		border-radius: var(--radius-md, 6px);
 		color: #cbd5e1;
 		font-size: 13px;
 		font-weight: 500;
@@ -1617,7 +1592,7 @@
 		min-width: 150px;
 		background: #0f1219;
 		border: 1px solid rgba(255, 255, 255, 0.1);
-		border-radius: 10px;
+		border-radius: var(--radius-md, 6px);
 		box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
 		padding: 4px;
 		z-index: 100;
@@ -1639,7 +1614,7 @@
 		color: #94a3b8;
 		background: none;
 		border: none;
-		border-radius: 6px;
+		border-radius: var(--radius-sm, 3px);
 		cursor: pointer;
 		transition: all 0.15s ease;
 	}
@@ -1670,7 +1645,7 @@
 		height: 36px !important;
 		width: 36px !important;
 		padding: 0 !important;
-		border-radius: 8px !important;
+		border-radius: var(--radius-md, 6px) !important;
 		color: #94a3b8 !important;
 		border: 1px solid rgba(255, 255, 255, 0.08) !important;
 		background: #080b11 !important;
@@ -1708,26 +1683,30 @@
 		align-items: center;
 		background: #080b11;
 		border: 1px solid rgba(255, 255, 255, 0.08);
-		border-radius: 8px;
-		padding: 3px;
+		border-radius: var(--radius-md, 6px);
+		padding: 2px;
 		gap: 2px;
 		height: 36px;
 		box-sizing: border-box;
 	}
 
 	.stats-tab-btn {
-		height: 28px;
-		padding: 0 10px;
-		font-size: 12px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		height: 30px;
+		padding: 0 12px;
+		font-size: 13px;
 		font-weight: 500;
 		color: #94a3b8;
 		background: transparent;
 		border: none;
-		border-radius: 5px;
+		border-radius: var(--radius-sm, 3px);
 		cursor: pointer;
 		transition: all 0.15s ease;
 		white-space: nowrap;
 		outline: none;
+		box-sizing: border-box;
 	}
 
 	.stats-tab-btn:hover:not(.active) {
@@ -1741,23 +1720,12 @@
 	}
 
 	.stats-tab-btn.active {
-		background: #1c2230;
-		color: #f8fafc;
+		background: #252b3b;
+		color: #ffffff;
 		font-weight: 600;
 		box-shadow:
-			0 1px 3px rgba(0, 0, 0, 0.4),
-			0 0 0 1px rgba(255, 255, 255, 0.08) inset;
-	}
-
-	.stats-subtabs-group {
-		display: inline-flex;
-		gap: 2px;
-	}
-
-	:global(.stats-tab-btn) {
-		height: 36px !important;
-		font-size: 0.8125rem !important;
-		padding: 0 0.75rem !important;
+			0 0 0 1px rgba(255, 255, 255, 0.14) inset,
+			0 1px 3px rgba(0, 0, 0, 0.4);
 	}
 
 	:global(.chevron) {
