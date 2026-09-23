@@ -1676,9 +1676,6 @@
 		pointer-events: none;
 	}
 
-	.arena-fan:has(.arena-card-wrapper:hover) .arena-card-wrapper:not(:hover) {
-		filter: brightness(0.8);
-	}
 
 	@keyframes dealCard {
 		0% {
@@ -1717,7 +1714,6 @@
 		transition:
 			transform 0.22s cubic-bezier(0.2, 0, 0, 1),
 			box-shadow 0.22s ease,
-			filter 0.2s ease,
 			z-index 0.05s step-end;
 		cursor: grab;
 		touch-action: none;
