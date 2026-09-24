@@ -238,7 +238,7 @@
 		if (!isAutoHideActive || searchStore.isOpen) return;
 
 		// 1. Hovering near the top edge triggers reveal with 50ms hover-intent delay
-		if (e.clientY <= 12) {
+		if (e.clientY <= 16) {
 			if (!isNearTop) {
 				scheduleRevealTopNav(50);
 			} else if (leaveTimer) {
@@ -247,7 +247,7 @@
 			return;
 		}
 
-		// Cursor moved below the top 12px strip
+		// Cursor moved below the top 16px strip
 		if (!isNearTop) {
 			cancelEnterTimer();
 		}
@@ -941,7 +941,7 @@
 		top: 0;
 		left: 0;
 		width: calc(100vw - var(--right-sidebar-width, 0px));
-		height: 12px;
+		height: 16px;
 		z-index: 999;
 		pointer-events: auto;
 	}
