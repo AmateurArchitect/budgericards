@@ -141,7 +141,7 @@
 		}
 	}
 
-	function scheduleRevealTopNav(delay = 75) {
+	function scheduleRevealTopNav(delay = 50) {
 		cancelLeaveTimer();
 		if (isNearTop) return;
 		if (!enterTimer) {
@@ -189,7 +189,7 @@
 	});
 
 	function handleTriggerMouseEnter() {
-		scheduleRevealTopNav(75);
+		scheduleRevealTopNav(50);
 	}
 
 	function handleTriggerMouseLeave() {
@@ -237,10 +237,10 @@
 	function handleWindowMouseMove(e) {
 		if (!isAutoHideActive || searchStore.isOpen) return;
 
-		// 1. Hovering near the top edge triggers reveal with 75ms hover-intent delay
+		// 1. Hovering near the top edge triggers reveal with 50ms hover-intent delay
 		if (e.clientY <= 12) {
 			if (!isNearTop) {
-				scheduleRevealTopNav(75);
+				scheduleRevealTopNav(50);
 			} else if (leaveTimer) {
 				cancelLeaveTimer();
 			}
