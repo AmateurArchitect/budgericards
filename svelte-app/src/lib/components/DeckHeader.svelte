@@ -1137,49 +1137,51 @@
 			{/if}
 
 			<!-- Card Search Column with CARD SEARCH eyebrow -->
-			<div class="control-column search-column">
-				<span class="eyebrow-label">CARD SEARCH</span>
-				<button
-					class="deck-search-btn"
-					onclick={() => {
-						if (searchStore.isOpen) {
-							searchStore.closeSearch();
-						} else {
-							searchStore.openSearch();
-							setTimeout(() => {
-								const inputEl =
-									document.querySelector(
-										".header-search-input input",
-									) ||
-									document.querySelector(
-										".header-search-input",
-									);
-								/** @type {HTMLElement | null} */ (
-									inputEl
-								)?.focus();
-							}, 50);
-						}
-					}}
-					aria-label="Card search (⌘/ or /)"
-					title="Card Search (⌘/ or /)"
-				>
-					<div class="deck-search-left">
-						<Search size={14} class="deck-search-icon" />
-						{#key placeholderIndex}
-							<span
-								class="deck-search-text"
-								in:fade={{ duration: 160 }}
-							>
-								{searchHints[placeholderIndex]}
-							</span>
-						{/key}
-					</div>
-					<div class="shortcut-keycaps">
-						<kbd class="key-cap">⌘</kbd>
-						<kbd class="key-cap">/</kbd>
-					</div>
-				</button>
-			</div>
+			{#if settingsStore.deckViewMode === "stacks" || settingsStore.deckViewMode === "spoiler"}
+				<div class="control-column search-column">
+					<span class="eyebrow-label">CARD SEARCH</span>
+					<button
+						class="deck-search-btn"
+						onclick={() => {
+							if (searchStore.isOpen) {
+								searchStore.closeSearch();
+							} else {
+								searchStore.openSearch();
+								setTimeout(() => {
+									const inputEl =
+										document.querySelector(
+											".header-search-input input",
+										) ||
+										document.querySelector(
+											".header-search-input",
+										);
+									/** @type {HTMLElement | null} */ (
+										inputEl
+									)?.focus();
+								}, 50);
+							}
+						}}
+						aria-label="Card search (⌘/ or /)"
+						title="Card Search (⌘/ or /)"
+					>
+						<div class="deck-search-left">
+							<Search size={14} class="deck-search-icon" />
+							{#key placeholderIndex}
+								<span
+									class="deck-search-text"
+									in:fade={{ duration: 160 }}
+								>
+									{searchHints[placeholderIndex]}
+								</span>
+							{/key}
+						</div>
+						<div class="shortcut-keycaps">
+							<kbd class="key-cap">⌘</kbd>
+							<kbd class="key-cap">/</kbd>
+						</div>
+					</button>
+				</div>
+			{/if}
 		{/if}
 	</div>
 </div>

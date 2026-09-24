@@ -625,23 +625,6 @@
 </script>
 
 <div class="stats-view-viewport">
-	<!-- Sticky Floating Sub-Navigation Bar -->
-	<header class="stats-sticky-nav">
-		<div class="nav-pills-cluster">
-			{#each sectionsList as sec}
-				{@const Icon = sec.icon}
-				<button
-					class="nav-pill"
-					class:active={settingsStore.statsSection === sec.id}
-					onclick={() => scrollToSection(sec.id)}
-				>
-					<span class="pill-icon"><Icon size={14} /></span>
-					<span>{sec.label}</span>
-				</button>
-			{/each}
-		</div>
-	</header>
-
 	<!-- 1. OVERVIEW SECTION -->
 	<section id="stats-overview" class="stats-section-screen">
 		<div class="section-content-wrapper">
@@ -1302,65 +1285,6 @@
 		scroll-behavior: smooth;
 		background: radial-gradient(circle at 50% 0%, hsl(var(--card) / 0.3) 0%, transparent 60%);
 		position: relative;
-	}
-
-	/* Sticky Sub-Navigation */
-	.stats-sticky-nav {
-		position: sticky;
-		top: 0;
-		left: 0;
-		width: 100%;
-		display: flex;
-		justify-content: center;
-		padding: 0.75rem 1.5rem;
-		background: hsl(var(--background) / 0.82);
-		backdrop-filter: blur(14px);
-		-webkit-backdrop-filter: blur(14px);
-		border-bottom: 1px solid hsl(var(--border) / 0.4);
-		z-index: 50;
-	}
-
-	.nav-pills-cluster {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.35rem;
-		background: hsl(var(--secondary) / 0.45);
-		border: 1px solid hsl(var(--border) / 0.6);
-		padding: 0.25rem 0.35rem;
-		border-radius: var(--radius-full, 9999px);
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-	}
-
-	.nav-pill {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.4rem;
-		padding: 0.35rem 0.85rem;
-		font-size: 0.82rem;
-		font-weight: 500;
-		color: hsl(var(--muted-foreground));
-		background: transparent;
-		border: none;
-		border-radius: var(--radius-full, 9999px);
-		cursor: pointer;
-		transition: all 0.2s ease;
-		user-select: none;
-	}
-
-	.nav-pill:hover {
-		color: hsl(var(--foreground));
-		background: hsl(var(--secondary));
-	}
-
-	.nav-pill.active {
-		background: hsl(var(--primary));
-		color: hsl(var(--primary-foreground));
-		font-weight: 600;
-		box-shadow: 0 2px 8px hsl(var(--primary) / 0.35);
-	}
-
-	.pill-icon {
-		opacity: 0.85;
 	}
 
 	/* Common Section Screen */
