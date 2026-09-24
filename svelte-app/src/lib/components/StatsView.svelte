@@ -59,14 +59,14 @@
 	const deckColorIdentity = $derived(() => {
 		const identitySet = new Set();
 		if (deckStore.commander.length > 0) {
-			deckStore.commander.forEach((c) => {
+			deckStore.commander.forEach((/** @type {any} */ c) => {
 				const meta = getMeta(c.name);
 				(meta.color_identity || []).forEach((/** @type {string} */ col) =>
 					identitySet.add(col),
 				);
 			});
 		} else {
-			activeCards.forEach((c) => {
+			activeCards.forEach((/** @type {any} */ c) => {
 				const meta = getMeta(c.name);
 				(meta.color_identity || []).forEach((/** @type {string} */ col) =>
 					identitySet.add(col),
@@ -101,7 +101,7 @@
 			cards: /** @type {{ name: string, qty: number, mana_cost: string, type_line: string, price: number }[]} */ ([]),
 		}));
 
-		activeCards.forEach((c) => {
+		activeCards.forEach((/** @type {any} */ c) => {
 			const meta = getMeta(c.name);
 			const typeLine = (meta.type_line || "").toLowerCase();
 			if (typeLine.includes("land")) return; // exclude lands from curve
@@ -143,9 +143,10 @@
 		let totalNonLandCount = 0;
 		let totalCmcSum = 0;
 		let totalDeckCmcSum = 0;
+		/** @type {number[]} */
 		const cmcValues = [];
 
-		activeCards.forEach((c) => {
+		activeCards.forEach((/** @type {any} */ c) => {
 			const meta = getMeta(c.name);
 			const typeLine = (meta.type_line || "").toLowerCase();
 			const cmc = meta.cmc ?? 0;
@@ -220,6 +221,7 @@
 	let selectedTypeFilter = $state(/** @type {string | null} */ (null));
 
 	const cardTypesData = $derived.by(() => {
+		/** @type {Record<string, { count: number, color: string, cards: any[] }>} */
 		const types = {
 			Creatures: { count: 0, color: "#f97316", cards: [] },
 			Instants: { count: 0, color: "#38bdf8", cards: [] },
@@ -239,7 +241,7 @@
 		let permanentsCount = 0;
 		let nonPermanentsCount = 0;
 
-		activeCards.forEach((c) => {
+		activeCards.forEach((/** @type {any} */ c) => {
 			const meta = getMeta(c.name);
 			const typeLine = meta.type_line || "";
 			const lowerType = typeLine.toLowerCase();
@@ -303,7 +305,7 @@
 					.split(/\s+/)
 					.filter(Boolean);
 
-				subs.forEach((sub) => {
+				subs.forEach((/** @type {string} */ sub) => {
 					const clean = sub.trim();
 					if (main.includes("creature")) {
 						creatureSubtypes[clean] =
@@ -344,6 +346,7 @@
 
 	// 3. COLORS & MANA BASE CALCULATIONS
 	const colorBreakdownData = $derived.by(() => {
+		/** @type {Record<string, { name: string, count: number, color: string }>} */
 		const pips = {
 			W: { name: "White", count: 0, color: "#f9fafb" },
 			U: { name: "Blue", count: 0, color: "#38bdf8" },
@@ -353,6 +356,7 @@
 			C: { name: "Colorless", count: 0, color: "#94a3b8" },
 		};
 
+		/** @type {Record<string, { count: number, name: string }>} */
 		const sources = {
 			W: { count: 0, name: "White" },
 			U: { count: 0, name: "Blue" },
@@ -368,7 +372,7 @@
 		let colorlessSpellsCount = 0;
 		let landsCount = 0;
 
-		activeCards.forEach((c) => {
+		activeCards.forEach((/** @type {any} */ c) => {
 			const meta = getMeta(c.name);
 			const typeLine = (meta.type_line || "").toLowerCase();
 			const qty = c.quantity || 1;
@@ -385,7 +389,7 @@
 				// Parse mana pips from mana_cost
 				const cost = meta.mana_cost || "";
 				const matches = cost.match(/\{([^}]+)\}/g) || [];
-				matches.forEach((sym) => {
+				matches.forEach((/** @type {string} */ sym) => {
 					const clean = sym.replace(/[{}]/g, "").toUpperCase();
 					if (clean === "W") { pips.W.count += qty; totalPips += qty; }
 					else if (clean === "U") { pips.U.count += qty; totalPips += qty; }
@@ -405,7 +409,7 @@
 			// Parse mana sources (lands and mana-producing non-lands)
 			const produced = meta.produced_mana || [];
 			if (produced.length > 0) {
-				produced.forEach((p) => {
+				produced.forEach((/** @type {string} */ p) => {
 					const upper = p.toUpperCase();
 					if (sources[upper]) sources[upper].count += qty;
 				});
@@ -459,6 +463,7 @@
 	// 4. BUDGET & FINANCIAL VALUE CALCULATIONS
 	const budgetData = $derived.by(() => {
 		const boards = ["commander", "companion", "mainboard", "sideboard", "maybeboard"];
+		/** @type {Record<string, number>} */
 		const boardTotals = {
 			commander: 0,
 			companion: 0,
@@ -468,6 +473,7 @@
 			total: 0,
 		};
 
+		/** @type {any[]} */
 		const allCardsWithPrices = [];
 		const priceTiers = {
 			budget: { label: "< $1.00", count: 0, total: 0, color: "#22c55e" },
@@ -488,9 +494,10 @@
 			Other: 0,
 		});
 
+		const store = /** @type {any} */ (deckStore);
 		boards.forEach((b) => {
-			const list = /** @type {any[]} */ (deckStore[b] || []);
-			list.forEach((c) => {
+			const list = /** @type {any[]} */ (store[b] || []);
+			list.forEach((/** @type {any} */ c) => {
 				const price = c.price || 0;
 				const qty = c.quantity || 1;
 				const cardVal = price * qty;
@@ -581,6 +588,7 @@
 		{ id: "budget", label: "Budget", icon: Coins },
 	];
 
+	/** @param {string} id */
 	function scrollToSection(id) {
 		settingsStore.statsSection = id;
 		const el = document.getElementById(`stats-${id}`);
@@ -621,12 +629,13 @@
 	<header class="stats-sticky-nav">
 		<div class="nav-pills-cluster">
 			{#each sectionsList as sec}
+				{@const Icon = sec.icon}
 				<button
 					class="nav-pill"
 					class:active={settingsStore.statsSection === sec.id}
 					onclick={() => scrollToSection(sec.id)}
 				>
-					<svelte:component this={sec.icon} size={14} class="pill-icon" />
+					<span class="pill-icon"><Icon size={14} /></span>
 					<span>{sec.label}</span>
 				</button>
 			{/each}
@@ -1034,7 +1043,7 @@
 
 					<div class="permanents-summary-box">
 						<div class="perm-item">
-							<Shield size={18} class="perm-icon" />
+							<span class="perm-icon"><Shield size={18} /></span>
 							<div>
 								<span class="perm-num">{cardTypesData.permanentsCount}</span>
 								<span class="perm-title">Permanents ({cardTypesData.permanentsPct}%)</span>
@@ -1042,7 +1051,7 @@
 						</div>
 						<div class="perm-divider"></div>
 						<div class="perm-item">
-							<Flame size={18} class="perm-icon spells" />
+							<span class="perm-icon spells"><Flame size={18} /></span>
 							<div>
 								<span class="perm-num">{cardTypesData.nonPermanentsCount}</span>
 								<span class="perm-title">Spells ({cardTypesData.nonPermanentsPct}%)</span>
