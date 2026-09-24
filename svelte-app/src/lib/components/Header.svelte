@@ -96,6 +96,8 @@
 	let isFocusedWithin = $state(false);
 	/** @type {ReturnType<typeof setTimeout> | null} */
 	let leaveTimer = null;
+	/** @type {ReturnType<typeof setTimeout> | null} */
+	let enterTimer = null;
 
 	const isHeaderRevealed = $derived(
 		!isAutoHideActive ||
@@ -124,10 +126,29 @@
 		}
 	}
 
+	function cancelEnterTimer() {
+		if (enterTimer) {
+			clearTimeout(enterTimer);
+			enterTimer = null;
+		}
+	}
+
 	function revealTopNav() {
 		cancelLeaveTimer();
+		cancelEnterTimer();
 		if (!isNearTop) {
 			isNearTop = true;
+		}
+	}
+
+	function scheduleRevealTopNav(delay = 75) {
+		cancelLeaveTimer();
+		if (isNearTop) return;
+		if (!enterTimer) {
+			enterTimer = setTimeout(() => {
+				revealTopNav();
+				enterTimer = null;
+			}, delay);
 		}
 	}
 
@@ -149,12 +170,35 @@
 		}
 	});
 
+	$effect(() => {
+		if (!isAutoHideActive) return;
+
+		const handleDocMouseLeave = () => {
+			cancelEnterTimer();
+		};
+
+		document.documentElement.addEventListener("mouseleave", handleDocMouseLeave);
+		window.addEventListener("blur", handleDocMouseLeave);
+
+		return () => {
+			cancelEnterTimer();
+			cancelLeaveTimer();
+			document.documentElement.removeEventListener("mouseleave", handleDocMouseLeave);
+			window.removeEventListener("blur", handleDocMouseLeave);
+		};
+	});
+
 	function handleTriggerMouseEnter() {
-		revealTopNav();
+		scheduleRevealTopNav(75);
+	}
+
+	function handleTriggerMouseLeave() {
+		cancelEnterTimer();
 	}
 
 	function handleHeaderMouseEnter() {
 		cancelLeaveTimer();
+		cancelEnterTimer();
 		isHeaderHovered = true;
 	}
 
@@ -193,14 +237,19 @@
 	function handleWindowMouseMove(e) {
 		if (!isAutoHideActive || searchStore.isOpen) return;
 
-		// 1. Hovering near the top edge triggers immediately
+		// 1. Hovering near the top edge triggers reveal with 75ms hover-intent delay
 		if (e.clientY <= 12) {
 			if (!isNearTop) {
-				revealTopNav();
+				scheduleRevealTopNav(75);
 			} else if (leaveTimer) {
 				cancelLeaveTimer();
 			}
 			return;
+		}
+
+		// Cursor moved below the top 12px strip
+		if (!isNearTop) {
+			cancelEnterTimer();
 		}
 
 		// 2. While top nav is revealed, don't close until cursor leaves the entire height of the deck header
@@ -459,6 +508,7 @@
 	<div
 		class="top-nav-trigger-zone"
 		onmouseenter={handleTriggerMouseEnter}
+		onmouseleave={handleTriggerMouseLeave}
 		aria-hidden="true"
 	></div>
 {/if}
