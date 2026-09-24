@@ -1,16 +1,27 @@
 <script>
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
+	import ManaSymbol from "./ui/ManaSymbol.svelte";
 	import { onMount } from "svelte";
-	import { fly } from "svelte/transition";
+	import { fade, fly, slide } from "svelte/transition";
 	import {
-		Loader,
-		RotateCcw,
-		AlertTriangle,
-		SlidersHorizontal,
+		BarChart3,
+		PieChart,
+		Coins,
+		Layers,
+		Compass,
+		ArrowRight,
+		ChevronRight,
+		Sparkles,
+		Flame,
+		Shield,
+		CheckCircle2,
+		AlertCircle,
+		TrendingUp,
+		DollarSign,
 	} from "lucide-svelte";
 
-	// Gather all active cards (mainboard + commander + companion)
+	// Gather active cards
 	const activeCards = $derived([
 		...deckStore.commander,
 		...deckStore.companion,
@@ -24,27 +35,449 @@
 		return deckStore.metadata[name.toLowerCase()] || {};
 	}
 
-	// 1. Dashboard calculations
-	// CMC Curve (excluding lands)
-	const cmcCounts = $derived.by(() => {
-		const counts = Array(8).fill(0); // 0, 1, 2, 3, 4, 5, 6, 7+
-		activeCards.forEach((c) => {
-			const meta = getMeta(c.name);
-			const type = meta.type_line || "";
-			if (type.toLowerCase().includes("land")) return;
-			const cmc = Math.floor(meta.cmc ?? 0);
-			if (cmc < 0) return;
-			const index = Math.min(cmc, 7);
-			counts[index] += c.quantity || 1;
-		});
-		return counts;
+	// Active Commander & Featured Artwork
+	const commanderCard = $derived(
+		deckStore.commander[0] ||
+			deckStore.companion[0] ||
+			deckStore.mainboard[0] ||
+			null,
+	);
+
+	const featuredArt = $derived(() => {
+		if (deckStore.coverArt) return deckStore.coverArt;
+		if (!commanderCard) return null;
+		const meta = getMeta(commanderCard.name);
+		return (
+			meta.image_uris?.art_crop ||
+			meta.card_faces?.[0]?.image_uris?.art_crop ||
+			meta.image_uris?.normal ||
+			null
+		);
 	});
 
-	const maxCmcCount = $derived(Math.max(...cmcCounts, 1));
+	// Deck Color Identity
+	const deckColorIdentity = $derived(() => {
+		const identitySet = new Set();
+		if (deckStore.commander.length > 0) {
+			deckStore.commander.forEach((c) => {
+				const meta = getMeta(c.name);
+				(meta.color_identity || []).forEach((/** @type {string} */ col) =>
+					identitySet.add(col),
+				);
+			});
+		} else {
+			activeCards.forEach((c) => {
+				const meta = getMeta(c.name);
+				(meta.color_identity || []).forEach((/** @type {string} */ col) =>
+					identitySet.add(col),
+				);
+			});
+		}
+		const order = ["W", "U", "B", "R", "G", "C"];
+		return order.filter((c) => identitySet.has(c));
+	});
 
-	// Card Types breakdown
-	const typeCounts = $derived.by(() => {
-		const counts = {
+	// 1. MANA CURVE CALCULATIONS
+	let curveGroupingMode = $state("types"); // 'creatures' | 'types'
+	let selectedCmc = $state(/** @type {number | null} */ (null));
+
+	const cmcData = $derived.by(() => {
+		// Buckets: 0, 1, 2, 3, 4, 5, 6, 7+
+		const buckets = Array.from({ length: 8 }, (_, i) => ({
+			cmc: i,
+			label: i === 7 ? "7+" : String(i),
+			creatures: 0,
+			nonCreatures: 0,
+			types: {
+				creatures: 0,
+				instants: 0,
+				sorceries: 0,
+				artifacts: 0,
+				enchantments: 0,
+				planeswalkers: 0,
+				other: 0,
+			},
+			total: 0,
+			cards: /** @type {{ name: string, qty: number, mana_cost: string, type_line: string, price: number }[]} */ ([]),
+		}));
+
+		activeCards.forEach((c) => {
+			const meta = getMeta(c.name);
+			const typeLine = (meta.type_line || "").toLowerCase();
+			if (typeLine.includes("land")) return; // exclude lands from curve
+
+			const cmc = Math.floor(meta.cmc ?? 0);
+			if (cmc < 0) return;
+			const idx = Math.min(cmc, 7);
+			const qty = c.quantity || 1;
+
+			buckets[idx].total += qty;
+			buckets[idx].cards.push({
+				name: c.name,
+				qty,
+				mana_cost: meta.mana_cost || "",
+				type_line: meta.type_line || "",
+				price: c.price || 0,
+			});
+
+			if (typeLine.includes("creature")) {
+				buckets[idx].creatures += qty;
+				buckets[idx].types.creatures += qty;
+			} else {
+				buckets[idx].nonCreatures += qty;
+				if (typeLine.includes("instant")) buckets[idx].types.instants += qty;
+				else if (typeLine.includes("sorcery")) buckets[idx].types.sorceries += qty;
+				else if (typeLine.includes("planeswalker")) buckets[idx].types.planeswalkers += qty;
+				else if (typeLine.includes("artifact")) buckets[idx].types.artifacts += qty;
+				else if (typeLine.includes("enchantment")) buckets[idx].types.enchantments += qty;
+				else buckets[idx].types.other += qty;
+			}
+		});
+
+		const maxCount = Math.max(...buckets.map((b) => b.total), 1);
+		return { buckets, maxCount };
+	});
+
+	// Curve summary stats
+	const curveStats = $derived.by(() => {
+		let totalNonLandCount = 0;
+		let totalCmcSum = 0;
+		let totalDeckCmcSum = 0;
+		const cmcValues = [];
+
+		activeCards.forEach((c) => {
+			const meta = getMeta(c.name);
+			const typeLine = (meta.type_line || "").toLowerCase();
+			const cmc = meta.cmc ?? 0;
+			const qty = c.quantity || 1;
+			totalDeckCmcSum += cmc * qty;
+
+			if (!typeLine.includes("land")) {
+				totalNonLandCount += qty;
+				totalCmcSum += cmc * qty;
+				for (let i = 0; i < qty; i++) {
+					cmcValues.push(cmc);
+				}
+			}
+		});
+
+		const avgNonLand =
+			totalNonLandCount > 0 ? totalCmcSum / totalNonLandCount : 0;
+		const avgDeck =
+			activeCards.length > 0 ? totalDeckCmcSum / activeCards.length : 0;
+
+		cmcValues.sort((a, b) => a - b);
+		const median =
+			cmcValues.length > 0
+				? cmcValues[Math.floor(cmcValues.length / 2)]
+				: 0;
+
+		// Find peak / mode
+		let peakCmc = 0;
+		let peakCount = 0;
+		cmcData.buckets.forEach((b) => {
+			if (b.total > peakCount) {
+				peakCount = b.total;
+				peakCmc = b.cmc;
+			}
+		});
+
+		// Early (0-2), Mid (3-4), Late (5+)
+		const earlyCount = cmcData.buckets
+			.slice(0, 3)
+			.reduce((acc, b) => acc + b.total, 0);
+		const midCount = cmcData.buckets
+			.slice(3, 5)
+			.reduce((acc, b) => acc + b.total, 0);
+		const lateCount = cmcData.buckets
+			.slice(5)
+			.reduce((acc, b) => acc + b.total, 0);
+
+		return {
+			avgNonLand: avgNonLand.toFixed(2),
+			avgDeck: avgDeck.toFixed(2),
+			median: median.toFixed(1),
+			peakCmc: peakCmc === 7 ? "7+" : peakCmc,
+			peakCount,
+			totalCmcSum,
+			totalNonLandCount,
+			early: {
+				count: earlyCount,
+				pct: totalNonLandCount > 0 ? Math.round((earlyCount / totalNonLandCount) * 100) : 0,
+			},
+			mid: {
+				count: midCount,
+				pct: totalNonLandCount > 0 ? Math.round((midCount / totalNonLandCount) * 100) : 0,
+			},
+			late: {
+				count: lateCount,
+				pct: totalNonLandCount > 0 ? Math.round((lateCount / totalNonLandCount) * 100) : 0,
+			},
+		};
+	});
+
+	// 2. CARD TYPES & SUBTYPES CALCULATIONS
+	let selectedTypeFilter = $state(/** @type {string | null} */ (null));
+
+	const cardTypesData = $derived.by(() => {
+		const types = {
+			Creatures: { count: 0, color: "#f97316", cards: [] },
+			Instants: { count: 0, color: "#38bdf8", cards: [] },
+			Sorceries: { count: 0, color: "#818cf8", cards: [] },
+			Artifacts: { count: 0, color: "#94a3b8", cards: [] },
+			Enchantments: { count: 0, color: "#ec4899", cards: [] },
+			Planeswalkers: { count: 0, color: "#a855f7", cards: [] },
+			Lands: { count: 0, color: "#84cc16", cards: [] },
+			Battles: { count: 0, color: "#f59e0b", cards: [] },
+			Other: { count: 0, color: "#64748b", cards: [] },
+		};
+
+		const creatureSubtypes = /** @type {Record<string, number>} */ ({});
+		const artifactSubtypes = /** @type {Record<string, number>} */ ({});
+		const landSubtypes = /** @type {Record<string, number>} */ ({});
+
+		let permanentsCount = 0;
+		let nonPermanentsCount = 0;
+
+		activeCards.forEach((c) => {
+			const meta = getMeta(c.name);
+			const typeLine = meta.type_line || "";
+			const lowerType = typeLine.toLowerCase();
+			const qty = c.quantity || 1;
+
+			const cardEntry = {
+				name: c.name,
+				qty,
+				type_line: typeLine,
+				mana_cost: meta.mana_cost || "",
+				price: c.price || 0,
+			};
+
+			const isPermanent =
+				lowerType.includes("creature") ||
+				lowerType.includes("artifact") ||
+				lowerType.includes("enchantment") ||
+				lowerType.includes("planeswalker") ||
+				lowerType.includes("land") ||
+				lowerType.includes("battle");
+
+			if (isPermanent) permanentsCount += qty;
+			else nonPermanentsCount += qty;
+
+			if (lowerType.includes("creature")) {
+				types.Creatures.count += qty;
+				types.Creatures.cards.push(cardEntry);
+			} else if (lowerType.includes("instant")) {
+				types.Instants.count += qty;
+				types.Instants.cards.push(cardEntry);
+			} else if (lowerType.includes("sorcery")) {
+				types.Sorceries.count += qty;
+				types.Sorceries.cards.push(cardEntry);
+			} else if (lowerType.includes("planeswalker")) {
+				types.Planeswalkers.count += qty;
+				types.Planeswalkers.cards.push(cardEntry);
+			} else if (lowerType.includes("artifact")) {
+				types.Artifacts.count += qty;
+				types.Artifacts.cards.push(cardEntry);
+			} else if (lowerType.includes("enchantment")) {
+				types.Enchantments.count += qty;
+				types.Enchantments.cards.push(cardEntry);
+			} else if (lowerType.includes("land")) {
+				types.Lands.count += qty;
+				types.Lands.cards.push(cardEntry);
+			} else if (lowerType.includes("battle")) {
+				types.Battles.count += qty;
+				types.Battles.cards.push(cardEntry);
+			} else {
+				types.Other.count += qty;
+				types.Other.cards.push(cardEntry);
+			}
+
+			// Subtypes parsing
+			if (typeLine.includes("—")) {
+				const parts = typeLine.split("—");
+				const main = parts[0].toLowerCase();
+				const subStr = parts[1] || "";
+				const subs = subStr
+					.trim()
+					.split(/\s+/)
+					.filter(Boolean);
+
+				subs.forEach((sub) => {
+					const clean = sub.trim();
+					if (main.includes("creature")) {
+						creatureSubtypes[clean] =
+							(creatureSubtypes[clean] || 0) + qty;
+					} else if (main.includes("artifact")) {
+						artifactSubtypes[clean] =
+							(artifactSubtypes[clean] || 0) + qty;
+					} else if (main.includes("land")) {
+						landSubtypes[clean] = (landSubtypes[clean] || 0) + qty;
+					}
+				});
+			}
+		});
+
+		const sortedCreatureSubtypes = Object.entries(creatureSubtypes)
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 16);
+
+		const activeTypesList = Object.entries(types)
+			.filter(([_, info]) => info.count > 0)
+			.map(([type, info]) => ({
+				type,
+				count: info.count,
+				color: info.color,
+				cards: info.cards,
+				pct: Math.round((info.count / Math.max(activeCards.length, 1)) * 100),
+			}));
+
+		return {
+			activeTypesList,
+			permanentsCount,
+			nonPermanentsCount,
+			permanentsPct: Math.round((permanentsCount / Math.max(activeCards.length, 1)) * 100),
+			nonPermanentsPct: Math.round((nonPermanentsCount / Math.max(activeCards.length, 1)) * 100),
+			sortedCreatureSubtypes,
+		};
+	});
+
+	// 3. COLORS & MANA BASE CALCULATIONS
+	const colorBreakdownData = $derived.by(() => {
+		const pips = {
+			W: { name: "White", count: 0, color: "#f9fafb" },
+			U: { name: "Blue", count: 0, color: "#38bdf8" },
+			B: { name: "Black", count: 0, color: "#334155" },
+			R: { name: "Red", count: 0, color: "#ef4444" },
+			G: { name: "Green", count: 0, color: "#22c55e" },
+			C: { name: "Colorless", count: 0, color: "#94a3b8" },
+		};
+
+		const sources = {
+			W: { count: 0, name: "White" },
+			U: { count: 0, name: "Blue" },
+			B: { count: 0, name: "Black" },
+			R: { count: 0, name: "Red" },
+			G: { count: 0, name: "Green" },
+			C: { count: 0, name: "Colorless" },
+		};
+
+		let totalPips = 0;
+		let monoColorCount = 0;
+		let multiColorCount = 0;
+		let colorlessSpellsCount = 0;
+		let landsCount = 0;
+
+		activeCards.forEach((c) => {
+			const meta = getMeta(c.name);
+			const typeLine = (meta.type_line || "").toLowerCase();
+			const qty = c.quantity || 1;
+			const isLand = typeLine.includes("land");
+
+			if (isLand) {
+				landsCount += qty;
+			} else {
+				const colors = meta.colors || [];
+				if (colors.length === 0) colorlessSpellsCount += qty;
+				else if (colors.length === 1) monoColorCount += qty;
+				else multiColorCount += qty;
+
+				// Parse mana pips from mana_cost
+				const cost = meta.mana_cost || "";
+				const matches = cost.match(/\{([^}]+)\}/g) || [];
+				matches.forEach((sym) => {
+					const clean = sym.replace(/[{}]/g, "").toUpperCase();
+					if (clean === "W") { pips.W.count += qty; totalPips += qty; }
+					else if (clean === "U") { pips.U.count += qty; totalPips += qty; }
+					else if (clean === "B") { pips.B.count += qty; totalPips += qty; }
+					else if (clean === "R") { pips.R.count += qty; totalPips += qty; }
+					else if (clean === "G") { pips.G.count += qty; totalPips += qty; }
+					else if (clean === "C") { pips.C.count += qty; totalPips += qty; }
+					else if (clean.includes("/")) {
+						// Hybrid mana: assign to both
+						const [a, b] = clean.split("/");
+						if (pips[a]) { pips[a].count += qty * 0.5; totalPips += qty * 0.5; }
+						if (pips[b]) { pips[b].count += qty * 0.5; totalPips += qty * 0.5; }
+					}
+				});
+			}
+
+			// Parse mana sources (lands and mana-producing non-lands)
+			const produced = meta.produced_mana || [];
+			if (produced.length > 0) {
+				produced.forEach((p) => {
+					const upper = p.toUpperCase();
+					if (sources[upper]) sources[upper].count += qty;
+				});
+			} else if (isLand) {
+				// Basic land or text fallback
+				const nameLower = c.name.toLowerCase();
+				if (nameLower.includes("plains")) sources.W.count += qty;
+				if (nameLower.includes("island")) sources.U.count += qty;
+				if (nameLower.includes("swamp")) sources.B.count += qty;
+				if (nameLower.includes("mountain")) sources.R.count += qty;
+				if (nameLower.includes("forest")) sources.G.count += qty;
+				if (nameLower.includes("wastes")) sources.C.count += qty;
+			}
+		});
+
+		const activeColors = ["W", "U", "B", "R", "G", "C"].filter(
+			(col) => pips[col].count > 0 || sources[col].count > 0,
+		);
+
+		const totalSources = Object.values(sources).reduce((acc, s) => acc + s.count, 0);
+
+		const colorList = activeColors.map((col) => {
+			const pipCount = Math.round(pips[col].count);
+			const pipPct = totalPips > 0 ? Math.round((pips[col].count / totalPips) * 100) : 0;
+			const sourceCount = sources[col].count;
+			const sourcePct = totalSources > 0 ? Math.round((sourceCount / totalSources) * 100) : 0;
+
+			return {
+				symbol: col.toLowerCase(),
+				code: col,
+				name: pips[col].name,
+				color: pips[col].color,
+				pipCount,
+				pipPct,
+				sourceCount,
+				sourcePct,
+			};
+		});
+
+		return {
+			colorList,
+			totalPips: Math.round(totalPips),
+			totalSources,
+			monoColorCount,
+			multiColorCount,
+			colorlessSpellsCount,
+			landsCount,
+		};
+	});
+
+	// 4. BUDGET & FINANCIAL VALUE CALCULATIONS
+	const budgetData = $derived.by(() => {
+		const boards = ["commander", "companion", "mainboard", "sideboard", "maybeboard"];
+		const boardTotals = {
+			commander: 0,
+			companion: 0,
+			mainboard: 0,
+			sideboard: 0,
+			maybeboard: 0,
+			total: 0,
+		};
+
+		const allCardsWithPrices = [];
+		const priceTiers = {
+			budget: { label: "< $1.00", count: 0, total: 0, color: "#22c55e" },
+			low: { label: "$1 - $5", count: 0, total: 0, color: "#38bdf8" },
+			mid: { label: "$5 - $20", count: 0, total: 0, color: "#f59e0b" },
+			high: { label: "$20 - $50", count: 0, total: 0, color: "#ec4899" },
+			premium: { label: "$50+", count: 0, total: 0, color: "#a855f7" },
+		};
+
+		const typeValues = /** @type {Record<string, number>} */ ({
 			Creatures: 0,
 			Instants: 0,
 			Sorceries: 0,
@@ -53,1858 +486,2084 @@
 			Planeswalkers: 0,
 			Lands: 0,
 			Other: 0,
-		};
-		activeCards.forEach((c) => {
-			const meta = getMeta(c.name);
-			const typeLine = (meta.type_line || "").toLowerCase();
-			const qty = c.quantity || 1;
-			if (typeLine.includes("creature")) counts.Creatures += qty;
-			else if (typeLine.includes("instant")) counts.Instants += qty;
-			else if (typeLine.includes("sorcery")) counts.Sorceries += qty;
-			else if (typeLine.includes("planeswalker"))
-				counts.Planeswalkers += qty;
-			else if (typeLine.includes("artifact")) counts.Artifacts += qty;
-			else if (typeLine.includes("enchantment"))
-				counts.Enchantments += qty;
-			else if (typeLine.includes("land")) counts.Lands += qty;
-			else counts.Other += qty;
 		});
-		return Object.entries(counts).filter(([_, val]) => val > 0);
-	});
 
-	// Colors breakdown
-	const colorCounts = $derived.by(() => {
-		const counts = {
-			White: { code: "W", count: 0, color: "#f9fafb" },
-			Blue: { code: "U", count: 0, color: "#3b82f6" },
-			Black: { code: "B", count: 0, color: "#111827" },
-			Red: { code: "R", count: 0, color: "#ef4444" },
-			Green: { code: "G", count: 0, color: "#22c55e" },
-			Colorless: { code: "C", count: 0, color: "#6b7280" },
-		};
-		activeCards.forEach((c) => {
-			const meta = getMeta(c.name);
-			const colors = meta.colors || [];
-			const qty = c.quantity || 1;
-			if (colors.length === 0) {
-				const type = (meta.type_line || "").toLowerCase();
-				if (!type.includes("land")) {
-					counts.Colorless.count += qty;
-				}
-			} else {
-				if (colors.includes("W")) counts.White.count += qty;
-				if (colors.includes("U")) counts.Blue.count += qty;
-				if (colors.includes("B")) counts.Black.count += qty;
-				if (colors.includes("R")) counts.Red.count += qty;
-				if (colors.includes("G")) counts.Green.count += qty;
-			}
-		});
-		return Object.entries(counts).filter(([_, info]) => info.count > 0);
-	});
-
-	/**
-	 * @param {number} sum
-	 * @param {any} c
-	 * @returns {number}
-	 */
-	const sumPrices = (sum, c) => sum + (c.price || 0) * (c.quantity || 1);
-
-	// Total pricing summaries
-	const boardPrices = $derived.by(() => {
-		const boards = [
-			"commander",
-			"companion",
-			"mainboard",
-			"sideboard",
-			"maybeboard",
-		];
-		/** @type {Record<string, number>} */
-		const prices = {};
-		let total = 0;
 		boards.forEach((b) => {
-			const store = /** @type {any} */ (deckStore);
-			/** @type {any[]} */
-			const list = store[b] || [];
-			const priceVal = list.reduce(sumPrices, 0);
-			prices[b] = priceVal;
-			total += priceVal;
-		});
-		prices.total = total;
-		return prices;
-	});
-
-	// 2. Sample Hand Simulator
-	/** @type {{ id: string, name: string }[]} */
-	let hand = $state([]);
-	/** @type {string[]} */
-	let library = $state([]);
-	let mulliganCount = $state(0);
-
-	let dealKey = $state(0);
-	let isOpeningDeal = $state(true);
-	let showHandOptions = $state(false);
-
-	let cardInstanceId = 0;
-	/**
-	 * @param {string} name
-	 * @returns {{ id: string, name: string }}
-	 */
-	function createHandCard(name) {
-		cardInstanceId++;
-		return {
-			id: `card-${cardInstanceId}-${Math.random().toString(36).slice(2, 7)}`,
-			name,
-		};
-	}
-
-	// Drag and drop state for sample hand
-	let draggingCardId = $state(/** @type {string | null} */ (null));
-	let dragPointerStartX = $state(0);
-	let dragPointerStartY = $state(0);
-	let dragCurrentX = $state(0);
-	let dragCurrentY = $state(0);
-	let isCardDragging = $state(false);
-	let dragHoverTargetIndex = $state(/** @type {number | null} */ (null));
-
-	/**
-	 * @param {PointerEvent} e
-	 * @param {string} cardId
-	 * @param {number} cardIndex
-	 */
-	function handleCardPointerDown(e, cardId, cardIndex) {
-		if (e.button !== 0) return;
-		draggingCardId = cardId;
-		dragPointerStartX = e.clientX;
-		dragPointerStartY = e.clientY;
-		dragCurrentX = 0;
-		dragCurrentY = 0;
-		isCardDragging = false;
-		dragHoverTargetIndex = cardIndex;
-
-		window.addEventListener("pointermove", handleWindowPointerMove);
-		window.addEventListener("pointerup", handleWindowPointerUp);
-		window.addEventListener("pointercancel", handleWindowPointerUp);
-	}
-
-	/** @param {PointerEvent} e */
-	function handleWindowPointerMove(e) {
-		if (!draggingCardId) return;
-
-		const dx = e.clientX - dragPointerStartX;
-		const dy = e.clientY - dragPointerStartY;
-
-		if (!isCardDragging) {
-			if (Math.hypot(dx, dy) > 5) {
-				isCardDragging = true;
-				isOpeningDeal = false;
-			} else {
-				return;
-			}
-		}
-
-		dragCurrentX = dx;
-		dragCurrentY = dy;
-
-		const n = hand.length;
-		if (n <= 1) return;
-
-		const mid = (n - 1) / 2;
-		const stepX = Math.min(115, Math.max(34, 760 / (n - 1)));
-
-		const sourceIndex = hand.findIndex((c) => c.id === draggingCardId);
-		if (sourceIndex === -1) return;
-
-		const sourceNominalX = (sourceIndex - mid) * stepX;
-		const currentCardX = sourceNominalX + dx;
-
-		const targetIdx = Math.max(
-			0,
-			Math.min(n - 1, Math.round(currentCardX / stepX + mid)),
-		);
-		dragHoverTargetIndex = targetIdx;
-	}
-
-	/** @param {PointerEvent} e */
-	function handleWindowPointerUp(e) {
-		window.removeEventListener("pointermove", handleWindowPointerMove);
-		window.removeEventListener("pointerup", handleWindowPointerUp);
-		window.removeEventListener("pointercancel", handleWindowPointerUp);
-
-		if (isCardDragging && draggingCardId) {
-			const sourceIndex = hand.findIndex((c) => c.id === draggingCardId);
-			if (
-				sourceIndex !== -1 &&
-				dragHoverTargetIndex !== null &&
-				dragHoverTargetIndex !== sourceIndex
-			) {
-				const newHand = [...hand];
-				const [moved] = newHand.splice(sourceIndex, 1);
-				newHand.splice(dragHoverTargetIndex, 0, moved);
-				hand = newHand;
-			}
-		}
-
-		draggingCardId = null;
-		isCardDragging = false;
-		dragCurrentX = 0;
-		dragCurrentY = 0;
-		dragHoverTargetIndex = null;
-	}
-
-	/** @param {MouseEvent} e */
-	function handleDocumentClick(e) {
-		const target = /** @type {HTMLElement} */ (e.target);
-		if (showHandOptions && !target.closest(".arena-options-container")) {
-			showHandOptions = false;
-		}
-	}
-
-	/**
-	 * @param {any[]} array
-	 */
-	function shuffle(array) {
-		const arr = [...array];
-		for (let i = arr.length - 1; i > 0; i--) {
-			const j = Math.floor(Math.random() * (i + 1));
-			[arr[i], arr[j]] = [arr[j], arr[i]];
-		}
-		return arr;
-	}
-
-	/**
-	 * Returns the effective land value of a card name according to current settings.
-	 * @param {string} cardName
-	 * @param {boolean} strictParity
-	 * @returns {number}
-	 */
-	function getCardLandValue(cardName, strictParity) {
-		const meta = getMeta(cardName);
-		const typeLine = (meta.type_line || "").toLowerCase();
-
-		if (strictParity) {
-			const isLand = (
-				meta.card_faces?.[0]?.type_line ||
-				typeLine.split("//")[0] ||
-				typeLine
-			).includes("land");
-			return isLand ? 1.0 : 0.0;
-		}
-
-		const cleanName = cardName
-			.toLowerCase()
-			.normalize("NFD")
-			.replace(/[\u0300-\u036f]/g, "")
-			.trim();
-
-		// Full land overrides (1.0)
-		const fullLandOverrides = new Set([
-			"mox pearl",
-			"mox sapphire",
-			"mox jet",
-			"mox ruby",
-			"mox emerald",
-			"black lotus",
-			"blacker lotus",
-			"jeweled lotus",
-			"sol ring",
-			"mana crypt",
-		]);
-
-		if (fullLandOverrides.has(cleanName)) {
-			return 1.0;
-		}
-
-		// Half land overrides (0.5)
-		// 1-mana landcyclers from Lord of the Rings:
-		const lotr1ManaLandcyclers = new Set([
-			"lorien revealed",
-			"troll of khazad-dum",
-			"oliphaunt",
-			"generous ent",
-			"eagles of the north",
-		]);
-
-		if (lotr1ManaLandcyclers.has(cleanName)) {
-			return 0.5;
-		}
-
-		// Chrome Mox & Mox Diamond (0.5)
-		if (cleanName === "chrome mox" || cleanName === "mox diamond") {
-			return 0.5;
-		}
-
-		// Modal Double Faced Lands (MDFCs)
-		if (typeLine.includes("//")) {
-			const faces = typeLine
-				.split("//")
-				.map((/** @type {string} */ s) => s.trim());
-			const frontIsLand = faces[0].includes("land");
-			const backIsLand = faces.length > 1 && faces[1].includes("land");
-
-			if (frontIsLand && backIsLand) {
-				return 1.0;
-			} else if (!frontIsLand && backIsLand) {
-				return 0.5;
-			}
-		}
-
-		if (meta.card_faces && meta.card_faces.length > 1) {
-			const frontLand = (meta.card_faces[0]?.type_line || "")
-				.toLowerCase()
-				.includes("land");
-			const backLand = (meta.card_faces[1]?.type_line || "")
-				.toLowerCase()
-				.includes("land");
-			if (frontLand && backLand) {
-				return 1.0;
-			} else if (!frontLand && backLand) {
-				return 0.5;
-			}
-		}
-
-		return typeLine.includes("land") ? 1.0 : 0.0;
-	}
-
-	const BASIC_LAND_NAMES = new Set([
-		"plains",
-		"island",
-		"swamp",
-		"mountain",
-		"forest",
-		"wastes",
-		"snow-covered plains",
-		"snow-covered island",
-		"snow-covered swamp",
-		"snow-covered mountain",
-		"snow-covered forest",
-	]);
-
-	/**
-	 * @param {string} name
-	 * @param {any} meta
-	 * @returns {boolean}
-	 */
-	function isBasicLand(name, meta) {
-		const typeLine = (meta.type_line || "").toLowerCase();
-		if (typeLine.includes("basic")) return true;
-		const cleanName = name
-			.toLowerCase()
-			.normalize("NFD")
-			.replace(/[\u0300-\u036f]/g, "")
-			.trim();
-		return BASIC_LAND_NAMES.has(cleanName);
-	}
-
-	/**
-	 * Returns the WUBRG order index (0 to 5) for basic lands.
-	 * @param {string} name
-	 * @returns {number}
-	 */
-	function getBasicLandOrder(name) {
-		const n = name
-			.toLowerCase()
-			.normalize("NFD")
-			.replace(/[\u0300-\u036f]/g, "");
-		if (n.includes("plains")) return 0; // W
-		if (n.includes("island")) return 1; // U
-		if (n.includes("swamp")) return 2; // B
-		if (n.includes("mountain")) return 3; // R
-		if (n.includes("forest")) return 4; // G
-		if (n.includes("wastes")) return 5; // C
-		return 6;
-	}
-
-	/**
-	 * Sorts cards: highest mana value on left descending, then nonbasic lands (alphabetical), then basic lands on far right (WUBRG).
-	 * @param {{ id: string, name: string }[]} cards
-	 * @returns {{ id: string, name: string }[]}
-	 */
-	function sortHandCards(cards) {
-		return [...cards].sort((a, b) => {
-			const metaA = getMeta(a.name);
-			const metaB = getMeta(b.name);
-			const aIsLand = (metaA.type_line || "")
-				.toLowerCase()
-				.includes("land");
-			const bIsLand = (metaB.type_line || "")
-				.toLowerCase()
-				.includes("land");
-
-			if (!aIsLand && bIsLand) return -1;
-			if (aIsLand && !bIsLand) return 1;
-
-			if (!aIsLand && !bIsLand) {
-				const cmcA = metaA.cmc ?? 0;
-				const cmcB = metaB.cmc ?? 0;
-				if (cmcB !== cmcA) return cmcB - cmcA;
-				return a.name.localeCompare(b.name);
-			}
-
-			// Both are lands:
-			// Nonbasic lands to the left (alphabetical), basic lands to the right (WUBRG order)
-			const aIsBasic = isBasicLand(a.name, metaA);
-			const bIsBasic = isBasicLand(b.name, metaB);
-
-			if (!aIsBasic && bIsBasic) return -1;
-			if (aIsBasic && !bIsBasic) return 1;
-
-			if (!aIsBasic && !bIsBasic) {
-				return a.name.localeCompare(b.name);
-			}
-
-			// Both are basic lands: WUBRG order, then alphabetical
-			const orderA = getBasicLandOrder(a.name);
-			const orderB = getBasicLandOrder(b.name);
-			if (orderA !== orderB) return orderA - orderB;
-			return a.name.localeCompare(b.name);
-		});
-	}
-
-	function manualSortHand() {
-		isOpeningDeal = false;
-		hand = sortHandCards(hand);
-	}
-
-	/**
-	 * @param {any[]} cards
-	 * @param {boolean} strictParity
-	 * @returns {number}
-	 */
-	function countLands(cards, strictParity) {
-		return cards.reduce((/** @type {number} */ sum, c) => {
-			const name = typeof c === "string" ? c : c.name;
-			return sum + getCardLandValue(name, strictParity);
-		}, 0);
-	}
-
-	/**
-	 * @param {string[]} decklist
-	 */
-	function drawHand(decklist) {
-		const toDraw = Math.max(7 - mulliganCount, 0);
-		if (toDraw === 0 || decklist.length === 0) {
-			hand = [];
-			library = shuffle(decklist);
-			return;
-		}
-
-		if (decklist.length <= toDraw || !settingsStore.sampleHandSmoother) {
-			const shuffled = shuffle(decklist);
-			const rawHand = shuffled.slice(0, toDraw).map(createHandCard);
-			hand = sortHandCards(rawHand);
-			library = shuffled.slice(toDraw);
-			return;
-		}
-
-		// MTG Arena Hand Smoother algorithm
-		const strictParity = settingsStore.sampleHandArenaParity;
-		const totalLands = countLands(decklist, strictParity);
-		const lAvg = toDraw * (totalLands / decklist.length);
-
-		// Draw 3 candidate shuffles
-		/** @type {{ shuffled: string[], hand: string[], weight: number }[]} */
-		const candidates = [];
-		for (let i = 0; i < 3; i++) {
-			const candidateShuffled = shuffle(decklist);
-			const candidateHand = candidateShuffled.slice(0, toDraw);
-			const l = countLands(candidateHand, strictParity);
-			const delta = Math.abs(l - lAvg);
-			// Weight formula: w(l) = 4^(-|l - lAvg|^2.5)
-			const weight = Math.pow(4, -Math.pow(delta, 2.5));
-			candidates.push({
-				shuffled: candidateShuffled,
-				hand: candidateHand,
-				weight: Math.max(weight, 1e-9),
-			});
-		}
-
-		// Select a candidate randomly with probability proportional to weight
-		const totalWeight = candidates.reduce(
-			(/** @type {number} */ sum, c) => sum + c.weight,
-			0,
-		);
-		const rand = Math.random() * totalWeight;
-		let cumulative = 0;
-		let chosen = candidates[0];
-		for (const candidate of candidates) {
-			cumulative += candidate.weight;
-			if (rand <= cumulative) {
-				chosen = candidate;
-				break;
-			}
-		}
-
-		const rawHand = chosen.hand.map(createHandCard);
-		hand = sortHandCards(rawHand);
-		library = chosen.shuffled.slice(toDraw);
-	}
-
-	function resetSampleHand() {
-		dealKey++;
-		isOpeningDeal = true;
-		/** @type {string[]} */
-		const decklist = [];
-		/**
-		 * @param {any} c
-		 */
-		const addCardNames = (c) => {
-			for (let i = 0; i < (c.quantity || 1); i++) {
-				decklist.push(c.name);
-			}
-		};
-		deckStore.mainboard.forEach(addCardNames);
-		hand = [];
-		mulliganCount = 0;
-		drawHand(decklist);
-	}
-
-	function mulligan() {
-		dealKey++;
-		isOpeningDeal = true;
-		mulliganCount++;
-		/** @type {string[]} */
-		const decklist = [];
-		/**
-		 * @param {any} c
-		 */
-		const addCardNames = (c) => {
-			for (let i = 0; i < (c.quantity || 1); i++) {
-				decklist.push(c.name);
-			}
-		};
-		deckStore.mainboard.forEach(addCardNames);
-		drawHand(decklist);
-	}
-
-	function drawCard() {
-		if (library.length > 0) {
-			isOpeningDeal = false;
-			hand = [...hand, createHandCard(library[0])];
-			library = library.slice(1);
-		}
-	}
-
-	/**
-	 * @param {string} name
-	 */
-	function getCardImg(name) {
-		const meta = getMeta(name);
-		return (
-			meta.image_uris?.normal ||
-			meta.card_faces?.[0]?.image_uris?.normal ||
-			null
-		);
-	}
-
-	// Arena-style arc calculations for sample hand with drag-and-drop support
-	const handCards = $derived.by(() => {
-		const n = hand.length;
-		if (n === 0) return [];
-		const mid = (n - 1) / 2;
-
-		// Dynamic horizontal step based on card count (compresses naturally when > 7 cards)
-		const stepX = n > 1 ? Math.min(115, Math.max(34, 760 / (n - 1))) : 0;
-		const maxAngle = n > 1 ? Math.min(17, Math.max(3.5, (n - 1) * 2.8)) : 0;
-		const arcDepth = n > 1 ? Math.min(42, Math.max(8, (n - 1) * 6.5)) : 0;
-
-		const sourceIndex =
-			isCardDragging && draggingCardId
-				? hand.findIndex((c) => c.id === draggingCardId)
-				: -1;
-		const targetIndex =
-			isCardDragging && dragHoverTargetIndex !== null
-				? dragHoverTargetIndex
-				: -1;
-
-		return hand.map((cardItem, i) => {
-			const isThisCardDragging =
-				isCardDragging && cardItem.id === draggingCardId;
-
-			// Calculate effective slot index during drag to make room for dragged card
-			let visualSlot = i;
-			if (
-				isCardDragging &&
-				sourceIndex !== -1 &&
-				targetIndex !== -1 &&
-				!isThisCardDragging
-			) {
-				if (targetIndex > sourceIndex) {
-					if (i > sourceIndex && i <= targetIndex) {
-						visualSlot = i - 1;
-					}
-				} else if (targetIndex < sourceIndex) {
-					if (i >= targetIndex && i < sourceIndex) {
-						visualSlot = i + 1;
-					}
-				}
-			}
-
-			const norm = mid > 0 ? (visualSlot - mid) / mid : 0; // -1 (leftmost) to +1 (rightmost)
-			let x = (visualSlot - mid) * stepX;
-			let y = Math.pow(Math.abs(norm), 1.65) * arcDepth;
-			let rot = norm * maxAngle;
-			let z = visualSlot + 1;
-			let scale = 1;
-
-			if (isThisCardDragging) {
-				const nominalNorm = mid > 0 ? (sourceIndex - mid) / mid : 0;
-				const nominalX = (sourceIndex - mid) * stepX;
-				const nominalY =
-					Math.pow(Math.abs(nominalNorm), 1.65) * arcDepth;
-				x = nominalX + dragCurrentX;
-				y = nominalY + dragCurrentY - 14;
-				rot = nominalNorm * maxAngle * 0.35;
-				z = 350;
-				scale = 1.08;
-			}
-
-			const delay = isOpeningDeal ? i * 33 : 0;
-
-			return {
-				id: cardItem.id,
-				name: cardItem.name,
-				img: getCardImg(cardItem.name),
-				x: Math.round(x * 10) / 10,
-				y: Math.round(y * 10) / 10,
-				rot: Math.round(rot * 10) / 10,
-				z,
-				scale,
-				delay,
-				isDragging: isThisCardDragging,
-				i,
-			};
-		});
-	});
-
-	// 3. Required Tokens Finder (Scryfall metadata all_parts)
-	const requiredTokens = $derived.by(() => {
-		/** @type {any[]} */
-		const tokens = [];
-		const seen = new Set();
-		activeCards.forEach((c) => {
-			const meta = getMeta(c.name);
-			if (meta.all_parts) {
-				/**
-				 * @param {any} part
-				 */
-				const processPart = (part) => {
-					if (part.component === "token" && !seen.has(part.name)) {
-						seen.add(part.name);
-						tokens.push({
-							name: part.name,
-							image_uri:
-								part.image_uris?.normal ||
-								part.image_uris?.large ||
-								null,
-						});
-					}
+			const list = /** @type {any[]} */ (deckStore[b] || []);
+			list.forEach((c) => {
+				const price = c.price || 0;
+				const qty = c.quantity || 1;
+				const cardVal = price * qty;
+				boardTotals[b] += cardVal;
+				boardTotals.total += cardVal;
+
+				const meta = getMeta(c.name);
+				const cardObj = {
+					name: c.name,
+					board: b,
+					price,
+					cardVal,
+					qty,
+					type_line: meta.type_line || "",
+					image_uri:
+						meta.image_uris?.art_crop ||
+						meta.card_faces?.[0]?.image_uris?.art_crop ||
+						meta.image_uris?.normal ||
+						null,
 				};
-				meta.all_parts.forEach(processPart);
-			}
+				allCardsWithPrices.push(cardObj);
+
+				// Tiers
+				if (price < 1.0) {
+					priceTiers.budget.count += qty;
+					priceTiers.budget.total += cardVal;
+				} else if (price < 5.0) {
+					priceTiers.low.count += qty;
+					priceTiers.low.total += cardVal;
+				} else if (price < 20.0) {
+					priceTiers.mid.count += qty;
+					priceTiers.mid.total += cardVal;
+				} else if (price < 50.0) {
+					priceTiers.high.count += qty;
+					priceTiers.high.total += cardVal;
+				} else {
+					priceTiers.premium.count += qty;
+					priceTiers.premium.total += cardVal;
+				}
+
+				// Type value
+				const typeLower = (meta.type_line || "").toLowerCase();
+				if (typeLower.includes("creature")) typeValues.Creatures += cardVal;
+				else if (typeLower.includes("instant")) typeValues.Instants += cardVal;
+				else if (typeLower.includes("sorcery")) typeValues.Sorceries += cardVal;
+				else if (typeLower.includes("planeswalker")) typeValues.Planeswalkers += cardVal;
+				else if (typeLower.includes("artifact")) typeValues.Artifacts += cardVal;
+				else if (typeLower.includes("enchantment")) typeValues.Enchantments += cardVal;
+				else if (typeLower.includes("land")) typeValues.Lands += cardVal;
+				else typeValues.Other += cardVal;
+			});
 		});
-		return tokens;
+
+		// Top 10 most expensive cards
+		const topCards = [...allCardsWithPrices]
+			.sort((a, b) => b.price - a.price)
+			.slice(0, 10);
+
+		const activeCount = Math.max(activeCards.length, 1);
+		const avgCardPrice = boardTotals.mainboard / activeCount;
+
+		// Median card price
+		const pricesArray = allCardsWithPrices
+			.filter((c) => c.board === "mainboard" || c.board === "commander")
+			.map((c) => c.price)
+			.sort((a, b) => a - b);
+		const medianPrice =
+			pricesArray.length > 0
+				? pricesArray[Math.floor(pricesArray.length / 2)]
+				: 0;
+
+		return {
+			boardTotals,
+			topCards,
+			priceTiers,
+			typeValues: Object.entries(typeValues).filter(([_, v]) => v > 0),
+			avgCardPrice,
+			medianPrice,
+		};
 	});
 
-	// 4. Combos Finder (Commander Spellbook API)
-	/** @type {any[]} */
-	let combos = $state([]);
-	let isCombosLoading = $state(false);
-	let combosError = $state("");
+	// Smooth Scroll & Section Spy
+	const sectionsList = [
+		{ id: "overview", label: "Overview", icon: Compass },
+		{ id: "mana-curve", label: "Mana Curve", icon: BarChart3 },
+		{ id: "card-types", label: "Card Types", icon: Layers },
+		{ id: "colors", label: "Colors & Base", icon: PieChart },
+		{ id: "budget", label: "Budget", icon: Coins },
+	];
 
-	async function loadCombos() {
-		if (activeCards.length === 0) return;
-		isCombosLoading = true;
-		combosError = "";
-		combos = [];
-		try {
-			const cardNames = Array.from(
-				new Set(activeCards.map((c) => c.name)),
-			);
-			const res = await fetch(
-				"https://backend.commanderspellbook.com/find-my-combos",
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({ cards: cardNames }),
-				},
-			);
-			if (!res.ok) throw new Error("API returned status " + res.status);
-			const data = await res.json();
-			combos = data.results || data || [];
-		} catch (e) {
-			console.error("Failed to load combos:", e);
-			combosError =
-				"Failed to load combinations from Commander Spellbook.";
-		} finally {
-			combosError = "";
-			isCombosLoading = false;
+	function scrollToSection(id) {
+		settingsStore.statsSection = id;
+		const el = document.getElementById(`stats-${id}`);
+		if (el) {
+			el.scrollIntoView({ behavior: "smooth", block: "start" });
 		}
-	}
-
-	/**
-	 * @param {any} combo
-	 * @returns {string}
-	 */
-	function getComboTitle(combo) {
-		return (
-			combo.results
-				?.map(/** @param {any} r */ (r) => r.name)
-				.join(", ") || "Alternative Synergy"
-		);
 	}
 
 	onMount(() => {
-		resetSampleHand();
-		return () => {
-			window.removeEventListener("pointermove", handleWindowPointerMove);
-			window.removeEventListener("pointerup", handleWindowPointerUp);
-			window.removeEventListener("pointercancel", handleWindowPointerUp);
+		const observerOptions = {
+			root: null,
+			rootMargin: "-20% 0px -60% 0px",
+			threshold: 0,
 		};
-	});
 
-	$effect(() => {
-		if (settingsStore.statsSubTab === "combos") {
-			loadCombos();
-		}
+		const observer = new IntersectionObserver((entries) => {
+			entries.forEach((entry) => {
+				if (entry.isIntersecting) {
+					const id = entry.target.id.replace("stats-", "");
+					settingsStore.statsSection = id;
+				}
+			});
+		}, observerOptions);
+
+		sectionsList.forEach((sec) => {
+			const el = document.getElementById(`stats-${sec.id}`);
+			if (el) observer.observe(el);
+		});
+
+		return () => {
+			observer.disconnect();
+		};
 	});
 </script>
 
-<svelte:window onclick={handleDocumentClick} />
-
-<div class="stats-container">
-	{#if settingsStore.statsSubTab === "dashboard"}
-		<!-- Main Analytics Dashboard -->
-		<div class="stats-grid">
-			<!-- Mana Curve Chart -->
-			<div class="stats-card cmc-card">
-				<h3>Mana Curve</h3>
-				<div class="cmc-chart">
-					{#each cmcCounts as count, i}
-						<div class="chart-bar-wrapper">
-							<div class="bar-label">{count}</div>
-							<div
-								class="chart-bar"
-								style="height: {(count / maxCmcCount) * 80}%;"
-								title="{count} cards with CMC {i}"
-							></div>
-							<div class="bar-value">{i === 7 ? "7+" : i}</div>
-						</div>
-					{/each}
-				</div>
-			</div>
-
-			<!-- Card Types -->
-			<div class="stats-card">
-				<h3>Card Types</h3>
-				<ul class="stats-list">
-					{#each typeCounts as [type, count]}
-						<li>
-							<span class="list-label">{type}</span>
-							<div class="progress-bar-bg">
-								<div
-									class="progress-bar"
-									style="width: {(count /
-										activeCards.length) *
-										100}%;"
-								></div>
-							</div>
-							<span class="list-value">{count}</span>
-						</li>
-					{/each}
-				</ul>
-			</div>
-
-			<!-- Colors Distribution -->
-			<div class="stats-card">
-				<h3>Color Breakdown</h3>
-				<ul class="stats-list">
-					{#each colorCounts as [name, info]}
-						<li>
-							<span
-								class="list-label color-badge"
-								style="border-color: {info.color}">{name}</span
-							>
-							<div class="progress-bar-bg">
-								<div
-									class="progress-bar"
-									style="width: {(info.count /
-										activeCards.length) *
-										100}%; background-color: {info.color};"
-								></div>
-							</div>
-							<span class="list-value">{info.count}</span>
-						</li>
-					{/each}
-				</ul>
-			</div>
-
-			<!-- Price Breakdown -->
-			<div class="stats-card">
-				<h3>Financial Value</h3>
-				<ul class="stats-list price-list">
-					<li>
-						<span class="list-label">Total Value</span>
-						<span class="list-value highlight-price"
-							>${boardPrices.total.toFixed(2)}</span
-						>
-					</li>
-					<li>
-						<span class="list-label">Mainboard</span>
-						<span class="list-value"
-							>${boardPrices.mainboard.toFixed(2)}</span
-						>
-					</li>
-					<li>
-						<span class="list-label">Commander</span>
-						<span class="list-value"
-							>${boardPrices.commander.toFixed(2)}</span
-						>
-					</li>
-					<li>
-						<span class="list-label">Sideboard</span>
-						<span class="list-value"
-							>${boardPrices.sideboard.toFixed(2)}</span
-						>
-					</li>
-					<li>
-						<span class="list-label">Maybeboard</span>
-						<span class="list-value"
-							>${boardPrices.maybeboard.toFixed(2)}</span
-						>
-					</li>
-				</ul>
-			</div>
+<div class="stats-view-viewport">
+	<!-- Sticky Floating Sub-Navigation Bar -->
+	<header class="stats-sticky-nav">
+		<div class="nav-pills-cluster">
+			{#each sectionsList as sec}
+				<button
+					class="nav-pill"
+					class:active={settingsStore.statsSection === sec.id}
+					onclick={() => scrollToSection(sec.id)}
+				>
+					<svelte:component this={sec.icon} size={14} class="pill-icon" />
+					<span>{sec.label}</span>
+				</button>
+			{/each}
 		</div>
-	{:else if settingsStore.statsSubTab === "sample-hand"}
-		<!-- Sample Hand Simulator (Arena-style Fan) -->
-		<div class="arena-hand-view">
-			<div class="arena-controls-bar">
-				<div class="arena-hand-meta">
-					<span class="hand-count-text"
-						>{hand.length} {hand.length === 1 ? "Card" : "Cards"} in Hand</span
-					>
-				</div>
+	</header>
 
-				<div class="arena-actions">
-					<button
-						onclick={resetSampleHand}
-						class="arena-action-btn primary"
-						title="Reshuffle deck and draw an opening hand"
-					>
-						<RotateCcw size={14} />
-						<span>New Hand</span>
-					</button>
-
-					<button
-						onclick={mulligan}
-						class="arena-action-btn"
-						disabled={mulliganCount >= 7}
-						title="Mulligan hand"
-					>
-						<span>Mulligan to {Math.max(0, 7 - (mulliganCount + 1))}</span>
-					</button>
-
-					<button
-						onclick={drawCard}
-						class="arena-action-btn"
-						disabled={library.length === 0}
-						title="Draw 1 card"
-					>
-						<span>Draw Card ({library.length} left)</span>
-					</button>
-
-					<div class="arena-actions-separator"></div>
-
-					<!-- Additional Options Trigger & Menu -->
-					<div class="arena-options-container">
-						<button
-							onclick={() => {
-								showHandOptions = !showHandOptions;
-							}}
-							class="arena-action-btn icon-only"
-							class:active={showHandOptions}
-							class:smoother-active={settingsStore.sampleHandSmoother}
-							title={settingsStore.sampleHandSmoother
-								? "Sample Hand Options (Hand Smoother On)"
-								: "Sample Hand Options"}
-							aria-label="Sample Hand Options"
-							aria-expanded={showHandOptions}
-						>
-							<SlidersHorizontal size={14} />
-						</button>
-
-						{#if showHandOptions}
-							<div
-								class="arena-options-menu"
-								transition:fly={{ y: 4, duration: 150 }}
-							>
-								<div class="options-menu-header">
-									Hand Options
-								</div>
-
-								<div class="options-menu-item">
-									<div class="options-item-info">
-										<span class="options-item-title"
-											>Hand Smoother</span
-										>
-										<span class="options-item-desc"
-											>MTG Arena opening hand algorithm</span
-										>
-									</div>
-									<label class="switch">
-										<input
-											type="checkbox"
-											bind:checked={
-												settingsStore.sampleHandSmoother
-											}
-										/>
-										<span class="slider"></span>
-									</label>
-								</div>
-
-								<div class="options-menu-divider"></div>
-
-								<div
-									class="options-menu-item"
-									class:disabled={!settingsStore.sampleHandSmoother}
-								>
-									<div class="options-item-info">
-										<span class="options-item-title"
-											>Arena Parity</span
-										>
-										<span class="options-item-desc"
-											>Strictly count only actual lands</span
-										>
-									</div>
-									<label class="switch">
-										<input
-											type="checkbox"
-											bind:checked={
-												settingsStore.sampleHandArenaParity
-											}
-											disabled={!settingsStore.sampleHandSmoother}
-										/>
-										<span class="slider"></span>
-									</label>
-								</div>
-
-								<div class="options-menu-divider"></div>
-
-								<button
-									type="button"
-									class="options-menu-btn"
-									onclick={manualSortHand}
-								>
-									<span>Sort by Mana Value</span>
-								</button>
+	<!-- 1. OVERVIEW SECTION -->
+	<section id="stats-overview" class="stats-section-screen">
+		<div class="section-content-wrapper">
+			<div class="overview-hero-card">
+				<!-- Hero Art & Commander Banner -->
+				<div class="hero-commander-showcase">
+					<div class="commander-art-frame">
+						{#if featuredArt()}
+							<img
+								src={featuredArt()}
+								alt="Featured Commander"
+								class="commander-art"
+							/>
+						{:else}
+							<div class="commander-art-fallback">
+								<Sparkles size={40} />
 							</div>
 						{/if}
+						<div class="art-gradient-overlay"></div>
+						<div class="art-caption-block">
+							<span class="deck-format-chip">
+								{deckStore.format || "Custom Deck"}
+							</span>
+							<h1 class="commander-hero-name">
+								{deckStore.name || "Untitled Deck"}
+							</h1>
+							<div class="hero-color-identity">
+								{#each deckColorIdentity() as col}
+									<ManaSymbol symbol={col} size="18px" />
+								{/each}
+								<span class="hero-card-count">
+									{activeCards.length} Cards Total
+								</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Quick Key Metrics Cards (Arena Dashboard style) -->
+				<div class="hero-metrics-grid">
+					<div class="metric-glass-card">
+						<span class="metric-label">Average Mana Value</span>
+						<div class="metric-value-row">
+							<span class="metric-primary-value">{curveStats.avgNonLand}</span>
+							<span class="metric-sub-value">({curveStats.avgDeck} all)</span>
+						</div>
+						<div class="metric-progress-track">
+							<div
+								class="metric-progress-fill"
+								style="width: {Math.min(100, (parseFloat(curveStats.avgNonLand) / 6) * 100)}%; background: hsl(var(--primary));"
+							></div>
+						</div>
+						<span class="metric-hint">Calculated excluding lands</span>
+					</div>
+
+					<div class="metric-glass-card">
+						<span class="metric-label">Permanents vs Spells</span>
+						<div class="metric-value-row">
+							<span class="metric-primary-value">{cardTypesData.permanentsPct}%</span>
+							<span class="metric-sub-value">{cardTypesData.permanentsCount} Perms / {cardTypesData.nonPermanentsCount} Spells</span>
+						</div>
+						<div class="metric-progress-track multi-segment">
+							<div
+								class="segment perms"
+								style="width: {cardTypesData.permanentsPct}%;"
+							></div>
+							<div
+								class="segment spells"
+								style="width: {cardTypesData.nonPermanentsPct}%;"
+							></div>
+						</div>
+						<span class="metric-hint">{cardTypesData.permanentsCount} Permanents, {cardTypesData.nonPermanentsCount} Non-Permanents</span>
+					</div>
+
+					<div class="metric-glass-card">
+						<span class="metric-label">Estimated Deck Budget</span>
+						<div class="metric-value-row">
+							<span class="metric-primary-value price-text">${budgetData.boardTotals.total.toFixed(2)}</span>
+							<span class="metric-sub-value">${budgetData.avgCardPrice.toFixed(2)} avg/card</span>
+						</div>
+						<div class="metric-progress-track">
+							<div
+								class="metric-progress-fill price-fill"
+								style="width: {Math.min(100, (budgetData.boardTotals.total / 250) * 100)}%;"
+							></div>
+						</div>
+						<span class="metric-hint">Mainboard: ${budgetData.boardTotals.mainboard.toFixed(2)}</span>
+					</div>
+
+					<div class="metric-glass-card">
+						<span class="metric-label">Mana Base Balance</span>
+						<div class="metric-value-row">
+							<span class="metric-primary-value">{colorBreakdownData.landsCount} Lands</span>
+							<span class="metric-sub-value">{colorBreakdownData.totalSources} Mana Sources</span>
+						</div>
+						<div class="metric-pips-summary">
+							{#each colorBreakdownData.colorList as col}
+								<div class="summary-pip-badge">
+									<ManaSymbol symbol={col.symbol} size="14px" />
+									<span>{col.pipPct}%</span>
+								</div>
+							{/each}
+						</div>
+						<span class="metric-hint">{colorBreakdownData.totalPips} total color pips required</span>
 					</div>
 				</div>
 			</div>
 
-			{#if hand.length === 0}
-				<div class="empty-arena-state">
-					<p>Your opening hand is currently empty.</p>
+			<!-- Quick Jump Cards to Deep Dive Sections -->
+			<div class="overview-deepdive-grid">
+				<button class="deepdive-card" onclick={() => scrollToSection("mana-curve")}>
+					<div class="card-icon-header">
+						<BarChart3 size={20} class="text-primary" />
+						<ChevronRight size={18} class="chevron" />
+					</div>
+					<h3>Mana Curve Analysis</h3>
+					<p>Inspect curve distribution, CMC breakdown, and card counts at every mana cost tier.</p>
+					<span class="jump-link">Explore Mana Curve &rarr;</span>
+				</button>
+
+				<button class="deepdive-card" onclick={() => scrollToSection("card-types")}>
+					<div class="card-icon-header">
+						<Layers size={20} class="text-primary" />
+						<ChevronRight size={18} class="chevron" />
+					</div>
+					<h3>Card Types & Subtypes</h3>
+					<p>Explore high-level spell categories, tribal creature hierarchies, and permanent balances.</p>
+					<span class="jump-link">Explore Card Types &rarr;</span>
+				</button>
+
+				<button class="deepdive-card" onclick={() => scrollToSection("colors")}>
+					<div class="card-icon-header">
+						<PieChart size={20} class="text-primary" />
+						<ChevronRight size={18} class="chevron" />
+					</div>
+					<h3>Colors & Mana Demands</h3>
+					<p>Compare colored spell pip demands with your land and mana rock production balance.</p>
+					<span class="jump-link">Explore Colors & Base &rarr;</span>
+				</button>
+
+				<button class="deepdive-card" onclick={() => scrollToSection("budget")}>
+					<div class="card-icon-header">
+						<Coins size={20} class="text-primary" />
+						<ChevronRight size={18} class="chevron" />
+					</div>
+					<h3>Budget & Valuation</h3>
+					<p>Discover top valued cards, price distribution brackets, and board value breakdowns.</p>
+					<span class="jump-link">Explore Budget &rarr;</span>
+				</button>
+			</div>
+		</div>
+	</section>
+
+	<!-- 2. MANA CURVE SECTION -->
+	<section id="stats-mana-curve" class="stats-section-screen">
+		<div class="section-content-wrapper">
+			<div class="section-header-row">
+				<div class="title-group">
+					<span class="section-eyebrow">DISTRIBUTION</span>
+					<h2 class="section-heading">Mana Curve</h2>
+				</div>
+
+				<div class="controls-pill-toggle">
 					<button
-						onclick={resetSampleHand}
-						class="arena-action-btn primary"
+						class="toggle-btn"
+						class:active={curveGroupingMode === "creatures"}
+						onclick={() => (curveGroupingMode = "creatures")}
 					>
-						<RotateCcw size={15} />
-						<span>Draw 7-Card Hand</span>
+						Arena (Creatures / Spells)
+					</button>
+					<button
+						class="toggle-btn"
+						class:active={curveGroupingMode === "types"}
+						onclick={() => (curveGroupingMode = "types")}
+					>
+						By Card Type
 					</button>
 				</div>
-			{:else}
-				<div class="arena-stage">
-					{#key dealKey}
+			</div>
+
+			<!-- Main Mana Curve Chart Area -->
+			<div class="curve-chart-card">
+				<div class="chart-legend-row">
+					{#if curveGroupingMode === "creatures"}
+						<div class="legend-item">
+							<span class="legend-swatch creature-swatch"></span>
+							<span>Creatures</span>
+						</div>
+						<div class="legend-item">
+							<span class="legend-swatch noncreature-swatch"></span>
+							<span>Non-Creature Spells</span>
+						</div>
+					{:else}
+						<div class="legend-item"><span class="legend-swatch type-creature"></span>Creatures</div>
+						<div class="legend-item"><span class="legend-swatch type-instant"></span>Instants</div>
+						<div class="legend-item"><span class="legend-swatch type-sorcery"></span>Sorceries</div>
+						<div class="legend-item"><span class="legend-swatch type-artifact"></span>Artifacts</div>
+						<div class="legend-item"><span class="legend-swatch type-enchantment"></span>Enchantments</div>
+						<div class="legend-item"><span class="legend-swatch type-planeswalker"></span>Planeswalkers</div>
+					{/if}
+				</div>
+
+				<div class="arena-bar-chart-container">
+					{#each cmcData.buckets as bucket}
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div
-							class="arena-fan"
-							class:is-dragging-active={isCardDragging}
-							role="list"
-							aria-label="Sample Hand Cards"
+							class="arena-curve-column"
+							class:selected={selectedCmc === bucket.cmc}
+							onclick={() =>
+								(selectedCmc = selectedCmc === bucket.cmc ? null : bucket.cmc)}
 						>
-							{#each handCards as card (card.id)}
-								<div
-									class="arena-card-wrapper"
-									class:is-dragging={card.isDragging}
-									style="--x: {card.x}px; --y: {card.y}px; --rot: {card.rot}deg; --z: {card.z}; --scale: {card.scale}; --deal-delay: {card.delay}ms;"
-									title={card.name}
-									role="listitem"
-									onpointerdown={(e) =>
-										handleCardPointerDown(
-											e,
-											card.id,
-											card.i,
-										)}
-								>
-									{#if card.img}
-										<img
-											src={card.img}
-											alt={card.name}
-											class="arena-card-img"
-											loading="eager"
-											draggable="false"
-										/>
-									{:else}
-										<div class="arena-card-fallback">
-											<div class="fallback-frame">
-												<span
-													class="fallback-card-title"
-													>{card.name}</span
-												>
-											</div>
-										</div>
+							<span class="bar-total-label">{bucket.total}</span>
+							<div
+								class="bar-track"
+								style="height: {(bucket.total / cmcData.maxCount) * 240}px;"
+							>
+								{#if curveGroupingMode === "creatures"}
+									<!-- Creature Stacked Segment (Orange) -->
+									{#if bucket.creatures > 0}
+										<div
+											class="bar-segment creature-segment"
+											style="height: {(bucket.creatures / bucket.total) * 100}%;"
+											title="{bucket.creatures} Creatures"
+										></div>
 									{/if}
-								</div>
-							{/each}
-						</div>
-					{/key}
-				</div>
-			{/if}
-		</div>
-	{:else if settingsStore.statsSubTab === "tokens"}
-		<!-- Tokens Panel -->
-		<div class="panel-card">
-			<div class="panel-header">
-				<h3>Required Tokens ({requiredTokens.length})</h3>
-			</div>
-
-			{#if requiredTokens.length === 0}
-				<div class="empty-panel-state">
-					<p>No tokens are required for the cards in this deck.</p>
-				</div>
-			{:else}
-				<div class="tokens-grid">
-					{#each requiredTokens as token}
-						<div class="token-card-wrapper">
-							{#if token.image_uri}
-								<img
-									src={token.image_uri}
-									alt={token.name}
-									class="token-img"
-								/>
-							{:else}
-								<div class="token-fallback">
-									<span>{token.name}</span>
-								</div>
-							{/if}
-							<p class="token-title">{token.name}</p>
-						</div>
-					{/each}
-				</div>
-			{/if}
-		</div>
-	{:else if settingsStore.statsSubTab === "combos"}
-		<!-- Combos Panel -->
-		<div class="panel-card">
-			<div class="panel-header">
-				<h3>Matched Combos ({combos.length})</h3>
-			</div>
-
-			{#if isCombosLoading}
-				<div class="loading-state">
-					<Loader class="spinner" size={32} />
-					<p>Finding combos on Commander Spellbook...</p>
-				</div>
-			{:else if combosError}
-				<div class="error-state">
-					<AlertTriangle size={32} />
-					<p>{combosError}</p>
-				</div>
-			{:else if combos.length === 0}
-				<div class="empty-panel-state">
-					<p>
-						No combinations from Commander Spellbook detected in
-						this decklist.
-					</p>
-				</div>
-			{:else}
-				<div class="combos-list">
-					{#each combos as combo}
-						<div class="combo-item">
-							<h4 class="combo-title">
-								{getComboTitle(combo)}
-							</h4>
-							<div class="combo-details">
-								<div class="combo-cards">
-									<strong>Required Cards:</strong>
-									<div class="combo-cards-tags">
-										{#each combo.cards || [] as card}
-											<span class="card-tag"
-												>{card.card.name}</span
-											>
-										{/each}
-									</div>
-								</div>
-								{#if combo.description}
-									<div class="combo-instructions">
-										<strong>Instructions:</strong>
-										<p>{combo.description}</p>
-									</div>
+									<!-- Non-Creature Stacked Segment (Blue) -->
+									{#if bucket.nonCreatures > 0}
+										<div
+											class="bar-segment noncreature-segment"
+											style="height: {(bucket.nonCreatures / bucket.total) * 100}%;"
+											title="{bucket.nonCreatures} Non-Creatures"
+										></div>
+									{/if}
+								{:else}
+									<!-- By Card Type -->
+									{#if bucket.types.creatures > 0}
+										<div class="bar-segment type-creature" style="height: {(bucket.types.creatures / bucket.total) * 100}%;"></div>
+									{/if}
+									{#if bucket.types.instants > 0}
+										<div class="bar-segment type-instant" style="height: {(bucket.types.instants / bucket.total) * 100}%;"></div>
+									{/if}
+									{#if bucket.types.sorceries > 0}
+										<div class="bar-segment type-sorcery" style="height: {(bucket.types.sorceries / bucket.total) * 100}%;"></div>
+									{/if}
+									{#if bucket.types.artifacts > 0}
+										<div class="bar-segment type-artifact" style="height: {(bucket.types.artifacts / bucket.total) * 100}%;"></div>
+									{/if}
+									{#if bucket.types.enchantments > 0}
+										<div class="bar-segment type-enchantment" style="height: {(bucket.types.enchantments / bucket.total) * 100}%;"></div>
+									{/if}
+									{#if bucket.types.planeswalkers > 0}
+										<div class="bar-segment type-planeswalker" style="height: {(bucket.types.planeswalkers / bucket.total) * 100}%;"></div>
+									{/if}
 								{/if}
+							</div>
+							<div class="cmc-circle-badge">
+								<span>{bucket.label}</span>
 							</div>
 						</div>
 					{/each}
 				</div>
-			{/if}
+			</div>
+
+			<!-- Curve Metrics Ribbon & Interactive Cards Tray -->
+			<div class="curve-stats-and-cards-layout">
+				<!-- Curve Insights Cards -->
+				<div class="curve-metrics-column">
+					<div class="insight-card">
+						<h4>Curve Statistics</h4>
+						<div class="insight-stats-list">
+							<div class="insight-row">
+								<span class="label">Average Non-Land CMC</span>
+								<span class="value">{curveStats.avgNonLand}</span>
+							</div>
+							<div class="insight-row">
+								<span class="label">Median CMC</span>
+								<span class="value">{curveStats.median}</span>
+							</div>
+							<div class="insight-row">
+								<span class="label">Peak Turn / Mode</span>
+								<span class="value">CMC {curveStats.peakCmc} ({curveStats.peakCount} cards)</span>
+							</div>
+							<div class="insight-row">
+								<span class="label">Total Spell Mana Value</span>
+								<span class="value">{curveStats.totalCmcSum}</span>
+							</div>
+						</div>
+					</div>
+
+					<div class="insight-card">
+						<h4>Tempo Breakdown</h4>
+						<div class="tempo-bars-list">
+							<div class="tempo-item">
+								<div class="tempo-info">
+									<span>Early Game (0-2 CMC)</span>
+									<span class="tempo-count">{curveStats.early.count} ({curveStats.early.pct}%)</span>
+								</div>
+								<div class="tempo-bar-track">
+									<div class="tempo-bar early" style="width: {curveStats.early.pct}%;"></div>
+								</div>
+							</div>
+							<div class="tempo-item">
+								<div class="tempo-info">
+									<span>Mid Game (3-4 CMC)</span>
+									<span class="tempo-count">{curveStats.mid.count} ({curveStats.mid.pct}%)</span>
+								</div>
+								<div class="tempo-bar-track">
+									<div class="tempo-bar mid" style="width: {curveStats.mid.pct}%;"></div>
+								</div>
+							</div>
+							<div class="tempo-item">
+								<div class="tempo-info">
+									<span>Late Game (5+ CMC)</span>
+									<span class="tempo-count">{curveStats.late.count} ({curveStats.late.pct}%)</span>
+								</div>
+								<div class="tempo-bar-track">
+									<div class="tempo-bar late" style="width: {curveStats.late.pct}%;"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Interactive CMC Inspector Drawer -->
+				<div class="curve-cards-drawer">
+					<div class="drawer-header">
+						<h4>
+							{#if selectedCmc !== null}
+								Cards with CMC {selectedCmc === 7 ? "7+" : selectedCmc} ({cmcData.buckets[selectedCmc].total})
+							{:else}
+								Click any CMC bar above to inspect cards
+							{/if}
+						</h4>
+						{#if selectedCmc !== null}
+							<button class="clear-btn" onclick={() => (selectedCmc = null)}>View All</button>
+						{/if}
+					</div>
+
+					<div class="drawer-cards-list">
+						{#each (selectedCmc !== null ? cmcData.buckets[selectedCmc].cards : activeCards.filter(c => !(getMeta(c.name).type_line || "").toLowerCase().includes("land")).slice(0, 16)) as card}
+							<div class="drawer-card-item">
+								<div class="card-name-qty">
+									<span class="card-qty">{card.qty || card.quantity || 1}x</span>
+									<span class="card-name">{card.name}</span>
+								</div>
+								<span class="card-type-subtext">{card.type_line || getMeta(card.name).type_line || ""}</span>
+								<div class="card-price-badge">
+									${(card.price || 0).toFixed(2)}
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			</div>
 		</div>
-	{/if}
+	</section>
+
+	<!-- 3. CARD TYPES SECTION -->
+	<section id="stats-card-types" class="stats-section-screen">
+		<div class="section-content-wrapper">
+			<div class="section-header-row">
+				<div class="title-group">
+					<span class="section-eyebrow">COMPOSITION</span>
+					<h2 class="section-heading">Card Types & Subtypes</h2>
+				</div>
+			</div>
+
+			<div class="types-dual-layout">
+				<!-- High Level Types List -->
+				<div class="types-main-panel">
+					<h3>Card Types Overview</h3>
+					<div class="types-bars-stack">
+						{#each cardTypesData.activeTypesList as item}
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div
+								class="type-progress-row"
+								class:active={selectedTypeFilter === item.type}
+								onclick={() => (selectedTypeFilter = selectedTypeFilter === item.type ? null : item.type)}
+							>
+								<div class="type-name-and-count">
+									<span class="type-label-badge" style="border-left-color: {item.color};">
+										{item.type}
+									</span>
+									<span class="type-count-text">
+										{item.count} <span class="pct">({item.pct}%)</span>
+									</span>
+								</div>
+								<div class="type-bar-bg">
+									<div
+										class="type-bar-fill"
+										style="width: {item.pct}%; background-color: {item.color};"
+									></div>
+								</div>
+							</div>
+						{/each}
+					</div>
+
+					<div class="permanents-summary-box">
+						<div class="perm-item">
+							<Shield size={18} class="perm-icon" />
+							<div>
+								<span class="perm-num">{cardTypesData.permanentsCount}</span>
+								<span class="perm-title">Permanents ({cardTypesData.permanentsPct}%)</span>
+							</div>
+						</div>
+						<div class="perm-divider"></div>
+						<div class="perm-item">
+							<Flame size={18} class="perm-icon spells" />
+							<div>
+								<span class="perm-num">{cardTypesData.nonPermanentsCount}</span>
+								<span class="perm-title">Spells ({cardTypesData.nonPermanentsPct}%)</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Arena-Style Creature & Permanent Subtypes Breakdown -->
+				<div class="types-subtypes-panel">
+					<h3>Arena Subtype Breakdown</h3>
+					<p class="panel-subtitle">Subtypes and creature kindred classifications</p>
+
+					{#if cardTypesData.sortedCreatureSubtypes.length > 0}
+						<div class="subtypes-list">
+							{#each cardTypesData.sortedCreatureSubtypes as [subtype, count]}
+								<div class="subtype-row">
+									<span class="subtype-name">{subtype}</span>
+									<span class="subtype-pill">{count}</span>
+								</div>
+							{/each}
+						</div>
+					{:else}
+						<div class="empty-subtypes-notice">
+							No subtype classifications found in active creatures.
+						</div>
+					{/if}
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- 4. COLORS & MANA BASE SECTION -->
+	<section id="stats-colors" class="stats-section-screen">
+		<div class="section-content-wrapper">
+			<div class="section-header-row">
+				<div class="title-group">
+					<span class="section-eyebrow">MANA BASE & RATIOS</span>
+					<h2 class="section-heading">Colors & Mana Demands</h2>
+				</div>
+			</div>
+
+			<div class="colors-dashboard-grid">
+				<!-- Color Requirements vs Production Table -->
+				<div class="color-comparison-card">
+					<h3>Color Demands vs Production Sources</h3>
+					<p class="card-desc">Compare the colored mana symbols required to cast your spells against lands and mana producers.</p>
+
+					<div class="color-comparison-table">
+						<div class="table-header-row">
+							<span>Color</span>
+							<span>Pips (Spells)</span>
+							<span>Demand %</span>
+							<span>Sources (Lands/Rocks)</span>
+							<span>Production %</span>
+							<span>Balance</span>
+						</div>
+
+						{#each colorBreakdownData.colorList as col}
+							<div class="table-data-row">
+								<div class="color-symbol-cell">
+									<ManaSymbol symbol={col.symbol} size="20px" />
+									<span class="color-name">{col.name}</span>
+								</div>
+								<span class="data-val bold">{col.pipCount}</span>
+								<span class="data-val">{col.pipPct}%</span>
+								<span class="data-val bold">{col.sourceCount}</span>
+								<span class="data-val">{col.sourcePct}%</span>
+								<div class="balance-cell">
+									{#if col.sourcePct >= col.pipPct}
+										<span class="status-badge good">
+											<CheckCircle2 size={12} />
+											Balanced
+										</span>
+									{:else if col.pipPct - col.sourcePct <= 8}
+										<span class="status-badge fair">
+											Moderate
+										</span>
+									{:else}
+										<span class="status-badge warn">
+											<AlertCircle size={12} />
+											Under-producing
+										</span>
+									{/if}
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Color Complexity & Land Ratio -->
+				<div class="color-breakdown-side-cards">
+					<div class="stats-mini-panel">
+						<h4>Spell Complexity</h4>
+						<div class="complexity-list">
+							<div class="complexity-item">
+								<span>Mono-Color Spells</span>
+								<span class="num">{colorBreakdownData.monoColorCount}</span>
+							</div>
+							<div class="complexity-item">
+								<span>Multi-Color / Gold</span>
+								<span class="num">{colorBreakdownData.multiColorCount}</span>
+							</div>
+							<div class="complexity-item">
+								<span>Colorless Spells</span>
+								<span class="num">{colorBreakdownData.colorlessSpellsCount}</span>
+							</div>
+							<div class="complexity-item">
+								<span>Lands</span>
+								<span class="num">{colorBreakdownData.landsCount}</span>
+							</div>
+						</div>
+					</div>
+
+					<div class="stats-mini-panel">
+						<h4>Mana Summary</h4>
+						<div class="mana-summary-list">
+							<div class="summary-stat-box">
+								<span class="title">Total Pips</span>
+								<span class="big-val">{colorBreakdownData.totalPips}</span>
+							</div>
+							<div class="summary-stat-box">
+								<span class="title">Total Sources</span>
+								<span class="big-val">{colorBreakdownData.totalSources}</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- 5. BUDGET & FINANCIAL VALUE SECTION -->
+	<section id="stats-budget" class="stats-section-screen">
+		<div class="section-content-wrapper">
+			<div class="section-header-row">
+				<div class="title-group">
+					<span class="section-eyebrow">FINANCES</span>
+					<h2 class="section-heading">Budget & Valuation</h2>
+				</div>
+			</div>
+
+			<!-- Financial Hero Banner -->
+			<div class="budget-hero-row">
+				<div class="budget-kpi-card total-kpi">
+					<span class="kpi-label">Total Deck Value</span>
+					<h2 class="kpi-amount">${budgetData.boardTotals.total.toFixed(2)}</h2>
+					<span class="kpi-subtext">Estimated TCGplayer Market Value</span>
+				</div>
+
+				<div class="budget-kpi-card">
+					<span class="kpi-label">Average Card Value</span>
+					<h3 class="kpi-secondary-amount">${budgetData.avgCardPrice.toFixed(2)}</h3>
+					<span class="kpi-subtext">Across {activeCards.length} cards</span>
+				</div>
+
+				<div class="budget-kpi-card">
+					<span class="kpi-label">Median Card Value</span>
+					<h3 class="kpi-secondary-amount">${budgetData.medianPrice.toFixed(2)}</h3>
+					<span class="kpi-subtext">Typical card cost in deck</span>
+				</div>
+			</div>
+
+			<!-- Boards & Price Tiers Breakdown -->
+			<div class="budget-details-grid">
+				<!-- Top 10 Most Valuable Cards -->
+				<div class="expensive-cards-card">
+					<h3>Top 10 Most Valuable Cards</h3>
+					<div class="top-cards-list">
+						{#each budgetData.topCards as card, i}
+							<div class="expensive-card-row">
+								<span class="card-rank">#{i + 1}</span>
+								{#if card.image_uri}
+									<img src={card.image_uri} alt={card.name} class="card-thumb" />
+								{:else}
+									<div class="card-thumb-fallback"></div>
+								{/if}
+								<div class="card-info">
+									<span class="name">{card.name}</span>
+									<span class="type-board">{card.type_line} • {card.board}</span>
+								</div>
+								<div class="price-pill-wrapper">
+									<span class="price-pill">${card.price.toFixed(2)}</span>
+									{#if budgetData.boardTotals.total > 0}
+										<span class="pct-pill">{((card.cardVal / budgetData.boardTotals.total) * 100).toFixed(1)}%</span>
+									{/if}
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Value by Board and Price Brackets -->
+				<div class="budget-breakdown-sidebar">
+					<div class="budget-panel-box">
+						<h4>Value by Board</h4>
+						<div class="board-values-list">
+							<div class="board-row">
+								<span>Mainboard</span>
+								<span class="val">${budgetData.boardTotals.mainboard.toFixed(2)}</span>
+							</div>
+							<div class="board-row">
+								<span>Commander</span>
+								<span class="val">${budgetData.boardTotals.commander.toFixed(2)}</span>
+							</div>
+							<div class="board-row">
+								<span>Sideboard</span>
+								<span class="val">${budgetData.boardTotals.sideboard.toFixed(2)}</span>
+							</div>
+							<div class="board-row">
+								<span>Maybeboard</span>
+								<span class="val">${budgetData.boardTotals.maybeboard.toFixed(2)}</span>
+							</div>
+						</div>
+					</div>
+
+					<div class="budget-panel-box">
+						<h4>Price Brackets</h4>
+						<div class="tiers-list">
+							{#each Object.entries(budgetData.priceTiers) as [key, tier]}
+								<div class="tier-item">
+									<div class="tier-header">
+										<span class="tier-label">{tier.label}</span>
+										<span class="tier-count">{tier.count} cards (${tier.total.toFixed(2)})</span>
+									</div>
+									<div class="tier-bar-bg">
+										<div
+											class="tier-bar-fill"
+											style="width: {(tier.total / Math.max(budgetData.boardTotals.total, 1)) * 100}%; background-color: {tier.color};"
+										></div>
+									</div>
+								</div>
+							{/each}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
 </div>
 
 <style>
-	.stats-container {
+	.stats-view-viewport {
 		flex: 1;
+		width: 100%;
+		height: calc(100vh - 56px);
 		overflow-y: auto;
-		padding: 2rem;
+		scroll-behavior: smooth;
+		background: radial-gradient(circle at 50% 0%, hsl(var(--card) / 0.3) 0%, transparent 60%);
+		position: relative;
+	}
+
+	/* Sticky Sub-Navigation */
+	.stats-sticky-nav {
+		position: sticky;
+		top: 0;
+		left: 0;
+		width: 100%;
+		display: flex;
+		justify-content: center;
+		padding: 0.75rem 1.5rem;
+		background: hsl(var(--background) / 0.82);
+		backdrop-filter: blur(14px);
+		-webkit-backdrop-filter: blur(14px);
+		border-bottom: 1px solid hsl(var(--border) / 0.4);
+		z-index: 50;
+	}
+
+	.nav-pills-cluster {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		background: hsl(var(--secondary) / 0.45);
+		border: 1px solid hsl(var(--border) / 0.6);
+		padding: 0.25rem 0.35rem;
+		border-radius: var(--radius-full, 9999px);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+	}
+
+	.nav-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.35rem 0.85rem;
+		font-size: 0.82rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
 		background: transparent;
-		font-family: var(--font-sans), sans-serif;
+		border: none;
+		border-radius: var(--radius-full, 9999px);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		user-select: none;
 	}
 
-	.stats-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+	.nav-pill:hover {
+		color: hsl(var(--foreground));
+		background: hsl(var(--secondary));
+	}
+
+	.nav-pill.active {
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
+		font-weight: 600;
+		box-shadow: 0 2px 8px hsl(var(--primary) / 0.35);
+	}
+
+	.pill-icon {
+		opacity: 0.85;
+	}
+
+	/* Common Section Screen */
+	.stats-section-screen {
+		min-height: calc(100vh - 56px);
+		padding: 3rem 2rem;
+		display: flex;
+		justify-content: center;
+		box-sizing: border-box;
+		border-bottom: 1px solid hsl(var(--border) / 0.25);
+		scroll-margin-top: 56px;
+	}
+
+	.section-content-wrapper {
+		width: 100%;
+		max-width: 1300px;
+		display: flex;
+		flex-direction: column;
 		gap: 2rem;
-		max-width: 1200px;
-		margin: 0 auto;
 	}
 
-	.stats-card {
-		background: hsl(var(--card) / 0.45);
-		backdrop-filter: blur(8px);
-		-webkit-backdrop-filter: blur(8px);
-		border: 1px solid hsl(var(--border) / 0.5);
+	.section-header-row {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 1rem;
+		border-bottom: 1px solid hsl(var(--border) / 0.4);
+		padding-bottom: 1rem;
+	}
+
+	.section-eyebrow {
+		font-size: 0.72rem;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: hsl(var(--primary));
+		display: block;
+		margin-bottom: 0.25rem;
+	}
+
+	.section-heading {
+		margin: 0;
+		font-size: 1.85rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+		letter-spacing: -0.02em;
+	}
+
+	/* 1. OVERVIEW HERO STYLES */
+	.overview-hero-card {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 2rem;
+		background: hsl(var(--card) / 0.4);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		border: 1px solid hsl(var(--border) / 0.6);
+		border-radius: var(--radius-xl, 16px);
+		padding: 2rem;
+		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+	}
+
+	@media (max-width: 950px) {
+		.overview-hero-card {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.hero-commander-showcase {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.commander-art-frame {
+		position: relative;
+		width: 100%;
+		height: 340px;
+		border-radius: var(--radius-lg);
+		overflow: hidden;
+		border: 1px solid hsl(var(--border) / 0.6);
+		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+	}
+
+	.commander-art {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		transition: transform 0.4s ease;
+	}
+
+	.commander-art-fallback {
+		width: 100%;
+		height: 100%;
+		background: hsl(var(--secondary) / 0.6);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: hsl(var(--primary));
+	}
+
+	.art-gradient-overlay {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(
+			to top,
+			rgba(10, 12, 16, 0.95) 0%,
+			rgba(10, 12, 16, 0.6) 40%,
+			transparent 100%
+		);
+	}
+
+	.art-caption-block {
+		position: absolute;
+		bottom: 1.5rem;
+		left: 1.5rem;
+		right: 1.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.deck-format-chip {
+		align-self: flex-start;
+		font-size: 0.72rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		padding: 0.2rem 0.6rem;
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
+		border-radius: var(--radius-sm);
+	}
+
+	.commander-hero-name {
+		margin: 0;
+		font-size: 1.6rem;
+		font-weight: 800;
+		color: #ffffff;
+		text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+	}
+
+	.hero-color-identity {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.hero-card-count {
+		font-size: 0.85rem;
+		color: rgba(255, 255, 255, 0.75);
+		margin-left: 0.25rem;
+	}
+
+	/* Hero Metrics Grid */
+	.hero-metrics-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+	}
+
+	@media (max-width: 600px) {
+		.hero-metrics-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.metric-glass-card {
+		background: hsl(var(--card) / 0.5);
+		border: 1px solid hsl(var(--border) / 0.4);
+		border-radius: var(--radius-md);
+		padding: 1.25rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		justify-content: space-between;
+	}
+
+	.metric-label {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: hsl(var(--muted-foreground));
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.metric-value-row {
+		display: flex;
+		align-items: baseline;
+		gap: 0.5rem;
+	}
+
+	.metric-primary-value {
+		font-size: 1.8rem;
+		font-weight: 800;
+		color: hsl(var(--foreground));
+		font-variant-numeric: tabular-nums;
+	}
+
+	.price-text {
+		color: #38bdf8;
+	}
+
+	.metric-sub-value {
+		font-size: 0.8rem;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.metric-progress-track {
+		width: 100%;
+		height: 6px;
+		background: hsl(var(--secondary) / 0.6);
+		border-radius: 3px;
+		overflow: hidden;
+	}
+
+	.metric-progress-fill {
+		height: 100%;
+		border-radius: 3px;
+		transition: width 0.4s ease;
+	}
+
+	.price-fill {
+		background: #38bdf8;
+	}
+
+	.multi-segment {
+		display: flex;
+	}
+
+	.multi-segment .segment.perms {
+		background: #f97316;
+	}
+
+	.multi-segment .segment.spells {
+		background: #38bdf8;
+	}
+
+	.metric-hint {
+		font-size: 0.72rem;
+		color: hsl(var(--muted-foreground) / 0.8);
+	}
+
+	.metric-pips-summary {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+
+	.summary-pip-badge {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		background: hsl(var(--secondary) / 0.5);
+		padding: 0.15rem 0.4rem;
+		border-radius: var(--radius-sm);
+		font-size: 0.75rem;
+		font-weight: 600;
+	}
+
+	/* Deepdive Jump Cards */
+	.overview-deepdive-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+		gap: 1.25rem;
+	}
+
+	.deepdive-card {
+		background: hsl(var(--card) / 0.35);
+		border: 1px solid hsl(var(--border) / 0.45);
 		border-radius: var(--radius-lg);
 		padding: 1.5rem;
 		display: flex;
 		flex-direction: column;
-		gap: 1.25rem;
+		gap: 0.75rem;
+		cursor: pointer;
+		text-align: left;
+		transition: all 0.2s ease;
 	}
 
-	h3 {
-		margin: 0;
-		font-size: 1.1rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
-		letter-spacing: -0.01em;
+	.deepdive-card:hover {
+		background: hsl(var(--card) / 0.65);
+		border-color: hsl(var(--primary) / 0.7);
+		transform: translateY(-3px);
+		box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
 	}
 
-	.stats-list {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 0.85rem;
-	}
-
-	.stats-list li {
+	.card-icon-header {
 		display: flex;
 		align-items: center;
-		gap: 1rem;
-		font-size: 0.9rem;
+		justify-content: space-between;
 	}
 
-	.list-label {
-		width: 90px;
-		color: hsl(var(--muted-foreground));
-		font-weight: 500;
-	}
-
-	.progress-bar-bg {
-		flex: 1;
-		height: 8px;
-		background: hsl(var(--muted) / 0.35);
-		border-radius: 4px;
-		overflow: hidden;
-	}
-
-	.progress-bar {
-		height: 100%;
-		background: hsl(var(--primary));
-		border-radius: 4px;
-		transition: width 0.3s ease;
-	}
-
-	.list-value {
-		width: 30px;
-		text-align: right;
-		font-weight: 600;
+	.deepdive-card h3 {
+		margin: 0;
+		font-size: 1.05rem;
+		font-weight: 700;
 		color: hsl(var(--foreground));
-		font-variant-numeric: tabular-nums;
 	}
 
-	.color-badge {
-		border-left: 3px solid;
-		padding-left: 6px;
+	.deepdive-card p {
+		margin: 0;
+		font-size: 0.82rem;
+		color: hsl(var(--muted-foreground));
+		line-height: 1.45;
+		flex: 1;
 	}
 
-	/* CMC curve styling */
-	.cmc-chart {
+	.jump-link {
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: hsl(var(--primary));
+		margin-top: 0.5rem;
+	}
+
+	/* 2. MANA CURVE SECTION STYLES */
+	.controls-pill-toggle {
+		display: inline-flex;
+		background: hsl(var(--secondary) / 0.6);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: var(--radius-full, 9999px);
+		padding: 0.2rem;
+	}
+
+	.toggle-btn {
+		background: transparent;
+		border: none;
+		padding: 0.35rem 0.85rem;
+		font-size: 0.8rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
+		border-radius: var(--radius-full, 9999px);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.toggle-btn.active {
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
+		font-weight: 600;
+	}
+
+	.curve-chart-card {
+		background: hsl(var(--card) / 0.45);
+		backdrop-filter: blur(12px);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: var(--radius-xl, 16px);
+		padding: 2rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.chart-legend-row {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-wrap: wrap;
+		gap: 1.5rem;
+		font-size: 0.8rem;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.legend-item {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+
+	.legend-swatch {
+		width: 12px;
+		height: 12px;
+		border-radius: 2px;
+	}
+
+	.creature-swatch, .creature-segment, .type-creature { background: #f97316 !important; }
+	.noncreature-swatch, .noncreature-segment { background: #0284c7 !important; }
+	.type-instant { background: #38bdf8 !important; }
+	.type-sorcery { background: #818cf8 !important; }
+	.type-artifact { background: #94a3b8 !important; }
+	.type-enchantment { background: #ec4899 !important; }
+	.type-planeswalker { background: #a855f7 !important; }
+
+	.arena-bar-chart-container {
 		display: flex;
 		align-items: flex-end;
 		justify-content: space-between;
-		height: 180px;
-		padding-top: 1rem;
+		height: 290px;
+		padding: 0 1rem;
+		gap: 1.25rem;
+		border-bottom: 2px solid hsl(var(--border) / 0.4);
 	}
 
-	.chart-bar-wrapper {
+	.arena-curve-column {
+		flex: 1;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		flex: 1;
-		gap: 0.4rem;
-	}
-
-	.chart-bar {
-		width: 22px;
-		background: linear-gradient(
-			to top,
-			hsl(var(--primary)),
-			hsl(var(--primary-dark, var(--primary)))
-		);
-		border-radius: 4px 4px 0 0;
-		transition: height 0.3s ease;
+		justify-content: flex-end;
+		gap: 0.6rem;
+		height: 100%;
 		cursor: pointer;
+		position: relative;
 	}
 
-	.chart-bar:hover {
-		opacity: 0.85;
+	.arena-curve-column.selected .cmc-circle-badge {
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
+		box-shadow: 0 0 12px hsl(var(--primary) / 0.6);
 	}
 
-	.bar-label {
-		font-size: 0.75rem;
-		font-weight: 600;
-		color: hsl(var(--primary));
-		font-variant-numeric: tabular-nums;
-	}
-
-	.bar-value {
-		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground));
-		font-variant-numeric: tabular-nums;
-	}
-
-	/* Price Breakdown styles */
-	.price-list .list-label {
-		width: auto;
-		flex: 1;
-	}
-
-	.price-list .list-value {
-		width: auto;
+	.bar-total-label {
 		font-size: 0.95rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+		font-variant-numeric: tabular-nums;
 	}
 
-	.highlight-price {
-		font-size: 1.1rem !important;
-		color: hsl(var(--primary)) !important;
-	}
-
-	/* Panel layouts */
-	.panel-card {
-		background: hsl(var(--card) / 0.45);
-		backdrop-filter: blur(8px);
-		-webkit-backdrop-filter: blur(8px);
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-lg);
-		padding: 2rem;
-		max-width: 1200px;
-		margin: 0 auto;
+	.bar-track {
+		width: 44px;
+		max-width: 100%;
+		border-radius: 6px 6px 0 0;
+		overflow: hidden;
 		display: flex;
-		flex-direction: column;
+		flex-direction: column-reverse;
+		background: hsl(var(--secondary) / 0.35);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+		transition: all 0.25s ease;
+	}
+
+	.arena-curve-column:hover .bar-track {
+		filter: brightness(1.2);
+		transform: scaleY(1.02);
+		transform-origin: bottom;
+	}
+
+	.bar-segment {
+		width: 100%;
+		transition: height 0.3s ease;
+	}
+
+	.cmc-circle-badge {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background: hsl(var(--secondary));
+		border: 1px solid hsl(var(--border));
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.85rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+		transition: all 0.2s ease;
+	}
+
+	/* Curve Stats and Cards Drawer Layout */
+	.curve-stats-and-cards-layout {
+		display: grid;
+		grid-template-columns: 340px 1fr;
 		gap: 2rem;
 	}
 
-	.panel-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		border-bottom: 1px solid hsl(var(--border) / 0.3);
-		padding-bottom: 1rem;
-		flex-wrap: wrap;
-		gap: 1rem;
-	}
-
-	.empty-panel-state,
-	.loading-state,
-	.error-state {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		text-align: center;
-		padding: 4rem 1.5rem;
-		color: hsl(var(--muted-foreground));
-		gap: 1rem;
-	}
-
-	:global(.spinner) {
-		animation: spin 1s linear infinite;
-	}
-
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
+	@media (max-width: 850px) {
+		.curve-stats-and-cards-layout {
+			grid-template-columns: 1fr;
 		}
 	}
 
-	/* Arena-style Sample Hand */
-	.arena-hand-view {
-		width: 100%;
-		max-width: 1400px;
-		margin: 0 auto;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		padding: 0.5rem 1rem 3rem;
-		position: relative;
-	}
-
-	.arena-controls-bar {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 1rem;
-		flex-wrap: wrap;
-		margin-bottom: 0.75rem;
-		z-index: 10;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.arena-hand-meta {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.hand-count-text {
-		font-size: 0.8125rem;
-		font-weight: 500;
-		color: hsl(var(--muted-foreground));
-		font-variant-numeric: tabular-nums;
-		user-select: none;
-		letter-spacing: 0.01em;
-	}
-
-	.arena-actions {
-		display: flex;
-		align-items: center;
-		gap: 0.35rem;
-		background: hsl(var(--card) / 0.6);
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
-		border: 1px solid hsl(var(--border) / 0.5);
-		padding: 4px;
-		border-radius: 9999px;
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-	}
-
-	.arena-action-btn {
-		height: 32px;
-		background: transparent;
-		border: 1px solid transparent;
-		color: hsl(var(--muted-foreground));
-		padding: 0 0.85rem;
-		border-radius: 9999px;
-		font-size: 0.8125rem;
-		font-weight: 500;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.4rem;
-		cursor: pointer;
-		transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-		white-space: nowrap;
-		box-sizing: border-box;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.arena-action-btn:hover:not(:disabled) {
-		background: hsl(var(--foreground) / 0.08);
-		color: hsl(var(--foreground));
-	}
-
-	.arena-action-btn:active:not(:disabled) {
-		transform: scale(0.97);
-	}
-
-	.arena-action-btn.primary {
-		background: hsl(var(--primary) / 0.15);
-		border-color: hsl(var(--primary) / 0.35);
-		color: hsl(var(--primary));
-		font-weight: 600;
-	}
-
-	.arena-action-btn.primary:hover:not(:disabled) {
-		background: hsl(var(--primary) / 0.25);
-		border-color: hsl(var(--primary) / 0.5);
-		color: hsl(var(--primary));
-	}
-
-	.arena-action-btn:disabled {
-		opacity: 0.35;
-		cursor: not-allowed;
-	}
-
-	.arena-action-btn.icon-only {
-		width: 32px;
-		height: 32px;
-		padding: 0;
-		border-radius: 9999px;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.arena-action-btn.icon-only:hover:not(:disabled) {
-		background: hsl(var(--foreground) / 0.1);
-		color: hsl(var(--foreground));
-	}
-
-	.arena-action-btn.icon-only.active {
-		background: hsl(var(--foreground) / 0.14);
-		color: hsl(var(--foreground));
-		border-color: hsl(var(--foreground) / 0.2);
-	}
-
-	.arena-action-btn.icon-only.smoother-active {
-		background: hsl(var(--primary) / 0.15);
-		border-color: hsl(var(--primary) / 0.35);
-		color: hsl(var(--primary));
-	}
-
-	.arena-action-btn.icon-only.smoother-active:hover:not(:disabled),
-	.arena-action-btn.icon-only.smoother-active.active {
-		background: hsl(var(--primary) / 0.25);
-		border-color: hsl(var(--primary) / 0.5);
-		color: hsl(var(--primary));
-	}
-
-	.arena-actions-separator {
-		width: 1px;
-		height: 18px;
-		background: hsl(var(--border) / 0.7);
-		margin: 0 2px;
-		flex-shrink: 0;
-	}
-
-	.arena-options-container {
-		position: relative;
-		display: flex;
-		align-items: center;
-	}
-
-	.arena-options-menu {
-		position: absolute;
-		top: calc(100% + 8px);
-		right: 0;
-		z-index: 50;
-		width: 290px;
-		background: #0f131a;
-		border: 1px solid rgba(255, 255, 255, 0.12);
-		border-radius: 10px;
-		padding: 12px 14px;
-		box-shadow:
-			0 12px 30px -4px rgba(0, 0, 0, 0.6),
-			0 4px 12px rgba(0, 0, 0, 0.4);
-		backdrop-filter: blur(20px);
-		-webkit-backdrop-filter: blur(20px);
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-
-	.options-menu-header {
-		font-size: 0.65rem;
-		font-weight: 700;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: hsl(var(--muted-foreground) / 0.8);
-		padding: 0 0 2px 0;
-	}
-
-	.options-menu-divider {
-		height: 1px;
-		background: rgba(255, 255, 255, 0.08);
-		margin: 2px 0;
-	}
-
-	.options-menu-item {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 14px;
-		padding: 4px 0;
-		transition: opacity 0.15s ease;
-	}
-
-	.options-menu-item.disabled {
-		opacity: 0.35;
-		pointer-events: none;
-	}
-
-	.options-item-info {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		flex: 1;
-		min-width: 0;
-	}
-
-	.options-item-title {
-		font-size: 0.8125rem;
-		font-weight: 500;
-		color: #f1f5f9;
-		line-height: 1.25;
-	}
-
-	.options-item-desc {
-		font-size: 0.7rem;
-		color: #94a3b8;
-		line-height: 1.35;
-	}
-
-	.options-menu-btn {
-		width: 100%;
-		background: hsl(var(--foreground) / 0.06);
-		border: 1px solid rgba(255, 255, 255, 0.08);
-		color: #f1f5f9;
-		padding: 6px 10px;
-		border-radius: 6px;
-		font-size: 0.75rem;
-		font-weight: 500;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		transition: all 0.15s ease;
-		box-sizing: border-box;
-	}
-
-	.options-menu-btn:hover {
-		background: hsl(var(--foreground) / 0.12);
-		border-color: rgba(255, 255, 255, 0.18);
-	}
-
-	.switch {
-		position: relative;
-		display: inline-block;
-		width: 34px;
-		height: 20px;
-		flex-shrink: 0;
-		cursor: pointer;
-	}
-
-	.switch input {
-		opacity: 0;
-		width: 0;
-		height: 0;
-		position: absolute;
-	}
-
-	.slider {
-		position: absolute;
-		cursor: pointer;
-		inset: 0;
-		background-color: hsl(var(--muted) / 0.8);
-		transition: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-		border-radius: 9999px;
-		border: 1px solid hsl(var(--border));
-	}
-
-	.slider:before {
-		position: absolute;
-		content: "";
-		height: 14px;
-		width: 14px;
-		left: 2px;
-		bottom: 2px;
-		background-color: hsl(var(--muted-foreground));
-		transition: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-		border-radius: 50%;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-	}
-
-	input:checked + .slider {
-		background-color: hsl(var(--primary) / 0.25);
-		border-color: hsl(var(--primary) / 0.6);
-	}
-
-	input:checked + .slider:before {
-		transform: translateX(14px);
-		background-color: hsl(var(--primary));
-	}
-
-	.empty-arena-state {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 1.25rem;
-		padding: 6rem 2rem;
-		color: hsl(var(--muted-foreground));
-		font-size: 0.95rem;
-	}
-
-	/* Arena Stage & Curved Fan */
-	.arena-stage {
-		position: relative;
-		width: 100%;
-		max-width: 1200px;
-		height: 400px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		overflow: visible;
-		margin-top: 0;
-	}
-
-	.arena-fan {
-		position: relative;
-		width: 100%;
-		height: 340px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		overflow: visible;
-	}
-
-	.arena-fan.is-dragging-active .arena-card-wrapper:not(.is-dragging) {
-		pointer-events: none;
-	}
-
-
-	@keyframes dealCard {
-		0% {
-			opacity: 0;
-			transform: translate3d(
-					calc(var(--x) * 0.57),
-					calc(var(--y) + 79px),
-					0
-				)
-				rotate(calc(var(--rot) * 0.48)) scale(0.82);
-		}
-		50% {
-			opacity: 1;
-		}
-		100% {
-			opacity: 1;
-			transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot))
-				scale(1);
-		}
-	}
-
-	.arena-card-wrapper {
-		position: absolute;
-		left: 50%;
-		top: 35px;
-		width: 215px;
-		height: 300px;
-		margin-left: -107.5px;
-		margin-top: 0;
-		transform-origin: 50% 120%;
-		transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot))
-			scale(var(--scale, 1));
-		z-index: var(--z);
-		animation: dealCard 0.33s cubic-bezier(0.18, 0.89, 0.32, 1.15) backwards;
-		animation-delay: var(--deal-delay, 0ms);
-		transition:
-			transform 0.22s cubic-bezier(0.2, 0, 0, 1),
-			box-shadow 0.22s ease,
-			z-index 0.05s step-end;
-		cursor: grab;
-		touch-action: none;
-		border-radius: 11px;
-		user-select: none;
-		-webkit-user-select: none;
-		box-shadow:
-			0 12px 28px -6px rgba(0, 0, 0, 0.8),
-			0 4px 10px -2px rgba(0, 0, 0, 0.6),
-			0 0 0 1px rgba(255, 255, 255, 0.08);
-	}
-
-	.arena-card-wrapper:hover:not(.is-dragging) {
-		transform: translate3d(var(--x), calc(var(--y) - 8px), 0)
-			rotate(var(--rot)) scale(1.04);
-		z-index: 100 !important;
-		transition:
-			transform 0.22s cubic-bezier(0.2, 0, 0, 1),
-			box-shadow 0.22s ease,
-			z-index 0s;
-		box-shadow:
-			0 18px 36px -8px rgba(0, 0, 0, 0.85),
-			0 8px 16px -4px rgba(0, 0, 0, 0.6),
-			0 0 0 1px rgba(255, 255, 255, 0.18);
-	}
-
-	.arena-card-wrapper.is-dragging {
-		cursor: grabbing !important;
-		transition: none !important;
-		box-shadow:
-			0 26px 54px -8px rgba(0, 0, 0, 0.95),
-			0 12px 28px -4px rgba(0, 0, 0, 0.7),
-			0 0 0 1px rgba(255, 255, 255, 0.25) !important;
-	}
-
-	.arena-card-img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-		display: block;
-		border-radius: 11px;
-		pointer-events: none;
-	}
-
-	.arena-card-fallback {
-		width: 100%;
-		height: 100%;
-		border-radius: 11px;
-		background: #11141a;
-		border: 4px solid #1a202c;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 1rem;
-		box-sizing: border-box;
-	}
-
-	.fallback-frame {
-		width: 100%;
-		height: 100%;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		border-radius: 6px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 0.75rem;
-		background: rgba(255, 255, 255, 0.02);
-		text-align: center;
-	}
-
-	.fallback-card-title {
-		font-size: 0.85rem;
-		font-weight: 700;
-		color: hsl(var(--foreground));
-		line-height: 1.3;
-	}
-
-	@media (max-width: 900px) {
-		.arena-card-wrapper {
-			width: 170px;
-			height: 238px;
-			margin-left: -85px;
-			margin-top: -95px;
-		}
-		.arena-stage {
-			height: 400px;
-		}
-	}
-
-	/* Tokens Grid */
-	.tokens-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-		gap: 1.5rem;
-	}
-
-	.token-card-wrapper {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		align-items: center;
-	}
-
-	.token-img {
-		width: 100%;
-		aspect-ratio: 2.5/3.5;
-		object-fit: cover;
-		border-radius: var(--radius-md);
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-	}
-
-	.token-fallback {
-		width: 100%;
-		aspect-ratio: 2.5/3.5;
-		background: linear-gradient(
-			135deg,
-			hsl(var(--muted) / 0.2) 0%,
-			hsl(var(--border) / 0.4) 100%
-		);
-		border-radius: var(--radius-md);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 0.5rem;
-		text-align: center;
-	}
-
-	.token-title {
-		font-size: 0.85rem;
-		font-weight: 500;
-		text-align: center;
-		margin: 0;
-		color: hsl(var(--foreground));
-	}
-
-	/* Combos List */
-	.combos-list {
+	.curve-metrics-column {
 		display: flex;
 		flex-direction: column;
 		gap: 1.5rem;
 	}
 
-	.combo-item {
-		background: hsl(var(--muted) / 0.1);
+	.insight-card {
+		background: hsl(var(--card) / 0.4);
 		border: 1px solid hsl(var(--border) / 0.4);
 		border-radius: var(--radius-lg);
 		padding: 1.25rem;
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: 1rem;
 	}
 
-	.combo-title {
+	.insight-card h4 {
 		margin: 0;
-		font-size: 1rem;
-		font-weight: 600;
-		color: hsl(var(--primary));
+		font-size: 0.9rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: hsl(var(--foreground));
 	}
 
-	.combo-details {
+	.insight-stats-list {
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
-		font-size: 0.875rem;
-		line-height: 1.5;
 	}
 
-	.combo-cards {
+	.insight-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		font-size: 0.85rem;
+	}
+
+	.insight-row .label {
+		color: hsl(var(--muted-foreground));
+	}
+
+	.insight-row .value {
+		font-weight: 700;
+		color: hsl(var(--foreground));
+		font-variant-numeric: tabular-nums;
+	}
+
+	.tempo-bars-list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.35rem;
+		gap: 0.85rem;
 	}
 
-	.combo-cards-tags {
+	.tempo-info {
 		display: flex;
-		flex-wrap: wrap;
+		justify-content: space-between;
+		font-size: 0.8rem;
+		margin-bottom: 0.25rem;
+	}
+
+	.tempo-count {
+		font-weight: 600;
+		color: hsl(var(--foreground));
+	}
+
+	.tempo-bar-track {
+		height: 6px;
+		background: hsl(var(--secondary) / 0.6);
+		border-radius: 3px;
+		overflow: hidden;
+	}
+
+	.tempo-bar {
+		height: 100%;
+		border-radius: 3px;
+	}
+
+	.tempo-bar.early { background: #22c55e; }
+	.tempo-bar.mid { background: #38bdf8; }
+	.tempo-bar.late { background: #a855f7; }
+
+	.curve-cards-drawer {
+		background: hsl(var(--card) / 0.4);
+		border: 1px solid hsl(var(--border) / 0.4);
+		border-radius: var(--radius-lg);
+		padding: 1.25rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		max-height: 400px;
+	}
+
+	.drawer-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding-bottom: 0.5rem;
+		border-bottom: 1px solid hsl(var(--border) / 0.3);
+	}
+
+	.drawer-header h4 {
+		margin: 0;
+		font-size: 0.9rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+	}
+
+	.clear-btn {
+		background: transparent;
+		border: 1px solid hsl(var(--border));
+		color: hsl(var(--muted-foreground));
+		font-size: 0.75rem;
+		padding: 0.2rem 0.5rem;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+	}
+
+	.drawer-cards-list {
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding-right: 0.25rem;
+	}
+
+	.drawer-card-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.5rem 0.75rem;
+		background: hsl(var(--secondary) / 0.35);
+		border-radius: var(--radius-md);
+		font-size: 0.82rem;
+		gap: 1rem;
+	}
+
+	.card-name-qty {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+	}
+
+	.card-qty {
+		color: hsl(var(--muted-foreground));
+	}
+
+	.card-type-subtext {
+		color: hsl(var(--muted-foreground));
+		font-size: 0.75rem;
+		flex: 1;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.card-price-badge {
+		font-weight: 600;
+		color: #38bdf8;
+		font-variant-numeric: tabular-nums;
+	}
+
+	/* 3. CARD TYPES SECTION STYLES */
+	.types-dual-layout {
+		display: grid;
+		grid-template-columns: 1fr 380px;
+		gap: 2rem;
+	}
+
+	@media (max-width: 900px) {
+		.types-dual-layout {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.types-main-panel, .types-subtypes-panel {
+		background: hsl(var(--card) / 0.45);
+		backdrop-filter: blur(12px);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: var(--radius-xl, 16px);
+		padding: 2rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.types-bars-stack {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.type-progress-row {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+		cursor: pointer;
+		padding: 0.4rem 0.5rem;
+		border-radius: var(--radius-md);
+		transition: background 0.15s ease;
+	}
+
+	.type-progress-row:hover {
+		background: hsl(var(--secondary) / 0.5);
+	}
+
+	.type-name-and-count {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		font-size: 0.9rem;
+	}
+
+	.type-label-badge {
+		border-left: 3px solid;
+		padding-left: 0.5rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+	}
+
+	.type-count-text {
+		font-weight: 700;
+		color: hsl(var(--foreground));
+	}
+
+	.type-count-text .pct {
+		font-weight: 400;
+		color: hsl(var(--muted-foreground));
+		font-size: 0.8rem;
+	}
+
+	.type-bar-bg {
+		width: 100%;
+		height: 8px;
+		background: hsl(var(--secondary) / 0.6);
+		border-radius: 4px;
+		overflow: hidden;
+	}
+
+	.type-bar-fill {
+		height: 100%;
+		border-radius: 4px;
+		transition: width 0.4s ease;
+	}
+
+	.permanents-summary-box {
+		display: flex;
+		align-items: center;
+		justify-content: space-around;
+		background: hsl(var(--secondary) / 0.4);
+		border: 1px solid hsl(var(--border) / 0.4);
+		border-radius: var(--radius-lg);
+		padding: 1.25rem;
+		margin-top: 0.5rem;
+	}
+
+	.perm-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.perm-icon {
+		color: #f97316;
+	}
+
+	.perm-icon.spells {
+		color: #38bdf8;
+	}
+
+	.perm-num {
+		font-size: 1.35rem;
+		font-weight: 800;
+		display: block;
+		line-height: 1.1;
+		color: hsl(var(--foreground));
+	}
+
+	.perm-title {
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.perm-divider {
+		width: 1px;
+		height: 40px;
+		background: hsl(var(--border) / 0.5);
+	}
+
+	/* Subtypes breakdown (Arena look) */
+	.panel-subtitle {
+		margin: -1rem 0 0 0;
+		font-size: 0.8rem;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.subtypes-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		max-height: 480px;
+		overflow-y: auto;
+		padding-right: 0.5rem;
+	}
+
+	.subtype-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.5rem 0.85rem;
+		background: hsl(var(--secondary) / 0.3);
+		border-radius: var(--radius-md);
+		font-size: 0.85rem;
+	}
+
+	.subtype-name {
+		font-weight: 500;
+		color: hsl(var(--foreground));
+	}
+
+	.subtype-pill {
+		font-weight: 700;
+		color: hsl(var(--primary));
+		font-variant-numeric: tabular-nums;
+	}
+
+	.empty-subtypes-notice {
+		color: hsl(var(--muted-foreground));
+		font-size: 0.85rem;
+		padding: 2rem 0;
+		text-align: center;
+	}
+
+	/* 4. COLORS & MANA BASE STYLES */
+	.colors-dashboard-grid {
+		display: grid;
+		grid-template-columns: 1fr 340px;
+		gap: 2rem;
+	}
+
+	@media (max-width: 900px) {
+		.colors-dashboard-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.color-comparison-card {
+		background: hsl(var(--card) / 0.45);
+		backdrop-filter: blur(12px);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: var(--radius-xl, 16px);
+		padding: 2rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.card-desc {
+		margin: 0;
+		font-size: 0.85rem;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.color-comparison-table {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-top: 1rem;
+	}
+
+	.table-header-row {
+		display: grid;
+		grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1.2fr;
+		padding: 0.6rem 0.8rem;
+		font-size: 0.72rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: hsl(var(--muted-foreground));
+		border-bottom: 1px solid hsl(var(--border) / 0.4);
+	}
+
+	.table-data-row {
+		display: grid;
+		grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1.2fr;
+		align-items: center;
+		padding: 0.75rem 0.8rem;
+		background: hsl(var(--secondary) / 0.25);
+		border-radius: var(--radius-md);
+		font-size: 0.85rem;
+	}
+
+	.color-symbol-cell {
+		display: flex;
+		align-items: center;
 		gap: 0.5rem;
 	}
 
-	.card-tag {
-		background: hsl(var(--primary) / 0.1);
-		color: hsl(var(--primary));
-		border: 1px solid hsl(var(--primary) / 0.25);
-		padding: 0.2rem 0.5rem;
-		border-radius: var(--radius-sm);
-		font-size: 0.775rem;
-		font-weight: 500;
+	.color-name {
+		font-weight: 600;
+		color: hsl(var(--foreground));
 	}
 
-	.combo-instructions p {
-		margin: 0.25rem 0 0 0;
+	.data-val {
+		color: hsl(var(--foreground));
+	}
+
+	.data-val.bold {
+		font-weight: 700;
+	}
+
+	.status-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		padding: 0.2rem 0.5rem;
+		border-radius: var(--radius-sm);
+		font-size: 0.72rem;
+		font-weight: 600;
+	}
+
+	.status-badge.good {
+		background: rgba(34, 197, 94, 0.15);
+		color: #22c55e;
+	}
+
+	.status-badge.fair {
+		background: rgba(56, 189, 248, 0.15);
+		color: #38bdf8;
+	}
+
+	.status-badge.warn {
+		background: rgba(239, 68, 68, 0.15);
+		color: #ef4444;
+	}
+
+	.color-breakdown-side-cards {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.stats-mini-panel {
+		background: hsl(var(--card) / 0.4);
+		border: 1px solid hsl(var(--border) / 0.4);
+		border-radius: var(--radius-lg);
+		padding: 1.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.stats-mini-panel h4 {
+		margin: 0;
+		font-size: 0.95rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+	}
+
+	.complexity-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.complexity-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		font-size: 0.85rem;
 		color: hsl(var(--muted-foreground));
+	}
+
+	.complexity-item .num {
+		font-weight: 700;
+		color: hsl(var(--foreground));
+	}
+
+	.mana-summary-list {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+	}
+
+	.summary-stat-box {
+		background: hsl(var(--secondary) / 0.4);
+		border-radius: var(--radius-md);
+		padding: 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		text-align: center;
+	}
+
+	.summary-stat-box .title {
+		font-size: 0.72rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.summary-stat-box .big-val {
+		font-size: 1.8rem;
+		font-weight: 800;
+		color: hsl(var(--primary));
+	}
+
+	/* 5. BUDGET SECTION STYLES */
+	.budget-hero-row {
+		display: grid;
+		grid-template-columns: 1.5fr 1fr 1fr;
+		gap: 1.5rem;
+	}
+
+	@media (max-width: 800px) {
+		.budget-hero-row {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.budget-kpi-card {
+		background: hsl(var(--card) / 0.45);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: var(--radius-lg);
+		padding: 1.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+
+	.budget-kpi-card.total-kpi {
+		background: linear-gradient(135deg, hsl(var(--card) / 0.7) 0%, hsl(var(--primary) / 0.15) 100%);
+		border-color: hsl(var(--primary) / 0.4);
+	}
+
+	.kpi-label {
+		font-size: 0.75rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.kpi-amount {
+		margin: 0;
+		font-size: 2.2rem;
+		font-weight: 800;
+		color: #38bdf8;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.kpi-secondary-amount {
+		margin: 0;
+		font-size: 1.6rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+	}
+
+	.kpi-subtext {
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.budget-details-grid {
+		display: grid;
+		grid-template-columns: 1fr 360px;
+		gap: 2rem;
+	}
+
+	@media (max-width: 900px) {
+		.budget-details-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.expensive-cards-card {
+		background: hsl(var(--card) / 0.45);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: var(--radius-xl, 16px);
+		padding: 2rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.top-cards-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+	}
+
+	.expensive-card-row {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding: 0.6rem 0.85rem;
+		background: hsl(var(--secondary) / 0.35);
+		border-radius: var(--radius-md);
+		font-size: 0.85rem;
+	}
+
+	.card-rank {
+		font-weight: 700;
+		color: hsl(var(--muted-foreground));
+		width: 24px;
+	}
+
+	.card-thumb {
+		width: 44px;
+		height: 32px;
+		object-fit: cover;
+		border-radius: 4px;
+	}
+
+	.card-thumb-fallback {
+		width: 44px;
+		height: 32px;
+		background: hsl(var(--secondary));
+		border-radius: 4px;
+	}
+
+	.card-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		overflow: hidden;
+	}
+
+	.card-info .name {
+		font-weight: 600;
+		color: hsl(var(--foreground));
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.card-info .type-board {
+		font-size: 0.72rem;
+		color: hsl(var(--muted-foreground));
+		text-transform: capitalize;
+	}
+
+	.price-pill-wrapper {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.15rem;
+	}
+
+	.price-pill {
+		font-weight: 700;
+		color: #38bdf8;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.pct-pill {
+		font-size: 0.72rem;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.budget-breakdown-sidebar {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.budget-panel-box {
+		background: hsl(var(--card) / 0.4);
+		border: 1px solid hsl(var(--border) / 0.4);
+		border-radius: var(--radius-lg);
+		padding: 1.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.budget-panel-box h4 {
+		margin: 0;
+		font-size: 0.95rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+	}
+
+	.board-values-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+	}
+
+	.board-row {
+		display: flex;
+		justify-content: space-between;
+		font-size: 0.85rem;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.board-row .val {
+		font-weight: 700;
+		color: hsl(var(--foreground));
+	}
+
+	.tiers-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.85rem;
+	}
+
+	.tier-item {
+		display: flex;
+		flex-direction: column;
+		gap: 0.3rem;
+	}
+
+	.tier-header {
+		display: flex;
+		justify-content: space-between;
+		font-size: 0.8rem;
+	}
+
+	.tier-label {
+		font-weight: 600;
+		color: hsl(var(--foreground));
+	}
+
+	.tier-count {
+		color: hsl(var(--muted-foreground));
+	}
+
+	.tier-bar-bg {
+		width: 100%;
+		height: 6px;
+		background: hsl(var(--secondary) / 0.6);
+		border-radius: 3px;
+		overflow: hidden;
+	}
+
+	.tier-bar-fill {
+		height: 100%;
+		border-radius: 3px;
+		transition: width 0.3s ease;
 	}
 </style>

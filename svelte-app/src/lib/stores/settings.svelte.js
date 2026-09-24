@@ -22,7 +22,8 @@ function createSettings() {
 	let enableClipboardPreload = $state(false);
 	let showDeletionToasts = $state(true);
 	let moveToMaybeboardOnDelete = $state(true);
-	let statsSubTab = $state("dashboard");
+	let statsSubTab = $state("sample-hand");
+	let statsSection = $state("overview");
 	let sampleHandSmoother = $state(false);
 	let sampleHandArenaParity = $state(false);
 	let autoHideDeckbuilderNav = $state(false);
@@ -48,6 +49,7 @@ function createSettings() {
 		useCommanderColors = localStorage.getItem('budgericards_use_commander_colors') === 'true';
 		matchCompanion = localStorage.getItem('budgericards_match_companion') === 'true';
 		deckViewMode = localStorage.getItem('budgericards_deck_view_mode') || 'stacks';
+		if (deckViewMode === 'settings') deckViewMode = 'stacks';
 		
 		const savedCols = localStorage.getItem('budgericards_visible_columns');
 		if (savedCols) {
@@ -188,6 +190,10 @@ function createSettings() {
 		get statsSubTab() { return statsSubTab; },
 		set statsSubTab(val) {
 			statsSubTab = val;
+		},
+		get statsSection() { return statsSection; },
+		set statsSection(val) {
+			statsSection = val;
 		},
 		get sampleHandSmoother() { return sampleHandSmoother; },
 		set sampleHandSmoother(val) {

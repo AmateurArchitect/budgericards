@@ -13,6 +13,7 @@
 		StretchHorizontal,
 		StretchVertical,
 		MoreVertical,
+		MoreHorizontal,
 		Table,
 		Check,
 		List,
@@ -798,21 +799,21 @@
 					<button
 						type="button"
 						role="radio"
-						aria-checked={settingsStore.deckViewMode === "settings"}
+						aria-checked={settingsStore.deckViewMode === "more"}
 						class="view-toggle-btn"
-						class:active={settingsStore.deckViewMode === "settings"}
+						class:active={settingsStore.deckViewMode === "more"}
 						onclick={() =>
-							(settingsStore.deckViewMode = "settings")}
-						title="Settings"
-						aria-label="Settings"
+							(settingsStore.deckViewMode = "more")}
+						title="More Tools (Sample Hand, Tokens, Combos)"
+						aria-label="More Tools"
 					>
-						<Settings size={15} />
+						<MoreHorizontal size={15} />
 					</button>
 				</div>
 			</div>
 
 			<!-- Grouping Column with GROUPING eyebrow -->
-			{#if settingsStore.deckViewMode !== "settings" && settingsStore.deckViewMode !== "list" && settingsStore.deckViewMode !== "stats"}
+			{#if !["list", "stats", "more", "settings"].includes(settingsStore.deckViewMode)}
 				<div class="control-column">
 					<span class="eyebrow-label">GROUPING</span>
 					<div class="grouping-controls-row">
@@ -1063,57 +1064,71 @@
 					<div
 						class="stats-subtabs-group"
 						role="radiogroup"
-						aria-label="Stats Sub-tab"
+						aria-label="Stats Sections"
+					>
+						{#each [
+							{ id: "overview", label: "Overview" },
+							{ id: "mana-curve", label: "Mana Curve" },
+							{ id: "card-types", label: "Card Types" },
+							{ id: "colors", label: "Colors" },
+							{ id: "budget", label: "Budget" }
+						] as sec}
+							<button
+								type="button"
+								role="radio"
+								aria-checked={settingsStore.statsSection === sec.id}
+								class="stats-tab-btn"
+								class:active={settingsStore.statsSection === sec.id}
+								onclick={() => {
+									settingsStore.statsSection = sec.id;
+									const el = document.getElementById(`stats-${sec.id}`);
+									if (el) {
+										el.scrollIntoView({ behavior: "smooth", block: "start" });
+									}
+								}}
+							>
+								{sec.label}
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			{#if settingsStore.deckViewMode === "more"}
+				<div class="control-column">
+					<span class="eyebrow-label">SECTIONS</span>
+					<div
+						class="stats-subtabs-group"
+						role="radiogroup"
+						aria-label="More Tools Sub-tab"
 					>
 						<button
 							type="button"
 							role="radio"
-							aria-checked={settingsStore.statsSubTab ===
-								"dashboard"}
+							aria-checked={settingsStore.statsSubTab === "sample-hand"}
 							class="stats-tab-btn"
-							class:active={settingsStore.statsSubTab ===
-								"dashboard"}
-							onclick={() =>
-								(settingsStore.statsSubTab = "dashboard")}
-						>
-							Dashboard
-						</button>
-						<button
-							type="button"
-							role="radio"
-							aria-checked={settingsStore.statsSubTab ===
-								"sample-hand"}
-							class="stats-tab-btn"
-							class:active={settingsStore.statsSubTab ===
-								"sample-hand"}
-							onclick={() =>
-								(settingsStore.statsSubTab = "sample-hand")}
+							class:active={settingsStore.statsSubTab === "sample-hand"}
+							onclick={() => (settingsStore.statsSubTab = "sample-hand")}
 						>
 							Sample Hand
 						</button>
 						<button
 							type="button"
 							role="radio"
-							aria-checked={settingsStore.statsSubTab ===
-								"tokens"}
+							aria-checked={settingsStore.statsSubTab === "tokens"}
 							class="stats-tab-btn"
-							class:active={settingsStore.statsSubTab ===
-								"tokens"}
-							onclick={() =>
-								(settingsStore.statsSubTab = "tokens")}
+							class:active={settingsStore.statsSubTab === "tokens"}
+							onclick={() => (settingsStore.statsSubTab = "tokens")}
 						>
 							Tokens
 						</button>
 						<button
 							type="button"
 							role="radio"
-							aria-checked={settingsStore.statsSubTab ===
-								"combos"}
+							aria-checked={settingsStore.statsSubTab === "combos"}
 							class="stats-tab-btn"
-							class:active={settingsStore.statsSubTab ===
-								"combos"}
-							onclick={() =>
-								(settingsStore.statsSubTab = "combos")}
+							class:active={settingsStore.statsSubTab === "combos"}
+							onclick={() => (settingsStore.statsSubTab = "combos")}
 						>
 							Combos
 						</button>

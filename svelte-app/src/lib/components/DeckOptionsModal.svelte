@@ -5,6 +5,8 @@
 	import Input from '$lib/components/ui/Input.svelte';
 	import { ALL_FORMATS } from '$lib/constants/formats.js';
 	import { onMount, tick } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { syncService } from '$lib/syncService';
 
 	/** @type {{ isOpen: boolean, fallbackArt: string | null, triggerElement: HTMLElement | null }} */
 	let { isOpen = $bindable(false), fallbackArt = null, triggerElement = null } = $props();
@@ -126,6 +128,35 @@
 		showFormatDropdown = false;
 		isMoreFormatsVisible = false;
 	}
+
+	async function handleDelete() {
+		if (!confirm("Are you sure you want to delete this deck? This cannot be undone.")) {
+			return;
+		}
+
+		const id = deckStore.id;
+		close();
+
+		// 1. Delete from local drafts
+		let drafts = JSON.parse(localStorage.getItem("budgericards_local_drafts") || "[]");
+		drafts = drafts.filter(/** @param {any} d */ (d) => d.id !== id);
+		localStorage.setItem("budgericards_local_drafts", JSON.stringify(drafts));
+
+		// 2. Delete from cached decks
+		const cached = JSON.parse(localStorage.getItem("budgericards_cached_decks") || "{}");
+		delete cached[id];
+		localStorage.setItem("budgericards_cached_decks", JSON.stringify(cached));
+
+		// 3. Delete from Supabase cloud
+		await syncService.deleteDeck(id);
+
+		// Clear active deck state
+		deckStore.clearMetadataAndCards();
+		sessionStorage.removeItem("budgericards_active_deck_id");
+
+		// Redirect back to decks list
+		goto("/decks");
+	}
 </script>
 
 
@@ -237,6 +268,41 @@
 								</div>
 							{/if}
 						</div>
+					</div>
+				</div>
+
+				<div class="settings-divider"></div>
+
+				<div class="settings-section">
+					<div class="section-title">Preferences</div>
+					<div class="row">
+						<div class="form-group flex-1">
+							<label for="deck-visibility">Visibility</label>
+							<select id="deck-visibility" bind:value={deckStore.visibility} class="modal-select">
+								<option value="public">🌍 Public (Searchable & Shareable)</option>
+								<option value="private">🔒 Private (Only visible to you)</option>
+							</select>
+						</div>
+
+						<div class="form-group flex-1">
+							<label for="deck-maybeboard">Deleted to Maybeboard</label>
+							<select id="deck-maybeboard" bind:value={deckStore.moveToMaybeboardOnDelete} class="modal-select">
+								<option value="default">🌐 Global Setting</option>
+								<option value="true">✔️ Send to Maybeboard</option>
+								<option value="false">❌ Delete Immediately</option>
+							</select>
+						</div>
+					</div>
+				</div>
+
+				<div class="settings-divider"></div>
+
+				<div class="settings-section danger-section">
+					<div class="danger-header">
+						<span class="danger-label">Danger Zone</span>
+						<button type="button" class="btn-delete-deck" onclick={handleDelete}>
+							Delete Deck
+						</button>
 					</div>
 				</div>
 			</div>
@@ -431,5 +497,91 @@
 		display: flex;
 		align-items: center;
 		color: hsl(var(--muted-foreground));
+	}
+
+	.settings-divider {
+		height: 1px;
+		background: hsl(var(--border) / 0.6);
+		margin: 1rem 0;
+	}
+
+	.settings-section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.section-title {
+		font-size: 0.75rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.flex-1 {
+		flex: 1;
+	}
+
+	.modal-select {
+		width: 100%;
+		height: 38px;
+		padding: 0 0.75rem;
+		background: hsl(var(--input) / 0.4);
+		border: 1px solid hsl(var(--border) / 0.8);
+		border-radius: var(--radius-md);
+		color: hsl(var(--foreground));
+		font-size: 0.82rem;
+		outline: none;
+		transition: all 0.15s ease;
+		cursor: pointer;
+	}
+
+	.modal-select:hover {
+		background: hsl(var(--input) / 0.6);
+		border-color: hsl(var(--border));
+	}
+
+	.modal-select:focus {
+		border-color: hsl(var(--primary));
+		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+	}
+
+	.danger-section {
+		margin-top: 0.25rem;
+	}
+
+	.danger-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.25rem 0;
+	}
+
+	.danger-label {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: hsl(var(--destructive) / 0.9);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.btn-delete-deck {
+		padding: 0.4rem 0.85rem;
+		background: hsl(var(--destructive) / 0.15);
+		border: 1px solid hsl(var(--destructive) / 0.3);
+		border-radius: var(--radius-md);
+		color: hsl(var(--destructive));
+		font-size: 0.8rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.btn-delete-deck:hover {
+		background: hsl(var(--destructive));
+		color: hsl(var(--destructive-foreground));
+		border-color: hsl(var(--destructive));
+		box-shadow: 0 2px 8px hsl(var(--destructive) / 0.3);
 	}
 </style>

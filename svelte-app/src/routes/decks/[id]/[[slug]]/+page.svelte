@@ -17,6 +17,7 @@
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import StatsView from "$lib/components/StatsView.svelte";
+	import MoreView from "$lib/components/MoreView.svelte";
 	import SettingsView from "$lib/components/SettingsView.svelte";
 	import { page } from "$app/stores";
 	import { goto } from "$app/navigation";
@@ -214,6 +215,8 @@
 				<SpoilerView />
 			{:else if settingsStore.deckViewMode === 'stats'}
 				<StatsView />
+			{:else if settingsStore.deckViewMode === 'more'}
+				<MoreView />
 			{:else if settingsStore.deckViewMode === 'settings'}
 				<SettingsView />
 			{:else}
