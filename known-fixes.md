@@ -47,3 +47,8 @@ Living list of solutions to code errors.
 - **Error Signature:** Syntax error or crash when using non-null assertions (`!`) or TS types in a standard JavaScript `<script>` block.
 - **Fix Pattern:** Use runtime guards (e.g. `if (entry)`) or JSDoc if needed, instead of TS syntax like `!`.
 - **Logic:** Svelte components use standard JavaScript unless marked `lang="ts"`. Applying TypeScript syntax like `!` to plain JS scripts causes immediate syntax errors and crashes the AST validation.
+
+## Svelte 5 Dynamic Component Deprecation in Runes Mode
+- **Error Signature:** `<svelte:component> is deprecated in runes mode — components are dynamic by default https://svelte.dev/e/svelte_component_deprecated`
+- **Fix Pattern:** Assign the dynamic component expression to a capitalized variable via `{@const Component = item.icon}` or in script, then render directly with `<Component ... />` instead of `<svelte:component this={...} />`.
+- **Logic:** Svelte 5 runes mode natively supports capitalized component variables as dynamic tags, deprecating the legacy `<svelte:component>` element.
