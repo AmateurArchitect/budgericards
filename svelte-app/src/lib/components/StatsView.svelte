@@ -116,6 +116,10 @@
 				? card.overrides.creature
 				: (typeLine || "").toLowerCase().includes("creature");
 
+		if (curveGroupingMode === "creatures") {
+			return isCreature ? "#f97316" : "#0284c7";
+		}
+
 		if (isCreature) return "#f97316";
 
 		const lower = (typeLine || "").toLowerCase();
@@ -322,12 +326,12 @@
 
 		/** @type {Record<string, { name: string, color: string, code: string }>} */
 		const pipColorsMap = {
-			W: { name: "White", color: "#f8fafc", code: "W" },
-			U: { name: "Blue", color: "#38bdf8", code: "U" },
-			B: { name: "Black", color: "#475569", code: "B" },
-			R: { name: "Red", color: "#ef4444", code: "R" },
-			G: { name: "Green", color: "#22c55e", code: "G" },
-			C: { name: "Colorless", color: "#94a3b8", code: "C" },
+			W: { name: "White", color: "#FFFBD5", code: "W" },
+			U: { name: "Blue", color: "#AAE0FA", code: "U" },
+			B: { name: "Black", color: "#CBC2BF", code: "B" },
+			R: { name: "Red", color: "#F9AA8F", code: "R" },
+			G: { name: "Green", color: "#9BD3AE", code: "G" },
+			C: { name: "Colorless", color: "#CCC2C0", code: "C" },
 		};
 
 		const activePipColors = ["W", "U", "B", "R", "G", "C"]
@@ -1167,9 +1171,9 @@
 										{/each}
 									{/if}
 								</div>
-								<div class="cmc-circle-badge">
-									<span>{bucket.label}</span>
-								</div>
+								<span class="cmc-drop-label">
+									{bucket.cmc === 7 ? "7+-drop" : `${bucket.cmc}-drop`}
+								</span>
 							</div>
 						{/each}
 					</div>
@@ -1884,8 +1888,8 @@
 	.toggle-btn {
 		background: transparent;
 		border: none;
-		padding: 0.35rem 0.85rem;
-		font-size: 0.8rem;
+		padding: 0.375rem 0.875rem;
+		font-size: 0.8125rem;
 		font-weight: 500;
 		color: hsl(var(--muted-foreground));
 		border-radius: var(--radius-full, 9999px);
@@ -1931,7 +1935,7 @@
 		backdrop-filter: blur(12px);
 		border: 1px solid hsl(var(--border) / 0.5);
 		border-radius: var(--radius-xl, 16px);
-		padding: 1.25rem 1.5rem 1rem;
+		padding: 1.25rem 1.5rem;
 		display: flex;
 		flex-direction: column;
 		justify-content: space-between;
@@ -1945,20 +1949,20 @@
 		align-items: center;
 		justify-content: center;
 		flex-wrap: wrap;
-		gap: 1.25rem;
-		font-size: 0.78rem;
+		gap: 1rem;
+		font-size: 0.75rem;
 		color: hsl(var(--muted-foreground));
 	}
 
 	.legend-item {
 		display: flex;
 		align-items: center;
-		gap: 0.4rem;
+		gap: 0.5rem;
 	}
 
 	.legend-swatch {
-		width: 11px;
-		height: 11px;
+		width: 10px;
+		height: 10px;
 		border-radius: 2px;
 	}
 
@@ -1969,12 +1973,12 @@
 	.type-artifact { background: #94a3b8 !important; }
 	.type-enchantment { background: #ec4899 !important; }
 	.type-planeswalker { background: #a855f7 !important; }
-	.pip-segment-w { background: #f8fafc !important; }
-	.pip-segment-u { background: #38bdf8 !important; }
-	.pip-segment-b { background: #475569 !important; border-top: 1px solid rgba(255, 255, 255, 0.15); }
-	.pip-segment-r { background: #ef4444 !important; }
-	.pip-segment-g { background: #22c55e !important; }
-	.pip-segment-c { background: #94a3b8 !important; }
+	.pip-segment-w { background: #FFFBD5 !important; }
+	.pip-segment-u { background: #AAE0FA !important; }
+	.pip-segment-b { background: #CBC2BF !important; }
+	.pip-segment-r { background: #F9AA8F !important; }
+	.pip-segment-g { background: #9BD3AE !important; }
+	.pip-segment-c { background: #CCC2C0 !important; }
 
 	.arena-bar-chart-container {
 		display: flex;
@@ -1988,6 +1992,7 @@
 
 	.arena-curve-column {
 		flex: 1;
+		min-width: 0;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -1998,22 +2003,17 @@
 		position: relative;
 	}
 
-	.arena-curve-column.selected .cmc-circle-badge {
-		background: hsl(var(--primary));
-		color: hsl(var(--primary-foreground));
-		box-shadow: 0 0 12px hsl(var(--primary) / 0.6);
-	}
-
 	.bar-total-label {
-		font-size: 0.9rem;
+		font-size: 0.875rem;
 		font-weight: 700;
 		color: hsl(var(--foreground));
 		font-variant-numeric: tabular-nums;
+		transition: color 0.2s ease;
 	}
 
 	.bar-track {
-		width: 42px;
-		max-width: 100%;
+		width: 100%;
+		max-width: 64px;
 		border-radius: 6px 6px 0 0;
 		overflow: hidden;
 		display: flex;
@@ -2029,24 +2029,40 @@
 		transform-origin: bottom;
 	}
 
+	.arena-curve-column.selected .bar-track {
+		outline: 2px solid hsl(var(--primary));
+		outline-offset: 2px;
+		filter: brightness(1.15);
+	}
+
+	.arena-curve-column.selected .bar-total-label {
+		color: hsl(var(--primary));
+	}
+
+	.arena-curve-column.selected .cmc-drop-label {
+		color: hsl(var(--primary));
+		font-weight: 700;
+	}
+
 	.bar-segment {
 		width: 100%;
 		transition: height 0.3s ease;
+		box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.2);
 	}
 
-	.cmc-circle-badge {
-		width: 30px;
-		height: 30px;
-		border-radius: 50%;
-		background: hsl(var(--secondary));
-		border: 1px solid hsl(var(--border));
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 0.82rem;
-		font-weight: 700;
+	.cmc-drop-label {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: hsl(var(--muted-foreground));
+		transition: color 0.2s ease;
+		white-space: nowrap;
+		text-align: center;
+		letter-spacing: 0.01em;
+		user-select: none;
+	}
+
+	.arena-curve-column:hover .cmc-drop-label {
 		color: hsl(var(--foreground));
-		transition: all 0.2s ease;
 	}
 
 	/* Card Preview Stack Drawer */
@@ -2060,7 +2076,8 @@
 		flex-direction: column;
 		gap: 0.75rem;
 		height: 100%;
-		max-height: 330px;
+		min-height: 320px;
+		max-height: 320px;
 		box-sizing: border-box;
 	}
 
@@ -2074,8 +2091,8 @@
 
 	.drawer-header h4 {
 		margin: 0;
-		font-size: 0.85rem;
-		font-weight: 700;
+		font-size: 0.875rem;
+		font-weight: 600;
 		color: hsl(var(--foreground));
 	}
 
@@ -2083,17 +2100,23 @@
 		background: transparent;
 		border: 1px solid hsl(var(--border));
 		color: hsl(var(--muted-foreground));
-		font-size: 0.72rem;
-		padding: 0.2rem 0.5rem;
+		font-size: 0.75rem;
+		padding: 0.25rem 0.5rem;
 		border-radius: var(--radius-sm);
 		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.clear-btn:hover {
+		color: hsl(var(--foreground));
+		border-color: hsl(var(--muted-foreground));
 	}
 
 	.drawer-cards-list {
 		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
-		gap: 0.4rem;
+		gap: 0.5rem;
 		padding-right: 0.25rem;
 		flex: 1;
 	}
@@ -2102,10 +2125,10 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0.45rem 0.75rem;
+		padding: 0.5rem 0.75rem;
 		background: hsl(var(--secondary) / 0.35);
 		border-radius: var(--radius-md);
-		font-size: 0.8rem;
+		font-size: 0.8125rem;
 		gap: 0.75rem;
 		cursor: pointer;
 		transition: background 0.15s ease, transform 0.1s ease;
@@ -2119,7 +2142,7 @@
 	.card-name-qty {
 		display: flex;
 		align-items: center;
-		gap: 0.45rem;
+		gap: 0.5rem;
 		font-weight: 600;
 		color: hsl(var(--foreground));
 		min-width: 0;
@@ -2152,7 +2175,7 @@
 	}
 
 	.card-type-icon {
-		font-size: 0.95rem;
+		font-size: 0.875rem;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -2169,7 +2192,7 @@
 
 	.mana-slash {
 		color: hsl(var(--muted-foreground));
-		font-size: 0.7rem;
+		font-size: 0.75rem;
 		margin: 0 1px;
 	}
 
@@ -2179,7 +2202,7 @@
 		backdrop-filter: blur(12px);
 		border: 1px solid hsl(var(--border) / 0.5);
 		border-radius: var(--radius-xl, 16px);
-		padding: 1.1rem 2rem;
+		padding: 1rem 1.5rem;
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
 		align-items: center;
@@ -2200,7 +2223,7 @@
 	}
 
 	.stats-bar-label {
-		font-size: 0.72rem;
+		font-size: 0.75rem;
 		font-weight: 600;
 		color: hsl(var(--muted-foreground));
 		text-transform: uppercase;
@@ -2209,7 +2232,7 @@
 	}
 
 	.stats-bar-value {
-		font-size: 1.05rem;
+		font-size: 1.125rem;
 		font-weight: 700;
 		color: hsl(var(--foreground));
 		font-variant-numeric: tabular-nums;
