@@ -217,12 +217,13 @@
 				other: 0,
 			},
 			pips: /** @type {Record<string, number>} */ ({
+				GEN: 0,
+				C: 0,
 				W: 0,
 				U: 0,
 				B: 0,
 				R: 0,
 				G: 0,
-				C: 0,
 			}),
 			totalPips: 0,
 			total: 0,
@@ -268,29 +269,57 @@
 				else buckets[idx].types.other += qty;
 			}
 
-			// Parse mana pips for this card at this CMC
+			// Parse mana symbols (Generic numbers, Colorless C, and Colored WUBRG)
+			let cardPipsTotal = 0;
 			const cost = stats.manaCost;
 			const matches = cost.match(/\{([^}]+)\}/g) || [];
 			matches.forEach((/** @type {string} */ sym) => {
 				const clean = sym.replace(/[{}]/g, "").toUpperCase();
-				if (clean === "W") { buckets[idx].pips.W += qty; buckets[idx].totalPips += qty; }
-				else if (clean === "U") { buckets[idx].pips.U += qty; buckets[idx].totalPips += qty; }
-				else if (clean === "B") { buckets[idx].pips.B += qty; buckets[idx].totalPips += qty; }
-				else if (clean === "R") { buckets[idx].pips.R += qty; buckets[idx].totalPips += qty; }
-				else if (clean === "G") { buckets[idx].pips.G += qty; buckets[idx].totalPips += qty; }
-				else if (clean === "C") { buckets[idx].pips.C += qty; buckets[idx].totalPips += qty; }
-				else if (clean.includes("/")) {
+				if (clean === "W") {
+					buckets[idx].pips.W += qty;
+					buckets[idx].totalPips += qty;
+					cardPipsTotal += qty;
+				} else if (clean === "U") {
+					buckets[idx].pips.U += qty;
+					buckets[idx].totalPips += qty;
+					cardPipsTotal += qty;
+				} else if (clean === "B") {
+					buckets[idx].pips.B += qty;
+					buckets[idx].totalPips += qty;
+					cardPipsTotal += qty;
+				} else if (clean === "R") {
+					buckets[idx].pips.R += qty;
+					buckets[idx].totalPips += qty;
+					cardPipsTotal += qty;
+				} else if (clean === "G") {
+					buckets[idx].pips.G += qty;
+					buckets[idx].totalPips += qty;
+					cardPipsTotal += qty;
+				} else if (clean === "C") {
+					buckets[idx].pips.C += qty;
+					buckets[idx].totalPips += qty;
+					cardPipsTotal += qty;
+				} else if (!isNaN(Number(clean)) && Number(clean) > 0) {
+					const genVal = Number(clean) * qty;
+					buckets[idx].pips.GEN += genVal;
+					buckets[idx].totalPips += genVal;
+					cardPipsTotal += genVal;
+				} else if (clean.includes("/")) {
 					const [a, b] = clean.split("/");
 					if (b === "P") {
 						if (buckets[idx].pips[a] !== undefined) {
 							buckets[idx].pips[a] += qty;
 							buckets[idx].totalPips += qty;
+							cardPipsTotal += qty;
 						}
 					} else if (a === "2") {
 						if (buckets[idx].pips[b] !== undefined) {
 							buckets[idx].pips[b] += qty;
 							buckets[idx].totalPips += qty;
 						}
+						buckets[idx].pips.GEN += qty;
+						buckets[idx].totalPips += qty;
+						cardPipsTotal += qty * 2;
 					} else {
 						if (buckets[idx].pips[a] !== undefined) {
 							buckets[idx].pips[a] += qty * 0.5;
@@ -300,9 +329,20 @@
 							buckets[idx].pips[b] += qty * 0.5;
 							buckets[idx].totalPips += qty * 0.5;
 						}
+						cardPipsTotal += qty;
 					}
 				}
 			});
+
+			// If a card has CMC > 0 but has no mana cost string or an override
+			// (e.g. Inevitable Betrayal, suspend cards, custom overrides),
+			// attribute remaining CMC to generic mana so bucket totals always equal card mana values
+			const expectedTotal = stats.cmc * qty;
+			if (expectedTotal > cardPipsTotal) {
+				const diff = expectedTotal - cardPipsTotal;
+				buckets[idx].pips.GEN += diff;
+				buckets[idx].totalPips += diff;
+			}
 		});
 
 		// Sort cards in each bucket alphabetically by name
@@ -314,32 +354,35 @@
 		const maxPips = Math.max(...buckets.map((b) => b.totalPips), 1);
 
 		/** @type {Record<string, number>} */
-		const totalDeckPips = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
+		const totalDeckPips = { GEN: 0, C: 0, W: 0, U: 0, B: 0, R: 0, G: 0 };
 		buckets.forEach((b) => {
+			totalDeckPips.GEN += b.pips.GEN;
+			totalDeckPips.C += b.pips.C;
 			totalDeckPips.W += b.pips.W;
 			totalDeckPips.U += b.pips.U;
 			totalDeckPips.B += b.pips.B;
 			totalDeckPips.R += b.pips.R;
 			totalDeckPips.G += b.pips.G;
-			totalDeckPips.C += b.pips.C;
 		});
 
-		/** @type {Record<string, { name: string, color: string, code: string }>} */
+		/** @type {Record<string, { name: string, color: string, code: string, symbol: string }>} */
 		const pipColorsMap = {
-			W: { name: "White", color: "#D6D3B3", code: "W" },
-			U: { name: "Blue", color: "#538CA7", code: "U" },
-			B: { name: "Black", color: "#5F5457", code: "B" },
-			R: { name: "Red", color: "#B36450", code: "R" },
-			G: { name: "Green", color: "#60906A", code: "G" },
-			C: { name: "Colorless", color: "#9E9792", code: "C" },
+			GEN: { name: "Generic", color: "#8A8480", code: "GEN", symbol: "1" },
+			C: { name: "Colorless", color: "#9E9792", code: "C", symbol: "c" },
+			W: { name: "White", color: "#D6D3B3", code: "W", symbol: "w" },
+			U: { name: "Blue", color: "#538CA7", code: "U", symbol: "u" },
+			B: { name: "Black", color: "#5F5457", code: "B", symbol: "b" },
+			R: { name: "Red", color: "#B36450", code: "R", symbol: "r" },
+			G: { name: "Green", color: "#60906A", code: "G", symbol: "g" },
 		};
 
-		const activePipColors = ["W", "U", "B", "R", "G", "C"]
+		const activePipColors = ["GEN", "C", "W", "U", "B", "R", "G"]
 			.filter((col) => totalDeckPips[col] > 0)
 			.map((col) => ({
 				code: col,
 				name: pipColorsMap[col].name,
 				color: pipColorsMap[col].color,
+				symbol: pipColorsMap[col].symbol,
 				total: Math.round(totalDeckPips[col]),
 			}));
 
@@ -1095,7 +1138,7 @@
 						</div>
 						<div class="stats-column-item">
 							<span class="stats-item-label">
-								{curveGroupingMode === 'pips' ? 'Total Colored Pips' : 'Total Spell Mana Value'}
+								{curveGroupingMode === 'pips' ? 'Total Mana Value' : 'Total Spell Mana Value'}
 							</span>
 							<span class="stats-item-value">
 								{curveGroupingMode === 'pips' ? curveStats.totalPipsSum : curveStats.totalCmcSum}
@@ -1126,7 +1169,7 @@
 						{:else if curveGroupingMode === "pips"}
 							{#each cmcData.activePipColors as col}
 								<div class="legend-item">
-									<ManaSymbol symbol={col.code.toLowerCase()} size="14px" />
+									<ManaSymbol symbol={col.symbol || col.code.toLowerCase()} size="14px" />
 									<span>{col.name} ({col.total})</span>
 								</div>
 							{/each}
@@ -1190,14 +1233,14 @@
 											<div class="bar-segment type-planeswalker" style="height: {(bucket.types.planeswalkers / bucket.total) * 100}%;"></div>
 										{/if}
 									{:else if curveGroupingMode === "pips"}
-										<!-- By Mana Pips (WUBRGC) -->
+										<!-- By Mana Breakdown (Generic, Colorless, WUBRG) -->
 										{#each cmcData.activePipColors as col}
 											{@const count = (/** @type {Record<string, number>} */ (bucket.pips))[col.code] || 0}
 											{#if count > 0}
 												<div
 													class="bar-segment pip-segment-{col.code.toLowerCase()}"
 													style="height: {(count / bucket.totalPips) * 100}%; background-color: {col.color};"
-													title="{count} {col.name} Pips"
+													title="{count} {col.name} Mana"
 												></div>
 											{/if}
 										{/each}
@@ -1216,7 +1259,7 @@
 					<div class="drawer-header">
 						<h4>
 							{#if selectedCmc !== null}
-								Cards with CMC {selectedCmc === 7 ? "7+" : selectedCmc} ({drawerCards.length}{curveGroupingMode === "pips" ? ` · ${Math.round(cmcData.buckets[selectedCmc]?.totalPips || 0)} pips` : ""})
+								Cards with CMC {selectedCmc === 7 ? "7+" : selectedCmc} ({drawerCards.length}{curveGroupingMode === "pips" ? ` · ${Math.round(cmcData.buckets[selectedCmc]?.totalPips || 0)} mana` : ""})
 							{:else}
 								All Non-Land Spells ({drawerCards.length})
 							{/if}
@@ -2008,12 +2051,13 @@
 	.type-artifact { background: #94a3b8 !important; }
 	.type-enchantment { background: #ec4899 !important; }
 	.type-planeswalker { background: #a855f7 !important; }
+	.pip-segment-gen { background: #8A8480 !important; }
+	.pip-segment-c { background: #9E9792 !important; }
 	.pip-segment-w { background: #D6D3B3 !important; }
 	.pip-segment-u { background: #538CA7 !important; }
 	.pip-segment-b { background: #5F5457 !important; }
 	.pip-segment-r { background: #B36450 !important; }
 	.pip-segment-g { background: #60906A !important; }
-	.pip-segment-c { background: #9E9792 !important; }
 
 	.arena-bar-chart-container {
 		display: flex;
