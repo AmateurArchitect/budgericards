@@ -805,158 +805,100 @@
 				</div>
 			</div>
 
-			<!-- Main Mana Curve Chart Area -->
-			<div class="curve-chart-card">
-				<div class="chart-legend-row">
-					{#if curveGroupingMode === "creatures"}
-						<div class="legend-item">
-							<span class="legend-swatch creature-swatch"></span>
-							<span>Creatures</span>
-						</div>
-						<div class="legend-item">
-							<span class="legend-swatch noncreature-swatch"></span>
-							<span>Non-Creature Spells</span>
-						</div>
-					{:else}
-						<div class="legend-item"><span class="legend-swatch type-creature"></span>Creatures</div>
-						<div class="legend-item"><span class="legend-swatch type-instant"></span>Instants</div>
-						<div class="legend-item"><span class="legend-swatch type-sorcery"></span>Sorceries</div>
-						<div class="legend-item"><span class="legend-swatch type-artifact"></span>Artifacts</div>
-						<div class="legend-item"><span class="legend-swatch type-enchantment"></span>Enchantments</div>
-						<div class="legend-item"><span class="legend-swatch type-planeswalker"></span>Planeswalkers</div>
-					{/if}
-				</div>
+			<!-- Main Dual Layout: Mana Curve Chart + Cards Drawer side by side -->
+			<div class="curve-main-layout">
+				<!-- Mana Curve Chart Card -->
+				<div class="curve-chart-card">
+					<div class="chart-legend-row">
+						{#if curveGroupingMode === "creatures"}
+							<div class="legend-item">
+								<span class="legend-swatch creature-swatch"></span>
+								<span>Creatures</span>
+							</div>
+							<div class="legend-item">
+								<span class="legend-swatch noncreature-swatch"></span>
+								<span>Non-Creature Spells</span>
+							</div>
+						{:else}
+							<div class="legend-item"><span class="legend-swatch type-creature"></span>Creatures</div>
+							<div class="legend-item"><span class="legend-swatch type-instant"></span>Instants</div>
+							<div class="legend-item"><span class="legend-swatch type-sorcery"></span>Sorceries</div>
+							<div class="legend-item"><span class="legend-swatch type-artifact"></span>Artifacts</div>
+							<div class="legend-item"><span class="legend-swatch type-enchantment"></span>Enchantments</div>
+							<div class="legend-item"><span class="legend-swatch type-planeswalker"></span>Planeswalkers</div>
+						{/if}
+					</div>
 
-				<div class="arena-bar-chart-container">
-					{#each cmcData.buckets as bucket}
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div
-							class="arena-curve-column"
-							class:selected={selectedCmc === bucket.cmc}
-							onclick={() =>
-								(selectedCmc = selectedCmc === bucket.cmc ? null : bucket.cmc)}
-						>
-							<span class="bar-total-label">{bucket.total}</span>
+					<div class="arena-bar-chart-container">
+						{#each cmcData.buckets as bucket}
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div
-								class="bar-track"
-								style="height: {(bucket.total / cmcData.maxCount) * 240}px;"
+								class="arena-curve-column"
+								class:selected={selectedCmc === bucket.cmc}
+								onclick={() =>
+									(selectedCmc = selectedCmc === bucket.cmc ? null : bucket.cmc)}
 							>
-								{#if curveGroupingMode === "creatures"}
-									<!-- Creature Stacked Segment (Orange) -->
-									{#if bucket.creatures > 0}
-										<div
-											class="bar-segment creature-segment"
-											style="height: {(bucket.creatures / bucket.total) * 100}%;"
-											title="{bucket.creatures} Creatures"
-										></div>
+								<span class="bar-total-label">{bucket.total}</span>
+								<div
+									class="bar-track"
+									style="height: {(bucket.total / cmcData.maxCount) * 170}px;"
+								>
+									{#if curveGroupingMode === "creatures"}
+										<!-- Creature Stacked Segment (Orange) -->
+										{#if bucket.creatures > 0}
+											<div
+												class="bar-segment creature-segment"
+												style="height: {(bucket.creatures / bucket.total) * 100}%;"
+												title="{bucket.creatures} Creatures"
+											></div>
+										{/if}
+										<!-- Non-Creature Stacked Segment (Blue) -->
+										{#if bucket.nonCreatures > 0}
+											<div
+												class="bar-segment noncreature-segment"
+												style="height: {(bucket.nonCreatures / bucket.total) * 100}%;"
+												title="{bucket.nonCreatures} Non-Creatures"
+											></div>
+										{/if}
+									{:else}
+										<!-- By Card Type -->
+										{#if bucket.types.creatures > 0}
+											<div class="bar-segment type-creature" style="height: {(bucket.types.creatures / bucket.total) * 100}%;"></div>
+										{/if}
+										{#if bucket.types.instants > 0}
+											<div class="bar-segment type-instant" style="height: {(bucket.types.instants / bucket.total) * 100}%;"></div>
+										{/if}
+										{#if bucket.types.sorceries > 0}
+											<div class="bar-segment type-sorcery" style="height: {(bucket.types.sorceries / bucket.total) * 100}%;"></div>
+										{/if}
+										{#if bucket.types.artifacts > 0}
+											<div class="bar-segment type-artifact" style="height: {(bucket.types.artifacts / bucket.total) * 100}%;"></div>
+										{/if}
+										{#if bucket.types.enchantments > 0}
+											<div class="bar-segment type-enchantment" style="height: {(bucket.types.enchantments / bucket.total) * 100}%;"></div>
+										{/if}
+										{#if bucket.types.planeswalkers > 0}
+											<div class="bar-segment type-planeswalker" style="height: {(bucket.types.planeswalkers / bucket.total) * 100}%;"></div>
+										{/if}
 									{/if}
-									<!-- Non-Creature Stacked Segment (Blue) -->
-									{#if bucket.nonCreatures > 0}
-										<div
-											class="bar-segment noncreature-segment"
-											style="height: {(bucket.nonCreatures / bucket.total) * 100}%;"
-											title="{bucket.nonCreatures} Non-Creatures"
-										></div>
-									{/if}
-								{:else}
-									<!-- By Card Type -->
-									{#if bucket.types.creatures > 0}
-										<div class="bar-segment type-creature" style="height: {(bucket.types.creatures / bucket.total) * 100}%;"></div>
-									{/if}
-									{#if bucket.types.instants > 0}
-										<div class="bar-segment type-instant" style="height: {(bucket.types.instants / bucket.total) * 100}%;"></div>
-									{/if}
-									{#if bucket.types.sorceries > 0}
-										<div class="bar-segment type-sorcery" style="height: {(bucket.types.sorceries / bucket.total) * 100}%;"></div>
-									{/if}
-									{#if bucket.types.artifacts > 0}
-										<div class="bar-segment type-artifact" style="height: {(bucket.types.artifacts / bucket.total) * 100}%;"></div>
-									{/if}
-									{#if bucket.types.enchantments > 0}
-										<div class="bar-segment type-enchantment" style="height: {(bucket.types.enchantments / bucket.total) * 100}%;"></div>
-									{/if}
-									{#if bucket.types.planeswalkers > 0}
-										<div class="bar-segment type-planeswalker" style="height: {(bucket.types.planeswalkers / bucket.total) * 100}%;"></div>
-									{/if}
-								{/if}
-							</div>
-							<div class="cmc-circle-badge">
-								<span>{bucket.label}</span>
-							</div>
-						</div>
-					{/each}
-				</div>
-			</div>
-
-			<!-- Curve Metrics Ribbon & Interactive Cards Tray -->
-			<div class="curve-stats-and-cards-layout">
-				<!-- Curve Insights Cards -->
-				<div class="curve-metrics-column">
-					<div class="insight-card">
-						<h4>Curve Statistics</h4>
-						<div class="insight-stats-list">
-							<div class="insight-row">
-								<span class="label">Average Non-Land CMC</span>
-								<span class="value">{curveStats.avgNonLand}</span>
-							</div>
-							<div class="insight-row">
-								<span class="label">Median CMC</span>
-								<span class="value">{curveStats.median}</span>
-							</div>
-							<div class="insight-row">
-								<span class="label">Peak Turn / Mode</span>
-								<span class="value">CMC {curveStats.peakCmc} ({curveStats.peakCount} cards)</span>
-							</div>
-							<div class="insight-row">
-								<span class="label">Total Spell Mana Value</span>
-								<span class="value">{curveStats.totalCmcSum}</span>
-							</div>
-						</div>
-					</div>
-
-					<div class="insight-card">
-						<h4>Tempo Breakdown</h4>
-						<div class="tempo-bars-list">
-							<div class="tempo-item">
-								<div class="tempo-info">
-									<span>Early Game (0-2 CMC)</span>
-									<span class="tempo-count">{curveStats.early.count} ({curveStats.early.pct}%)</span>
 								</div>
-								<div class="tempo-bar-track">
-									<div class="tempo-bar early" style="width: {curveStats.early.pct}%;"></div>
+								<div class="cmc-circle-badge">
+									<span>{bucket.label}</span>
 								</div>
 							</div>
-							<div class="tempo-item">
-								<div class="tempo-info">
-									<span>Mid Game (3-4 CMC)</span>
-									<span class="tempo-count">{curveStats.mid.count} ({curveStats.mid.pct}%)</span>
-								</div>
-								<div class="tempo-bar-track">
-									<div class="tempo-bar mid" style="width: {curveStats.mid.pct}%;"></div>
-								</div>
-							</div>
-							<div class="tempo-item">
-								<div class="tempo-info">
-									<span>Late Game (5+ CMC)</span>
-									<span class="tempo-count">{curveStats.late.count} ({curveStats.late.pct}%)</span>
-								</div>
-								<div class="tempo-bar-track">
-									<div class="tempo-bar late" style="width: {curveStats.late.pct}%;"></div>
-								</div>
-							</div>
-						</div>
+						{/each}
 					</div>
 				</div>
 
-				<!-- Interactive CMC Inspector Drawer -->
+				<!-- Interactive CMC Inspector Drawer / Preview Stack -->
 				<div class="curve-cards-drawer">
 					<div class="drawer-header">
 						<h4>
 							{#if selectedCmc !== null}
 								Cards with CMC {selectedCmc === 7 ? "7+" : selectedCmc} ({cmcData.buckets[selectedCmc].total})
 							{:else}
-								Click any CMC bar above to inspect cards
+								Click any CMC bar to inspect cards
 							{/if}
 						</h4>
 						{#if selectedCmc !== null}
@@ -977,6 +919,60 @@
 								</div>
 							</div>
 						{/each}
+					</div>
+				</div>
+			</div>
+
+			<!-- Curve Stats Bar (Below Both) -->
+			<div class="curve-stats-bar">
+				<div class="stats-bar-group metrics-group">
+					<div class="stats-bar-item">
+						<span class="stats-bar-label">Average Non-Land CMC</span>
+						<span class="stats-bar-value">{curveStats.avgNonLand}</span>
+					</div>
+					<div class="stats-bar-item">
+						<span class="stats-bar-label">Median CMC</span>
+						<span class="stats-bar-value">{curveStats.median}</span>
+					</div>
+					<div class="stats-bar-item">
+						<span class="stats-bar-label">Peak Turn / Mode</span>
+						<span class="stats-bar-value">CMC {curveStats.peakCmc} ({curveStats.peakCount} cards)</span>
+					</div>
+					<div class="stats-bar-item">
+						<span class="stats-bar-label">Total Spell Mana Value</span>
+						<span class="stats-bar-value">{curveStats.totalCmcSum}</span>
+					</div>
+				</div>
+
+				<div class="stats-bar-divider"></div>
+
+				<div class="stats-bar-group tempo-group">
+					<div class="stats-bar-tempo-item">
+						<div class="tempo-header-row">
+							<span class="stats-bar-label">Early (0-2 CMC)</span>
+							<span class="tempo-val">{curveStats.early.count} ({curveStats.early.pct}%)</span>
+						</div>
+						<div class="tempo-mini-track">
+							<div class="tempo-bar early" style="width: {curveStats.early.pct}%;"></div>
+						</div>
+					</div>
+					<div class="stats-bar-tempo-item">
+						<div class="tempo-header-row">
+							<span class="stats-bar-label">Mid (3-4 CMC)</span>
+							<span class="tempo-val">{curveStats.mid.count} ({curveStats.mid.pct}%)</span>
+						</div>
+						<div class="tempo-mini-track">
+							<div class="tempo-bar mid" style="width: {curveStats.mid.pct}%;"></div>
+						</div>
+					</div>
+					<div class="stats-bar-tempo-item">
+						<div class="tempo-header-row">
+							<span class="stats-bar-label">Late (5+ CMC)</span>
+							<span class="tempo-val">{curveStats.late.count} ({curveStats.late.pct}%)</span>
+						</div>
+						<div class="tempo-mini-track">
+							<div class="tempo-bar late" style="width: {curveStats.late.pct}%;"></div>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -1628,15 +1624,43 @@
 		font-weight: 600;
 	}
 
+	/* 2. MANA CURVE SECTION STYLES */
+	#stats-mana-curve {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		padding: 2.25rem 2rem;
+	}
+
+	#stats-mana-curve .section-content-wrapper {
+		gap: 1.25rem;
+	}
+
+	.curve-main-layout {
+		display: grid;
+		grid-template-columns: 1fr 380px;
+		gap: 1.25rem;
+		align-items: stretch;
+	}
+
+	@media (max-width: 950px) {
+		.curve-main-layout {
+			grid-template-columns: 1fr;
+		}
+	}
+
 	.curve-chart-card {
 		background: hsl(var(--card) / 0.45);
 		backdrop-filter: blur(12px);
 		border: 1px solid hsl(var(--border) / 0.5);
 		border-radius: var(--radius-xl, 16px);
-		padding: 2rem;
+		padding: 1.25rem 1.5rem 1rem;
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		justify-content: space-between;
+		gap: 0.75rem;
+		box-sizing: border-box;
+		min-height: 320px;
 	}
 
 	.chart-legend-row {
@@ -1644,8 +1668,8 @@
 		align-items: center;
 		justify-content: center;
 		flex-wrap: wrap;
-		gap: 1.5rem;
-		font-size: 0.8rem;
+		gap: 1.25rem;
+		font-size: 0.78rem;
 		color: hsl(var(--muted-foreground));
 	}
 
@@ -1656,8 +1680,8 @@
 	}
 
 	.legend-swatch {
-		width: 12px;
-		height: 12px;
+		width: 11px;
+		height: 11px;
 		border-radius: 2px;
 	}
 
@@ -1673,9 +1697,9 @@
 		display: flex;
 		align-items: flex-end;
 		justify-content: space-between;
-		height: 290px;
-		padding: 0 1rem;
-		gap: 1.25rem;
+		height: 220px;
+		padding: 0 0.5rem;
+		gap: 0.75rem;
 		border-bottom: 2px solid hsl(var(--border) / 0.4);
 	}
 
@@ -1685,7 +1709,7 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: flex-end;
-		gap: 0.6rem;
+		gap: 0.5rem;
 		height: 100%;
 		cursor: pointer;
 		position: relative;
@@ -1698,14 +1722,14 @@
 	}
 
 	.bar-total-label {
-		font-size: 0.95rem;
+		font-size: 0.9rem;
 		font-weight: 700;
 		color: hsl(var(--foreground));
 		font-variant-numeric: tabular-nums;
 	}
 
 	.bar-track {
-		width: 44px;
+		width: 42px;
 		max-width: 100%;
 		border-radius: 6px 6px 0 0;
 		overflow: hidden;
@@ -1728,124 +1752,33 @@
 	}
 
 	.cmc-circle-badge {
-		width: 32px;
-		height: 32px;
+		width: 30px;
+		height: 30px;
 		border-radius: 50%;
 		background: hsl(var(--secondary));
 		border: 1px solid hsl(var(--border));
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 0.85rem;
+		font-size: 0.82rem;
 		font-weight: 700;
 		color: hsl(var(--foreground));
 		transition: all 0.2s ease;
 	}
 
-	/* Curve Stats and Cards Drawer Layout */
-	.curve-stats-and-cards-layout {
-		display: grid;
-		grid-template-columns: 340px 1fr;
-		gap: 2rem;
-	}
-
-	@media (max-width: 850px) {
-		.curve-stats-and-cards-layout {
-			grid-template-columns: 1fr;
-		}
-	}
-
-	.curve-metrics-column {
-		display: flex;
-		flex-direction: column;
-		gap: 1.5rem;
-	}
-
-	.insight-card {
-		background: hsl(var(--card) / 0.4);
-		border: 1px solid hsl(var(--border) / 0.4);
-		border-radius: var(--radius-lg);
-		padding: 1.25rem;
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.insight-card h4 {
-		margin: 0;
-		font-size: 0.9rem;
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		color: hsl(var(--foreground));
-	}
-
-	.insight-stats-list {
+	/* Card Preview Stack Drawer */
+	.curve-cards-drawer {
+		background: hsl(var(--card) / 0.45);
+		backdrop-filter: blur(12px);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: var(--radius-xl, 16px);
+		padding: 1.25rem 1.5rem;
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
-	}
-
-	.insight-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		font-size: 0.85rem;
-	}
-
-	.insight-row .label {
-		color: hsl(var(--muted-foreground));
-	}
-
-	.insight-row .value {
-		font-weight: 700;
-		color: hsl(var(--foreground));
-		font-variant-numeric: tabular-nums;
-	}
-
-	.tempo-bars-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.85rem;
-	}
-
-	.tempo-info {
-		display: flex;
-		justify-content: space-between;
-		font-size: 0.8rem;
-		margin-bottom: 0.25rem;
-	}
-
-	.tempo-count {
-		font-weight: 600;
-		color: hsl(var(--foreground));
-	}
-
-	.tempo-bar-track {
-		height: 6px;
-		background: hsl(var(--secondary) / 0.6);
-		border-radius: 3px;
-		overflow: hidden;
-	}
-
-	.tempo-bar {
 		height: 100%;
-		border-radius: 3px;
-	}
-
-	.tempo-bar.early { background: #22c55e; }
-	.tempo-bar.mid { background: #38bdf8; }
-	.tempo-bar.late { background: #a855f7; }
-
-	.curve-cards-drawer {
-		background: hsl(var(--card) / 0.4);
-		border: 1px solid hsl(var(--border) / 0.4);
-		border-radius: var(--radius-lg);
-		padding: 1.25rem;
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-		max-height: 400px;
+		max-height: 330px;
+		box-sizing: border-box;
 	}
 
 	.drawer-header {
@@ -1858,7 +1791,7 @@
 
 	.drawer-header h4 {
 		margin: 0;
-		font-size: 0.9rem;
+		font-size: 0.85rem;
 		font-weight: 700;
 		color: hsl(var(--foreground));
 	}
@@ -1867,7 +1800,7 @@
 		background: transparent;
 		border: 1px solid hsl(var(--border));
 		color: hsl(var(--muted-foreground));
-		font-size: 0.75rem;
+		font-size: 0.72rem;
 		padding: 0.2rem 0.5rem;
 		border-radius: var(--radius-sm);
 		cursor: pointer;
@@ -1877,25 +1810,26 @@
 		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: 0.4rem;
 		padding-right: 0.25rem;
+		flex: 1;
 	}
 
 	.drawer-card-item {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0.5rem 0.75rem;
+		padding: 0.45rem 0.75rem;
 		background: hsl(var(--secondary) / 0.35);
 		border-radius: var(--radius-md);
-		font-size: 0.82rem;
-		gap: 1rem;
+		font-size: 0.8rem;
+		gap: 0.75rem;
 	}
 
 	.card-name-qty {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.45rem;
 		font-weight: 600;
 		color: hsl(var(--foreground));
 	}
@@ -1906,7 +1840,7 @@
 
 	.card-type-subtext {
 		color: hsl(var(--muted-foreground));
-		font-size: 0.75rem;
+		font-size: 0.72rem;
 		flex: 1;
 		white-space: nowrap;
 		overflow: hidden;
@@ -1917,7 +1851,121 @@
 		font-weight: 600;
 		color: #38bdf8;
 		font-variant-numeric: tabular-nums;
+		font-size: 0.78rem;
 	}
+
+	/* Stats Bar Below Both */
+	.curve-stats-bar {
+		background: hsl(var(--card) / 0.45);
+		backdrop-filter: blur(12px);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: var(--radius-xl, 16px);
+		padding: 0.85rem 1.5rem;
+		display: grid;
+		grid-template-columns: 1.15fr auto 1fr;
+		align-items: center;
+		gap: 1.5rem;
+		box-sizing: border-box;
+	}
+
+	@media (max-width: 950px) {
+		.curve-stats-bar {
+			grid-template-columns: 1fr;
+			gap: 1rem;
+		}
+		.stats-bar-divider {
+			display: none;
+		}
+	}
+
+	.stats-bar-group.metrics-group {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 1rem;
+	}
+
+	@media (max-width: 700px) {
+		.stats-bar-group.metrics-group {
+			grid-template-columns: repeat(2, 1fr);
+		}
+	}
+
+	.stats-bar-item {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+
+	.stats-bar-label {
+		font-size: 0.7rem;
+		font-weight: 600;
+		color: hsl(var(--muted-foreground));
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		white-space: nowrap;
+	}
+
+	.stats-bar-value {
+		font-size: 0.95rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+
+	.stats-bar-divider {
+		width: 1px;
+		height: 38px;
+		background: hsl(var(--border) / 0.6);
+	}
+
+	.stats-bar-group.tempo-group {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 1.25rem;
+	}
+
+	@media (max-width: 700px) {
+		.stats-bar-group.tempo-group {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.stats-bar-tempo-item {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.tempo-header-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.tempo-val {
+		font-size: 0.78rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+		font-variant-numeric: tabular-nums;
+	}
+
+	.tempo-mini-track {
+		height: 5px;
+		background: hsl(var(--secondary) / 0.7);
+		border-radius: 9999px;
+		overflow: hidden;
+	}
+
+	.tempo-bar {
+		height: 100%;
+		border-radius: 9999px;
+	}
+
+	.tempo-bar.early { background: #22c55e; }
+	.tempo-bar.mid { background: #38bdf8; }
+	.tempo-bar.late { background: #a855f7; }
 
 	/* 3. CARD TYPES SECTION STYLES */
 	.types-dual-layout {
