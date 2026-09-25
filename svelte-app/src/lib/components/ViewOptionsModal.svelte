@@ -185,8 +185,8 @@
 					<div class="divider"></div>
 				{/if}
 
-				<!-- SECTION 2: CMC GROUPING OPTIONS (common to all views except list when grouping is CMC) -->
-				{#if deckStore.grouping === "cmc" && settingsStore.deckViewMode !== "list"}
+				<!-- SECTION 2: CMC GROUPING OPTIONS (common to all views except list when grouping is CMC, or in Stats view) -->
+				{#if (deckStore.grouping === "cmc" || settingsStore.deckViewMode === "stats") && settingsStore.deckViewMode !== "list"}
 					<div class="form-group toggle-group">
 						<label for="combine-01-view" class="toggle-label"
 							>Combine 0 & 1-Drops</label

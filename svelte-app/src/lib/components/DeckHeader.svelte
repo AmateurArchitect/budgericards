@@ -1033,29 +1033,6 @@
 				</div>
 
 				<MultiSortModal bind:isOpen={showDisplaySort} target="deck" />
-
-				<!-- View Options Modal Trigger -->
-				<div class="view-options-container">
-					<Button
-						variant={showViewOptionsModal
-							? "toggle-active"
-							: "ghost"}
-						size="icon"
-						class="modifier-btn"
-						bind:el={viewOptionsBtn}
-						onclick={(/** @type {MouseEvent} */ e) => {
-							e.stopPropagation();
-							showViewOptionsModal = true;
-						}}
-						title="View Options"
-					>
-						<MoreVertical size={15} />
-					</Button>
-					<ViewOptionsModal
-						bind:isOpen={showViewOptionsModal}
-						triggerElement={viewOptionsBtn}
-					/>
-				</div>
 			{/if}
 
 			{#if settingsStore.deckViewMode === "stats"}
@@ -1091,6 +1068,31 @@
 							</button>
 						{/each}
 					</div>
+				</div>
+			{/if}
+
+			{#if ["stacks", "spoiler", "table", "stats"].includes(settingsStore.deckViewMode)}
+				<!-- View Options Modal Trigger -->
+				<div class="view-options-container">
+					<Button
+						variant={showViewOptionsModal
+							? "toggle-active"
+							: "ghost"}
+						size="icon"
+						class="modifier-btn"
+						bind:el={viewOptionsBtn}
+						onclick={(/** @type {MouseEvent} */ e) => {
+							e.stopPropagation();
+							showViewOptionsModal = true;
+						}}
+						title="View Options"
+					>
+						<MoreVertical size={15} />
+					</Button>
+					<ViewOptionsModal
+						bind:isOpen={showViewOptionsModal}
+						triggerElement={viewOptionsBtn}
+					/>
 				</div>
 			{/if}
 

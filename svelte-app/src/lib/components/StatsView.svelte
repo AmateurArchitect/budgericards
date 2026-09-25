@@ -202,59 +202,158 @@
 
 	// 1. MANA CURVE CALCULATIONS
 	let curveGroupingMode = $state("creatures"); // 'creatures' | 'types' | 'pips'
-	let selectedCmc = $state(/** @type {number | null} */ (null));
+	let selectedCmc = $state(/** @type {string | null} */ (null));
 
 	const cmcData = $derived.by(() => {
-		// Buckets: 0, 1, 2, 3, 4, 5, 6, 7+
-		const buckets = Array.from({ length: 8 }, (_, i) => ({
-			cmc: i,
-			label: i === 7 ? "7+" : String(i),
-			creatures: 0,
-			nonCreatures: 0,
-			types: {
-				creatures: 0,
-				instants: 0,
-				sorceries: 0,
-				artifacts: 0,
-				enchantments: 0,
-				planeswalkers: 0,
-				other: 0,
-			},
-			pips: /** @type {Record<string, number>} */ ({
-				GEN: 0,
-				C: 0,
-				W: 0,
-				U: 0,
-				B: 0,
-				R: 0,
-				G: 0,
-			}),
-			pipsShare: /** @type {Record<string, number>} */ ({
-				GEN: 0,
-				C: 0,
-				W: 0,
-				U: 0,
-				B: 0,
-				R: 0,
-				G: 0,
-			}),
-			totalPips: 0,
-			total: 0,
-			cards: /** @type {{ name: string, qty: number, mana_cost: string, type_line: string, price: number, cmc: number, overrides?: any }[]} */ ([]),
-		}));
+		// 1. Helper functions matching stacks.svelte.js rules
+		function getCmcValue(key) {
+			if (key === "0-1") {
+				return settingsStore.combine01Drops ? 1 : null;
+			}
+			if (key === "6+") {
+				return settingsStore.combine6PlusDrops ? 6 : null;
+			}
+			if (typeof key === "string" && key.match(/^\d+$/)) {
+				const num = parseInt(key, 10);
+				if (settingsStore.combine01Drops && (num === 0 || num === 1)) return null;
+				if (settingsStore.combine6PlusDrops && num >= 6) return null;
+				return num;
+			}
+			return null;
+		}
+
+		function getCmcKeyForValue(val) {
+			if (settingsStore.combine01Drops && (val === 0 || val === 1)) {
+				return "0-1";
+			}
+			if (settingsStore.combine6PlusDrops && val >= 6) {
+				return "6+";
+			}
+			return val.toString();
+		}
+
+		// 2. Collect all non-land cards and map them to CMC keys
+		/** @type {{ card: any, stats: any, cmc: number, qty: number, typeLine: string }[]} */
+		const nonLandItems = [];
+		/** @type {Record<string, typeof nonLandItems>} */
+		const cardBucketsMap = {};
 
 		activeCards.forEach((/** @type {any} */ c) => {
 			const stats = getCardStats(c);
 			const typeLine = stats.typeLine.toLowerCase();
 			if (typeLine.includes("land")) return; // exclude lands from curve
 
-			const cmc = Math.floor(stats.cmc);
-			if (cmc < 0) return;
-			const idx = Math.min(cmc, 7);
+			const cmc = Math.max(0, Math.floor(stats.cmc));
 			const qty = c.quantity || 1;
+			const item = { card: c, stats, cmc, qty, typeLine };
+			nonLandItems.push(item);
 
-			buckets[idx].total += qty;
-			buckets[idx].cards.push({
+			const key = getCmcKeyForValue(cmc);
+			if (!cardBucketsMap[key]) {
+				cardBucketsMap[key] = [];
+			}
+			cardBucketsMap[key].push(item);
+		});
+
+		// 3. Determine visible bucket keys following stacks.svelte.js gap-filling rules
+		const cmcKeysWithCards = Object.keys(cardBucketsMap).filter((key) => {
+			const val = getCmcValue(key);
+			return val !== null && cardBucketsMap[key].length > 0;
+		});
+
+		/** @type {string[]} */
+		const orderedKeys = [];
+
+		if (cmcKeysWithCards.length === 0) {
+			// Fallback placeholder when no spells exist
+			const defaultUpper = settingsStore.combine6PlusDrops ? 6 : 6;
+			for (let i = 1; i <= defaultUpper; i++) {
+				const k = getCmcKeyForValue(i);
+				if (!orderedKeys.includes(k)) orderedKeys.push(k);
+			}
+		} else {
+			const values = cmcKeysWithCards.map((k) => /** @type {number} */ (getCmcValue(k)));
+			const min = Math.min(...values);
+			const max = Math.max(...values);
+
+			for (let i = min; i <= max; i++) {
+				const key = getCmcKeyForValue(i);
+				if (!orderedKeys.includes(key)) {
+					orderedKeys.push(key);
+				}
+			}
+		}
+
+		function getBucketLabels(key, bItems) {
+			if (key === "0-1") {
+				let bHas0 = false;
+				let bHas1 = false;
+				for (const item of bItems) {
+					if (item.cmc === 0) bHas0 = true;
+					if (item.cmc === 1) bHas1 = true;
+					if (bHas0 && bHas1) break;
+				}
+				if (bHas0 && bHas1) return { label: "0 & 1-drop", shortLabel: "0 & 1" };
+				if (bHas0) return { label: "0-drop", shortLabel: "0" };
+				if (bHas1) return { label: "1-drop", shortLabel: "1" };
+				return { label: "0 & 1-drop", shortLabel: "0 & 1" };
+			}
+			if (key === "6+") {
+				return { label: "6+-drop", shortLabel: "6+" };
+			}
+			return { label: `${key}-drop`, shortLabel: key };
+		}
+
+		const buckets = orderedKeys.map((key) => {
+			const bItems = cardBucketsMap[key] || [];
+			const { label, shortLabel } = getBucketLabels(key, bItems);
+			return {
+				key,
+				label,
+				shortLabel,
+				creatures: 0,
+				nonCreatures: 0,
+				types: {
+					creatures: 0,
+					instants: 0,
+					sorceries: 0,
+					artifacts: 0,
+					enchantments: 0,
+					planeswalkers: 0,
+					other: 0,
+				},
+				pips: /** @type {Record<string, number>} */ ({
+					GEN: 0,
+					C: 0,
+					W: 0,
+					U: 0,
+					B: 0,
+					R: 0,
+					G: 0,
+				}),
+				pipsShare: /** @type {Record<string, number>} */ ({
+					GEN: 0,
+					C: 0,
+					W: 0,
+					U: 0,
+					B: 0,
+					R: 0,
+					G: 0,
+				}),
+				totalPips: 0,
+				total: 0,
+				cards: /** @type {{ name: string, qty: number, mana_cost: string, type_line: string, price: number, cmc: number, overrides?: any }[]} */ ([]),
+			};
+		});
+
+		// 4. Populate each bucket from nonLandItems
+		nonLandItems.forEach(({ card: c, stats, cmc, qty, typeLine }) => {
+			const key = getCmcKeyForValue(cmc);
+			const bucket = buckets.find((b) => b.key === key);
+			if (!bucket) return;
+
+			bucket.total += qty;
+			bucket.cards.push({
 				name: c.name,
 				qty,
 				mana_cost: stats.manaCost,
@@ -270,16 +369,16 @@
 					: typeLine.includes("creature");
 
 			if (isCreature) {
-				buckets[idx].creatures += qty;
-				buckets[idx].types.creatures += qty;
+				bucket.creatures += qty;
+				bucket.types.creatures += qty;
 			} else {
-				buckets[idx].nonCreatures += qty;
-				if (typeLine.includes("instant")) buckets[idx].types.instants += qty;
-				else if (typeLine.includes("sorcery")) buckets[idx].types.sorceries += qty;
-				else if (typeLine.includes("planeswalker")) buckets[idx].types.planeswalkers += qty;
-				else if (typeLine.includes("artifact")) buckets[idx].types.artifacts += qty;
-				else if (typeLine.includes("enchantment")) buckets[idx].types.enchantments += qty;
-				else buckets[idx].types.other += qty;
+				bucket.nonCreatures += qty;
+				if (typeLine.includes("instant")) bucket.types.instants += qty;
+				else if (typeLine.includes("sorcery")) bucket.types.sorceries += qty;
+				else if (typeLine.includes("planeswalker")) bucket.types.planeswalkers += qty;
+				else if (typeLine.includes("artifact")) bucket.types.artifacts += qty;
+				else if (typeLine.includes("enchantment")) bucket.types.enchantments += qty;
+				else bucket.types.other += qty;
 			}
 
 			// Parse mana symbols for this card (Generic numbers, Colorless C, and Colored WUBRG)
@@ -333,8 +432,6 @@
 				}
 			});
 
-			// If a card has CMC > 0 and remaining mana (e.g. no mana cost string or overrides),
-			// attribute remaining CMC to generic mana
 			const expectedCardCost = stats.cmc > 0 ? stats.cmc : cardPipsTotal;
 			if (expectedCardCost > cardPipsTotal) {
 				const diff = expectedCardCost - cardPipsTotal;
@@ -344,19 +441,18 @@
 
 			// Add raw pips to bucket (multiplied by qty)
 			for (const [col, val] of Object.entries(cardPips)) {
-				buckets[idx].pips[col] += val * qty;
-				buckets[idx].totalPips += val * qty;
+				bucket.pips[col] += val * qty;
+				bucket.totalPips += val * qty;
 			}
 
-			// Proportional mana share: space awarded to each mana pip is proportional to the card's cost
-			// (e.g. a card costing 5WW has 2/7 white and 5/7 generic)
+			// Proportional mana share
 			if (cardPipsTotal > 0) {
 				for (const [col, val] of Object.entries(cardPips)) {
 					const share = (val / cardPipsTotal) * qty;
-					buckets[idx].pipsShare[col] += share;
+					bucket.pipsShare[col] += share;
 				}
 			} else {
-				buckets[idx].pipsShare.GEN += qty;
+				bucket.pipsShare.GEN += qty;
 			}
 		});
 
@@ -407,7 +503,8 @@
 	// Cards displayed in the Mana Curve inspector drawer
 	const drawerCards = $derived.by(() => {
 		if (selectedCmc !== null) {
-			return cmcData.buckets[selectedCmc]?.cards || [];
+			const selectedBucket = cmcData.buckets.find((b) => b.key === selectedCmc);
+			return selectedBucket?.cards || [];
 		}
 		// When no CMC bar is selected, show all active non-land spells sorted by CMC then name
 		return activeCards
@@ -466,25 +563,24 @@
 				: 0;
 
 		// Find peak / mode
-		let peakCmc = 0;
+		let peakLabel = "";
 		let peakCount = 0;
 		cmcData.buckets.forEach((b) => {
 			if (b.total > peakCount) {
 				peakCount = b.total;
-				peakCmc = b.cmc;
+				peakLabel = b.shortLabel;
 			}
 		});
 
 		// Early (0-2), Mid (3-4), Late (5+)
-		const earlyCount = cmcData.buckets
-			.slice(0, 3)
-			.reduce((acc, b) => acc + b.total, 0);
-		const midCount = cmcData.buckets
-			.slice(3, 5)
-			.reduce((acc, b) => acc + b.total, 0);
-		const lateCount = cmcData.buckets
-			.slice(5)
-			.reduce((acc, b) => acc + b.total, 0);
+		let earlyCount = 0;
+		let midCount = 0;
+		let lateCount = 0;
+		cmcValues.forEach((val) => {
+			if (val <= 2) earlyCount += 1;
+			else if (val <= 4) midCount += 1;
+			else lateCount += 1;
+		});
 
 		const totalPipsSum = Math.round(
 			cmcData.buckets.reduce((acc, b) => acc + b.totalPips, 0),
@@ -494,7 +590,7 @@
 			avgNonLand: avgNonLand.toFixed(2),
 			avgDeck: avgDeck.toFixed(2),
 			median: median.toFixed(1),
-			peakCmc: peakCmc === 7 ? "7+" : peakCmc,
+			peakCmc: peakLabel || "—",
 			peakCount,
 			totalCmcSum,
 			totalPipsSum,
@@ -1192,14 +1288,14 @@
 					</div>
 
 					<div class="arena-bar-chart-container">
-						{#each cmcData.buckets as bucket}
+						{#each cmcData.buckets as bucket (bucket.key)}
 							<!-- svelte-ignore a11y_click_events_have_key_events -->
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div
 								class="arena-curve-column"
-								class:selected={selectedCmc === bucket.cmc}
+								class:selected={selectedCmc === bucket.key}
 								onclick={() =>
-									(selectedCmc = selectedCmc === bucket.cmc ? null : bucket.cmc)}
+									(selectedCmc = selectedCmc === bucket.key ? null : bucket.key)}
 							>
 								<span class="bar-total-label">
 									{bucket.total}
@@ -1254,14 +1350,14 @@
 												<div
 													class="bar-segment pip-segment-{col.code.toLowerCase()}"
 													style="height: {(share / bucket.total) * 100}%; background-color: {col.color};"
-													title="{count} {col.name} Mana ({bucket.total > 0 ? Math.round((share / bucket.total) * 100) : 0}% of {bucket.cmc === 7 ? '7+' : bucket.cmc}-drops)"
+													title="{count} {col.name} Mana ({bucket.total > 0 ? Math.round((share / bucket.total) * 100) : 0}% of {bucket.label}s)"
 												></div>
 											{/if}
 										{/each}
 									{/if}
 								</div>
 								<span class="cmc-drop-label">
-									{bucket.cmc === 7 ? "7+-drop" : `${bucket.cmc}-drop`}
+									{bucket.label}
 								</span>
 							</div>
 						{/each}
@@ -1273,7 +1369,8 @@
 					<div class="drawer-header">
 						<h4>
 							{#if selectedCmc !== null}
-								Cards with CMC {selectedCmc === 7 ? "7+" : selectedCmc} ({drawerCards.length})
+								{@const selectedBucket = cmcData.buckets.find((b) => b.key === selectedCmc)}
+								Cards with CMC {selectedBucket?.shortLabel || selectedCmc} ({drawerCards.length})
 							{:else}
 								All Non-Land Spells ({drawerCards.length})
 							{/if}
