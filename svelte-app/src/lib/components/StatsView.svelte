@@ -106,6 +106,30 @@
 	}
 
 	/**
+	 * Returns the color for a card type matching the mana curve palette
+	 * @param {string} [typeLine]
+	 * @param {any} [card]
+	 */
+	function getCardTypeColor(typeLine = "", card = null) {
+		const isCreature =
+			card?.overrides?.creature !== undefined
+				? card.overrides.creature
+				: (typeLine || "").toLowerCase().includes("creature");
+
+		if (isCreature) return "#f97316";
+
+		const lower = (typeLine || "").toLowerCase();
+		if (lower.includes("instant")) return "#38bdf8";
+		if (lower.includes("sorcery")) return "#818cf8";
+		if (lower.includes("planeswalker")) return "#a855f7";
+		if (lower.includes("artifact")) return "#94a3b8";
+		if (lower.includes("enchantment")) return "#ec4899";
+		if (lower.includes("battle")) return "#f59e0b";
+		if (lower.includes("land")) return "#84cc16";
+		return "#94a3b8";
+	}
+
+	/**
 	 * Retrieves normal card image URL for popover tooltips
 	 * @param {string} name
 	 */
@@ -169,7 +193,7 @@
 	});
 
 	// 1. MANA CURVE CALCULATIONS
-	let curveGroupingMode = $state("types"); // 'creatures' | 'types'
+	let curveGroupingMode = $state("creatures"); // 'creatures' | 'types' | 'pips'
 	let selectedCmc = $state(/** @type {number | null} */ (null));
 
 	const cmcData = $derived.by(() => {
@@ -188,6 +212,15 @@
 				planeswalkers: 0,
 				other: 0,
 			},
+			pips: {
+				W: 0,
+				U: 0,
+				B: 0,
+				R: 0,
+				G: 0,
+				C: 0,
+			},
+			totalPips: 0,
 			total: 0,
 			cards: /** @type {{ name: string, qty: number, mana_cost: string, type_line: string, price: number, cmc: number, overrides?: any }[]} */ ([]),
 		}));
@@ -230,6 +263,42 @@
 				else if (typeLine.includes("enchantment")) buckets[idx].types.enchantments += qty;
 				else buckets[idx].types.other += qty;
 			}
+
+			// Parse mana pips for this card at this CMC
+			const cost = stats.manaCost;
+			const matches = cost.match(/\{([^}]+)\}/g) || [];
+			matches.forEach((sym) => {
+				const clean = sym.replace(/[{}]/g, "").toUpperCase();
+				if (clean === "W") { buckets[idx].pips.W += qty; buckets[idx].totalPips += qty; }
+				else if (clean === "U") { buckets[idx].pips.U += qty; buckets[idx].totalPips += qty; }
+				else if (clean === "B") { buckets[idx].pips.B += qty; buckets[idx].totalPips += qty; }
+				else if (clean === "R") { buckets[idx].pips.R += qty; buckets[idx].totalPips += qty; }
+				else if (clean === "G") { buckets[idx].pips.G += qty; buckets[idx].totalPips += qty; }
+				else if (clean === "C") { buckets[idx].pips.C += qty; buckets[idx].totalPips += qty; }
+				else if (clean.includes("/")) {
+					const [a, b] = clean.split("/");
+					if (b === "P") {
+						if (buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (a)] !== undefined) {
+							buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (a)] += qty;
+							buckets[idx].totalPips += qty;
+						}
+					} else if (a === "2") {
+						if (buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (b)] !== undefined) {
+							buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (b)] += qty;
+							buckets[idx].totalPips += qty;
+						}
+					} else {
+						if (buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (a)] !== undefined) {
+							buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (a)] += qty * 0.5;
+							buckets[idx].totalPips += qty * 0.5;
+						}
+						if (buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (b)] !== undefined) {
+							buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (b)] += qty * 0.5;
+							buckets[idx].totalPips += qty * 0.5;
+						}
+					}
+				}
+			});
 		});
 
 		// Sort cards in each bucket alphabetically by name
@@ -238,7 +307,39 @@
 		});
 
 		const maxCount = Math.max(...buckets.map((b) => b.total), 1);
-		return { buckets, maxCount };
+		const maxPips = Math.max(...buckets.map((b) => b.totalPips), 1);
+
+		/** @type {Record<string, number>} */
+		const totalDeckPips = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
+		buckets.forEach((b) => {
+			totalDeckPips.W += b.pips.W;
+			totalDeckPips.U += b.pips.U;
+			totalDeckPips.B += b.pips.B;
+			totalDeckPips.R += b.pips.R;
+			totalDeckPips.G += b.pips.G;
+			totalDeckPips.C += b.pips.C;
+		});
+
+		/** @type {Record<string, { name: string, color: string, code: string }>} */
+		const pipColorsMap = {
+			W: { name: "White", color: "#f8fafc", code: "W" },
+			U: { name: "Blue", color: "#38bdf8", code: "U" },
+			B: { name: "Black", color: "#475569", code: "B" },
+			R: { name: "Red", color: "#ef4444", code: "R" },
+			G: { name: "Green", color: "#22c55e", code: "G" },
+			C: { name: "Colorless", color: "#94a3b8", code: "C" },
+		};
+
+		const activePipColors = ["W", "U", "B", "R", "G", "C"]
+			.filter((col) => totalDeckPips[col] > 0)
+			.map((col) => ({
+				code: col,
+				name: pipColorsMap[col].name,
+				color: pipColorsMap[col].color,
+				total: Math.round(totalDeckPips[col]),
+			}));
+
+		return { buckets, maxCount, maxPips, activePipColors };
 	});
 
 	// Cards displayed in the Mana Curve inspector drawer
@@ -323,6 +424,10 @@
 			.slice(5)
 			.reduce((acc, b) => acc + b.total, 0);
 
+		const totalPipsSum = Math.round(
+			cmcData.buckets.reduce((acc, b) => acc + b.totalPips, 0),
+		);
+
 		return {
 			avgNonLand: avgNonLand.toFixed(2),
 			avgDeck: avgDeck.toFixed(2),
@@ -330,6 +435,7 @@
 			peakCmc: peakCmc === 7 ? "7+" : peakCmc,
 			peakCount,
 			totalCmcSum,
+			totalPipsSum,
 			totalNonLandCount,
 			early: {
 				count: earlyCount,
@@ -941,14 +1047,21 @@
 						class:active={curveGroupingMode === "creatures"}
 						onclick={() => (curveGroupingMode = "creatures")}
 					>
-						Arena (Creatures / Spells)
+						Creature/Noncreature
 					</button>
 					<button
 						class="toggle-btn"
 						class:active={curveGroupingMode === "types"}
 						onclick={() => (curveGroupingMode = "types")}
 					>
-						By Card Type
+						Card Type
+					</button>
+					<button
+						class="toggle-btn"
+						class:active={curveGroupingMode === "pips"}
+						onclick={() => (curveGroupingMode = "pips")}
+					>
+						Mana Pips
 					</button>
 				</div>
 			</div>
@@ -967,18 +1080,27 @@
 								<span class="legend-swatch noncreature-swatch"></span>
 								<span>Non-Creature Spells</span>
 							</div>
-						{:else}
+						{:else if curveGroupingMode === "types"}
 							<div class="legend-item"><span class="legend-swatch type-creature"></span>Creatures</div>
 							<div class="legend-item"><span class="legend-swatch type-instant"></span>Instants</div>
 							<div class="legend-item"><span class="legend-swatch type-sorcery"></span>Sorceries</div>
 							<div class="legend-item"><span class="legend-swatch type-artifact"></span>Artifacts</div>
 							<div class="legend-item"><span class="legend-swatch type-enchantment"></span>Enchantments</div>
 							<div class="legend-item"><span class="legend-swatch type-planeswalker"></span>Planeswalkers</div>
+						{:else if curveGroupingMode === "pips"}
+							{#each cmcData.activePipColors as col}
+								<div class="legend-item">
+									<ManaSymbol symbol={col.code.toLowerCase()} size="14px" />
+									<span>{col.name} ({col.total})</span>
+								</div>
+							{/each}
 						{/if}
 					</div>
 
 					<div class="arena-bar-chart-container">
 						{#each cmcData.buckets as bucket}
+							{@const currentVal = curveGroupingMode === "pips" ? bucket.totalPips : bucket.total}
+							{@const maxVal = curveGroupingMode === "pips" ? cmcData.maxPips : cmcData.maxCount}
 							<!-- svelte-ignore a11y_click_events_have_key_events -->
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div
@@ -987,10 +1109,12 @@
 								onclick={() =>
 									(selectedCmc = selectedCmc === bucket.cmc ? null : bucket.cmc)}
 							>
-								<span class="bar-total-label">{bucket.total}</span>
+								<span class="bar-total-label">
+									{curveGroupingMode === "pips" ? (Number.isInteger(bucket.totalPips) ? bucket.totalPips : bucket.totalPips.toFixed(1)) : bucket.total}
+								</span>
 								<div
 									class="bar-track"
-									style="height: {(bucket.total / cmcData.maxCount) * 170}px;"
+									style="height: {(currentVal / maxVal) * 170}px;"
 								>
 									{#if curveGroupingMode === "creatures"}
 										<!-- Creature Stacked Segment (Orange) -->
@@ -1009,7 +1133,7 @@
 												title="{bucket.nonCreatures} Non-Creatures"
 											></div>
 										{/if}
-									{:else}
+									{:else if curveGroupingMode === "types"}
 										<!-- By Card Type -->
 										{#if bucket.types.creatures > 0}
 											<div class="bar-segment type-creature" style="height: {(bucket.types.creatures / bucket.total) * 100}%;"></div>
@@ -1029,6 +1153,17 @@
 										{#if bucket.types.planeswalkers > 0}
 											<div class="bar-segment type-planeswalker" style="height: {(bucket.types.planeswalkers / bucket.total) * 100}%;"></div>
 										{/if}
+									{:else if curveGroupingMode === "pips"}
+										<!-- By Mana Pips (WUBRGC) -->
+										{#each cmcData.activePipColors as col}
+											{#if (bucket.pips[col.code] || 0) > 0}
+												<div
+													class="bar-segment pip-segment-{col.code.toLowerCase()}"
+													style="height: {((bucket.pips[col.code] || 0) / bucket.totalPips) * 100}%; background-color: {col.color};"
+													title="{bucket.pips[col.code]} {col.name} Pips"
+												></div>
+											{/if}
+										{/each}
 									{/if}
 								</div>
 								<div class="cmc-circle-badge">
@@ -1044,7 +1179,7 @@
 					<div class="drawer-header">
 						<h4>
 							{#if selectedCmc !== null}
-								Cards with CMC {selectedCmc === 7 ? "7+" : selectedCmc} ({drawerCards.length})
+								Cards with CMC {selectedCmc === 7 ? "7+" : selectedCmc} ({drawerCards.length}{curveGroupingMode === "pips" ? ` · ${Math.round(cmcData.buckets[selectedCmc]?.totalPips || 0)} pips` : ""})
 							{:else}
 								All Non-Land Spells ({drawerCards.length})
 							{/if}
@@ -1083,7 +1218,11 @@
 										</div>
 									{/if}
 									{#if typeIcon}
-										<i class="ms {typeIcon} card-type-icon" title={typeLine}></i>
+										<i
+											class="ms {typeIcon} card-type-icon"
+											style="color: {getCardTypeColor(typeLine, card)};"
+											title={typeLine}
+										></i>
 									{/if}
 								</div>
 							</div>
@@ -1107,8 +1246,8 @@
 					<span class="stats-bar-value">CMC {curveStats.peakCmc} ({curveStats.peakCount} cards)</span>
 				</div>
 				<div class="stats-bar-item">
-					<span class="stats-bar-label">Total Spell Mana Value</span>
-					<span class="stats-bar-value">{curveStats.totalCmcSum}</span>
+					<span class="stats-bar-label">{curveGroupingMode === 'pips' ? 'Total Colored Pips' : 'Total Spell Mana Value'}</span>
+					<span class="stats-bar-value">{curveGroupingMode === 'pips' ? curveStats.totalPipsSum : curveStats.totalCmcSum}</span>
 				</div>
 			</div>
 		</div>
@@ -1829,6 +1968,12 @@
 	.type-artifact { background: #94a3b8 !important; }
 	.type-enchantment { background: #ec4899 !important; }
 	.type-planeswalker { background: #a855f7 !important; }
+	.pip-segment-w { background: #f8fafc !important; }
+	.pip-segment-u { background: #38bdf8 !important; }
+	.pip-segment-b { background: #475569 !important; border-top: 1px solid rgba(255, 255, 255, 0.15); }
+	.pip-segment-r { background: #ef4444 !important; }
+	.pip-segment-g { background: #22c55e !important; }
+	.pip-segment-c { background: #94a3b8 !important; }
 
 	.arena-bar-chart-container {
 		display: flex;
@@ -2007,17 +2152,18 @@
 
 	.card-type-icon {
 		font-size: 0.95rem;
-		color: hsl(var(--muted-foreground));
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		line-height: 1;
-		transition: color 0.15s ease, transform 0.15s ease;
+		opacity: 0.88;
+		transition: transform 0.15s ease, opacity 0.15s ease, filter 0.15s ease;
 	}
 
 	.drawer-card-item:hover .card-type-icon {
-		color: hsl(var(--primary));
-		transform: scale(1.15);
+		opacity: 1;
+		transform: scale(1.2);
+		filter: drop-shadow(0 0 5px currentColor);
 	}
 
 	.mana-slash {
