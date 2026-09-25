@@ -212,14 +212,14 @@
 				planeswalkers: 0,
 				other: 0,
 			},
-			pips: {
+			pips: /** @type {Record<string, number>} */ ({
 				W: 0,
 				U: 0,
 				B: 0,
 				R: 0,
 				G: 0,
 				C: 0,
-			},
+			}),
 			totalPips: 0,
 			total: 0,
 			cards: /** @type {{ name: string, qty: number, mana_cost: string, type_line: string, price: number, cmc: number, overrides?: any }[]} */ ([]),
@@ -267,7 +267,7 @@
 			// Parse mana pips for this card at this CMC
 			const cost = stats.manaCost;
 			const matches = cost.match(/\{([^}]+)\}/g) || [];
-			matches.forEach((sym) => {
+			matches.forEach((/** @type {string} */ sym) => {
 				const clean = sym.replace(/[{}]/g, "").toUpperCase();
 				if (clean === "W") { buckets[idx].pips.W += qty; buckets[idx].totalPips += qty; }
 				else if (clean === "U") { buckets[idx].pips.U += qty; buckets[idx].totalPips += qty; }
@@ -278,22 +278,22 @@
 				else if (clean.includes("/")) {
 					const [a, b] = clean.split("/");
 					if (b === "P") {
-						if (buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (a)] !== undefined) {
-							buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (a)] += qty;
+						if (buckets[idx].pips[a] !== undefined) {
+							buckets[idx].pips[a] += qty;
 							buckets[idx].totalPips += qty;
 						}
 					} else if (a === "2") {
-						if (buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (b)] !== undefined) {
-							buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (b)] += qty;
+						if (buckets[idx].pips[b] !== undefined) {
+							buckets[idx].pips[b] += qty;
 							buckets[idx].totalPips += qty;
 						}
 					} else {
-						if (buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (a)] !== undefined) {
-							buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (a)] += qty * 0.5;
+						if (buckets[idx].pips[a] !== undefined) {
+							buckets[idx].pips[a] += qty * 0.5;
 							buckets[idx].totalPips += qty * 0.5;
 						}
-						if (buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (b)] !== undefined) {
-							buckets[idx].pips[/** @type {keyof typeof buckets[0]['pips']} */ (b)] += qty * 0.5;
+						if (buckets[idx].pips[b] !== undefined) {
+							buckets[idx].pips[b] += qty * 0.5;
 							buckets[idx].totalPips += qty * 0.5;
 						}
 					}
@@ -1156,11 +1156,12 @@
 									{:else if curveGroupingMode === "pips"}
 										<!-- By Mana Pips (WUBRGC) -->
 										{#each cmcData.activePipColors as col}
-											{#if (bucket.pips[col.code] || 0) > 0}
+											{@const count = (/** @type {Record<string, number>} */ (bucket.pips))[col.code] || 0}
+											{#if count > 0}
 												<div
 													class="bar-segment pip-segment-{col.code.toLowerCase()}"
-													style="height: {((bucket.pips[col.code] || 0) / bucket.totalPips) * 100}%; background-color: {col.color};"
-													title="{bucket.pips[col.code]} {col.name} Pips"
+													style="height: {(count / bucket.totalPips) * 100}%; background-color: {col.color};"
+													title="{count} {col.name} Pips"
 												></div>
 											{/if}
 										{/each}
@@ -1191,7 +1192,7 @@
 
 					<div class="drawer-cards-list">
 						{#each drawerCards as card}
-							{@const manaCostStr = card.mana_cost || getMeta(card.name).mana_cost || card.mana || ""}
+							{@const manaCostStr = card.mana_cost || getMeta(card.name).mana_cost || ""}
 							{@const typeLine = card.type_line || getCardStats(card).typeLine}
 							{@const typeIcon = getCardTypeIcon(typeLine, card)}
 							{@const tooltipImg = getCardTooltipImg(card.name)}
@@ -1202,7 +1203,7 @@
 								data-tooltip-imgs={tooltipImgs || undefined}
 							>
 								<div class="card-name-qty">
-									<span class="card-qty">{card.qty || card.quantity || 1}x</span>
+									<span class="card-qty">{card.qty || 1}x</span>
 									<span class="card-name">{card.name}</span>
 								</div>
 								<div class="card-cost-and-type">
