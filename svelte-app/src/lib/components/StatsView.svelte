@@ -1138,10 +1138,10 @@
 						</div>
 						<div class="stats-column-item">
 							<span class="stats-item-label">
-								{curveGroupingMode === 'pips' ? 'Total Mana Value' : 'Total Spell Mana Value'}
+								Total Spell Mana Value
 							</span>
 							<span class="stats-item-value">
-								{curveGroupingMode === 'pips' ? curveStats.totalPipsSum : curveStats.totalCmcSum}
+								{curveStats.totalCmcSum}
 							</span>
 						</div>
 					</div>
@@ -1178,8 +1178,6 @@
 
 					<div class="arena-bar-chart-container">
 						{#each cmcData.buckets as bucket}
-							{@const currentVal = curveGroupingMode === "pips" ? bucket.totalPips : bucket.total}
-							{@const maxVal = curveGroupingMode === "pips" ? cmcData.maxPips : cmcData.maxCount}
 							<!-- svelte-ignore a11y_click_events_have_key_events -->
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div
@@ -1189,11 +1187,11 @@
 									(selectedCmc = selectedCmc === bucket.cmc ? null : bucket.cmc)}
 							>
 								<span class="bar-total-label">
-									{curveGroupingMode === "pips" ? (Number.isInteger(bucket.totalPips) ? bucket.totalPips : bucket.totalPips.toFixed(1)) : bucket.total}
+									{bucket.total}
 								</span>
 								<div
 									class="bar-track"
-									style="height: {(currentVal / maxVal) * 170}px;"
+									style="height: {(bucket.total / cmcData.maxCount) * 170}px;"
 								>
 									{#if curveGroupingMode === "creatures"}
 										<!-- Creature Stacked Segment (Orange) -->
@@ -1259,7 +1257,7 @@
 					<div class="drawer-header">
 						<h4>
 							{#if selectedCmc !== null}
-								Cards with CMC {selectedCmc === 7 ? "7+" : selectedCmc} ({drawerCards.length}{curveGroupingMode === "pips" ? ` · ${Math.round(cmcData.buckets[selectedCmc]?.totalPips || 0)} mana` : ""})
+								Cards with CMC {selectedCmc === 7 ? "7+" : selectedCmc} ({drawerCards.length})
 							{:else}
 								All Non-Land Spells ({drawerCards.length})
 							{/if}
