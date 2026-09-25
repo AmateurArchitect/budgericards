@@ -24,6 +24,7 @@
     "clsx": "^2.1.1",
     "dexie": "^4.4.3",
     "lucide-svelte": "^1.0.1",
+    "mana-font": "^1.18.0",
     "papaparse": "^5.4.1",
     "tailwind-merge": "^2.3.0"
   }

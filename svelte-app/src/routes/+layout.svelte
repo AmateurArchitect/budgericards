@@ -1,5 +1,6 @@
 <script>
 	import '../app.css';
+	import 'mana-font/css/mana.css';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { onMount } from 'svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte.js';

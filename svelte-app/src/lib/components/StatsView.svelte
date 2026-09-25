@@ -36,6 +36,104 @@
 		return deckStore.metadata[name.toLowerCase()] || {};
 	}
 
+	/**
+	 * Extracts computed stats for a card respecting user overrides from deckbuilder
+	 * @param {any} card
+	 */
+	function getCardStats(card) {
+		const name = card.name || "";
+		const meta = getMeta(name);
+		const overrides = card.overrides || {};
+
+		const cmc =
+			overrides.manaValue !== undefined
+				? Number(overrides.manaValue)
+				: (card.cmc !== undefined ? Number(card.cmc) : Number(meta.cmc ?? 0));
+
+		const typeLine =
+			overrides.primaryType !== undefined
+				? overrides.primaryType
+				: (card.type_line || meta.type_line || "");
+
+		const colors =
+			overrides.colors !== undefined
+				? overrides.colors
+				: (card.colors || meta.colors || []);
+
+		const colorIdentity =
+			overrides.colorIdentity !== undefined
+				? overrides.colorIdentity
+				: (card.color_identity || meta.color_identity || []);
+
+		const colorCategory = overrides.colorCategory || null;
+
+		const manaCost = meta.mana_cost || card.mana_cost || "";
+
+		return {
+			cmc,
+			typeLine,
+			colors,
+			colorIdentity,
+			colorCategory,
+			manaCost,
+			meta,
+		};
+	}
+
+	/**
+	 * Maps a card type line or overrides to Andrew Gioia's Mana Font icon class
+	 * @param {string} [typeLine]
+	 * @param {any} [card]
+	 */
+	function getCardTypeIcon(typeLine = "", card = null) {
+		if (card?.overrides?.creature === true) return "ms-creature";
+		const lower = (typeLine || "").toLowerCase();
+		if (lower.includes("creature")) return "ms-creature";
+		if (lower.includes("planeswalker")) return "ms-planeswalker";
+		if (lower.includes("instant")) return "ms-instant";
+		if (lower.includes("sorcery")) return "ms-sorcery";
+		if (lower.includes("battle")) return lower.includes("siege") ? "ms-battle-siege" : "ms-battle";
+		if (lower.includes("artifact")) return "ms-artifact";
+		if (lower.includes("enchantment")) return "ms-enchantment";
+		if (lower.includes("land")) return "ms-land";
+		if (lower.includes("tribal")) return "ms-tribal";
+		if (lower.includes("conspiracy")) return "ms-conspiracy";
+		if (lower.includes("phenomenon")) return "ms-phenomenon";
+		if (lower.includes("plane")) return "ms-plane";
+		if (lower.includes("scheme")) return "ms-scheme";
+		if (lower.includes("vanguard")) return "ms-vanguard";
+		return "";
+	}
+
+	/**
+	 * Retrieves normal card image URL for popover tooltips
+	 * @param {string} name
+	 */
+	function getCardTooltipImg(name) {
+		const meta = getMeta(name);
+		return (
+			meta.image_uris?.normal ||
+			meta.card_faces?.[0]?.image_uris?.normal ||
+			meta.image_uris?.small ||
+			""
+		);
+	}
+
+	/**
+	 * Retrieves multi-face card image URLs comma-separated for double-sided tooltips
+	 * @param {string} name
+	 */
+	function getCardTooltipImgs(name) {
+		const meta = getMeta(name);
+		if (meta.card_faces && meta.card_faces.length > 1 && meta.card_faces[0]?.image_uris?.normal) {
+			return meta.card_faces
+				.map((/** @type {any} */ f) => f.image_uris?.normal)
+				.filter(Boolean)
+				.join(",");
+		}
+		return "";
+	}
+
 	// Active Commander & Featured Artwork
 	const commanderCard = $derived(
 		deckStore.commander[0] ||
@@ -59,21 +157,13 @@
 	// Deck Color Identity
 	const deckColorIdentity = $derived(() => {
 		const identitySet = new Set();
-		if (deckStore.commander.length > 0) {
-			deckStore.commander.forEach((/** @type {any} */ c) => {
-				const meta = getMeta(c.name);
-				(meta.color_identity || []).forEach((/** @type {string} */ col) =>
-					identitySet.add(col),
-				);
-			});
-		} else {
-			activeCards.forEach((/** @type {any} */ c) => {
-				const meta = getMeta(c.name);
-				(meta.color_identity || []).forEach((/** @type {string} */ col) =>
-					identitySet.add(col),
-				);
-			});
-		}
+		const list = deckStore.commander.length > 0 ? deckStore.commander : activeCards;
+		list.forEach((/** @type {any} */ c) => {
+			const stats = getCardStats(c);
+			(stats.colorIdentity || []).forEach((/** @type {string} */ col) =>
+				identitySet.add(col),
+			);
+		});
 		const order = ["W", "U", "B", "R", "G", "C"];
 		return order.filter((c) => identitySet.has(c));
 	});
@@ -99,15 +189,15 @@
 				other: 0,
 			},
 			total: 0,
-			cards: /** @type {{ name: string, qty: number, mana_cost: string, type_line: string, price: number }[]} */ ([]),
+			cards: /** @type {{ name: string, qty: number, mana_cost: string, type_line: string, price: number, cmc: number, overrides?: any }[]} */ ([]),
 		}));
 
 		activeCards.forEach((/** @type {any} */ c) => {
-			const meta = getMeta(c.name);
-			const typeLine = (meta.type_line || "").toLowerCase();
+			const stats = getCardStats(c);
+			const typeLine = stats.typeLine.toLowerCase();
 			if (typeLine.includes("land")) return; // exclude lands from curve
 
-			const cmc = Math.floor(meta.cmc ?? 0);
+			const cmc = Math.floor(stats.cmc);
 			if (cmc < 0) return;
 			const idx = Math.min(cmc, 7);
 			const qty = c.quantity || 1;
@@ -116,12 +206,19 @@
 			buckets[idx].cards.push({
 				name: c.name,
 				qty,
-				mana_cost: meta.mana_cost || "",
-				type_line: meta.type_line || "",
+				mana_cost: stats.manaCost,
+				type_line: stats.typeLine,
 				price: c.price || 0,
+				cmc: stats.cmc,
+				overrides: c.overrides,
 			});
 
-			if (typeLine.includes("creature")) {
+			const isCreature =
+				c.overrides?.creature !== undefined
+					? c.overrides.creature
+					: typeLine.includes("creature");
+
+			if (isCreature) {
 				buckets[idx].creatures += qty;
 				buckets[idx].types.creatures += qty;
 			} else {
@@ -135,8 +232,39 @@
 			}
 		});
 
+		// Sort cards in each bucket alphabetically by name
+		buckets.forEach((b) => {
+			b.cards.sort((a, b) => a.name.localeCompare(b.name));
+		});
+
 		const maxCount = Math.max(...buckets.map((b) => b.total), 1);
 		return { buckets, maxCount };
+	});
+
+	// Cards displayed in the Mana Curve inspector drawer
+	const drawerCards = $derived.by(() => {
+		if (selectedCmc !== null) {
+			return cmcData.buckets[selectedCmc]?.cards || [];
+		}
+		// When no CMC bar is selected, show all active non-land spells sorted by CMC then name
+		return activeCards
+			.filter((c) => {
+				const stats = getCardStats(c);
+				return !stats.typeLine.toLowerCase().includes("land");
+			})
+			.map((c) => {
+				const stats = getCardStats(c);
+				return {
+					name: c.name,
+					qty: c.quantity || 1,
+					mana_cost: stats.manaCost,
+					type_line: stats.typeLine,
+					price: c.price || 0,
+					cmc: stats.cmc,
+					overrides: c.overrides,
+				};
+			})
+			.sort((a, b) => a.cmc - b.cmc || a.name.localeCompare(b.name));
 	});
 
 	// Curve summary stats
@@ -148,9 +276,9 @@
 		const cmcValues = [];
 
 		activeCards.forEach((/** @type {any} */ c) => {
-			const meta = getMeta(c.name);
-			const typeLine = (meta.type_line || "").toLowerCase();
-			const cmc = meta.cmc ?? 0;
+			const stats = getCardStats(c);
+			const typeLine = stats.typeLine.toLowerCase();
+			const cmc = stats.cmc;
 			const qty = c.quantity || 1;
 			totalDeckCmcSum += cmc * qty;
 
@@ -243,8 +371,8 @@
 		let nonPermanentsCount = 0;
 
 		activeCards.forEach((/** @type {any} */ c) => {
-			const meta = getMeta(c.name);
-			const typeLine = meta.type_line || "";
+			const stats = getCardStats(c);
+			const typeLine = stats.typeLine;
 			const lowerType = typeLine.toLowerCase();
 			const qty = c.quantity || 1;
 
@@ -252,12 +380,19 @@
 				name: c.name,
 				qty,
 				type_line: typeLine,
-				mana_cost: meta.mana_cost || "",
+				mana_cost: stats.manaCost,
 				price: c.price || 0,
+				cmc: stats.cmc,
+				overrides: c.overrides,
 			};
 
+			const isCreature =
+				c.overrides?.creature !== undefined
+					? c.overrides.creature
+					: lowerType.includes("creature");
+
 			const isPermanent =
-				lowerType.includes("creature") ||
+				isCreature ||
 				lowerType.includes("artifact") ||
 				lowerType.includes("enchantment") ||
 				lowerType.includes("planeswalker") ||
@@ -267,7 +402,7 @@
 			if (isPermanent) permanentsCount += qty;
 			else nonPermanentsCount += qty;
 
-			if (lowerType.includes("creature")) {
+			if (isCreature) {
 				types.Creatures.count += qty;
 				types.Creatures.cards.push(cardEntry);
 			} else if (lowerType.includes("instant")) {
@@ -308,7 +443,7 @@
 
 				subs.forEach((/** @type {string} */ sub) => {
 					const clean = sub.trim();
-					if (main.includes("creature")) {
+					if (main.includes("creature") || isCreature) {
 						creatureSubtypes[clean] =
 							(creatureSubtypes[clean] || 0) + qty;
 					} else if (main.includes("artifact")) {
@@ -374,21 +509,28 @@
 		let landsCount = 0;
 
 		activeCards.forEach((/** @type {any} */ c) => {
-			const meta = getMeta(c.name);
-			const typeLine = (meta.type_line || "").toLowerCase();
+			const stats = getCardStats(c);
+			const meta = stats.meta;
+			const typeLine = stats.typeLine.toLowerCase();
 			const qty = c.quantity || 1;
 			const isLand = typeLine.includes("land");
 
 			if (isLand) {
 				landsCount += qty;
 			} else {
-				const colors = meta.colors || [];
-				if (colors.length === 0) colorlessSpellsCount += qty;
-				else if (colors.length === 1) monoColorCount += qty;
-				else multiColorCount += qty;
+				const colors = stats.colors || [];
+				if (stats.colorCategory) {
+					if (stats.colorCategory === "Colorless") colorlessSpellsCount += qty;
+					else if (stats.colorCategory === "Multicolor") multiColorCount += qty;
+					else monoColorCount += qty;
+				} else {
+					if (colors.length === 0) colorlessSpellsCount += qty;
+					else if (colors.length === 1) monoColorCount += qty;
+					else multiColorCount += qty;
+				}
 
 				// Parse mana pips from mana_cost
-				const cost = meta.mana_cost || "";
+				const cost = stats.manaCost;
 				const matches = cost.match(/\{([^}]+)\}/g) || [];
 				matches.forEach((/** @type {string} */ sym) => {
 					const clean = sym.replace(/[{}]/g, "").toUpperCase();
@@ -505,18 +647,18 @@
 				boardTotals[b] += cardVal;
 				boardTotals.total += cardVal;
 
-				const meta = getMeta(c.name);
+				const stats = getCardStats(c);
 				const cardObj = {
 					name: c.name,
 					board: b,
 					price,
 					cardVal,
 					qty,
-					type_line: meta.type_line || "",
+					type_line: stats.typeLine,
 					image_uri:
-						meta.image_uris?.art_crop ||
-						meta.card_faces?.[0]?.image_uris?.art_crop ||
-						meta.image_uris?.normal ||
+						stats.meta.image_uris?.art_crop ||
+						stats.meta.card_faces?.[0]?.image_uris?.art_crop ||
+						stats.meta.image_uris?.normal ||
 						null,
 				};
 				allCardsWithPrices.push(cardObj);
@@ -540,8 +682,13 @@
 				}
 
 				// Type value
-				const typeLower = (meta.type_line || "").toLowerCase();
-				if (typeLower.includes("creature")) typeValues.Creatures += cardVal;
+				const typeLower = stats.typeLine.toLowerCase();
+				const isCreature =
+					c.overrides?.creature !== undefined
+						? c.overrides.creature
+						: typeLower.includes("creature");
+
+				if (isCreature) typeValues.Creatures += cardVal;
 				else if (typeLower.includes("instant")) typeValues.Instants += cardVal;
 				else if (typeLower.includes("sorcery")) typeValues.Sorceries += cardVal;
 				else if (typeLower.includes("planeswalker")) typeValues.Planeswalkers += cardVal;
@@ -897,9 +1044,9 @@
 					<div class="drawer-header">
 						<h4>
 							{#if selectedCmc !== null}
-								Cards with CMC {selectedCmc === 7 ? "7+" : selectedCmc} ({cmcData.buckets[selectedCmc].total})
+								Cards with CMC {selectedCmc === 7 ? "7+" : selectedCmc} ({drawerCards.length})
 							{:else}
-								Click any CMC bar to inspect cards
+								All Non-Land Spells ({drawerCards.length})
 							{/if}
 						</h4>
 						{#if selectedCmc !== null}
@@ -908,25 +1055,37 @@
 					</div>
 
 					<div class="drawer-cards-list">
-						{#each (selectedCmc !== null ? cmcData.buckets[selectedCmc].cards : activeCards.filter(c => !(getMeta(c.name).type_line || "").toLowerCase().includes("land")).slice(0, 16)) as card}
+						{#each drawerCards as card}
 							{@const manaCostStr = card.mana_cost || getMeta(card.name).mana_cost || card.mana || ""}
-							<div class="drawer-card-item">
+							{@const typeLine = card.type_line || getCardStats(card).typeLine}
+							{@const typeIcon = getCardTypeIcon(typeLine, card)}
+							{@const tooltipImg = getCardTooltipImg(card.name)}
+							{@const tooltipImgs = getCardTooltipImgs(card.name)}
+							<div
+								class="drawer-card-item"
+								data-tooltip-img={tooltipImgs ? undefined : (tooltipImg || undefined)}
+								data-tooltip-imgs={tooltipImgs || undefined}
+							>
 								<div class="card-name-qty">
 									<span class="card-qty">{card.qty || card.quantity || 1}x</span>
 									<span class="card-name">{card.name}</span>
 								</div>
-								<span class="card-type-subtext">{card.type_line || getMeta(card.name).type_line || ""}</span>
-								{#if manaCostStr}
-									<div class="card-mana-pips">
-										{#each parseManaCost(manaCostStr) as sym}
-											{#if sym === "//"}
-												<span class="mana-slash">//</span>
-											{:else}
-												<ManaSymbol symbol={sym} size="14px" />
-											{/if}
-										{/each}
-									</div>
-								{/if}
+								<div class="card-cost-and-type">
+									{#if manaCostStr}
+										<div class="card-mana-pips">
+											{#each parseManaCost(manaCostStr) as sym}
+												{#if sym === "//"}
+													<span class="mana-slash">//</span>
+												{:else}
+													<ManaSymbol symbol={sym} size="14px" />
+												{/if}
+											{/each}
+										</div>
+									{/if}
+									{#if typeIcon}
+										<i class="ms {typeIcon} card-type-icon" title={typeLine}></i>
+									{/if}
+								</div>
 							</div>
 						{/each}
 					</div>
@@ -1802,6 +1961,13 @@
 		border-radius: var(--radius-md);
 		font-size: 0.8rem;
 		gap: 0.75rem;
+		cursor: pointer;
+		transition: background 0.15s ease, transform 0.1s ease;
+		user-select: none;
+	}
+
+	.drawer-card-item:hover {
+		background: hsl(var(--secondary) / 0.75);
 	}
 
 	.card-name-qty {
@@ -1810,19 +1976,26 @@
 		gap: 0.45rem;
 		font-weight: 600;
 		color: hsl(var(--foreground));
+		min-width: 0;
+		flex: 1;
+	}
+
+	.card-name {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.card-qty {
 		color: hsl(var(--muted-foreground));
+		flex-shrink: 0;
 	}
 
-	.card-type-subtext {
-		color: hsl(var(--muted-foreground));
-		font-size: 0.72rem;
-		flex: 1;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
+	.card-cost-and-type {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-shrink: 0;
 	}
 
 	.card-mana-pips {
@@ -1830,6 +2003,21 @@
 		align-items: center;
 		gap: 2px;
 		flex-shrink: 0;
+	}
+
+	.card-type-icon {
+		font-size: 0.95rem;
+		color: hsl(var(--muted-foreground));
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		line-height: 1;
+		transition: color 0.15s ease, transform 0.15s ease;
+	}
+
+	.drawer-card-item:hover .card-type-icon {
+		color: hsl(var(--primary));
+		transform: scale(1.15);
 	}
 
 	.mana-slash {
