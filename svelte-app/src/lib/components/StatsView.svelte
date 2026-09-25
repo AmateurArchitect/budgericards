@@ -2,6 +2,7 @@
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import ManaSymbol from "./ui/ManaSymbol.svelte";
+	import { parseManaCost } from "$lib/layouts/grouping.svelte.js";
 	import { onMount } from "svelte";
 	import { fade, fly, slide } from "svelte/transition";
 	import {
@@ -908,15 +909,24 @@
 
 					<div class="drawer-cards-list">
 						{#each (selectedCmc !== null ? cmcData.buckets[selectedCmc].cards : activeCards.filter(c => !(getMeta(c.name).type_line || "").toLowerCase().includes("land")).slice(0, 16)) as card}
+							{@const manaCostStr = card.mana_cost || getMeta(card.name).mana_cost || card.mana || ""}
 							<div class="drawer-card-item">
 								<div class="card-name-qty">
 									<span class="card-qty">{card.qty || card.quantity || 1}x</span>
 									<span class="card-name">{card.name}</span>
 								</div>
 								<span class="card-type-subtext">{card.type_line || getMeta(card.name).type_line || ""}</span>
-								<div class="card-price-badge">
-									${(card.price || 0).toFixed(2)}
-								</div>
+								{#if manaCostStr}
+									<div class="card-mana-pips">
+										{#each parseManaCost(manaCostStr) as sym}
+											{#if sym === "//"}
+												<span class="mana-slash">//</span>
+											{:else}
+												<ManaSymbol symbol={sym} size="14px" />
+											{/if}
+										{/each}
+									</div>
+								{/if}
 							</div>
 						{/each}
 					</div>
@@ -925,55 +935,21 @@
 
 			<!-- Curve Stats Bar (Below Both) -->
 			<div class="curve-stats-bar">
-				<div class="stats-bar-group metrics-group">
-					<div class="stats-bar-item">
-						<span class="stats-bar-label">Average Non-Land CMC</span>
-						<span class="stats-bar-value">{curveStats.avgNonLand}</span>
-					</div>
-					<div class="stats-bar-item">
-						<span class="stats-bar-label">Median CMC</span>
-						<span class="stats-bar-value">{curveStats.median}</span>
-					</div>
-					<div class="stats-bar-item">
-						<span class="stats-bar-label">Peak Turn / Mode</span>
-						<span class="stats-bar-value">CMC {curveStats.peakCmc} ({curveStats.peakCount} cards)</span>
-					</div>
-					<div class="stats-bar-item">
-						<span class="stats-bar-label">Total Spell Mana Value</span>
-						<span class="stats-bar-value">{curveStats.totalCmcSum}</span>
-					</div>
+				<div class="stats-bar-item">
+					<span class="stats-bar-label">Average Non-Land CMC</span>
+					<span class="stats-bar-value">{curveStats.avgNonLand}</span>
 				</div>
-
-				<div class="stats-bar-divider"></div>
-
-				<div class="stats-bar-group tempo-group">
-					<div class="stats-bar-tempo-item">
-						<div class="tempo-header-row">
-							<span class="stats-bar-label">Early (0-2 CMC)</span>
-							<span class="tempo-val">{curveStats.early.count} ({curveStats.early.pct}%)</span>
-						</div>
-						<div class="tempo-mini-track">
-							<div class="tempo-bar early" style="width: {curveStats.early.pct}%;"></div>
-						</div>
-					</div>
-					<div class="stats-bar-tempo-item">
-						<div class="tempo-header-row">
-							<span class="stats-bar-label">Mid (3-4 CMC)</span>
-							<span class="tempo-val">{curveStats.mid.count} ({curveStats.mid.pct}%)</span>
-						</div>
-						<div class="tempo-mini-track">
-							<div class="tempo-bar mid" style="width: {curveStats.mid.pct}%;"></div>
-						</div>
-					</div>
-					<div class="stats-bar-tempo-item">
-						<div class="tempo-header-row">
-							<span class="stats-bar-label">Late (5+ CMC)</span>
-							<span class="tempo-val">{curveStats.late.count} ({curveStats.late.pct}%)</span>
-						</div>
-						<div class="tempo-mini-track">
-							<div class="tempo-bar late" style="width: {curveStats.late.pct}%;"></div>
-						</div>
-					</div>
+				<div class="stats-bar-item">
+					<span class="stats-bar-label">Median CMC</span>
+					<span class="stats-bar-value">{curveStats.median}</span>
+				</div>
+				<div class="stats-bar-item">
+					<span class="stats-bar-label">Peak Turn / Mode</span>
+					<span class="stats-bar-value">CMC {curveStats.peakCmc} ({curveStats.peakCount} cards)</span>
+				</div>
+				<div class="stats-bar-item">
+					<span class="stats-bar-label">Total Spell Mana Value</span>
+					<span class="stats-bar-value">{curveStats.totalCmcSum}</span>
 				</div>
 			</div>
 		</div>
@@ -1629,11 +1605,13 @@
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
+		align-items: center;
 		padding: 2.25rem 2rem;
 	}
 
 	#stats-mana-curve .section-content-wrapper {
 		gap: 1.25rem;
+		margin: 0 auto;
 	}
 
 	.curve-main-layout {
@@ -1700,7 +1678,7 @@
 		height: 220px;
 		padding: 0 0.5rem;
 		gap: 0.75rem;
-		border-bottom: 2px solid hsl(var(--border) / 0.4);
+		border-bottom: none;
 	}
 
 	.arena-curve-column {
@@ -1847,11 +1825,17 @@
 		text-overflow: ellipsis;
 	}
 
-	.card-price-badge {
-		font-weight: 600;
-		color: #38bdf8;
-		font-variant-numeric: tabular-nums;
-		font-size: 0.78rem;
+	.card-mana-pips {
+		display: inline-flex;
+		align-items: center;
+		gap: 2px;
+		flex-shrink: 0;
+	}
+
+	.mana-slash {
+		color: hsl(var(--muted-foreground));
+		font-size: 0.7rem;
+		margin: 0 1px;
 	}
 
 	/* Stats Bar Below Both */
@@ -1860,32 +1844,16 @@
 		backdrop-filter: blur(12px);
 		border: 1px solid hsl(var(--border) / 0.5);
 		border-radius: var(--radius-xl, 16px);
-		padding: 0.85rem 1.5rem;
+		padding: 1.1rem 2rem;
 		display: grid;
-		grid-template-columns: 1.15fr auto 1fr;
+		grid-template-columns: repeat(4, 1fr);
 		align-items: center;
 		gap: 1.5rem;
 		box-sizing: border-box;
 	}
 
-	@media (max-width: 950px) {
+	@media (max-width: 768px) {
 		.curve-stats-bar {
-			grid-template-columns: 1fr;
-			gap: 1rem;
-		}
-		.stats-bar-divider {
-			display: none;
-		}
-	}
-
-	.stats-bar-group.metrics-group {
-		display: grid;
-		grid-template-columns: repeat(4, 1fr);
-		gap: 1rem;
-	}
-
-	@media (max-width: 700px) {
-		.stats-bar-group.metrics-group {
 			grid-template-columns: repeat(2, 1fr);
 		}
 	}
@@ -1893,11 +1861,11 @@
 	.stats-bar-item {
 		display: flex;
 		flex-direction: column;
-		gap: 0.2rem;
+		gap: 0.25rem;
 	}
 
 	.stats-bar-label {
-		font-size: 0.7rem;
+		font-size: 0.72rem;
 		font-weight: 600;
 		color: hsl(var(--muted-foreground));
 		text-transform: uppercase;
@@ -1906,66 +1874,12 @@
 	}
 
 	.stats-bar-value {
-		font-size: 0.95rem;
+		font-size: 1.05rem;
 		font-weight: 700;
 		color: hsl(var(--foreground));
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 	}
-
-	.stats-bar-divider {
-		width: 1px;
-		height: 38px;
-		background: hsl(var(--border) / 0.6);
-	}
-
-	.stats-bar-group.tempo-group {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 1.25rem;
-	}
-
-	@media (max-width: 700px) {
-		.stats-bar-group.tempo-group {
-			grid-template-columns: 1fr;
-		}
-	}
-
-	.stats-bar-tempo-item {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.tempo-header-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.5rem;
-	}
-
-	.tempo-val {
-		font-size: 0.78rem;
-		font-weight: 700;
-		color: hsl(var(--foreground));
-		font-variant-numeric: tabular-nums;
-	}
-
-	.tempo-mini-track {
-		height: 5px;
-		background: hsl(var(--secondary) / 0.7);
-		border-radius: 9999px;
-		overflow: hidden;
-	}
-
-	.tempo-bar {
-		height: 100%;
-		border-radius: 9999px;
-	}
-
-	.tempo-bar.early { background: #22c55e; }
-	.tempo-bar.mid { background: #38bdf8; }
-	.tempo-bar.late { background: #a855f7; }
 
 	/* 3. CARD TYPES SECTION STYLES */
 	.types-dual-layout {
