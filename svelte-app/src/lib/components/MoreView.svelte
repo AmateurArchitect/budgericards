@@ -958,7 +958,11 @@
 	}
 
 	.more-container.sample-hand-mode {
-		padding: 0.5rem 1rem 2rem;
+		display: flex;
+		flex-direction: column;
+		padding: 1.5rem 1rem;
+		box-sizing: border-box;
+		min-height: 100%;
 	}
 
 	/* Panel layouts */
@@ -1133,11 +1137,11 @@
 	.arena-hand-view {
 		width: 100%;
 		max-width: 1400px;
-		margin: 0 auto;
+		margin: auto;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding: 0.25rem 1rem 2rem;
+		padding: 0 1rem;
 		position: relative;
 	}
 
