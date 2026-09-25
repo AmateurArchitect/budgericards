@@ -225,6 +225,15 @@
 				R: 0,
 				G: 0,
 			}),
+			pipsShare: /** @type {Record<string, number>} */ ({
+				GEN: 0,
+				C: 0,
+				W: 0,
+				U: 0,
+				B: 0,
+				R: 0,
+				G: 0,
+			}),
 			totalPips: 0,
 			total: 0,
 			cards: /** @type {{ name: string, qty: number, mana_cost: string, type_line: string, price: number, cmc: number, overrides?: any }[]} */ ([]),
@@ -269,79 +278,81 @@
 				else buckets[idx].types.other += qty;
 			}
 
-			// Parse mana symbols (Generic numbers, Colorless C, and Colored WUBRG)
+			// Parse mana symbols for this card (Generic numbers, Colorless C, and Colored WUBRG)
+			/** @type {Record<string, number>} */
+			const cardPips = { GEN: 0, C: 0, W: 0, U: 0, B: 0, R: 0, G: 0 };
 			let cardPipsTotal = 0;
 			const cost = stats.manaCost;
 			const matches = cost.match(/\{([^}]+)\}/g) || [];
 			matches.forEach((/** @type {string} */ sym) => {
 				const clean = sym.replace(/[{}]/g, "").toUpperCase();
 				if (clean === "W") {
-					buckets[idx].pips.W += qty;
-					buckets[idx].totalPips += qty;
-					cardPipsTotal += qty;
+					cardPips.W += 1;
+					cardPipsTotal += 1;
 				} else if (clean === "U") {
-					buckets[idx].pips.U += qty;
-					buckets[idx].totalPips += qty;
-					cardPipsTotal += qty;
+					cardPips.U += 1;
+					cardPipsTotal += 1;
 				} else if (clean === "B") {
-					buckets[idx].pips.B += qty;
-					buckets[idx].totalPips += qty;
-					cardPipsTotal += qty;
+					cardPips.B += 1;
+					cardPipsTotal += 1;
 				} else if (clean === "R") {
-					buckets[idx].pips.R += qty;
-					buckets[idx].totalPips += qty;
-					cardPipsTotal += qty;
+					cardPips.R += 1;
+					cardPipsTotal += 1;
 				} else if (clean === "G") {
-					buckets[idx].pips.G += qty;
-					buckets[idx].totalPips += qty;
-					cardPipsTotal += qty;
+					cardPips.G += 1;
+					cardPipsTotal += 1;
 				} else if (clean === "C") {
-					buckets[idx].pips.C += qty;
-					buckets[idx].totalPips += qty;
-					cardPipsTotal += qty;
+					cardPips.C += 1;
+					cardPipsTotal += 1;
 				} else if (!isNaN(Number(clean)) && Number(clean) > 0) {
-					const genVal = Number(clean) * qty;
-					buckets[idx].pips.GEN += genVal;
-					buckets[idx].totalPips += genVal;
+					const genVal = Number(clean);
+					cardPips.GEN += genVal;
 					cardPipsTotal += genVal;
 				} else if (clean.includes("/")) {
 					const [a, b] = clean.split("/");
 					if (b === "P") {
-						if (buckets[idx].pips[a] !== undefined) {
-							buckets[idx].pips[a] += qty;
-							buckets[idx].totalPips += qty;
-							cardPipsTotal += qty;
+						if (cardPips[a] !== undefined) {
+							cardPips[a] += 1;
+							cardPipsTotal += 1;
 						}
 					} else if (a === "2") {
-						if (buckets[idx].pips[b] !== undefined) {
-							buckets[idx].pips[b] += qty;
-							buckets[idx].totalPips += qty;
+						if (cardPips[b] !== undefined) {
+							cardPips[b] += 1;
 						}
-						buckets[idx].pips.GEN += qty;
-						buckets[idx].totalPips += qty;
-						cardPipsTotal += qty * 2;
+						cardPips.GEN += 1;
+						cardPipsTotal += 2;
 					} else {
-						if (buckets[idx].pips[a] !== undefined) {
-							buckets[idx].pips[a] += qty * 0.5;
-							buckets[idx].totalPips += qty * 0.5;
-						}
-						if (buckets[idx].pips[b] !== undefined) {
-							buckets[idx].pips[b] += qty * 0.5;
-							buckets[idx].totalPips += qty * 0.5;
-						}
-						cardPipsTotal += qty;
+						if (cardPips[a] !== undefined) cardPips[a] += 0.5;
+						if (cardPips[b] !== undefined) cardPips[b] += 0.5;
+						cardPipsTotal += 1;
 					}
 				}
 			});
 
-			// If a card has CMC > 0 but has no mana cost string or an override
-			// (e.g. Inevitable Betrayal, suspend cards, custom overrides),
-			// attribute remaining CMC to generic mana so bucket totals always equal card mana values
-			const expectedTotal = stats.cmc * qty;
-			if (expectedTotal > cardPipsTotal) {
-				const diff = expectedTotal - cardPipsTotal;
-				buckets[idx].pips.GEN += diff;
-				buckets[idx].totalPips += diff;
+			// If a card has CMC > 0 and remaining mana (e.g. no mana cost string or overrides),
+			// attribute remaining CMC to generic mana
+			const expectedCardCost = stats.cmc > 0 ? stats.cmc : cardPipsTotal;
+			if (expectedCardCost > cardPipsTotal) {
+				const diff = expectedCardCost - cardPipsTotal;
+				cardPips.GEN += diff;
+				cardPipsTotal += diff;
+			}
+
+			// Add raw pips to bucket (multiplied by qty)
+			for (const [col, val] of Object.entries(cardPips)) {
+				buckets[idx].pips[col] += val * qty;
+				buckets[idx].totalPips += val * qty;
+			}
+
+			// Proportional mana share: space awarded to each mana pip is proportional to the card's cost
+			// (e.g. a card costing 5WW has 2/7 white and 5/7 generic)
+			if (cardPipsTotal > 0) {
+				for (const [col, val] of Object.entries(cardPips)) {
+					const share = (val / cardPipsTotal) * qty;
+					buckets[idx].pipsShare[col] += share;
+				}
+			} else {
+				buckets[idx].pipsShare.GEN += qty;
 			}
 		});
 
@@ -1231,14 +1242,15 @@
 											<div class="bar-segment type-planeswalker" style="height: {(bucket.types.planeswalkers / bucket.total) * 100}%;"></div>
 										{/if}
 									{:else if curveGroupingMode === "pips"}
-										<!-- By Mana Breakdown (Generic, Colorless, WUBRG) -->
+										<!-- By Mana Breakdown (Generic, Colorless, WUBRG) proportional to card cost -->
 										{#each cmcData.activePipColors as col}
 											{@const count = (/** @type {Record<string, number>} */ (bucket.pips))[col.code] || 0}
-											{#if count > 0}
+											{@const share = (/** @type {Record<string, number>} */ (bucket.pipsShare))[col.code] || 0}
+											{#if share > 0}
 												<div
 													class="bar-segment pip-segment-{col.code.toLowerCase()}"
-													style="height: {(count / bucket.totalPips) * 100}%; background-color: {col.color};"
-													title="{count} {col.name} Mana"
+													style="height: {(share / bucket.total) * 100}%; background-color: {col.color};"
+													title="{count} {col.name} Mana ({bucket.total > 0 ? Math.round((share / bucket.total) * 100) : 0}% of {bucket.cmc === 7 ? '7+' : bucket.cmc}-drops)"
 												></div>
 											{/if}
 										{/each}
