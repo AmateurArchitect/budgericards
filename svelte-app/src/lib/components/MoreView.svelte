@@ -663,14 +663,18 @@
 
 <svelte:window onclick={handleDocumentClick} />
 
-<div class="more-container" class:sample-hand-mode={settingsStore.statsSubTab === "sample-hand"}>
+<div
+	class="more-container"
+	class:sample-hand-mode={settingsStore.statsSubTab === "sample-hand"}
+>
 	{#if settingsStore.statsSubTab === "sample-hand"}
 		<!-- Sample Hand Simulator (Arena-style Fan) -->
 		<div class="arena-hand-view">
 			<div class="arena-controls-bar">
 				<div class="arena-hand-meta">
 					<span class="hand-count-text"
-						>{hand.length} {hand.length === 1 ? "Card" : "Cards"} in Hand</span
+						>{hand.length}
+						{hand.length === 1 ? "Card" : "Cards"} in Hand</span
 					>
 				</div>
 
@@ -690,7 +694,12 @@
 						disabled={mulliganCount >= 7}
 						title="Mulligan hand"
 					>
-						<span>Mulligan to {Math.max(0, 7 - (mulliganCount + 1))}</span>
+						<span
+							>Mulligan to {Math.max(
+								0,
+								7 - (mulliganCount + 1),
+							)}</span
+						>
 					</button>
 
 					<button
@@ -1137,7 +1146,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding: 0.25rem 1rem 2rem;
+		padding: 1rem 2rem;
 		position: relative;
 	}
 
