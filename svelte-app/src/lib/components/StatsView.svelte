@@ -1070,9 +1070,41 @@
 				</div>
 			</div>
 
-			<!-- Main Dual Layout: Mana Curve Chart + Cards Drawer side by side -->
+			<!-- Main 3-Column Layout: Stats Card (Left), Mana Curve Chart (Center), Cards Drawer (Right) -->
 			<div class="curve-main-layout">
-				<!-- Mana Curve Chart Card -->
+				<!-- Left Column: Curve Stats Card -->
+				<div class="curve-stats-column">
+					<div class="stats-column-header">
+						<h4>Curve Insights</h4>
+					</div>
+					<div class="stats-column-body">
+						<div class="stats-column-item">
+							<span class="stats-item-label">Average Non-Land CMC</span>
+							<span class="stats-item-value">{curveStats.avgNonLand}</span>
+						</div>
+						<div class="stats-column-item">
+							<span class="stats-item-label">Median CMC</span>
+							<span class="stats-item-value">{curveStats.median}</span>
+						</div>
+						<div class="stats-column-item">
+							<span class="stats-item-label">Peak Turn / Mode</span>
+							<span class="stats-item-value">
+								CMC {curveStats.peakCmc}
+								<span class="stats-item-sub">({curveStats.peakCount} cards)</span>
+							</span>
+						</div>
+						<div class="stats-column-item">
+							<span class="stats-item-label">
+								{curveGroupingMode === 'pips' ? 'Total Colored Pips' : 'Total Spell Mana Value'}
+							</span>
+							<span class="stats-item-value">
+								{curveGroupingMode === 'pips' ? curveStats.totalPipsSum : curveStats.totalCmcSum}
+							</span>
+						</div>
+					</div>
+				</div>
+
+				<!-- Center Column: Mana Curve Chart Card -->
 				<div class="curve-chart-card">
 					<div class="chart-legend-row">
 						{#if curveGroupingMode === "creatures"}
@@ -1179,7 +1211,7 @@
 					</div>
 				</div>
 
-				<!-- Interactive CMC Inspector Drawer / Preview Stack -->
+				<!-- Right Column: Interactive CMC Inspector Drawer / Preview Stack -->
 				<div class="curve-cards-drawer">
 					<div class="drawer-header">
 						<h4>
@@ -1233,26 +1265,6 @@
 							</div>
 						{/each}
 					</div>
-				</div>
-			</div>
-
-			<!-- Curve Stats Bar (Below Both) -->
-			<div class="curve-stats-bar">
-				<div class="stats-bar-item">
-					<span class="stats-bar-label">Average Non-Land CMC</span>
-					<span class="stats-bar-value">{curveStats.avgNonLand}</span>
-				</div>
-				<div class="stats-bar-item">
-					<span class="stats-bar-label">Median CMC</span>
-					<span class="stats-bar-value">{curveStats.median}</span>
-				</div>
-				<div class="stats-bar-item">
-					<span class="stats-bar-label">Peak Turn / Mode</span>
-					<span class="stats-bar-value">CMC {curveStats.peakCmc} ({curveStats.peakCount} cards)</span>
-				</div>
-				<div class="stats-bar-item">
-					<span class="stats-bar-label">{curveGroupingMode === 'pips' ? 'Total Colored Pips' : 'Total Spell Mana Value'}</span>
-					<span class="stats-bar-value">{curveGroupingMode === 'pips' ? curveStats.totalPipsSum : curveStats.totalCmcSum}</span>
 				</div>
 			</div>
 		</div>
@@ -1919,14 +1931,37 @@
 
 	.curve-main-layout {
 		display: grid;
-		grid-template-columns: 1fr 380px;
+		grid-template-columns: 240px 1fr 340px;
 		gap: 1.25rem;
 		align-items: stretch;
 	}
 
-	@media (max-width: 950px) {
+	@media (max-width: 1180px) {
+		.curve-main-layout {
+			grid-template-columns: 1fr 340px;
+		}
+
+		.curve-stats-column {
+			grid-column: 1 / -1;
+			min-height: auto !important;
+			max-height: none !important;
+		}
+
+		.stats-column-body {
+			display: grid !important;
+			grid-template-columns: repeat(4, 1fr) !important;
+			gap: 1.5rem !important;
+		}
+	}
+
+	@media (max-width: 820px) {
 		.curve-main-layout {
 			grid-template-columns: 1fr;
+		}
+
+		.stats-column-body {
+			grid-template-columns: repeat(2, 1fr) !important;
+			gap: 1rem !important;
 		}
 	}
 
@@ -2196,33 +2231,52 @@
 		margin: 0 1px;
 	}
 
-	/* Stats Bar Below Both */
-	.curve-stats-bar {
+	/* Left Column: Curve Stats Card */
+	.curve-stats-column {
 		background: hsl(var(--card) / 0.45);
 		backdrop-filter: blur(12px);
 		border: 1px solid hsl(var(--border) / 0.5);
 		border-radius: var(--radius-xl, 16px);
-		padding: 1rem 1.5rem;
-		display: grid;
-		grid-template-columns: repeat(4, 1fr);
-		align-items: center;
-		gap: 1.5rem;
+		padding: 1.25rem 1.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		height: 100%;
+		min-height: 320px;
+		max-height: 320px;
 		box-sizing: border-box;
 	}
 
-	@media (max-width: 768px) {
-		.curve-stats-bar {
-			grid-template-columns: repeat(2, 1fr);
-		}
+	.stats-column-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding-bottom: 0.5rem;
+		border-bottom: 1px solid hsl(var(--border) / 0.3);
 	}
 
-	.stats-bar-item {
+	.stats-column-header h4 {
+		margin: 0;
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+	}
+
+	.stats-column-body {
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		flex: 1;
+		gap: 0.5rem;
+	}
+
+	.stats-column-item {
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;
 	}
 
-	.stats-bar-label {
+	.stats-item-label {
 		font-size: 0.75rem;
 		font-weight: 600;
 		color: hsl(var(--muted-foreground));
@@ -2231,12 +2285,21 @@
 		white-space: nowrap;
 	}
 
-	.stats-bar-value {
+	.stats-item-value {
 		font-size: 1.125rem;
 		font-weight: 700;
 		color: hsl(var(--foreground));
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
+		display: flex;
+		align-items: baseline;
+		gap: 0.35rem;
+	}
+
+	.stats-item-sub {
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
 	}
 
 	/* 3. CARD TYPES SECTION STYLES */
