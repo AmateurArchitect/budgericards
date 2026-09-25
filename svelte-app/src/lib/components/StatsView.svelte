@@ -111,6 +111,10 @@
 	 * @param {any} [card]
 	 */
 	function getCardTypeColor(typeLine = "", card = null) {
+		if (curveGroupingMode === "pips") {
+			return "hsl(var(--muted-foreground))";
+		}
+
 		const isCreature =
 			card?.overrides?.creature !== undefined
 				? card.overrides.creature
