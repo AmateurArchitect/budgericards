@@ -326,12 +326,12 @@
 
 		/** @type {Record<string, { name: string, color: string, code: string }>} */
 		const pipColorsMap = {
-			W: { name: "White", color: "#FFFBD5", code: "W" },
-			U: { name: "Blue", color: "#AAE0FA", code: "U" },
-			B: { name: "Black", color: "#CBC2BF", code: "B" },
-			R: { name: "Red", color: "#F9AA8F", code: "R" },
-			G: { name: "Green", color: "#9BD3AE", code: "G" },
-			C: { name: "Colorless", color: "#CCC2C0", code: "C" },
+			W: { name: "White", color: "#D6D3B3", code: "W" },
+			U: { name: "Blue", color: "#538CA7", code: "U" },
+			B: { name: "Black", color: "#5F5457", code: "B" },
+			R: { name: "Red", color: "#B36450", code: "R" },
+			G: { name: "Green", color: "#60906A", code: "G" },
+			C: { name: "Colorless", color: "#9E9792", code: "C" },
 		};
 
 		const activePipColors = ["W", "U", "B", "R", "G", "C"]
@@ -2008,12 +2008,12 @@
 	.type-artifact { background: #94a3b8 !important; }
 	.type-enchantment { background: #ec4899 !important; }
 	.type-planeswalker { background: #a855f7 !important; }
-	.pip-segment-w { background: #FFFBD5 !important; }
-	.pip-segment-u { background: #AAE0FA !important; }
-	.pip-segment-b { background: #CBC2BF !important; }
-	.pip-segment-r { background: #F9AA8F !important; }
-	.pip-segment-g { background: #9BD3AE !important; }
-	.pip-segment-c { background: #CCC2C0 !important; }
+	.pip-segment-w { background: #D6D3B3 !important; }
+	.pip-segment-u { background: #538CA7 !important; }
+	.pip-segment-b { background: #5F5457 !important; }
+	.pip-segment-r { background: #B36450 !important; }
+	.pip-segment-g { background: #60906A !important; }
+	.pip-segment-c { background: #9E9792 !important; }
 
 	.arena-bar-chart-container {
 		display: flex;
