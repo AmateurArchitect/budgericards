@@ -361,6 +361,8 @@
 				price: c.price || 0,
 				cmc: stats.cmc,
 				overrides: c.overrides,
+				colors: stats.colors || [],
+				colorIdentity: stats.colorIdentity || [],
 			});
 
 			const isCreature =
@@ -502,29 +504,70 @@
 
 	// Cards displayed in the Mana Curve inspector drawer
 	const drawerCards = $derived.by(() => {
-		if (selectedCmc !== null) {
-			const selectedBucket = cmcData.buckets.find((b) => b.key === selectedCmc);
-			return selectedBucket?.cards || [];
+		if (selectedCmc === null) {
+			return [];
 		}
-		// When no CMC bar is selected, show all active non-land spells sorted by CMC then name
-		return activeCards
-			.filter((c) => {
-				const stats = getCardStats(c);
-				return !stats.typeLine.toLowerCase().includes("land");
-			})
-			.map((c) => {
-				const stats = getCardStats(c);
-				return {
-					name: c.name,
-					qty: c.quantity || 1,
-					mana_cost: stats.manaCost,
-					type_line: stats.typeLine,
-					price: c.price || 0,
-					cmc: stats.cmc,
-					overrides: c.overrides,
-				};
-			})
-			.sort((a, b) => a.cmc - b.cmc || a.name.localeCompare(b.name));
+		const selectedBucket = cmcData.buckets.find((b) => b.key === selectedCmc);
+		const cards = [...(selectedBucket?.cards || [])];
+
+		if (curveGroupingMode === "creatures") {
+			cards.sort((a, b) => {
+				const aCreature =
+					a.overrides?.creature !== undefined
+						? a.overrides.creature
+						: (a.type_line || "").toLowerCase().includes("creature");
+				const bCreature =
+					b.overrides?.creature !== undefined
+						? b.overrides.creature
+						: (b.type_line || "").toLowerCase().includes("creature");
+				if (aCreature !== bCreature) return aCreature ? -1 : 1;
+				return a.name.localeCompare(b.name);
+			});
+		} else if (curveGroupingMode === "types") {
+			const getTypeRank = (c) => {
+				const isCreature =
+					c.overrides?.creature !== undefined
+						? c.overrides.creature
+						: (c.type_line || "").toLowerCase().includes("creature");
+				if (isCreature) return 1;
+				const lower = (c.type_line || "").toLowerCase();
+				if (lower.includes("instant")) return 2;
+				if (lower.includes("sorcery")) return 3;
+				if (lower.includes("artifact")) return 4;
+				if (lower.includes("enchantment")) return 5;
+				if (lower.includes("planeswalker")) return 6;
+				if (lower.includes("battle")) return 7;
+				return 8;
+			};
+			cards.sort((a, b) => {
+				const diff = getTypeRank(a) - getTypeRank(b);
+				if (diff !== 0) return diff;
+				return a.name.localeCompare(b.name);
+			});
+		} else if (curveGroupingMode === "pips") {
+			const getPipRank = (c) => {
+				const colors = c.colors || [];
+				if (colors.length === 0) {
+					const cost = c.mana_cost || "";
+					return cost.includes("{C}") ? 2 : 1; // 1: Generic, 2: Colorless
+				}
+				if (colors.length === 1) {
+					const col = colors[0];
+					if (col === "W") return 3;
+					if (col === "U") return 4;
+					if (col === "B") return 5;
+					if (col === "R") return 6;
+					if (col === "G") return 7;
+				}
+				return 8; // Multicolor
+			};
+			cards.sort((a, b) => {
+				const diff = getPipRank(a) - getPipRank(b);
+				if (diff !== 0) return diff;
+				return a.name.localeCompare(b.name);
+			});
+		}
+		return cards;
 	});
 
 	// Curve summary stats
@@ -1195,7 +1238,6 @@
 		<div class="section-content-wrapper">
 			<div class="section-header-row">
 				<div class="title-group">
-					<span class="section-eyebrow">DISTRIBUTION</span>
 					<h2 class="section-heading">Mana Curve</h2>
 				</div>
 
@@ -1224,13 +1266,10 @@
 				</div>
 			</div>
 
-			<!-- Main 3-Column Layout: Stats Card (Left), Mana Curve Chart (Center), Cards Drawer (Right) -->
-			<div class="curve-main-layout">
+			<!-- Main Layout: Stats (Left), Mana Curve Chart (Center), Cards Drawer (Right when selected) -->
+			<div class="curve-main-layout" class:has-selection={selectedCmc !== null}>
 				<!-- Left Column: Curve Stats Card -->
 				<div class="curve-stats-column">
-					<div class="stats-column-header">
-						<h4>Curve Insights</h4>
-					</div>
 					<div class="stats-column-body">
 						<div class="stats-column-item">
 							<span class="stats-item-label">Average Non-Land CMC</span>
@@ -1365,61 +1404,57 @@
 				</div>
 
 				<!-- Right Column: Interactive CMC Inspector Drawer / Preview Stack -->
-				<div class="curve-cards-drawer">
-					<div class="drawer-header">
-						<h4>
-							{#if selectedCmc !== null}
-								{@const selectedBucket = cmcData.buckets.find((b) => b.key === selectedCmc)}
+				{#if selectedCmc !== null}
+					{@const selectedBucket = cmcData.buckets.find((b) => b.key === selectedCmc)}
+					<div class="curve-cards-drawer">
+						<div class="drawer-header">
+							<h4>
 								Cards with CMC {selectedBucket?.shortLabel || selectedCmc} ({drawerCards.length})
-							{:else}
-								All Non-Land Spells ({drawerCards.length})
-							{/if}
-						</h4>
-						{#if selectedCmc !== null}
-							<button class="clear-btn" onclick={() => (selectedCmc = null)}>View All</button>
-						{/if}
-					</div>
+							</h4>
+							<button class="clear-btn" onclick={() => (selectedCmc = null)} title="Close card list">Close</button>
+						</div>
 
-					<div class="drawer-cards-list">
-						{#each drawerCards as card}
-							{@const manaCostStr = card.mana_cost || getMeta(card.name).mana_cost || ""}
-							{@const typeLine = card.type_line || getCardStats(card).typeLine}
-							{@const typeIcon = getCardTypeIcon(typeLine, card)}
-							{@const tooltipImg = getCardTooltipImg(card.name)}
-							{@const tooltipImgs = getCardTooltipImgs(card.name)}
-							<div
-								class="drawer-card-item"
-								data-tooltip-img={tooltipImgs ? undefined : (tooltipImg || undefined)}
-								data-tooltip-imgs={tooltipImgs || undefined}
-							>
-								<div class="card-name-qty">
-									<span class="card-qty">{card.qty || 1}x</span>
-									<span class="card-name">{card.name}</span>
+						<div class="drawer-cards-list">
+							{#each drawerCards as card}
+								{@const manaCostStr = card.mana_cost || getMeta(card.name).mana_cost || ""}
+								{@const typeLine = card.type_line || getCardStats(card).typeLine}
+								{@const typeIcon = getCardTypeIcon(typeLine, card)}
+								{@const tooltipImg = getCardTooltipImg(card.name)}
+								{@const tooltipImgs = getCardTooltipImgs(card.name)}
+								<div
+									class="drawer-card-item"
+									data-tooltip-img={tooltipImgs ? undefined : (tooltipImg || undefined)}
+									data-tooltip-imgs={tooltipImgs || undefined}
+								>
+									<div class="card-name-qty">
+										<span class="card-qty">{card.qty || 1}x</span>
+										<span class="card-name">{card.name}</span>
+									</div>
+									<div class="card-cost-and-type">
+										{#if manaCostStr}
+											<div class="card-mana-pips">
+												{#each parseManaCost(manaCostStr) as sym}
+													{#if sym === "//"}
+														<span class="mana-slash">//</span>
+													{:else}
+														<ManaSymbol symbol={sym} size="14px" />
+													{/if}
+												{/each}
+											</div>
+										{/if}
+										{#if typeIcon}
+											<i
+												class="ms {typeIcon} card-type-icon"
+												style="color: {getCardTypeColor(typeLine, card)};"
+												title={typeLine}
+											></i>
+										{/if}
+									</div>
 								</div>
-								<div class="card-cost-and-type">
-									{#if manaCostStr}
-										<div class="card-mana-pips">
-											{#each parseManaCost(manaCostStr) as sym}
-												{#if sym === "//"}
-													<span class="mana-slash">//</span>
-												{:else}
-													<ManaSymbol symbol={sym} size="14px" />
-												{/if}
-											{/each}
-										</div>
-									{/if}
-									{#if typeIcon}
-										<i
-											class="ms {typeIcon} card-type-icon"
-											style="color: {getCardTypeColor(typeLine, card)};"
-											title={typeLine}
-										></i>
-									{/if}
-								</div>
-							</div>
-						{/each}
+							{/each}
+						</div>
 					</div>
-				</div>
+				{/if}
 			</div>
 		</div>
 	</section>
@@ -2085,14 +2120,23 @@
 
 	.curve-main-layout {
 		display: grid;
-		grid-template-columns: 240px 1fr 340px;
-		gap: 1.25rem;
+		grid-template-columns: 200px 1fr;
+		gap: 3.5rem;
 		align-items: stretch;
+	}
+
+	.curve-main-layout.has-selection {
+		grid-template-columns: 200px 1fr 370px;
 	}
 
 	@media (max-width: 1180px) {
 		.curve-main-layout {
-			grid-template-columns: 1fr 340px;
+			grid-template-columns: 1fr;
+			gap: 1.5rem;
+		}
+
+		.curve-main-layout.has-selection {
+			grid-template-columns: 1fr 370px;
 		}
 
 		.curve-stats-column {
@@ -2109,7 +2153,8 @@
 	}
 
 	@media (max-width: 820px) {
-		.curve-main-layout {
+		.curve-main-layout,
+		.curve-main-layout.has-selection {
 			grid-template-columns: 1fr;
 		}
 
@@ -2120,25 +2165,21 @@
 	}
 
 	.curve-chart-card {
-		background: hsl(var(--card) / 0.45);
-		backdrop-filter: blur(12px);
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-xl, 16px);
-		padding: 1.25rem 1.5rem;
 		display: flex;
 		flex-direction: column;
 		justify-content: space-between;
 		gap: 0.75rem;
 		box-sizing: border-box;
-		min-height: 320px;
+		min-height: 270px;
 	}
 
 	.chart-legend-row {
 		display: flex;
 		align-items: center;
-		justify-content: center;
+		justify-content: flex-start;
+		padding-left: 0.25rem;
 		flex-wrap: wrap;
-		gap: 1rem;
+		gap: 1.25rem;
 		font-size: 0.75rem;
 		color: hsl(var(--muted-foreground));
 	}
@@ -2204,7 +2245,7 @@
 	.bar-track {
 		width: 100%;
 		max-width: 64px;
-		border-radius: 6px 6px 0 0;
+		border-radius: 6px;
 		overflow: hidden;
 		display: flex;
 		flex-direction: column-reverse;
@@ -2257,17 +2298,12 @@
 
 	/* Card Preview Stack Drawer */
 	.curve-cards-drawer {
-		background: hsl(var(--card) / 0.45);
-		backdrop-filter: blur(12px);
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-xl, 16px);
-		padding: 1.25rem 1.5rem;
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: 0.5rem;
 		height: 100%;
-		min-height: 320px;
-		max-height: 320px;
+		min-height: 270px;
+		max-height: 280px;
 		box-sizing: border-box;
 	}
 
@@ -2275,8 +2311,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding-bottom: 0.5rem;
-		border-bottom: 1px solid hsl(var(--border) / 0.3);
+		padding-bottom: 0.25rem;
 	}
 
 	.drawer-header h4 {
@@ -2288,10 +2323,10 @@
 
 	.clear-btn {
 		background: transparent;
-		border: 1px solid hsl(var(--border));
+		border: 1px solid hsl(var(--border) / 0.6);
 		color: hsl(var(--muted-foreground));
 		font-size: 0.75rem;
-		padding: 0.25rem 0.5rem;
+		padding: 0.15rem 0.5rem;
 		border-radius: var(--radius-sm);
 		cursor: pointer;
 		transition: all 0.15s ease;
@@ -2306,7 +2341,7 @@
 		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: 0.2rem;
 		padding-right: 0.25rem;
 		flex: 1;
 	}
@@ -2315,18 +2350,18 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0.5rem 0.75rem;
-		background: hsl(var(--secondary) / 0.35);
-		border-radius: var(--radius-md);
+		padding: 0.25rem 0.35rem;
+		background: transparent;
+		border-radius: var(--radius-sm);
 		font-size: 0.8125rem;
 		gap: 0.75rem;
 		cursor: pointer;
-		transition: background 0.15s ease, transform 0.1s ease;
+		transition: background 0.15s ease;
 		user-select: none;
 	}
 
 	.drawer-card-item:hover {
-		background: hsl(var(--secondary) / 0.75);
+		background: hsl(var(--secondary) / 0.5);
 	}
 
 	.card-name-qty {
@@ -2388,33 +2423,12 @@
 
 	/* Left Column: Curve Stats Card */
 	.curve-stats-column {
-		background: hsl(var(--card) / 0.45);
-		backdrop-filter: blur(12px);
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-xl, 16px);
-		padding: 1.25rem 1.5rem;
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
 		height: 100%;
-		min-height: 320px;
-		max-height: 320px;
+		min-height: 270px;
+		max-height: 280px;
 		box-sizing: border-box;
-	}
-
-	.stats-column-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding-bottom: 0.5rem;
-		border-bottom: 1px solid hsl(var(--border) / 0.3);
-	}
-
-	.stats-column-header h4 {
-		margin: 0;
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
 	}
 
 	.stats-column-body {
