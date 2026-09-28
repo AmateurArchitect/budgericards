@@ -1086,83 +1086,7 @@
 		};
 	}
 
-	function getEdgeGeometry(cx, cy, rOuter, rInner, gap, cornerRadius, angleDeg, isStartEdge, isFirst, isLast) {
-		const shift = (isStartEdge && isFirst) || (!isStartEdge && isLast) ? 0 : gap / 2;
-		const rad = (angleDeg * Math.PI) / 180;
-		
-		const u = { x: Math.cos(rad), y: Math.sin(rad) };
-		const n = isStartEdge ? { x: -Math.sin(rad), y: Math.cos(rad) } : { x: Math.sin(rad), y: -Math.cos(rad) };
 
-		const dPrime = shift + cornerRadius;
-
-		const rPrimeOut = rOuter - cornerRadius;
-		const tOut = Math.sqrt(rPrimeOut ** 2 - dPrime ** 2);
-		const ccOut = { x: cx + dPrime * n.x + tOut * u.x, y: cy + dPrime * n.y + tOut * u.y };
-
-		const rPrimeIn = rInner + cornerRadius;
-		const tIn = Math.sqrt(rPrimeIn ** 2 - dPrime ** 2);
-		const ccIn = { x: cx + dPrime * n.x + tIn * u.x, y: cy + dPrime * n.y + tIn * u.y };
-
-		return {
-			pLineOut: { x: ccOut.x - cornerRadius * n.x, y: ccOut.y - cornerRadius * n.y },
-			pLineIn:  { x: ccIn.x - cornerRadius * n.x, y: ccIn.y - cornerRadius * n.y },
-			pArcOut:  { x: cx + rOuter * (ccOut.x - cx) / rPrimeOut, y: cy + rOuter * (ccOut.y - cy) / rPrimeOut },
-			pArcIn:   { x: cx + rInner * (ccIn.x - cx) / rPrimeIn, y: cy + rInner * (ccIn.y - cy) / rPrimeIn }
-		};
-	}
-
-	function buildGeometricRing(list, valueKey, totalValue, cx, cy, rOuter, rInner, gap, cornerRadius) {
-		if (totalValue === 0) return [];
-		
-		let angle = 180;
-		return list.map((c, i) => {
-			const val = c[valueKey];
-			if (val === 0) return { ...c, d: "" };
-			
-			const span = (val / totalValue) * 180;
-			const isFirst = (i === 0);
-			const isLast = (i === list.length - 1);
-			
-			// If span is tiny, just return empty to avoid math errors with fillet
-			if (span < 1) {
-				angle += span;
-				return { ...c, d: "" };
-			}
-			
-			const start = getEdgeGeometry(cx, cy, rOuter, rInner, gap, cornerRadius, angle, true, isFirst, isLast);
-			const end = getEdgeGeometry(cx, cy, rOuter, rInner, gap, cornerRadius, angle + span, false, isFirst, isLast);
-			
-			const d = `M ${start.pArcOut.x} ${start.pArcOut.y} ` +
-					  `A ${rOuter} ${rOuter} 0 0 1 ${end.pArcOut.x} ${end.pArcOut.y} ` +
-					  `A ${cornerRadius} ${cornerRadius} 0 0 1 ${end.pLineOut.x} ${end.pLineOut.y} ` +
-					  `L ${end.pLineIn.x} ${end.pLineIn.y} ` +
-					  `A ${cornerRadius} ${cornerRadius} 0 0 1 ${end.pArcIn.x} ${end.pArcIn.y} ` +
-					  `A ${rInner} ${rInner} 0 0 0 ${start.pArcIn.x} ${start.pArcIn.y} ` +
-					  `A ${cornerRadius} ${cornerRadius} 0 0 1 ${start.pLineIn.x} ${start.pLineIn.y} ` +
-					  `L ${start.pLineOut.x} ${start.pLineOut.y} ` +
-					  `A ${cornerRadius} ${cornerRadius} 0 0 1 ${start.pArcOut.x} ${start.pArcOut.y} Z`;
-					  
-			angle += span;
-			return { ...c, d };
-		});
-	}
-
-	const colorsArcData = $derived.by(() => {
-		const pipsList = colorBreakdownData.colorList.filter(c => c.pipCount > 0);
-		const sourcesList = colorBreakdownData.colorList.filter(c => c.sourceCount > 0);
-		
-		const gap = 4; 
-		const cornerRadius = 3;
-		
-		// SVG viewBox is 0 0 200 100, center is 100, 95
-		const cx = 100;
-		const cy = 95;
-		
-		const pipsArcs = buildGeometricRing(pipsList, "pipCount", colorBreakdownData.totalPips, 92, 78, gap, cornerRadius);
-		const sourcesArcs = buildGeometricRing(sourcesList, "sourceCount", colorBreakdownData.totalSources, 74, 60, gap, cornerRadius);
-		
-		return { pipsArcs, sourcesArcs };
-	});
 </script>
 
 <div class="stats-root-container">
@@ -1317,48 +1241,46 @@
 						{/if}
 					</div>
 
-					<div class="colors-body-content" style="display: flex; flex-direction: column; gap: 1.5rem; padding-top: 1rem; align-items: center;">
-						<!-- Half-Donut Chart (Double Ring) -->
-						<div class="gauge-chart-container" style="position: relative; width: 200px; height: 100px;">
-							<svg viewBox="0 0 200 100" style="width: 100%; height: 100%; overflow: visible;">
-								<!-- Track backgrounds (optional, for subtle track) -->
-								
-								
-								
-								<!-- Pips (Outer Ring) -->
-								{#each colorsArcData.pipsArcs as arc}
-									{#if arc.d}
-										<path d={arc.d} fill={arc.color} />
-									{/if}
-								{/each}
-
-								<!-- Sources (Inner Ring) -->
-								{#each colorsArcData.sourcesArcs as arc}
-									{#if arc.d}
-										<path d={arc.d} fill={arc.color} opacity="0.8" />
-									{/if}
-								{/each}
-							</svg>
-							
-							<div class="gauge-center-text" style="position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; display: flex; flex-direction: column;">
-								<span style="font-size: 28px; font-weight: 700; color: #f8fafc; line-height: 1.1;">{colorBreakdownData.totalPips}</span>
-								<span style="font-size: 13px; color: #94a3b8; font-weight: 500;">Pips</span>
+					<div class="colors-body-content">
+						<div class="colors-list-scroll">
+							<!-- Header row for the stats columns -->
+							<div class="colors-list-header" style="display: flex; justify-content: flex-end; padding-right: 0.5rem; margin-bottom: 0.5rem; gap: 1rem; font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+								<span style="width: 45px; text-align: right;">Cost</span>
+								<span style="width: 45px; text-align: right;">Srcs</span>
 							</div>
-						</div>
-
-						<!-- Legend List -->
-						<div class="colors-legend-list" style="width: 100%; display: flex; flex-direction: column; gap: 0.6rem;">
-							{#each colorBreakdownData.colorList.filter(c => c.pipCount > 0 || c.sourceCount > 0) as col}
-								<div class="color-legend-row" style="display: flex; align-items: center; justify-content: space-between; font-size: 14px;">
-									<div class="color-legend-left" style="display: flex; align-items: center; gap: 0.5rem;">
-										<div class="color-dot" style="width: 8px; height: 8px; border-radius: 50%; background-color: {col.color};"></div>
+							
+							{#each colorBreakdownData.colorList.filter((c) => c.pipCount > 0 || c.sourceCount > 0) as col}
+								<div class="color-row-item" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.35rem 0;">
+									<!-- Color Icon & Name -->
+									<div class="color-info" style="display: flex; align-items: center; gap: 0.5rem; width: 85px; flex-shrink: 0;">
 										<ManaSymbol symbol={col.symbol} size="16px" />
-										<span style="font-weight: 500; color: #f8fafc; margin-left: 0.25rem;">{col.name}</span>
+										<span class="color-name" style="font-weight: 500; font-size: 13px; color: #f8fafc; white-space: nowrap;">{col.name}</span>
 									</div>
-									<div class="color-legend-right" style="display: flex; align-items: center; gap: 0.75rem; color: #94a3b8;">
-										<span style="color: #f8fafc; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 24px; text-align: right;">{col.pipCount}</span>
-										<div class="vert-divider" style="width: 1px; height: 12px; background: rgba(255,255,255,0.1);"></div>
-										<span style="font-variant-numeric: tabular-nums; width: 36px; text-align: right;">{col.pipPct}%</span>
+									
+									<!-- Dual Bars Container -->
+									<div class="color-bars-group" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; justify-content: center;">
+										<!-- Pips / Cost Bar -->
+										<div class="color-progress-track" style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; position: relative;">
+											<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.pipPct}%; background-color: {col.color}; border-radius: 3px; transition: width 0.3s ease;"></div>
+										</div>
+										<!-- Sources / Production Bar -->
+										<div class="color-progress-track" style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; position: relative;">
+											<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.sourcePct}%; background-color: {col.color}; opacity: 0.65; border-radius: 3px; transition: width 0.3s ease;"></div>
+										</div>
+									</div>
+									
+									<!-- Stats columns -->
+									<div class="color-stats-group" style="display: flex; gap: 1rem; flex-shrink: 0;">
+										<!-- Cost Stats -->
+										<div class="stat-col" style="display: flex; flex-direction: column; align-items: flex-end; width: 45px; font-variant-numeric: tabular-nums;">
+											<span style="font-weight: 700; color: #f8fafc; font-size: 13px; line-height: 1.1;">{col.pipCount}</span>
+											<span style="font-size: 11px; color: #94a3b8; font-weight: 500;">{col.pipPct}%</span>
+										</div>
+										<!-- Srcs Stats -->
+										<div class="stat-col" style="display: flex; flex-direction: column; align-items: flex-end; width: 45px; font-variant-numeric: tabular-nums;">
+											<span style="font-weight: 700; color: #f8fafc; font-size: 13px; line-height: 1.1;">{col.sourceCount}</span>
+											<span style="font-size: 11px; color: #94a3b8; font-weight: 500;">{col.sourcePct}%</span>
+										</div>
 									</div>
 								</div>
 							{/each}
