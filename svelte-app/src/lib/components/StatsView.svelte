@@ -395,16 +395,7 @@
 			const cardPips = { GEN: 0, C: 0, W: 0, U: 0, B: 0, R: 0, G: 0 };
 			let cardPipsTotal = 0;
 			
-				const colorsForCard = stats.colors || [];
-				colorsForCard.forEach((col) => {
-					const c = col.toUpperCase();
-					if (pips[c]) pips[c].cardCount += qty;
-				});
-				if (stats.manaCost && stats.manaCost.includes("{C}")) {
-					pips.C.cardCount += qty;
-				}
-
-				const cost = stats.manaCost;
+			const cost = stats.manaCost;
 			const matches = cost.match(/\{([^}]+)\}/g) || [];
 			matches.forEach((/** @type {string} */ sym) => {
 				const clean = sym.replace(/[{}]/g, "").toUpperCase();
