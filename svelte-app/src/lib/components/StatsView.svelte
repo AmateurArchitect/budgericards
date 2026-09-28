@@ -1844,20 +1844,6 @@
 		flex-shrink: 0;
 	}
 
-	.color-progress-track {
-		flex: 1;
-		height: 6px;
-		background: rgba(255, 255, 255, 0.06);
-		border-radius: 3px;
-		overflow: hidden;
-	}
-
-	.color-progress-fill {
-		height: 100%;
-		border-radius: 3px;
-		transition: width 0.3s ease;
-	}
-
 	.color-count-badge {
 		display: flex;
 		align-items: baseline;
