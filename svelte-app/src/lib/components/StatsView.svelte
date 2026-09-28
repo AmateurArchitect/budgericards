@@ -1222,7 +1222,6 @@
 					<div class="bento-card-header">
 						<div class="title-group">
 							<h3>Colors</h3>
-							<span class="count-badge">{colorBreakdownData.totalPips} Mana Pips</span>
 						</div>
 						{#if deckColorIdentity().length > 0}
 							<div class="identity-symbols-row">
@@ -1233,7 +1232,48 @@
 						{/if}
 					</div>
 
-					<div class="colors-body-content">
+					<div class="colors-body-content" style="display: flex; flex-direction: column; gap: 1.5rem;">
+						<!-- TOP SECTION: Stacked Bars & Totals -->
+						<div class="master-bars-section" style="display: flex; flex-direction: column; gap: 1rem; padding-top: 0.5rem;">
+							
+							<!-- Cost Master Bar -->
+							<div class="master-bar-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
+								<div class="stacked-progress-track" style="height: 10px; background: rgba(255,255,255,0.05); border-radius: 5px; display: flex; overflow: hidden;">
+									{#each colorBreakdownData.colorList as col}
+										{#if col.pipPct > 0}
+											<div class="stacked-segment" style="width: {col.pipPct}%; background-color: {col.color};" title="{col.name} Cost"></div>
+										{/if}
+									{/each}
+								</div>
+								<div class="master-bar-stats" style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; font-weight: 500;">
+									<span style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Costs</span>
+									<div style="display: flex; gap: 0.75rem;">
+										<span><strong style="color: #f8fafc;">{colorBreakdownData.totalPips}</strong> Pips</span>
+										<span><strong style="color: #f8fafc;">{colorBreakdownData.monoColorCount + colorBreakdownData.multiColorCount}</strong> Cards</span>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Sources Master Bar -->
+							<div class="master-bar-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
+								<div class="stacked-progress-track" style="height: 10px; background: rgba(255,255,255,0.05); border-radius: 5px; display: flex; overflow: hidden; opacity: 0.8;">
+									{#each colorBreakdownData.colorList as col}
+										{#if col.sourcePct > 0}
+											<div class="stacked-segment" style="width: {col.sourcePct}%; background-color: {col.color};" title="{col.name} Sources"></div>
+										{/if}
+									{/each}
+								</div>
+								<div class="master-bar-stats" style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; font-weight: 500;">
+									<span style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Sources</span>
+									<span><strong style="color: #f8fafc;">{colorBreakdownData.totalSources}</strong> Total</span>
+								</div>
+							</div>
+
+						</div>
+
+						<hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 0;" />
+
+						<!-- BOTTOM SECTION: Individual Colors Breakdown (Percentages) -->
 						<div class="colors-list-scroll">
 							<!-- Legend header for the dual bars -->
 							<div class="colors-list-header" style="display: flex; justify-content: flex-end; padding-right: 0.25rem; margin-bottom: 0.75rem; gap: 0.75rem; font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
@@ -1250,28 +1290,26 @@
 											<span class="color-name" style="font-weight: 500; font-size: 13px; color: #f8fafc; white-space: nowrap;">{col.name}</span>
 										</div>
 										
-										<!-- Dual Bars & Stats -->
+										<!-- Dual Bars & Stats (Percentages Only) -->
 										<div class="color-bars-group" style="flex-grow: 1; display: flex; flex-direction: column; gap: 5px;">
 											
 											<!-- Cost Row -->
 											<div class="bar-stats-row" style="display: flex; align-items: center; gap: 0.75rem;">
-												<div class="color-progress-track" style="flex-grow: 1; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; position: relative;" title="{col.pipCount} {col.name} Cost">
+												<div class="color-progress-track" style="flex-grow: 1; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; position: relative;" title="{col.pipPct}% {col.name} Cost">
 													<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.pipPct}%; background-color: {col.color}; border-radius: 4px; transition: width 0.3s ease;"></div>
 												</div>
-												<div class="stat-col" style="display: flex; align-items: center; gap: 0.5rem; width: 55px; justify-content: flex-end; font-variant-numeric: tabular-nums;">
-													<span style="font-weight: 700; color: #f8fafc; font-size: 12px;">{col.pipCount}</span>
-													<span style="font-size: 11px; color: #94a3b8; font-weight: 500; width: 28px; text-align: right;">{col.pipPct}%</span>
+												<div class="stat-col" style="display: flex; align-items: center; gap: 0.5rem; width: 35px; justify-content: flex-end; font-variant-numeric: tabular-nums;">
+													<span style="font-weight: 700; color: #f8fafc; font-size: 12px; text-align: right; width: 100%;">{col.pipPct}%</span>
 												</div>
 											</div>
 											
 											<!-- Sources Row -->
 											<div class="bar-stats-row" style="display: flex; align-items: center; gap: 0.75rem;">
-												<div class="color-progress-track" style="flex-grow: 1; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; position: relative;" title="{col.sourceCount} {col.name} Sources">
+												<div class="color-progress-track" style="flex-grow: 1; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; position: relative;" title="{col.sourcePct}% {col.name} Sources">
 													<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.sourcePct}%; background-color: {col.color}; opacity: 0.5; border-radius: 4px; transition: width 0.3s ease;"></div>
 												</div>
-												<div class="stat-col" style="display: flex; align-items: center; gap: 0.5rem; width: 55px; justify-content: flex-end; font-variant-numeric: tabular-nums;">
-													<span style="font-weight: 700; color: #f8fafc; font-size: 12px;">{col.sourceCount}</span>
-													<span style="font-size: 11px; color: #94a3b8; font-weight: 500; width: 28px; text-align: right;">{col.sourcePct}%</span>
+												<div class="stat-col" style="display: flex; align-items: center; gap: 0.5rem; width: 35px; justify-content: flex-end; font-variant-numeric: tabular-nums;">
+													<span style="font-weight: 700; color: #f8fafc; font-size: 12px; text-align: right; width: 100%;">{col.sourcePct}%</span>
 												</div>
 											</div>
 											
@@ -1469,7 +1507,7 @@
 	}
 	.colors-card {
 		grid-column: 2;
-		grid-row: 1;
+		grid-row: 1 / span 2;
 	}
 	.types-card {
 		grid-column: 3;
