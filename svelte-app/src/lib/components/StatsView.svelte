@@ -1235,47 +1235,50 @@
 
 					<div class="colors-body-content">
 						<div class="colors-list-scroll">
-							<!-- Header row for the stats columns -->
-							<div class="colors-list-header" style="display: flex; justify-content: flex-end; padding-right: 0.5rem; margin-bottom: 0.5rem; gap: 1rem; font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
-								<span style="width: 45px; text-align: right;">Cost</span>
-								<span style="width: 45px; text-align: right;">Srcs</span>
+							<!-- Legend header for the dual bars -->
+							<div class="colors-list-header" style="display: flex; justify-content: flex-end; padding-right: 0.25rem; margin-bottom: 0.75rem; gap: 0.75rem; font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+								<span style="display: flex; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; background: rgba(255,255,255,0.7); border-radius: 2px;"></div> Cost</span>
+								<span style="display: flex; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; background: rgba(255,255,255,0.3); border-radius: 2px;"></div> Srcs</span>
 							</div>
 							
-							{#each colorBreakdownData.colorList.filter((c) => c.pipCount > 0 || c.sourceCount > 0) as col}
-								<div class="color-row-item" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.35rem 0;">
-									<!-- Color Icon & Name -->
-									<div class="color-info" style="display: flex; align-items: center; gap: 0.5rem; width: 85px; flex-shrink: 0;">
-										<ManaSymbol symbol={col.symbol} size="16px" />
-										<span class="color-name" style="font-weight: 500; font-size: 13px; color: #f8fafc; white-space: nowrap;">{col.name}</span>
+							<div style="display: flex; flex-direction: column; gap: 0.75rem;">
+								{#each colorBreakdownData.colorList.filter((c) => c.pipCount > 0 || c.sourceCount > 0) as col}
+									<div class="color-row-item" style="display: flex; align-items: center; gap: 0.75rem;">
+										<!-- Color Icon & Name -->
+										<div class="color-info" style="display: flex; align-items: center; gap: 0.5rem; width: 85px; flex-shrink: 0;">
+											<ManaSymbol symbol={col.symbol} size="16px" />
+											<span class="color-name" style="font-weight: 500; font-size: 13px; color: #f8fafc; white-space: nowrap;">{col.name}</span>
+										</div>
+										
+										<!-- Dual Bars & Stats -->
+										<div class="color-bars-group" style="flex-grow: 1; display: flex; flex-direction: column; gap: 5px;">
+											
+											<!-- Cost Row -->
+											<div class="bar-stats-row" style="display: flex; align-items: center; gap: 0.75rem;">
+												<div class="color-progress-track" style="flex-grow: 1; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; position: relative;" title="{col.pipCount} {col.name} Cost">
+													<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.pipPct}%; background-color: {col.color}; border-radius: 4px; transition: width 0.3s ease;"></div>
+												</div>
+												<div class="stat-col" style="display: flex; align-items: center; gap: 0.5rem; width: 55px; justify-content: flex-end; font-variant-numeric: tabular-nums;">
+													<span style="font-weight: 700; color: #f8fafc; font-size: 12px;">{col.pipCount}</span>
+													<span style="font-size: 11px; color: #94a3b8; font-weight: 500; width: 28px; text-align: right;">{col.pipPct}%</span>
+												</div>
+											</div>
+											
+											<!-- Sources Row -->
+											<div class="bar-stats-row" style="display: flex; align-items: center; gap: 0.75rem;">
+												<div class="color-progress-track" style="flex-grow: 1; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; position: relative;" title="{col.sourceCount} {col.name} Sources">
+													<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.sourcePct}%; background-color: {col.color}; opacity: 0.5; border-radius: 4px; transition: width 0.3s ease;"></div>
+												</div>
+												<div class="stat-col" style="display: flex; align-items: center; gap: 0.5rem; width: 55px; justify-content: flex-end; font-variant-numeric: tabular-nums;">
+													<span style="font-weight: 700; color: #f8fafc; font-size: 12px;">{col.sourceCount}</span>
+													<span style="font-size: 11px; color: #94a3b8; font-weight: 500; width: 28px; text-align: right;">{col.sourcePct}%</span>
+												</div>
+											</div>
+											
+										</div>
 									</div>
-									
-									<!-- Dual Bars Container -->
-									<div class="color-bars-group" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; justify-content: center;">
-										<!-- Pips / Cost Bar -->
-										<div class="color-progress-track" style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; position: relative;">
-											<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.pipPct}%; background-color: {col.color}; border-radius: 3px; transition: width 0.3s ease;"></div>
-										</div>
-										<!-- Sources / Production Bar -->
-										<div class="color-progress-track" style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; position: relative;">
-											<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.sourcePct}%; background-color: {col.color}; opacity: 0.65; border-radius: 3px; transition: width 0.3s ease;"></div>
-										</div>
-									</div>
-									
-									<!-- Stats columns -->
-									<div class="color-stats-group" style="display: flex; gap: 1rem; flex-shrink: 0;">
-										<!-- Cost Stats -->
-										<div class="stat-col" style="display: flex; flex-direction: column; align-items: flex-end; width: 45px; font-variant-numeric: tabular-nums;">
-											<span style="font-weight: 700; color: #f8fafc; font-size: 13px; line-height: 1.1;">{col.pipCount}</span>
-											<span style="font-size: 11px; color: #94a3b8; font-weight: 500;">{col.pipPct}%</span>
-										</div>
-										<!-- Srcs Stats -->
-										<div class="stat-col" style="display: flex; flex-direction: column; align-items: flex-end; width: 45px; font-variant-numeric: tabular-nums;">
-											<span style="font-weight: 700; color: #f8fafc; font-size: 13px; line-height: 1.1;">{col.sourceCount}</span>
-											<span style="font-size: 11px; color: #94a3b8; font-weight: 500;">{col.sourcePct}%</span>
-										</div>
-									</div>
-								</div>
-							{/each}
+								{/each}
+							</div>
 						</div>
 					</div>
 				</div>
