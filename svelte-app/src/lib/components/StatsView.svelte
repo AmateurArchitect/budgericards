@@ -1086,46 +1086,63 @@
 		};
 	}
 
-	function describeArc(x, y, radius, startAngle, endAngle) {
-		const start = polarToCartesian(x, y, radius, endAngle);
-		const end = polarToCartesian(x, y, radius, startAngle);
-		const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-		return [
-			"M", start.x, start.y,
-			"A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
-		].join(" ");
+	function getEdgeGeometry(cx, cy, rOuter, rInner, gap, cornerRadius, angleDeg, isStartEdge, isFirst, isLast) {
+		const shift = (isStartEdge && isFirst) || (!isStartEdge && isLast) ? 0 : gap / 2;
+		const rad = (angleDeg * Math.PI) / 180;
+		
+		const u = { x: Math.cos(rad), y: Math.sin(rad) };
+		const n = isStartEdge ? { x: -Math.sin(rad), y: Math.cos(rad) } : { x: Math.sin(rad), y: -Math.cos(rad) };
+
+		const dPrime = shift + cornerRadius;
+
+		const rPrimeOut = rOuter - cornerRadius;
+		const tOut = Math.sqrt(rPrimeOut ** 2 - dPrime ** 2);
+		const ccOut = { x: cx + dPrime * n.x + tOut * u.x, y: cy + dPrime * n.y + tOut * u.y };
+
+		const rPrimeIn = rInner + cornerRadius;
+		const tIn = Math.sqrt(rPrimeIn ** 2 - dPrime ** 2);
+		const ccIn = { x: cx + dPrime * n.x + tIn * u.x, y: cy + dPrime * n.y + tIn * u.y };
+
+		return {
+			pLineOut: { x: ccOut.x - cornerRadius * n.x, y: ccOut.y - cornerRadius * n.y },
+			pLineIn:  { x: ccIn.x - cornerRadius * n.x, y: ccIn.y - cornerRadius * n.y },
+			pArcOut:  { x: cx + rOuter * (ccOut.x - cx) / rPrimeOut, y: cy + rOuter * (ccOut.y - cy) / rPrimeOut },
+			pArcIn:   { x: cx + rInner * (ccIn.x - cx) / rPrimeIn, y: cy + rInner * (ccIn.y - cy) / rPrimeIn }
+		};
 	}
 
-	function buildRingData(list, valueKey, totalValue, radius, thickness, gapDegrees) {
-		let currentAngle = 0;
-		const totalAngle = 180;
-		const totalGaps = Math.max(0, list.length - 1) * gapDegrees;
-		const availableAngle = totalAngle - totalGaps;
+	function buildGeometricRing(list, valueKey, totalValue, cx, cy, rOuter, rInner, gap, cornerRadius) {
+		if (totalValue === 0) return [];
 		
-		// The angle taken up by the rounded cap on ONE side
-		const capAngle = ((thickness / 2) / (Math.PI * radius)) * 180;
-		
-		return list.map(c => {
+		let angle = 180;
+		return list.map((c, i) => {
 			const val = c[valueKey];
-			if (totalValue === 0 || val === 0) return { ...c, d: "" };
+			if (val === 0) return { ...c, d: "" };
 			
-			const segmentAngle = (val / totalValue) * availableAngle;
-			const startAngle = currentAngle;
-			const endAngle = currentAngle + segmentAngle;
-			currentAngle = endAngle + gapDegrees;
+			const span = (val / totalValue) * 180;
+			const isFirst = (i === 0);
+			const isLast = (i === list.length - 1);
 			
-			// Adjust angles to account for the rounded caps extending outwards
-			let adjustedStart = startAngle + capAngle;
-			let adjustedEnd = endAngle - capAngle;
-			
-			// If segment is too small for rounded caps, just draw a dot at the center
-			if (adjustedEnd < adjustedStart) {
-				const center = (startAngle + endAngle) / 2;
-				adjustedStart = center - 0.01;
-				adjustedEnd = center + 0.01;
+			// If span is tiny, just return empty to avoid math errors with fillet
+			if (span < 1) {
+				angle += span;
+				return { ...c, d: "" };
 			}
 			
-			const d = describeArc(100, 100, radius, adjustedStart, adjustedEnd);
+			const start = getEdgeGeometry(cx, cy, rOuter, rInner, gap, cornerRadius, angle, true, isFirst, isLast);
+			const end = getEdgeGeometry(cx, cy, rOuter, rInner, gap, cornerRadius, angle + span, false, isFirst, isLast);
+			
+			const d = `M ${start.pArcOut.x} ${start.pArcOut.y} ` +
+					  `A ${rOuter} ${rOuter} 0 0 1 ${end.pArcOut.x} ${end.pArcOut.y} ` +
+					  `A ${cornerRadius} ${cornerRadius} 0 0 1 ${end.pLineOut.x} ${end.pLineOut.y} ` +
+					  `L ${end.pLineIn.x} ${end.pLineIn.y} ` +
+					  `A ${cornerRadius} ${cornerRadius} 0 0 1 ${end.pArcIn.x} ${end.pArcIn.y} ` +
+					  `A ${rInner} ${rInner} 0 0 0 ${start.pArcIn.x} ${start.pArcIn.y} ` +
+					  `A ${cornerRadius} ${cornerRadius} 0 0 1 ${start.pLineIn.x} ${start.pLineIn.y} ` +
+					  `L ${start.pLineOut.x} ${start.pLineOut.y} ` +
+					  `A ${cornerRadius} ${cornerRadius} 0 0 1 ${start.pArcOut.x} ${start.pArcOut.y} Z`;
+					  
+			angle += span;
 			return { ...c, d };
 		});
 	}
@@ -1134,10 +1151,15 @@
 		const pipsList = colorBreakdownData.colorList.filter(c => c.pipCount > 0);
 		const sourcesList = colorBreakdownData.colorList.filter(c => c.sourceCount > 0);
 		
-		const gap = 4; // 4 degrees gap
+		const gap = 4; 
+		const cornerRadius = 3;
 		
-		const pipsArcs = buildRingData(pipsList, "pipCount", colorBreakdownData.totalPips, 84, 14, gap);
-		const sourcesArcs = buildRingData(sourcesList, "sourceCount", colorBreakdownData.totalSources, 66, 14, gap);
+		// SVG viewBox is 0 0 200 100, center is 100, 95
+		const cx = 100;
+		const cy = 95;
+		
+		const pipsArcs = buildGeometricRing(pipsList, "pipCount", colorBreakdownData.totalPips, 92, 78, gap, cornerRadius);
+		const sourcesArcs = buildGeometricRing(sourcesList, "sourceCount", colorBreakdownData.totalSources, 74, 60, gap, cornerRadius);
 		
 		return { pipsArcs, sourcesArcs };
 	});
@@ -1300,38 +1322,25 @@
 						<div class="gauge-chart-container" style="position: relative; width: 200px; height: 100px;">
 							<svg viewBox="0 0 200 100" style="width: 100%; height: 100%; overflow: visible;">
 								<!-- Track backgrounds (optional, for subtle track) -->
-								<path d="M 16 100 A 84 84 0 0 1 184 100" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="14" stroke-linecap="round"/>
-								<path d="M 34 100 A 66 66 0 0 1 166 100" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="14" stroke-linecap="round"/>
+								
+								
 								
 								<!-- Pips (Outer Ring) -->
 								{#each colorsArcData.pipsArcs as arc}
 									{#if arc.d}
-										<path 
-											d={arc.d} 
-											fill="none" 
-											stroke={arc.color} 
-											stroke-width="14" 
-											stroke-linecap="round"
-										/>
+										<path d={arc.d} fill={arc.color} />
 									{/if}
 								{/each}
 
 								<!-- Sources (Inner Ring) -->
 								{#each colorsArcData.sourcesArcs as arc}
 									{#if arc.d}
-										<path 
-											d={arc.d} 
-											fill="none" 
-											stroke={arc.color} 
-											stroke-width="14" 
-											stroke-linecap="round"
-											opacity="0.8"
-										/>
+										<path d={arc.d} fill={arc.color} opacity="0.8" />
 									{/if}
 								{/each}
 							</svg>
 							
-							<div class="gauge-center-text" style="position: absolute; bottom: 0; left: 0; right: 0; text-align: center; display: flex; flex-direction: column;">
+							<div class="gauge-center-text" style="position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; display: flex; flex-direction: column;">
 								<span style="font-size: 28px; font-weight: 700; color: #f8fafc; line-height: 1.1;">{colorBreakdownData.totalPips}</span>
 								<span style="font-size: 13px; color: #94a3b8; font-weight: 500;">Pips</span>
 							</div>
