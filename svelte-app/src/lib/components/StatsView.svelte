@@ -1749,7 +1749,6 @@
 	.subtypes-container {
 		display: flex;
 		flex-direction: column;
-		padding-left: 0.75rem;
 		gap: 0;
 	}
 
@@ -1760,7 +1759,6 @@
 		font-size: 14px;
 		padding: 0.15rem 0.5rem;
 		color: #94a3b8;
-		border-left: 2px solid rgba(255, 255, 255, 0.08);
 	}
 
 	.subtype-row:hover {
@@ -1769,6 +1767,7 @@
 
 	.subtype-qty {
 		font-weight: 600;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.colors-list-scroll {
@@ -1835,6 +1834,7 @@
 		font-weight: 700;
 		color: #f8fafc;
 		font-size: 14px;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.pips-pct {
