@@ -1,4 +1,5 @@
 <script>
+	let colorStatsViewMode = $state('percentage');
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import ManaSymbol from "./ui/ManaSymbol.svelte";
@@ -825,7 +826,7 @@
 
 	// 3. COLORS & MANA BASE CALCULATIONS
 	const colorBreakdownData = $derived.by(() => {
-		/** @type {Record<string, { name: string, count: number, color: string }>} */
+		/** @type {Record<string, { name: string, count: number, cardCount: number, color: string }>} */
 		const pips = {
 			W: { name: "White", count: 0, cardCount: 0, color: "#f9fafb" },
 			U: { name: "Blue", count: 0, cardCount: 0, color: "#38bdf8" },
@@ -835,7 +836,7 @@
 			C: { name: "Colorless", count: 0, cardCount: 0, color: "#94a3b8" },
 		};
 
-		/** @type {Record<string, { count: number, name: string }>} */
+		/** @type {Record<string, { count: number, cardCount: number, name: string }>} */
 		const sources = {
 			W: { count: 0, cardCount: 0, name: "White" },
 			U: { count: 0, cardCount: 0, name: "Blue" },
