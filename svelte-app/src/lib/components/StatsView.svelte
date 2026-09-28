@@ -1250,22 +1250,6 @@
 							<button class="toggle-btn {colorStatsViewMode === 'cards' ? 'active' : ''}" onclick={() => colorStatsViewMode = 'cards'}>Cards</button>
 						</div>
 					</div>
-				</div>
-
-				<!-- 2. COLORS BENTO CARD -->
-				<div class="bento-card colors-card">
-					<div class="bento-card-header">
-						<div class="title-group">
-							<h3>Colors</h3>
-						</div>
-						{#if deckColorIdentity().length > 0}
-							<div class="identity-symbols-row">
-								{#each deckColorIdentity() as col}
-									<ManaSymbol symbol={col.toLowerCase()} size="16px" />
-								{/each}
-							</div>
-						{/if}
-					</div>
 
 					<div class="colors-body-content" style="display: flex; flex-direction: column; gap: 1.5rem;">
 						<!-- TOP SECTION: Stacked Bars & Totals -->
@@ -2132,4 +2116,21 @@
 		border: 1px dashed rgba(255, 255, 255, 0.06);
 		margin: 0.25rem 0;
 	}
+	.toggle-btn {
+		background: transparent;
+		border: none;
+		color: rgba(255,255,255,0.5);
+		cursor: pointer;
+		padding: 2px 6px;
+		border-radius: 4px;
+		transition: all 0.2s;
+	}
+	.toggle-btn:hover {
+		color: rgba(255,255,255,0.8);
+	}
+	.toggle-btn.active {
+		background: rgba(255,255,255,0.15);
+		color: #fff;
+	}
+
 </style>
