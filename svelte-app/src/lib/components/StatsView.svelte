@@ -2,6 +2,7 @@
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import ManaSymbol from "./ui/ManaSymbol.svelte";
+	import MoreView from "./MoreView.svelte";
 	import { parseManaCost } from "$lib/layouts/grouping.svelte.js";
 	import { onMount } from "svelte";
 	import { fade, fly, slide } from "svelte/transition";
@@ -1034,281 +1035,61 @@
 		};
 	});
 
-	// Smooth Scroll & Section Spy
-	const sectionsList = [
-		{ id: "overview", label: "Overview", icon: Compass },
-		{ id: "mana-curve", label: "Mana Curve", icon: BarChart3 },
-		{ id: "card-types", label: "Card Types", icon: Layers },
-		{ id: "colors", label: "Colors & Base", icon: PieChart },
-		{ id: "budget", label: "Budget", icon: Coins },
-	];
-
-	/** @param {string} id */
-	function scrollToSection(id) {
-		settingsStore.statsSection = id;
-		const el = document.getElementById(`stats-${id}`);
-		if (el) {
-			el.scrollIntoView({ behavior: "smooth", block: "start" });
-		}
-	}
-
-	onMount(() => {
-		const observerOptions = {
-			root: null,
-			rootMargin: "-20% 0px -60% 0px",
-			threshold: 0,
-		};
-
-		const observer = new IntersectionObserver((entries) => {
-			entries.forEach((entry) => {
-				if (entry.isIntersecting) {
-					const id = entry.target.id.replace("stats-", "");
-					settingsStore.statsSection = id;
-				}
-			});
-		}, observerOptions);
-
-		sectionsList.forEach((sec) => {
-			const el = document.getElementById(`stats-${sec.id}`);
-			if (el) observer.observe(el);
-		});
-
-		return () => {
-			observer.disconnect();
-		};
-	});
 </script>
 
-<div class="stats-view-viewport">
-	<!-- 1. OVERVIEW SECTION -->
-	<section id="stats-overview" class="stats-section-screen">
-		<div class="section-content-wrapper">
-			<div class="overview-hero-card">
-				<!-- Hero Art & Commander Banner -->
-				<div class="hero-commander-showcase">
-					<div class="commander-art-frame">
-						{#if featuredArt()}
-							<img
-								src={featuredArt()}
-								alt="Featured Commander"
-								class="commander-art"
-							/>
-						{:else}
-							<div class="commander-art-fallback">
-								<Sparkles size={40} />
-							</div>
-						{/if}
-						<div class="art-gradient-overlay"></div>
-						<div class="art-caption-block">
-							<span class="deck-format-chip">
-								{deckStore.format || "Custom Deck"}
-							</span>
-							<h1 class="commander-hero-name">
-								{deckStore.name || "Untitled Deck"}
-							</h1>
-							<div class="hero-color-identity">
-								{#each deckColorIdentity() as col}
-									<ManaSymbol symbol={col} size="18px" />
-								{/each}
-								<span class="hero-card-count">
-									{activeCards.length} Cards Total
-								</span>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				<!-- Quick Key Metrics Cards (Arena Dashboard style) -->
-				<div class="hero-metrics-grid">
-					<div class="metric-glass-card">
-						<span class="metric-label">Average Mana Value</span>
-						<div class="metric-value-row">
-							<span class="metric-primary-value">{curveStats.avgNonLand}</span>
-							<span class="metric-sub-value">({curveStats.avgDeck} all)</span>
-						</div>
-						<div class="metric-progress-track">
-							<div
-								class="metric-progress-fill"
-								style="width: {Math.min(100, (parseFloat(curveStats.avgNonLand) / 6) * 100)}%; background: hsl(var(--primary));"
-							></div>
-						</div>
-						<span class="metric-hint">Calculated excluding lands</span>
-					</div>
-
-					<div class="metric-glass-card">
-						<span class="metric-label">Permanents vs Spells</span>
-						<div class="metric-value-row">
-							<span class="metric-primary-value">{cardTypesData.permanentsPct}%</span>
-							<span class="metric-sub-value">{cardTypesData.permanentsCount} Perms / {cardTypesData.nonPermanentsCount} Spells</span>
-						</div>
-						<div class="metric-progress-track multi-segment">
-							<div
-								class="segment perms"
-								style="width: {cardTypesData.permanentsPct}%;"
-							></div>
-							<div
-								class="segment spells"
-								style="width: {cardTypesData.nonPermanentsPct}%;"
-							></div>
-						</div>
-						<span class="metric-hint">{cardTypesData.permanentsCount} Permanents, {cardTypesData.nonPermanentsCount} Non-Permanents</span>
-					</div>
-
-					<div class="metric-glass-card">
-						<span class="metric-label">Estimated Deck Budget</span>
-						<div class="metric-value-row">
-							<span class="metric-primary-value price-text">${budgetData.boardTotals.total.toFixed(2)}</span>
-							<span class="metric-sub-value">${budgetData.avgCardPrice.toFixed(2)} avg/card</span>
-						</div>
-						<div class="metric-progress-track">
-							<div
-								class="metric-progress-fill price-fill"
-								style="width: {Math.min(100, (budgetData.boardTotals.total / 250) * 100)}%;"
-							></div>
-						</div>
-						<span class="metric-hint">Mainboard: ${budgetData.boardTotals.mainboard.toFixed(2)}</span>
-					</div>
-
-					<div class="metric-glass-card">
-						<span class="metric-label">Mana Base Balance</span>
-						<div class="metric-value-row">
-							<span class="metric-primary-value">{colorBreakdownData.landsCount} Lands</span>
-							<span class="metric-sub-value">{colorBreakdownData.totalSources} Mana Sources</span>
-						</div>
-						<div class="metric-pips-summary">
-							{#each colorBreakdownData.colorList as col}
-								<div class="summary-pip-badge">
-									<ManaSymbol symbol={col.symbol} size="14px" />
-									<span>{col.pipPct}%</span>
-								</div>
-							{/each}
-						</div>
-						<span class="metric-hint">{colorBreakdownData.totalPips} total color pips required</span>
-					</div>
-				</div>
-			</div>
-
-			<!-- Quick Jump Cards to Deep Dive Sections -->
-			<div class="overview-deepdive-grid">
-				<button class="deepdive-card" onclick={() => scrollToSection("mana-curve")}>
-					<div class="card-icon-header">
-						<BarChart3 size={20} class="text-primary" />
-						<ChevronRight size={18} class="chevron" />
-					</div>
-					<h3>Mana Curve Analysis</h3>
-					<p>Inspect curve distribution, CMC breakdown, and card counts at every mana cost tier.</p>
-					<span class="jump-link">Explore Mana Curve &rarr;</span>
-				</button>
-
-				<button class="deepdive-card" onclick={() => scrollToSection("card-types")}>
-					<div class="card-icon-header">
-						<Layers size={20} class="text-primary" />
-						<ChevronRight size={18} class="chevron" />
-					</div>
-					<h3>Card Types & Subtypes</h3>
-					<p>Explore high-level spell categories, tribal creature hierarchies, and permanent balances.</p>
-					<span class="jump-link">Explore Card Types &rarr;</span>
-				</button>
-
-				<button class="deepdive-card" onclick={() => scrollToSection("colors")}>
-					<div class="card-icon-header">
-						<PieChart size={20} class="text-primary" />
-						<ChevronRight size={18} class="chevron" />
-					</div>
-					<h3>Colors & Mana Demands</h3>
-					<p>Compare colored spell pip demands with your land and mana rock production balance.</p>
-					<span class="jump-link">Explore Colors & Base &rarr;</span>
-				</button>
-
-				<button class="deepdive-card" onclick={() => scrollToSection("budget")}>
-					<div class="card-icon-header">
-						<Coins size={20} class="text-primary" />
-						<ChevronRight size={18} class="chevron" />
-					</div>
-					<h3>Budget & Valuation</h3>
-					<p>Discover top valued cards, price distribution brackets, and board value breakdowns.</p>
-					<span class="jump-link">Explore Budget &rarr;</span>
-				</button>
-			</div>
-		</div>
-	</section>
-
-	<!-- 2. MANA CURVE SECTION -->
-	<section id="stats-mana-curve" class="stats-section-screen">
-		<div class="section-content-wrapper">
-			<div class="section-header-row">
-				<div class="title-group">
-					<h2 class="section-heading">Mana Curve</h2>
-				</div>
-
-				<div class="controls-pill-toggle">
-					<button
-						class="toggle-btn"
-						class:active={curveGroupingMode === "creatures"}
-						onclick={() => (curveGroupingMode = "creatures")}
-					>
-						Creature/Noncreature
-					</button>
-					<button
-						class="toggle-btn"
-						class:active={curveGroupingMode === "types"}
-						onclick={() => (curveGroupingMode = "types")}
-					>
-						Card Type
-					</button>
-					<button
-						class="toggle-btn"
-						class:active={curveGroupingMode === "pips"}
-						onclick={() => (curveGroupingMode = "pips")}
-					>
-						Mana Pips
-					</button>
-				</div>
-			</div>
-
-			<!-- Main Layout: Stats (Left), Mana Curve Chart (Center), Cards Drawer (Right when selected) -->
-			<div class="curve-main-layout" class:has-selection={selectedCmc !== null}>
-				<!-- Left Column: Curve Stats Card -->
-				<div class="curve-stats-column">
-					<div class="stats-column-body">
-						<div class="stats-column-item">
-							<span class="stats-item-label">Average Non-Land CMC</span>
-							<span class="stats-item-value">{curveStats.avgNonLand}</span>
-						</div>
-						<div class="stats-column-item">
-							<span class="stats-item-label">Median CMC</span>
-							<span class="stats-item-value">{curveStats.median}</span>
-						</div>
-						<div class="stats-column-item">
-							<span class="stats-item-label">Peak Turn / Mode</span>
-							<span class="stats-item-value">
-								CMC {curveStats.peakCmc}
-								<span class="stats-item-sub">({curveStats.peakCount} cards)</span>
+<div class="stats-root-container">
+	{#if settingsStore.statsSubTab === "sample-hand" || settingsStore.statsSubTab === "tokens" || settingsStore.statsSubTab === "combos"}
+		<MoreView />
+	{:else}
+		<div class="stats-bento-viewport">
+			<div class="stats-grid">
+				<!-- 1. MANA CURVE BENTO CARD -->
+				<div class="bento-card cmc-card">
+					<div class="bento-card-header">
+						<div class="title-group">
+							<h3>Mana Curve</h3>
+							<span class="count-badge">
+								{cmcData.buckets.reduce((acc, b) => acc + b.total, 0)} Spells
 							</span>
 						</div>
-						<div class="stats-column-item">
-							<span class="stats-item-label">
-								Total Spell Mana Value
-							</span>
-							<span class="stats-item-value">
-								{curveStats.totalCmcSum}
-							</span>
+						<div class="curve-toggle-group" role="radiogroup" aria-label="Mana Curve Mode">
+							<button
+								type="button"
+								role="radio"
+								aria-checked={curveGroupingMode === "creatures"}
+								class="curve-toggle-btn"
+								class:active={curveGroupingMode === "creatures"}
+								onclick={() => (curveGroupingMode = "creatures")}
+							>
+								Creatures
+							</button>
+							<button
+								type="button"
+								role="radio"
+								aria-checked={curveGroupingMode === "types"}
+								class="curve-toggle-btn"
+								class:active={curveGroupingMode === "types"}
+								onclick={() => (curveGroupingMode = "types")}
+							>
+								Types
+							</button>
+							<button
+								type="button"
+								role="radio"
+								aria-checked={curveGroupingMode === "pips"}
+								class="curve-toggle-btn"
+								class:active={curveGroupingMode === "pips"}
+								onclick={() => (curveGroupingMode = "pips")}
+							>
+								Pips
+							</button>
 						</div>
 					</div>
-				</div>
 
-				<!-- Center Column: Mana Curve Chart Card -->
-				<div class="curve-chart-card">
-					<div class="chart-legend-row">
+					<div class="curve-legend-bar">
 						{#if curveGroupingMode === "creatures"}
-							<div class="legend-item">
-								<span class="legend-swatch creature-swatch"></span>
-								<span>Creatures</span>
-							</div>
-							<div class="legend-item">
-								<span class="legend-swatch noncreature-swatch"></span>
-								<span>Non-Creature Spells</span>
-							</div>
+							<div class="legend-item"><span class="legend-swatch creature-swatch"></span>Creatures ({cardTypesData.creaturesCount})</div>
+							<div class="legend-item"><span class="legend-swatch noncreature-swatch"></span>Non-Creatures ({cardTypesData.nonCreaturesCount})</div>
 						{:else if curveGroupingMode === "types"}
 							<div class="legend-item"><span class="legend-swatch type-creature"></span>Creatures</div>
 							<div class="legend-item"><span class="legend-swatch type-instant"></span>Instants</div>
@@ -1328,23 +1109,15 @@
 
 					<div class="arena-bar-chart-container">
 						{#each cmcData.buckets as bucket (bucket.key)}
-							<!-- svelte-ignore a11y_click_events_have_key_events -->
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<div
-								class="arena-curve-column"
-								class:selected={selectedCmc === bucket.key}
-								onclick={() =>
-									(selectedCmc = selectedCmc === bucket.key ? null : bucket.key)}
-							>
+							<div class="arena-curve-column">
 								<span class="bar-total-label">
 									{bucket.total}
 								</span>
 								<div
 									class="bar-track"
-									style="height: {(bucket.total / cmcData.maxCount) * 170}px;"
+									style="height: {(bucket.total / cmcData.maxCount) * 140}px;"
 								>
 									{#if curveGroupingMode === "creatures"}
-										<!-- Creature Stacked Segment (Orange) -->
 										{#if bucket.creatures > 0}
 											<div
 												class="bar-segment creature-segment"
@@ -1352,7 +1125,6 @@
 												title="{bucket.creatures} Creatures"
 											></div>
 										{/if}
-										<!-- Non-Creature Stacked Segment (Blue) -->
 										{#if bucket.nonCreatures > 0}
 											<div
 												class="bar-segment noncreature-segment"
@@ -1361,7 +1133,6 @@
 											></div>
 										{/if}
 									{:else if curveGroupingMode === "types"}
-										<!-- By Card Type -->
 										{#if bucket.types.creatures > 0}
 											<div class="bar-segment type-creature" style="height: {(bucket.types.creatures / bucket.total) * 100}%;"></div>
 										{/if}
@@ -1381,7 +1152,6 @@
 											<div class="bar-segment type-planeswalker" style="height: {(bucket.types.planeswalkers / bucket.total) * 100}%;"></div>
 										{/if}
 									{:else if curveGroupingMode === "pips"}
-										<!-- By Mana Breakdown (Generic, Colorless, WUBRG) proportional to card cost -->
 										{#each cmcData.activePipColors as col}
 											{@const count = (/** @type {Record<string, number>} */ (bucket.pips))[col.code] || 0}
 											{@const share = (/** @type {Record<string, number>} */ (bucket.pipsShare))[col.code] || 0}
@@ -1389,7 +1159,7 @@
 												<div
 													class="bar-segment pip-segment-{col.code.toLowerCase()}"
 													style="height: {(share / bucket.total) * 100}%; background-color: {col.color};"
-													title="{count} {col.name} Mana ({bucket.total > 0 ? Math.round((share / bucket.total) * 100) : 0}% of {bucket.label}s)"
+													title="{count} {col.name} Mana"
 												></div>
 											{/if}
 										{/each}
@@ -1401,1544 +1171,388 @@
 							</div>
 						{/each}
 					</div>
+
+					<div class="card-footer-stats">
+						<span class="footer-stat-item">Avg CMC: <strong>{curveStats.avgNonLand}</strong></span>
+						<span class="footer-stat-divider">·</span>
+						<span class="footer-stat-item">Median: <strong>{curveStats.median}</strong></span>
+						<span class="footer-stat-divider">·</span>
+						<span class="footer-stat-item">Peak: <strong>{curveStats.peakCmc} ({curveStats.peakCount})</strong></span>
+					</div>
 				</div>
 
-				<!-- Right Column: Interactive CMC Inspector Drawer / Preview Stack -->
-				{#if selectedCmc !== null}
-					{@const selectedBucket = cmcData.buckets.find((b) => b.key === selectedCmc)}
-					<div class="curve-cards-drawer">
-						<div class="drawer-header">
-							<h4>
-								Cards with CMC {selectedBucket?.shortLabel || selectedCmc} ({drawerCards.length})
-							</h4>
-							<button class="clear-btn" onclick={() => (selectedCmc = null)} title="Close card list">Close</button>
-						</div>
-
-						<div class="drawer-cards-list">
-							{#each drawerCards as card}
-								{@const manaCostStr = card.mana_cost || getMeta(card.name).mana_cost || ""}
-								{@const typeLine = card.type_line || getCardStats(card).typeLine}
-								{@const typeIcon = getCardTypeIcon(typeLine, card)}
-								{@const tooltipImg = getCardTooltipImg(card.name)}
-								{@const tooltipImgs = getCardTooltipImgs(card.name)}
-								<div
-									class="drawer-card-item"
-									data-tooltip-img={tooltipImgs ? undefined : (tooltipImg || undefined)}
-									data-tooltip-imgs={tooltipImgs || undefined}
-								>
-									<div class="card-name-qty">
-										<span class="card-qty">{card.qty || 1}x</span>
-										<span class="card-name">{card.name}</span>
-									</div>
-									<div class="card-cost-and-type">
-										{#if manaCostStr}
-											<div class="card-mana-pips">
-												{#each parseManaCost(manaCostStr) as sym}
-													{#if sym === "//"}
-														<span class="mana-slash">//</span>
-													{:else}
-														<ManaSymbol symbol={sym} size="14px" />
-													{/if}
-												{/each}
-											</div>
-										{/if}
-										{#if typeIcon}
-											<i
-												class="ms {typeIcon} card-type-icon"
-												style="color: {getCardTypeColor(typeLine, card)};"
-												title={typeLine}
-											></i>
-										{/if}
-									</div>
-								</div>
-							{/each}
+				<!-- 2. CARD TYPES BENTO CARD -->
+				<div class="bento-card types-card">
+					<div class="bento-card-header">
+						<div class="title-group">
+							<h3>Card Types</h3>
+							<span class="count-badge">{activeCards.length} Total Cards</span>
 						</div>
 					</div>
-				{/if}
-			</div>
-		</div>
-	</section>
 
-	<!-- 3. CARD TYPES SECTION -->
-	<section id="stats-card-types" class="stats-section-screen">
-		<div class="section-content-wrapper">
-			<div class="section-header-row">
-				<div class="title-group">
-					<span class="section-eyebrow">COMPOSITION</span>
-					<h2 class="section-heading">Card Types & Subtypes</h2>
-				</div>
-			</div>
-
-			<div class="types-dual-layout">
-				<!-- High Level Types List -->
-				<div class="types-main-panel">
-					<h3>Card Types Overview</h3>
-					<div class="types-bars-stack">
+					<div class="types-list-scroll">
 						{#each cardTypesData.activeTypesList as item}
-							<!-- svelte-ignore a11y_click_events_have_key_events -->
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<div
-								class="type-progress-row"
-								class:active={selectedTypeFilter === item.type}
-								onclick={() => (selectedTypeFilter = selectedTypeFilter === item.type ? null : item.type)}
-							>
-								<div class="type-name-and-count">
-									<span class="type-label-badge" style="border-left-color: {item.color};">
-										{item.type}
-									</span>
-									<span class="type-count-text">
-										{item.count} <span class="pct">({item.pct}%)</span>
-									</span>
+							<div class="type-row-item">
+								<div class="type-info">
+									<i class="ms {item.icon} ms-cost type-icon" style="color: {item.color};"></i>
+									<span class="type-name">{item.type}</span>
 								</div>
-								<div class="type-bar-bg">
+								<div class="type-progress-track">
 									<div
-										class="type-bar-fill"
+										class="type-progress-fill"
 										style="width: {item.pct}%; background-color: {item.color};"
 									></div>
 								</div>
+								<div class="type-count-badge">
+									<span class="type-qty">{item.count}</span>
+									<span class="type-percent">{item.pct}%</span>
+								</div>
 							</div>
 						{/each}
 					</div>
 
-					<div class="permanents-summary-box">
-						<div class="perm-item">
-							<span class="perm-icon"><Shield size={18} /></span>
-							<div>
-								<span class="perm-num">{cardTypesData.permanentsCount}</span>
-								<span class="perm-title">Permanents ({cardTypesData.permanentsPct}%)</span>
-							</div>
-						</div>
-						<div class="perm-divider"></div>
-						<div class="perm-item">
-							<span class="perm-icon spells"><Flame size={18} /></span>
-							<div>
-								<span class="perm-num">{cardTypesData.nonPermanentsCount}</span>
-								<span class="perm-title">Spells ({cardTypesData.nonPermanentsPct}%)</span>
-							</div>
-						</div>
+					<div class="card-footer-stats">
+						<span class="footer-stat-item">Permanents: <strong>{cardTypesData.permanentsCount}</strong> ({cardTypesData.permanentsPct}%)</span>
+						<span class="footer-stat-divider">·</span>
+						<span class="footer-stat-item">Spells: <strong>{cardTypesData.nonPermanentsCount}</strong> ({cardTypesData.nonPermanentsPct}%)</span>
+						<span class="footer-stat-divider">·</span>
+						<span class="footer-stat-item">Lands: <strong>{cardTypesData.landsCount}</strong> ({cardTypesData.landsPct}%)</span>
 					</div>
 				</div>
 
-				<!-- Arena-Style Creature & Permanent Subtypes Breakdown -->
-				<div class="types-subtypes-panel">
-					<h3>Arena Subtype Breakdown</h3>
-					<p class="panel-subtitle">Subtypes and creature kindred classifications</p>
-
-					{#if cardTypesData.sortedCreatureSubtypes.length > 0}
-						<div class="subtypes-list">
-							{#each cardTypesData.sortedCreatureSubtypes as [subtype, count]}
-								<div class="subtype-row">
-									<span class="subtype-name">{subtype}</span>
-									<span class="subtype-pill">{count}</span>
-								</div>
-							{/each}
+				<!-- 3. COLORS BENTO CARD -->
+				<div class="bento-card colors-card">
+					<div class="bento-card-header">
+						<div class="title-group">
+							<h3>Colors</h3>
+							<span class="count-badge">{colorBreakdownData.totalPips} Mana Pips</span>
 						</div>
-					{:else}
-						<div class="empty-subtypes-notice">
-							No subtype classifications found in active creatures.
-						</div>
-					{/if}
-				</div>
-			</div>
-		</div>
-	</section>
+						{#if deckColorIdentity().length > 0}
+							<div class="identity-symbols-row">
+								{#each deckColorIdentity() as col}
+									<ManaSymbol symbol={col.toLowerCase()} size="16px" />
+								{/each}
+							</div>
+						{/if}
+					</div>
 
-	<!-- 4. COLORS & MANA BASE SECTION -->
-	<section id="stats-colors" class="stats-section-screen">
-		<div class="section-content-wrapper">
-			<div class="section-header-row">
-				<div class="title-group">
-					<span class="section-eyebrow">MANA BASE & RATIOS</span>
-					<h2 class="section-heading">Colors & Mana Demands</h2>
-				</div>
-			</div>
-
-			<div class="colors-dashboard-grid">
-				<!-- Color Requirements vs Production Table -->
-				<div class="color-comparison-card">
-					<h3>Color Demands vs Production Sources</h3>
-					<p class="card-desc">Compare the colored mana symbols required to cast your spells against lands and mana producers.</p>
-
-					<div class="color-comparison-table">
-						<div class="table-header-row">
-							<span>Color</span>
-							<span>Pips (Spells)</span>
-							<span>Demand %</span>
-							<span>Sources (Lands/Rocks)</span>
-							<span>Production %</span>
-							<span>Balance</span>
-						</div>
-
+					<div class="colors-list-scroll">
 						{#each colorBreakdownData.colorList as col}
-							<div class="table-data-row">
-								<div class="color-symbol-cell">
-									<ManaSymbol symbol={col.symbol} size="20px" />
+							<div class="color-row-item">
+								<div class="color-info">
+									<ManaSymbol symbol={col.symbol} size="18px" />
 									<span class="color-name">{col.name}</span>
 								</div>
-								<span class="data-val bold">{col.pipCount}</span>
-								<span class="data-val">{col.pipPct}%</span>
-								<span class="data-val bold">{col.sourceCount}</span>
-								<span class="data-val">{col.sourcePct}%</span>
-								<div class="balance-cell">
-									{#if col.sourcePct >= col.pipPct}
-										<span class="status-badge good">
-											<CheckCircle2 size={12} />
-											Balanced
-										</span>
-									{:else if col.pipPct - col.sourcePct <= 8}
-										<span class="status-badge fair">
-											Moderate
-										</span>
-									{:else}
-										<span class="status-badge warn">
-											<AlertCircle size={12} />
-											Under-producing
-										</span>
-									{/if}
+								<div class="color-progress-track">
+									<div
+										class="color-progress-fill"
+										style="width: {col.pipPct}%; background-color: {col.color};"
+									></div>
+								</div>
+								<div class="color-count-badge">
+									<span class="pips-val">{col.pipCount} pips</span>
+									<span class="pips-pct">{col.pipPct}%</span>
+								</div>
+								<div class="sources-pill">
+									{col.sourceCount} {col.sourceCount === 1 ? 'src' : 'srcs'}
 								</div>
 							</div>
 						{/each}
 					</div>
+
+					<div class="card-footer-stats">
+						<span class="footer-stat-item">Sources: <strong>{colorBreakdownData.totalSources}</strong></span>
+						<span class="footer-stat-divider">·</span>
+						<span class="footer-stat-item">Mono-Color: <strong>{colorBreakdownData.monoColorCount}</strong></span>
+						<span class="footer-stat-divider">·</span>
+						<span class="footer-stat-item">Multicolor: <strong>{colorBreakdownData.multiColorCount}</strong></span>
+					</div>
 				</div>
 
-				<!-- Color Complexity & Land Ratio -->
-				<div class="color-breakdown-side-cards">
-					<div class="stats-mini-panel">
-						<h4>Spell Complexity</h4>
-						<div class="complexity-list">
-							<div class="complexity-item">
-								<span>Mono-Color Spells</span>
-								<span class="num">{colorBreakdownData.monoColorCount}</span>
-							</div>
-							<div class="complexity-item">
-								<span>Multi-Color / Gold</span>
-								<span class="num">{colorBreakdownData.multiColorCount}</span>
-							</div>
-							<div class="complexity-item">
-								<span>Colorless Spells</span>
-								<span class="num">{colorBreakdownData.colorlessSpellsCount}</span>
-							</div>
-							<div class="complexity-item">
-								<span>Lands</span>
-								<span class="num">{colorBreakdownData.landsCount}</span>
-							</div>
+				<!-- 4. BUDGET BENTO CARD -->
+				<div class="bento-card budget-card">
+					<div class="bento-card-header">
+						<div class="title-group">
+							<h3>Budget</h3>
+							<span class="count-badge">Market Value</span>
 						</div>
 					</div>
 
-					<div class="stats-mini-panel">
-						<h4>Mana Summary</h4>
-						<div class="mana-summary-list">
-							<div class="summary-stat-box">
-								<span class="title">Total Pips</span>
-								<span class="big-val">{colorBreakdownData.totalPips}</span>
+					<div class="budget-body-content">
+						<div class="budget-hero-callout">
+							<div class="budget-amount-display">
+								<span class="currency-sign">$</span>
+								<span class="amount-digits">{budgetData.boardTotals.total.toFixed(2)}</span>
 							</div>
-							<div class="summary-stat-box">
-								<span class="title">Total Sources</span>
-								<span class="big-val">{colorBreakdownData.totalSources}</span>
-							</div>
+							<span class="budget-caption">Total Estimated Deck Value</span>
 						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</section>
 
-	<!-- 5. BUDGET & FINANCIAL VALUE SECTION -->
-	<section id="stats-budget" class="stats-section-screen">
-		<div class="section-content-wrapper">
-			<div class="section-header-row">
-				<div class="title-group">
-					<span class="section-eyebrow">FINANCES</span>
-					<h2 class="section-heading">Budget & Valuation</h2>
-				</div>
-			</div>
-
-			<!-- Financial Hero Banner -->
-			<div class="budget-hero-row">
-				<div class="budget-kpi-card total-kpi">
-					<span class="kpi-label">Total Deck Value</span>
-					<h2 class="kpi-amount">${budgetData.boardTotals.total.toFixed(2)}</h2>
-					<span class="kpi-subtext">Estimated TCGplayer Market Value</span>
-				</div>
-
-				<div class="budget-kpi-card">
-					<span class="kpi-label">Average Card Value</span>
-					<h3 class="kpi-secondary-amount">${budgetData.avgCardPrice.toFixed(2)}</h3>
-					<span class="kpi-subtext">Across {activeCards.length} cards</span>
-				</div>
-
-				<div class="budget-kpi-card">
-					<span class="kpi-label">Median Card Value</span>
-					<h3 class="kpi-secondary-amount">${budgetData.medianPrice.toFixed(2)}</h3>
-					<span class="kpi-subtext">Typical card cost in deck</span>
-				</div>
-			</div>
-
-			<!-- Boards & Price Tiers Breakdown -->
-			<div class="budget-details-grid">
-				<!-- Top 10 Most Valuable Cards -->
-				<div class="expensive-cards-card">
-					<h3>Top 10 Most Valuable Cards</h3>
-					<div class="top-cards-list">
-						{#each budgetData.topCards as card, i}
-							<div class="expensive-card-row">
-								<span class="card-rank">#{i + 1}</span>
-								{#if card.image_uri}
-									<img src={card.image_uri} alt={card.name} class="card-thumb" />
-								{:else}
-									<div class="card-thumb-fallback"></div>
-								{/if}
-								<div class="card-info">
-									<span class="name">{card.name}</span>
-									<span class="type-board">{card.type_line} • {card.board}</span>
-								</div>
-								<div class="price-pill-wrapper">
-									<span class="price-pill">${card.price.toFixed(2)}</span>
-									{#if budgetData.boardTotals.total > 0}
-										<span class="pct-pill">{((card.cardVal / budgetData.boardTotals.total) * 100).toFixed(1)}%</span>
-									{/if}
-								</div>
-							</div>
-						{/each}
-					</div>
-				</div>
-
-				<!-- Value by Board and Price Brackets -->
-				<div class="budget-breakdown-sidebar">
-					<div class="budget-panel-box">
-						<h4>Value by Board</h4>
-						<div class="board-values-list">
-							<div class="board-row">
-								<span>Mainboard</span>
+						<div class="boards-chips-row">
+							<div class="board-chip">
+								<span class="label">Mainboard</span>
 								<span class="val">${budgetData.boardTotals.mainboard.toFixed(2)}</span>
 							</div>
-							<div class="board-row">
-								<span>Commander</span>
-								<span class="val">${budgetData.boardTotals.commander.toFixed(2)}</span>
-							</div>
-							<div class="board-row">
-								<span>Sideboard</span>
-								<span class="val">${budgetData.boardTotals.sideboard.toFixed(2)}</span>
-							</div>
-							<div class="board-row">
-								<span>Maybeboard</span>
-								<span class="val">${budgetData.boardTotals.maybeboard.toFixed(2)}</span>
-							</div>
+							{#if budgetData.boardTotals.commander > 0}
+								<div class="board-chip">
+									<span class="label">Commander</span>
+									<span class="val">${budgetData.boardTotals.commander.toFixed(2)}</span>
+								</div>
+							{/if}
+							{#if budgetData.boardTotals.sideboard > 0}
+								<div class="board-chip">
+									<span class="label">Sideboard</span>
+									<span class="val">${budgetData.boardTotals.sideboard.toFixed(2)}</span>
+								</div>
+							{/if}
+							{#if budgetData.boardTotals.maybeboard > 0}
+								<div class="board-chip">
+									<span class="label">Maybeboard</span>
+									<span class="val">${budgetData.boardTotals.maybeboard.toFixed(2)}</span>
+								</div>
+							{/if}
 						</div>
+
+						{#if budgetData.topCards.length > 0}
+							<div class="top-cards-section">
+								<span class="top-cards-header">Top Valued Cards</span>
+								<div class="top-cards-mini-list">
+									{#each budgetData.topCards.slice(0, 3) as card, idx}
+										<div class="top-card-row">
+											<span class="rank">#{idx + 1}</span>
+											<span class="name" title={card.name}>{card.name}</span>
+											<span class="price">${card.price.toFixed(2)}</span>
+										</div>
+									{/each}
+								</div>
+							</div>
+						{/if}
 					</div>
 
-					<div class="budget-panel-box">
-						<h4>Price Brackets</h4>
-						<div class="tiers-list">
-							{#each Object.entries(budgetData.priceTiers) as [key, tier]}
-								<div class="tier-item">
-									<div class="tier-header">
-										<span class="tier-label">{tier.label}</span>
-										<span class="tier-count">{tier.count} cards (${tier.total.toFixed(2)})</span>
-									</div>
-									<div class="tier-bar-bg">
-										<div
-											class="tier-bar-fill"
-											style="width: {(tier.total / Math.max(budgetData.boardTotals.total, 1)) * 100}%; background-color: {tier.color};"
-										></div>
-									</div>
-								</div>
-							{/each}
-						</div>
+					<div class="card-footer-stats">
+						<span class="footer-stat-item">Avg / Card: <strong>${budgetData.avgCardPrice.toFixed(2)}</strong></span>
+						<span class="footer-stat-divider">·</span>
+						<span class="footer-stat-item">Median / Card: <strong>${budgetData.medianPrice.toFixed(2)}</strong></span>
 					</div>
 				</div>
 			</div>
 		</div>
-	</section>
+	{/if}
 </div>
 
 <style>
-	.stats-view-viewport {
+	.stats-root-container {
 		flex: 1;
-		width: 100%;
-		height: calc(100vh - 56px);
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		overflow: hidden;
+		background: transparent;
+	}
+
+	.stats-bento-viewport {
+		flex: 1;
 		overflow-y: auto;
-		scroll-behavior: smooth;
-		background: radial-gradient(circle at 50% 0%, hsl(var(--card) / 0.3) 0%, transparent 60%);
-		position: relative;
-	}
-
-	/* Common Section Screen */
-	.stats-section-screen {
-		min-height: calc(100vh - 56px);
-		padding: 3rem 2rem;
-		display: flex;
-		justify-content: center;
-		box-sizing: border-box;
-		border-bottom: 1px solid hsl(var(--border) / 0.25);
-		scroll-margin-top: 56px;
-	}
-
-	.section-content-wrapper {
-		width: 100%;
-		max-width: 1300px;
-		display: flex;
-		flex-direction: column;
-		gap: 2rem;
-	}
-
-	.section-header-row {
-		display: flex;
-		align-items: flex-end;
-		justify-content: space-between;
-		flex-wrap: wrap;
-		gap: 1rem;
-		border-bottom: 1px solid hsl(var(--border) / 0.4);
-		padding-bottom: 1rem;
-	}
-
-	.section-eyebrow {
-		font-size: 0.72rem;
-		font-weight: 700;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: hsl(var(--primary));
-		display: block;
-		margin-bottom: 0.25rem;
-	}
-
-	.section-heading {
-		margin: 0;
-		font-size: 1.85rem;
-		font-weight: 700;
-		color: hsl(var(--foreground));
-		letter-spacing: -0.02em;
-	}
-
-	/* 1. OVERVIEW HERO STYLES */
-	.overview-hero-card {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 2rem;
-		background: hsl(var(--card) / 0.4);
-		backdrop-filter: blur(16px);
-		-webkit-backdrop-filter: blur(16px);
-		border: 1px solid hsl(var(--border) / 0.6);
-		border-radius: var(--radius-xl, 16px);
-		padding: 2rem;
-		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
-	}
-
-	@media (max-width: 950px) {
-		.overview-hero-card {
-			grid-template-columns: 1fr;
-		}
-	}
-
-	.hero-commander-showcase {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.commander-art-frame {
-		position: relative;
-		width: 100%;
-		height: 340px;
-		border-radius: var(--radius-lg);
-		overflow: hidden;
-		border: 1px solid hsl(var(--border) / 0.6);
-		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-	}
-
-	.commander-art {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-		transition: transform 0.4s ease;
-	}
-
-	.commander-art-fallback {
-		width: 100%;
-		height: 100%;
-		background: hsl(var(--secondary) / 0.6);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: hsl(var(--primary));
-	}
-
-	.art-gradient-overlay {
-		position: absolute;
-		inset: 0;
-		background: linear-gradient(
-			to top,
-			rgba(10, 12, 16, 0.95) 0%,
-			rgba(10, 12, 16, 0.6) 40%,
-			transparent 100%
-		);
-	}
-
-	.art-caption-block {
-		position: absolute;
-		bottom: 1.5rem;
-		left: 1.5rem;
-		right: 1.5rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.deck-format-chip {
-		align-self: flex-start;
-		font-size: 0.72rem;
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		padding: 0.2rem 0.6rem;
-		background: hsl(var(--primary));
-		color: hsl(var(--primary-foreground));
-		border-radius: var(--radius-sm);
-	}
-
-	.commander-hero-name {
-		margin: 0;
-		font-size: 1.6rem;
-		font-weight: 800;
-		color: #ffffff;
-		text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-	}
-
-	.hero-color-identity {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.hero-card-count {
-		font-size: 0.85rem;
-		color: rgba(255, 255, 255, 0.75);
-		margin-left: 0.25rem;
-	}
-
-	/* Hero Metrics Grid */
-	.hero-metrics-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 1rem;
-	}
-
-	@media (max-width: 600px) {
-		.hero-metrics-grid {
-			grid-template-columns: 1fr;
-		}
-	}
-
-	.metric-glass-card {
-		background: hsl(var(--card) / 0.5);
-		border: 1px solid hsl(var(--border) / 0.4);
-		border-radius: var(--radius-md);
-		padding: 1.25rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		justify-content: space-between;
-	}
-
-	.metric-label {
-		font-size: 0.75rem;
-		font-weight: 600;
-		color: hsl(var(--muted-foreground));
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.metric-value-row {
-		display: flex;
-		align-items: baseline;
-		gap: 0.5rem;
-	}
-
-	.metric-primary-value {
-		font-size: 1.8rem;
-		font-weight: 800;
-		color: hsl(var(--foreground));
-		font-variant-numeric: tabular-nums;
-	}
-
-	.price-text {
-		color: #38bdf8;
-	}
-
-	.metric-sub-value {
-		font-size: 0.8rem;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.metric-progress-track {
-		width: 100%;
-		height: 6px;
-		background: hsl(var(--secondary) / 0.6);
-		border-radius: 3px;
-		overflow: hidden;
-	}
-
-	.metric-progress-fill {
-		height: 100%;
-		border-radius: 3px;
-		transition: width 0.4s ease;
-	}
-
-	.price-fill {
-		background: #38bdf8;
-	}
-
-	.multi-segment {
-		display: flex;
-	}
-
-	.multi-segment .segment.perms {
-		background: #f97316;
-	}
-
-	.multi-segment .segment.spells {
-		background: #38bdf8;
-	}
-
-	.metric-hint {
-		font-size: 0.72rem;
-		color: hsl(var(--muted-foreground) / 0.8);
-	}
-
-	.metric-pips-summary {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		flex-wrap: wrap;
-	}
-
-	.summary-pip-badge {
-		display: flex;
-		align-items: center;
-		gap: 0.25rem;
-		background: hsl(var(--secondary) / 0.5);
-		padding: 0.15rem 0.4rem;
-		border-radius: var(--radius-sm);
-		font-size: 0.75rem;
-		font-weight: 600;
-	}
-
-	/* Deepdive Jump Cards */
-	.overview-deepdive-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-		gap: 1.25rem;
-	}
-
-	.deepdive-card {
-		background: hsl(var(--card) / 0.35);
-		border: 1px solid hsl(var(--border) / 0.45);
-		border-radius: var(--radius-lg);
 		padding: 1.5rem;
+	}
+
+	.stats-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 1.25rem;
+		max-width: 1300px;
+		margin: 0 auto;
+		width: 100%;
+	}
+
+	@media (max-width: 1024px) {
+		.stats-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.bento-card {
+		background: hsl(var(--card) / 0.5);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		border: 1px solid hsl(var(--border) / 0.6);
+		border-radius: 12px;
+		padding: 1.25rem 1.5rem;
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
-		cursor: pointer;
-		text-align: left;
-		transition: all 0.2s ease;
+		gap: 0.85rem;
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+		min-height: 380px;
 	}
 
-	.deepdive-card:hover {
-		background: hsl(var(--card) / 0.65);
-		border-color: hsl(var(--primary) / 0.7);
-		transform: translateY(-3px);
-		box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
-	}
-
-	.card-icon-header {
+	.bento-card-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		padding-bottom: 0.6rem;
+		border-bottom: 1px solid hsl(var(--border) / 0.4);
+		gap: 0.75rem;
 	}
 
-	.deepdive-card h3 {
+	.title-group {
+		display: flex;
+		align-items: center;
+		gap: 0.65rem;
+	}
+
+	.title-group h3 {
 		margin: 0;
 		font-size: 1.05rem;
 		font-weight: 700;
 		color: hsl(var(--foreground));
+		letter-spacing: -0.01em;
 	}
 
-	.deepdive-card p {
-		margin: 0;
-		font-size: 0.82rem;
-		color: hsl(var(--muted-foreground));
-		line-height: 1.45;
-		flex: 1;
-	}
-
-	.jump-link {
-		font-size: 0.8rem;
+	.count-badge {
+		font-size: 0.72rem;
 		font-weight: 600;
-		color: hsl(var(--primary));
-		margin-top: 0.5rem;
+		color: hsl(var(--muted-foreground));
+		background: hsl(var(--secondary) / 0.8);
+		padding: 0.15rem 0.5rem;
+		border-radius: 9999px;
 	}
 
-	/* 2. MANA CURVE SECTION STYLES */
-	.controls-pill-toggle {
-		display: inline-flex;
+	.curve-toggle-group {
+		display: flex;
 		background: hsl(var(--secondary) / 0.6);
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-full, 9999px);
-		padding: 0.2rem;
+		border: 1px solid hsl(var(--border) / 0.6);
+		border-radius: 8px;
+		padding: 2px;
+		gap: 2px;
 	}
 
-	.toggle-btn {
+	.curve-toggle-btn {
 		background: transparent;
 		border: none;
-		padding: 0.375rem 0.875rem;
-		font-size: 0.8125rem;
-		font-weight: 500;
 		color: hsl(var(--muted-foreground));
-		border-radius: var(--radius-full, 9999px);
+		font-size: 0.72rem;
+		font-weight: 600;
+		padding: 0.2rem 0.55rem;
+		border-radius: 6px;
 		cursor: pointer;
 		transition: all 0.15s ease;
 	}
 
-	.toggle-btn.active {
+	.curve-toggle-btn.active {
 		background: hsl(var(--primary));
 		color: hsl(var(--primary-foreground));
-		font-weight: 600;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 	}
 
-	/* 2. MANA CURVE SECTION STYLES */
-	#stats-mana-curve {
+	.curve-legend-bar {
 		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		padding: 2.25rem 2rem;
-	}
-
-	#stats-mana-curve .section-content-wrapper {
-		gap: 1.25rem;
-		margin: 0 auto;
-	}
-
-	.curve-main-layout {
-		display: grid;
-		grid-template-columns: 200px 1fr;
-		gap: 3.5rem;
-		align-items: stretch;
-	}
-
-	.curve-main-layout.has-selection {
-		grid-template-columns: 200px 1fr 370px;
-	}
-
-	@media (max-width: 1180px) {
-		.curve-main-layout {
-			grid-template-columns: 1fr;
-			gap: 1.5rem;
-		}
-
-		.curve-main-layout.has-selection {
-			grid-template-columns: 1fr 370px;
-		}
-
-		.curve-stats-column {
-			grid-column: 1 / -1;
-			min-height: auto !important;
-			max-height: none !important;
-		}
-
-		.stats-column-body {
-			display: grid !important;
-			grid-template-columns: repeat(4, 1fr) !important;
-			gap: 1.5rem !important;
-		}
-	}
-
-	@media (max-width: 820px) {
-		.curve-main-layout,
-		.curve-main-layout.has-selection {
-			grid-template-columns: 1fr;
-		}
-
-		.stats-column-body {
-			grid-template-columns: repeat(2, 1fr) !important;
-			gap: 1rem !important;
-		}
-	}
-
-	.curve-chart-card {
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		gap: 0.75rem;
-		box-sizing: border-box;
-		min-height: 270px;
-	}
-
-	.chart-legend-row {
-		display: flex;
-		align-items: center;
-		justify-content: flex-start;
-		padding-left: 0.25rem;
 		flex-wrap: wrap;
-		gap: 1.25rem;
-		font-size: 0.75rem;
+		gap: 0.6rem 1rem;
+		font-size: 0.72rem;
 		color: hsl(var(--muted-foreground));
 	}
 
 	.legend-item {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.35rem;
 	}
 
 	.legend-swatch {
-		width: 10px;
-		height: 10px;
+		width: 8px;
+		height: 8px;
 		border-radius: 2px;
 	}
 
-	.creature-swatch, .creature-segment, .type-creature { background: #f97316 !important; }
-	.noncreature-swatch, .noncreature-segment { background: #0284c7 !important; }
-	.type-instant { background: #38bdf8 !important; }
-	.type-sorcery { background: #818cf8 !important; }
-	.type-artifact { background: #94a3b8 !important; }
-	.type-enchantment { background: #ec4899 !important; }
-	.type-planeswalker { background: #a855f7 !important; }
-	.pip-segment-gen { background: #8A8480 !important; }
-	.pip-segment-c { background: #9E9792 !important; }
-	.pip-segment-w { background: #D6D3B3 !important; }
-	.pip-segment-u { background: #538CA7 !important; }
-	.pip-segment-b { background: #5F5457 !important; }
-	.pip-segment-r { background: #B36450 !important; }
-	.pip-segment-g { background: #60906A !important; }
+	.creature-swatch { background-color: #f97316; }
+	.noncreature-swatch { background-color: #0284c7; }
+
+	.type-creature { background-color: #f97316; }
+	.type-instant { background-color: #38bdf8; }
+	.type-sorcery { background-color: #818cf8; }
+	.type-artifact { background-color: #94a3b8; }
+	.type-enchantment { background-color: #ec4899; }
+	.type-planeswalker { background-color: #a855f7; }
 
 	.arena-bar-chart-container {
 		display: flex;
 		align-items: flex-end;
 		justify-content: space-between;
-		height: 220px;
-		padding: 0 0.5rem;
-		gap: 0.75rem;
-		border-bottom: none;
+		height: 175px;
+		gap: 6px;
+		padding: 0.5rem 0 0.25rem;
+		flex: 1;
 	}
 
 	.arena-curve-column {
 		flex: 1;
-		min-width: 0;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		justify-content: flex-end;
-		gap: 0.5rem;
 		height: 100%;
-		cursor: pointer;
-		position: relative;
+		justify-content: flex-end;
+		gap: 4px;
 	}
 
 	.bar-total-label {
-		font-size: 0.875rem;
+		font-size: 0.75rem;
 		font-weight: 700;
 		color: hsl(var(--foreground));
-		font-variant-numeric: tabular-nums;
-		transition: color 0.2s ease;
 	}
 
 	.bar-track {
 		width: 100%;
-		max-width: 64px;
-		border-radius: 6px;
-		overflow: hidden;
+		max-width: 48px;
 		display: flex;
 		flex-direction: column-reverse;
-		background: hsl(var(--secondary) / 0.35);
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-		transition: all 0.25s ease;
-	}
-
-	.arena-curve-column:hover .bar-track {
-		filter: brightness(1.2);
-		transform: scaleY(1.02);
-		transform-origin: bottom;
-	}
-
-	.arena-curve-column.selected .bar-track {
-		outline: 2px solid hsl(var(--primary));
-		outline-offset: 2px;
-		filter: brightness(1.15);
-	}
-
-	.arena-curve-column.selected .bar-total-label {
-		color: hsl(var(--primary));
-	}
-
-	.arena-curve-column.selected .cmc-drop-label {
-		color: hsl(var(--primary));
-		font-weight: 700;
+		border-radius: 4px;
+		overflow: hidden;
+		min-height: 4px;
+		transition: height 0.25s ease;
 	}
 
 	.bar-segment {
 		width: 100%;
-		transition: height 0.3s ease;
-		box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.2);
+		transition: opacity 0.15s ease;
 	}
+
+	.bar-segment:hover {
+		filter: brightness(1.2);
+	}
+
+	.creature-segment { background-color: #f97316; }
+	.noncreature-segment { background-color: #0284c7; }
 
 	.cmc-drop-label {
-		font-size: 0.75rem;
+		font-size: 0.68rem;
 		font-weight: 600;
 		color: hsl(var(--muted-foreground));
-		transition: color 0.2s ease;
-		white-space: nowrap;
 		text-align: center;
-		letter-spacing: 0.01em;
-		user-select: none;
-	}
-
-	.arena-curve-column:hover .cmc-drop-label {
-		color: hsl(var(--foreground));
-	}
-
-	/* Card Preview Stack Drawer */
-	.curve-cards-drawer {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		height: 100%;
-		min-height: 270px;
-		max-height: 280px;
-		box-sizing: border-box;
-	}
-
-	.drawer-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding-bottom: 0.25rem;
-	}
-
-	.drawer-header h4 {
-		margin: 0;
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
-	}
-
-	.clear-btn {
-		background: transparent;
-		border: 1px solid hsl(var(--border) / 0.6);
-		color: hsl(var(--muted-foreground));
-		font-size: 0.75rem;
-		padding: 0.15rem 0.5rem;
-		border-radius: var(--radius-sm);
-		cursor: pointer;
-		transition: all 0.15s ease;
-	}
-
-	.clear-btn:hover {
-		color: hsl(var(--foreground));
-		border-color: hsl(var(--muted-foreground));
-	}
-
-	.drawer-cards-list {
-		overflow-y: auto;
-		display: flex;
-		flex-direction: column;
-		gap: 0.2rem;
-		padding-right: 0.25rem;
-		flex: 1;
-	}
-
-	.drawer-card-item {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0.25rem 0.35rem;
-		background: transparent;
-		border-radius: var(--radius-sm);
-		font-size: 0.8125rem;
-		gap: 0.75rem;
-		cursor: pointer;
-		transition: background 0.15s ease;
-		user-select: none;
-	}
-
-	.drawer-card-item:hover {
-		background: hsl(var(--secondary) / 0.5);
-	}
-
-	.card-name-qty {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
-		min-width: 0;
-		flex: 1;
-	}
-
-	.card-name {
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.card-qty {
-		color: hsl(var(--muted-foreground));
-		flex-shrink: 0;
-	}
-
-	.card-cost-and-type {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		flex-shrink: 0;
-	}
-
-	.card-mana-pips {
-		display: inline-flex;
-		align-items: center;
-		gap: 2px;
-		flex-shrink: 0;
-	}
-
-	.card-type-icon {
-		font-size: 0.875rem;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		line-height: 1;
-		opacity: 0.88;
-		transition: transform 0.15s ease, opacity 0.15s ease, filter 0.15s ease;
-	}
-
-	.drawer-card-item:hover .card-type-icon {
-		opacity: 1;
-		transform: scale(1.2);
-		filter: drop-shadow(0 0 5px currentColor);
-	}
-
-	.mana-slash {
-		color: hsl(var(--muted-foreground));
-		font-size: 0.75rem;
-		margin: 0 1px;
-	}
-
-	/* Left Column: Curve Stats Card */
-	.curve-stats-column {
-		display: flex;
-		flex-direction: column;
-		height: 100%;
-		min-height: 270px;
-		max-height: 280px;
-		box-sizing: border-box;
-	}
-
-	.stats-column-body {
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		flex: 1;
-		gap: 0.5rem;
-	}
-
-	.stats-column-item {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.stats-item-label {
-		font-size: 0.75rem;
-		font-weight: 600;
-		color: hsl(var(--muted-foreground));
-		text-transform: uppercase;
-		letter-spacing: 0.03em;
 		white-space: nowrap;
 	}
 
-	.stats-item-value {
-		font-size: 1.125rem;
-		font-weight: 700;
-		color: hsl(var(--foreground));
-		font-variant-numeric: tabular-nums;
-		white-space: nowrap;
-		display: flex;
-		align-items: baseline;
-		gap: 0.35rem;
-	}
-
-	.stats-item-sub {
-		font-size: 0.8125rem;
-		font-weight: 500;
-		color: hsl(var(--muted-foreground));
-	}
-
-	/* 3. CARD TYPES SECTION STYLES */
-	.types-dual-layout {
-		display: grid;
-		grid-template-columns: 1fr 380px;
-		gap: 2rem;
-	}
-
-	@media (max-width: 900px) {
-		.types-dual-layout {
-			grid-template-columns: 1fr;
-		}
-	}
-
-	.types-main-panel, .types-subtypes-panel {
-		background: hsl(var(--card) / 0.45);
-		backdrop-filter: blur(12px);
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-xl, 16px);
-		padding: 2rem;
+	.types-list-scroll, .colors-list-scroll {
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: 0.45rem;
+		flex: 1;
 	}
 
-	.types-bars-stack {
+	.type-row-item, .color-row-item {
 		display: flex;
-		flex-direction: column;
-		gap: 1rem;
+		align-items: center;
+		gap: 0.65rem;
+		font-size: 0.78rem;
 	}
 
-	.type-progress-row {
+	.type-info, .color-info {
 		display: flex;
-		flex-direction: column;
+		align-items: center;
 		gap: 0.4rem;
-		cursor: pointer;
-		padding: 0.4rem 0.5rem;
-		border-radius: var(--radius-md);
-		transition: background 0.15s ease;
+		width: 110px;
+		flex-shrink: 0;
 	}
 
-	.type-progress-row:hover {
-		background: hsl(var(--secondary) / 0.5);
-	}
-
-	.type-name-and-count {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		font-size: 0.9rem;
-	}
-
-	.type-label-badge {
-		border-left: 3px solid;
-		padding-left: 0.5rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
-	}
-
-	.type-count-text {
-		font-weight: 700;
-		color: hsl(var(--foreground));
-	}
-
-	.type-count-text .pct {
-		font-weight: 400;
-		color: hsl(var(--muted-foreground));
-		font-size: 0.8rem;
-	}
-
-	.type-bar-bg {
-		width: 100%;
-		height: 8px;
-		background: hsl(var(--secondary) / 0.6);
-		border-radius: 4px;
-		overflow: hidden;
-	}
-
-	.type-bar-fill {
-		height: 100%;
-		border-radius: 4px;
-		transition: width 0.4s ease;
-	}
-
-	.permanents-summary-box {
-		display: flex;
-		align-items: center;
-		justify-content: space-around;
-		background: hsl(var(--secondary) / 0.4);
-		border: 1px solid hsl(var(--border) / 0.4);
-		border-radius: var(--radius-lg);
-		padding: 1.25rem;
-		margin-top: 0.5rem;
-	}
-
-	.perm-item {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-	}
-
-	.perm-icon {
-		color: #f97316;
-	}
-
-	.perm-icon.spells {
-		color: #38bdf8;
-	}
-
-	.perm-num {
-		font-size: 1.35rem;
-		font-weight: 800;
-		display: block;
-		line-height: 1.1;
-		color: hsl(var(--foreground));
-	}
-
-	.perm-title {
-		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.perm-divider {
-		width: 1px;
-		height: 40px;
-		background: hsl(var(--border) / 0.5);
-	}
-
-	/* Subtypes breakdown (Arena look) */
-	.panel-subtitle {
-		margin: -1rem 0 0 0;
-		font-size: 0.8rem;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.subtypes-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		max-height: 480px;
-		overflow-y: auto;
-		padding-right: 0.5rem;
-	}
-
-	.subtype-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0.5rem 0.85rem;
-		background: hsl(var(--secondary) / 0.3);
-		border-radius: var(--radius-md);
-		font-size: 0.85rem;
-	}
-
-	.subtype-name {
-		font-weight: 500;
-		color: hsl(var(--foreground));
-	}
-
-	.subtype-pill {
-		font-weight: 700;
-		color: hsl(var(--primary));
-		font-variant-numeric: tabular-nums;
-	}
-
-	.empty-subtypes-notice {
-		color: hsl(var(--muted-foreground));
-		font-size: 0.85rem;
-		padding: 2rem 0;
-		text-align: center;
-	}
-
-	/* 4. COLORS & MANA BASE STYLES */
-	.colors-dashboard-grid {
-		display: grid;
-		grid-template-columns: 1fr 340px;
-		gap: 2rem;
-	}
-
-	@media (max-width: 900px) {
-		.colors-dashboard-grid {
-			grid-template-columns: 1fr;
-		}
-	}
-
-	.color-comparison-card {
-		background: hsl(var(--card) / 0.45);
-		backdrop-filter: blur(12px);
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-xl, 16px);
-		padding: 2rem;
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.card-desc {
-		margin: 0;
-		font-size: 0.85rem;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.color-comparison-table {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		margin-top: 1rem;
-	}
-
-	.table-header-row {
-		display: grid;
-		grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1.2fr;
-		padding: 0.6rem 0.8rem;
-		font-size: 0.72rem;
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: hsl(var(--muted-foreground));
-		border-bottom: 1px solid hsl(var(--border) / 0.4);
-	}
-
-	.table-data-row {
-		display: grid;
-		grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1.2fr;
-		align-items: center;
-		padding: 0.75rem 0.8rem;
-		background: hsl(var(--secondary) / 0.25);
-		border-radius: var(--radius-md);
-		font-size: 0.85rem;
-	}
-
-	.color-symbol-cell {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.color-name {
-		font-weight: 600;
-		color: hsl(var(--foreground));
-	}
-
-	.data-val {
-		color: hsl(var(--foreground));
-	}
-
-	.data-val.bold {
-		font-weight: 700;
-	}
-
-	.status-badge {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.3rem;
-		padding: 0.2rem 0.5rem;
-		border-radius: var(--radius-sm);
-		font-size: 0.72rem;
-		font-weight: 600;
-	}
-
-	.status-badge.good {
-		background: rgba(34, 197, 94, 0.15);
-		color: #22c55e;
-	}
-
-	.status-badge.fair {
-		background: rgba(56, 189, 248, 0.15);
-		color: #38bdf8;
-	}
-
-	.status-badge.warn {
-		background: rgba(239, 68, 68, 0.15);
-		color: #ef4444;
-	}
-
-	.color-breakdown-side-cards {
-		display: flex;
-		flex-direction: column;
-		gap: 1.5rem;
-	}
-
-	.stats-mini-panel {
-		background: hsl(var(--card) / 0.4);
-		border: 1px solid hsl(var(--border) / 0.4);
-		border-radius: var(--radius-lg);
-		padding: 1.5rem;
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.stats-mini-panel h4 {
-		margin: 0;
-		font-size: 0.95rem;
-		font-weight: 700;
-		color: hsl(var(--foreground));
-	}
-
-	.complexity-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-
-	.complexity-item {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		font-size: 0.85rem;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.complexity-item .num {
-		font-weight: 700;
-		color: hsl(var(--foreground));
-	}
-
-	.mana-summary-list {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 1rem;
-	}
-
-	.summary-stat-box {
-		background: hsl(var(--secondary) / 0.4);
-		border-radius: var(--radius-md);
-		padding: 1rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-		text-align: center;
-	}
-
-	.summary-stat-box .title {
-		font-size: 0.72rem;
-		font-weight: 600;
-		text-transform: uppercase;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.summary-stat-box .big-val {
-		font-size: 1.8rem;
-		font-weight: 800;
-		color: hsl(var(--primary));
-	}
-
-	/* 5. BUDGET SECTION STYLES */
-	.budget-hero-row {
-		display: grid;
-		grid-template-columns: 1.5fr 1fr 1fr;
-		gap: 1.5rem;
-	}
-
-	@media (max-width: 800px) {
-		.budget-hero-row {
-			grid-template-columns: 1fr;
-		}
-	}
-
-	.budget-kpi-card {
-		background: hsl(var(--card) / 0.45);
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-lg);
-		padding: 1.5rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.4rem;
-	}
-
-	.budget-kpi-card.total-kpi {
-		background: linear-gradient(135deg, hsl(var(--card) / 0.7) 0%, hsl(var(--primary) / 0.15) 100%);
-		border-color: hsl(var(--primary) / 0.4);
-	}
-
-	.kpi-label {
-		font-size: 0.75rem;
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.kpi-amount {
-		margin: 0;
-		font-size: 2.2rem;
-		font-weight: 800;
-		color: #38bdf8;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.kpi-secondary-amount {
-		margin: 0;
-		font-size: 1.6rem;
-		font-weight: 700;
-		color: hsl(var(--foreground));
-	}
-
-	.kpi-subtext {
-		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.budget-details-grid {
-		display: grid;
-		grid-template-columns: 1fr 360px;
-		gap: 2rem;
-	}
-
-	@media (max-width: 900px) {
-		.budget-details-grid {
-			grid-template-columns: 1fr;
-		}
-	}
-
-	.expensive-cards-card {
-		background: hsl(var(--card) / 0.45);
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-xl, 16px);
-		padding: 2rem;
-		display: flex;
-		flex-direction: column;
-		gap: 1.5rem;
-	}
-
-	.top-cards-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.6rem;
-	}
-
-	.expensive-card-row {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		padding: 0.6rem 0.85rem;
-		background: hsl(var(--secondary) / 0.35);
-		border-radius: var(--radius-md);
-		font-size: 0.85rem;
-	}
-
-	.card-rank {
-		font-weight: 700;
-		color: hsl(var(--muted-foreground));
-		width: 24px;
-	}
-
-	.card-thumb {
-		width: 44px;
-		height: 32px;
-		object-fit: cover;
-		border-radius: 4px;
-	}
-
-	.card-thumb-fallback {
-		width: 44px;
-		height: 32px;
-		background: hsl(var(--secondary));
-		border-radius: 4px;
-	}
-
-	.card-info {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 0.15rem;
-		overflow: hidden;
-	}
-
-	.card-info .name {
+	.type-name, .color-name {
 		font-weight: 600;
 		color: hsl(var(--foreground));
 		white-space: nowrap;
@@ -2946,109 +1560,202 @@
 		text-overflow: ellipsis;
 	}
 
-	.card-info .type-board {
-		font-size: 0.72rem;
-		color: hsl(var(--muted-foreground));
-		text-transform: capitalize;
-	}
-
-	.price-pill-wrapper {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
-		gap: 0.15rem;
-	}
-
-	.price-pill {
-		font-weight: 700;
-		color: #38bdf8;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.pct-pill {
-		font-size: 0.72rem;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.budget-breakdown-sidebar {
-		display: flex;
-		flex-direction: column;
-		gap: 1.5rem;
-	}
-
-	.budget-panel-box {
-		background: hsl(var(--card) / 0.4);
-		border: 1px solid hsl(var(--border) / 0.4);
-		border-radius: var(--radius-lg);
-		padding: 1.5rem;
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.budget-panel-box h4 {
-		margin: 0;
+	.type-icon {
 		font-size: 0.95rem;
-		font-weight: 700;
-		color: hsl(var(--foreground));
+		flex-shrink: 0;
 	}
 
-	.board-values-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.6rem;
-	}
-
-	.board-row {
-		display: flex;
-		justify-content: space-between;
-		font-size: 0.85rem;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.board-row .val {
-		font-weight: 700;
-		color: hsl(var(--foreground));
-	}
-
-	.tiers-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.85rem;
-	}
-
-	.tier-item {
-		display: flex;
-		flex-direction: column;
-		gap: 0.3rem;
-	}
-
-	.tier-header {
-		display: flex;
-		justify-content: space-between;
-		font-size: 0.8rem;
-	}
-
-	.tier-label {
-		font-weight: 600;
-		color: hsl(var(--foreground));
-	}
-
-	.tier-count {
-		color: hsl(var(--muted-foreground));
-	}
-
-	.tier-bar-bg {
-		width: 100%;
+	.type-progress-track, .color-progress-track {
+		flex: 1;
 		height: 6px;
-		background: hsl(var(--secondary) / 0.6);
+		background: hsl(var(--secondary) / 0.8);
 		border-radius: 3px;
 		overflow: hidden;
 	}
 
-	.tier-bar-fill {
+	.type-progress-fill, .color-progress-fill {
 		height: 100%;
 		border-radius: 3px;
 		transition: width 0.3s ease;
+	}
+
+	.type-count-badge, .color-count-badge {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.75rem;
+		width: 65px;
+		justify-content: flex-end;
+		flex-shrink: 0;
+	}
+
+	.type-qty, .pips-val {
+		font-weight: 700;
+		color: hsl(var(--foreground));
+	}
+
+	.type-percent, .pips-pct {
+		color: hsl(var(--muted-foreground));
+	}
+
+	.identity-symbols-row {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+	}
+
+	.sources-pill {
+		font-size: 0.7rem;
+		color: hsl(var(--muted-foreground));
+		background: hsl(var(--secondary) / 0.6);
+		padding: 0.1rem 0.4rem;
+		border-radius: 4px;
+		flex-shrink: 0;
+		white-space: nowrap;
+	}
+
+	/* Budget styles */
+	.budget-body-content {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		flex: 1;
+	}
+
+	.budget-hero-callout {
+		background: hsl(var(--secondary) / 0.4);
+		border: 1px solid hsl(var(--border) / 0.5);
+		border-radius: 8px;
+		padding: 0.75rem 1rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.budget-amount-display {
+		display: flex;
+		align-items: baseline;
+		color: #22c55e;
+		font-family: var(--font-sans);
+	}
+
+	.currency-sign {
+		font-size: 1.15rem;
+		font-weight: 700;
+		margin-right: 2px;
+	}
+
+	.amount-digits {
+		font-size: 1.75rem;
+		font-weight: 800;
+		letter-spacing: -0.02em;
+	}
+
+	.budget-caption {
+		font-size: 0.72rem;
+		color: hsl(var(--muted-foreground));
+		margin-top: 0.15rem;
+	}
+
+	.boards-chips-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+	}
+
+	.board-chip {
+		flex: 1;
+		min-width: 90px;
+		background: hsl(var(--secondary) / 0.5);
+		border: 1px solid hsl(var(--border) / 0.4);
+		border-radius: 6px;
+		padding: 0.35rem 0.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.1rem;
+	}
+
+	.board-chip .label {
+		font-size: 0.68rem;
+		color: hsl(var(--muted-foreground));
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.board-chip .val {
+		font-size: 0.82rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+	}
+
+	.top-cards-section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		margin-top: auto;
+	}
+
+	.top-cards-header {
+		font-size: 0.72rem;
+		font-weight: 600;
+		color: hsl(var(--muted-foreground));
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.top-cards-mini-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.top-card-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.75rem;
+		padding: 0.2rem 0.4rem;
+		border-radius: 4px;
+		background: hsl(var(--secondary) / 0.3);
+	}
+
+	.top-card-row .rank {
+		color: hsl(var(--muted-foreground));
+		font-weight: 600;
+		width: 18px;
+	}
+
+	.top-card-row .name {
+		flex: 1;
+		font-weight: 500;
+		color: hsl(var(--foreground));
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.top-card-row .price {
+		font-weight: 700;
+		color: #22c55e;
+	}
+
+	.card-footer-stats {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.72rem;
+		color: hsl(var(--muted-foreground));
+		padding-top: 0.5rem;
+		border-top: 1px solid hsl(var(--border) / 0.3);
+		margin-top: auto;
+	}
+
+	.footer-stat-item strong {
+		color: hsl(var(--foreground));
+	}
+
+	.footer-stat-divider {
+		color: hsl(var(--border));
 	}
 </style>

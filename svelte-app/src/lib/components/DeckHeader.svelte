@@ -796,24 +796,11 @@
 					>
 						<BarChart2 size={15} />
 					</button>
-					<button
-						type="button"
-						role="radio"
-						aria-checked={settingsStore.deckViewMode === "more"}
-						class="view-toggle-btn"
-						class:active={settingsStore.deckViewMode === "more"}
-						onclick={() =>
-							(settingsStore.deckViewMode = "more")}
-						title="More Tools (Sample Hand, Tokens, Combos)"
-						aria-label="More Tools"
-					>
-						<MoreHorizontal size={15} />
-					</button>
 				</div>
 			</div>
 
 			<!-- Grouping Column with GROUPING eyebrow -->
-			{#if !["list", "stats", "more", "settings"].includes(settingsStore.deckViewMode)}
+			{#if !["list", "stats", "settings"].includes(settingsStore.deckViewMode)}
 				<div class="control-column">
 					<span class="eyebrow-label">GROUPING</span>
 					<div class="grouping-controls-row">
@@ -1043,67 +1030,16 @@
 						role="radiogroup"
 						aria-label="Stats Sections"
 					>
-						{#each [
-							{ id: "overview", label: "Overview" },
-							{ id: "mana-curve", label: "Mana Curve" },
-							{ id: "card-types", label: "Card Types" },
-							{ id: "colors", label: "Colors" },
-							{ id: "budget", label: "Budget" }
-						] as sec}
-							<button
-								type="button"
-								role="radio"
-								aria-checked={settingsStore.statsSection === sec.id}
-								class="stats-tab-btn"
-								class:active={settingsStore.statsSection === sec.id}
-								onclick={() => {
-									settingsStore.statsSection = sec.id;
-									const el = document.getElementById(`stats-${sec.id}`);
-									if (el) {
-										el.scrollIntoView({ behavior: "smooth", block: "start" });
-									}
-								}}
-							>
-								{sec.label}
-							</button>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			{#if ["stacks", "spoiler", "table", "stats"].includes(settingsStore.deckViewMode)}
-				<!-- View Options Modal Trigger -->
-				<div class="view-options-container">
-					<Button
-						variant={showViewOptionsModal
-							? "toggle-active"
-							: "ghost"}
-						size="icon"
-						class="modifier-btn"
-						bind:el={viewOptionsBtn}
-						onclick={(/** @type {MouseEvent} */ e) => {
-							e.stopPropagation();
-							showViewOptionsModal = true;
-						}}
-						title="View Options"
-					>
-						<MoreVertical size={15} />
-					</Button>
-					<ViewOptionsModal
-						bind:isOpen={showViewOptionsModal}
-						triggerElement={viewOptionsBtn}
-					/>
-				</div>
-			{/if}
-
-			{#if settingsStore.deckViewMode === "more"}
-				<div class="control-column">
-					<span class="eyebrow-label">SECTIONS</span>
-					<div
-						class="stats-subtabs-group"
-						role="radiogroup"
-						aria-label="More Tools Sub-tab"
-					>
+						<button
+							type="button"
+							role="radio"
+							aria-checked={settingsStore.statsSubTab === "dashboard" || settingsStore.statsSubTab === "stats"}
+							class="stats-tab-btn"
+							class:active={settingsStore.statsSubTab === "dashboard" || settingsStore.statsSubTab === "stats"}
+							onclick={() => (settingsStore.statsSubTab = "dashboard")}
+						>
+							Stats
+						</button>
 						<button
 							type="button"
 							role="radio"
@@ -1135,6 +1071,31 @@
 							Combos
 						</button>
 					</div>
+				</div>
+			{/if}
+
+			{#if ["stacks", "spoiler", "table", "stats"].includes(settingsStore.deckViewMode)}
+				<!-- View Options Modal Trigger -->
+				<div class="view-options-container">
+					<Button
+						variant={showViewOptionsModal
+							? "toggle-active"
+							: "ghost"}
+						size="icon"
+						class="modifier-btn"
+						bind:el={viewOptionsBtn}
+						onclick={(/** @type {MouseEvent} */ e) => {
+							e.stopPropagation();
+							showViewOptionsModal = true;
+						}}
+						title="View Options"
+					>
+						<MoreVertical size={15} />
+					</Button>
+					<ViewOptionsModal
+						bind:isOpen={showViewOptionsModal}
+						triggerElement={viewOptionsBtn}
+					/>
 				</div>
 			{/if}
 
