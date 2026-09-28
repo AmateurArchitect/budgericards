@@ -780,21 +780,32 @@
 		);
 
 		const sortedCreatureSubtypes = Object.entries(creatureSubtypes)
-			.sort((a, b) => b[1] - a[1])
-			.slice(0, 16);
+			.sort((a, b) => b[1] - a[1]);
+		const sortedArtifactSubtypes = Object.entries(artifactSubtypes)
+			.sort((a, b) => b[1] - a[1]);
+		const sortedLandSubtypes = Object.entries(landSubtypes)
+			.sort((a, b) => b[1] - a[1]);
 
 		const activeTypesList = Object.entries(types)
 			.filter(([_, info]) => info.count > 0)
-			.map(([type, info]) => ({
-				type,
-				count: info.count,
-				color: info.color,
-				cards: info.cards,
-				icon: getCardTypeIcon(type),
-				pct: Math.round(
-					(info.count / Math.max(activeCards.length, 1)) * 100,
-				),
-			}));
+			.map(([type, info]) => {
+				let subtypes = /** @type {[string, number][]} */ ([]);
+				if (type === "Creatures") subtypes = sortedCreatureSubtypes;
+				if (type === "Artifacts") subtypes = sortedArtifactSubtypes;
+				if (type === "Lands") subtypes = sortedLandSubtypes;
+				
+				return {
+					type,
+					count: info.count,
+					color: info.color,
+					cards: info.cards,
+					icon: getCardTypeIcon(type),
+					subtypes,
+					pct: Math.round(
+						(info.count / Math.max(activeCards.length, 1)) * 100,
+					),
+				};
+			});
 
 		return {
 			activeTypesList,
@@ -1257,7 +1268,10 @@
 							<!-- Key -->
 							<div class="types-legend">
 								{#each cardTypesData.activeTypesList as item}
-									<div class="legend-item"><span class="legend-swatch" style="background-color: {item.color};"></span>{item.type}</div>
+									<div class="legend-item">
+										<i class="ms {item.icon} legend-icon" style="color: {item.color};"></i>
+										{item.type}
+									</div>
 								{/each}
 							</div>
 							<!-- Progress bar -->
@@ -1272,14 +1286,25 @@
 
 						<div class="types-list-scroll">
 							{#each cardTypesData.activeTypesList as item}
-								<div class="type-row-item arena-style">
-									<div class="type-info">
-										<i class="ms {item.icon} ms-cost type-icon" style="color: {item.color};"></i>
-										<span class="type-name">{item.type}</span>
+								<div class="type-group-container">
+									<div class="type-row-item arena-style">
+										<div class="type-info">
+											<span class="type-name">{item.type}</span>
+										</div>
+										<div class="type-count-badge">
+											<span class="type-qty">{item.count}</span>
+										</div>
 									</div>
-									<div class="type-count-badge">
-										<span class="type-qty">{item.count}</span>
-									</div>
+									{#if item.subtypes && item.subtypes.length > 0}
+										<div class="subtypes-container">
+											{#each item.subtypes as [subName, subCount]}
+												<div class="subtype-row">
+													<span class="subtype-name">{subName}</span>
+													<span class="subtype-qty">{subCount}</span>
+												</div>
+											{/each}
+										</div>
+									{/if}
 								</div>
 							{/each}
 						</div>
@@ -1642,12 +1667,22 @@
 		filter: brightness(1.2);
 	}
 
+	.legend-icon {
+		font-size: 14px;
+	}
+
 	.types-list-scroll {
 		display: flex;
 		flex-direction: column;
 		gap: 0.2rem;
 		overflow-y: auto;
 		flex: 1;
+	}
+
+	.type-group-container {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
 	}
 
 	.type-row-item.arena-style {
@@ -1662,6 +1697,31 @@
 
 	.type-row-item.arena-style:hover {
 		background: rgba(255, 255, 255, 0.03);
+	}
+
+	.subtypes-container {
+		display: flex;
+		flex-direction: column;
+		padding-left: 0.75rem;
+		gap: 1px;
+	}
+
+	.subtype-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		font-size: 12px;
+		padding: 0.25rem 0.5rem;
+		color: #94a3b8;
+		border-left: 2px solid rgba(255, 255, 255, 0.08);
+	}
+
+	.subtype-row:hover {
+		background: rgba(255, 255, 255, 0.02);
+	}
+
+	.subtype-qty {
+		font-weight: 600;
 	}
 
 	.colors-list-scroll {
