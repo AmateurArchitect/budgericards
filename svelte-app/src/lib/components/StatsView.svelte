@@ -207,6 +207,7 @@
 
 	const cmcData = $derived.by(() => {
 		// 1. Helper functions matching stacks.svelte.js rules
+		/** @param {string} key */
 		function getCmcValue(key) {
 			if (key === "0-1") {
 				return settingsStore.combine01Drops ? 1 : null;
@@ -223,6 +224,7 @@
 			return null;
 		}
 
+		/** @param {number} val */
 		function getCmcKeyForValue(val) {
 			if (settingsStore.combine01Drops && (val === 0 || val === 1)) {
 				return "0-1";
@@ -285,6 +287,10 @@
 			}
 		}
 
+		/**
+		 * @param {string} key
+		 * @param {any[]} bItems
+		 */
 		function getBucketLabels(key, bItems) {
 			if (key === "0-1") {
 				let bHas0 = false;
@@ -343,7 +349,7 @@
 				}),
 				totalPips: 0,
 				total: 0,
-				cards: /** @type {{ name: string, qty: number, mana_cost: string, type_line: string, price: number, cmc: number, overrides?: any }[]} */ ([]),
+				cards: /** @type {{ name: string, qty: number, mana_cost: string, type_line: string, price: number, cmc: number, overrides?: any, colors?: string[], colorIdentity?: string[] }[]} */ ([]),
 			};
 		});
 
@@ -525,7 +531,7 @@
 				return a.name.localeCompare(b.name);
 			});
 		} else if (curveGroupingMode === "types") {
-			const getTypeRank = (c) => {
+			const getTypeRank = (/** @type {any} */ c) => {
 				const isCreature =
 					c.overrides?.creature !== undefined
 						? c.overrides.creature
@@ -546,7 +552,7 @@
 				return a.name.localeCompare(b.name);
 			});
 		} else if (curveGroupingMode === "pips") {
-			const getPipRank = (c) => {
+			const getPipRank = (/** @type {any} */ c) => {
 				const colors = c.colors || [];
 				if (colors.length === 0) {
 					const cost = c.mana_cost || "";
@@ -764,6 +770,15 @@
 			}
 		});
 
+		const creaturesCount = types.Creatures.count;
+		const nonCreaturesCount =
+			activeCards.reduce((acc, c) => acc + (c.quantity || 1), 0) -
+			creaturesCount;
+		const landsCount = types.Lands.count;
+		const landsPct = Math.round(
+			(landsCount / Math.max(activeCards.length, 1)) * 100,
+		);
+
 		const sortedCreatureSubtypes = Object.entries(creatureSubtypes)
 			.sort((a, b) => b[1] - a[1])
 			.slice(0, 16);
@@ -775,7 +790,10 @@
 				count: info.count,
 				color: info.color,
 				cards: info.cards,
-				pct: Math.round((info.count / Math.max(activeCards.length, 1)) * 100),
+				icon: getCardTypeIcon(type),
+				pct: Math.round(
+					(info.count / Math.max(activeCards.length, 1)) * 100,
+				),
 			}));
 
 		return {
@@ -785,6 +803,10 @@
 			permanentsPct: Math.round((permanentsCount / Math.max(activeCards.length, 1)) * 100),
 			nonPermanentsPct: Math.round((nonPermanentsCount / Math.max(activeCards.length, 1)) * 100),
 			sortedCreatureSubtypes,
+			creaturesCount,
+			nonCreaturesCount,
+			landsCount,
+			landsPct,
 		};
 	});
 
