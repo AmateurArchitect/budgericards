@@ -1785,12 +1785,18 @@
 		font-size: 14px;
 	}
 
-	.type-info, .color-info {
+	.color-info {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
 		width: 125px;
 		flex-shrink: 0;
+	}
+
+	.type-info {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 	}
 
 	.type-name, .color-name {
@@ -1819,7 +1825,7 @@
 		transition: width 0.3s ease;
 	}
 
-	.type-count-badge, .color-count-badge {
+	.color-count-badge {
 		display: flex;
 		align-items: baseline;
 		gap: 0.35rem;
@@ -1827,6 +1833,15 @@
 		width: 60px;
 		justify-content: flex-end;
 		flex-shrink: 0;
+		white-space: nowrap;
+	}
+
+	.type-count-badge {
+		display: flex;
+		align-items: baseline;
+		gap: 0.35rem;
+		font-size: 12px;
+		justify-content: flex-end;
 		white-space: nowrap;
 	}
 
