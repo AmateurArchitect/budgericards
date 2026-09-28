@@ -896,7 +896,7 @@
 			// Parse mana sources (lands and mana-producing non-lands)
 			const produced = meta.produced_mana || [];
 			if (produced.length > 0) {
-				produced.forEach((p) => {
+				produced.forEach((/** @type {string} */ p) => {
 					const upper = p.toUpperCase();
 					if (sources[upper]) sources[upper].cardCount += qty;
 				});
