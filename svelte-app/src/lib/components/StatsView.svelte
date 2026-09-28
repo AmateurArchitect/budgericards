@@ -394,7 +394,17 @@
 			/** @type {Record<string, number>} */
 			const cardPips = { GEN: 0, C: 0, W: 0, U: 0, B: 0, R: 0, G: 0 };
 			let cardPipsTotal = 0;
-			const cost = stats.manaCost;
+			
+				const colorsForCard = stats.colors || [];
+				colorsForCard.forEach((col) => {
+					const c = col.toUpperCase();
+					if (pips[c]) pips[c].cardCount += qty;
+				});
+				if (stats.manaCost && stats.manaCost.includes("{C}")) {
+					pips.C.cardCount += qty;
+				}
+
+				const cost = stats.manaCost;
 			const matches = cost.match(/\{([^}]+)\}/g) || [];
 			matches.forEach((/** @type {string} */ sym) => {
 				const clean = sym.replace(/[{}]/g, "").toUpperCase();
@@ -826,22 +836,22 @@
 	const colorBreakdownData = $derived.by(() => {
 		/** @type {Record<string, { name: string, count: number, color: string }>} */
 		const pips = {
-			W: { name: "White", count: 0, color: "#f9fafb" },
-			U: { name: "Blue", count: 0, color: "#38bdf8" },
-			B: { name: "Black", count: 0, color: "#334155" },
-			R: { name: "Red", count: 0, color: "#ef4444" },
-			G: { name: "Green", count: 0, color: "#22c55e" },
-			C: { name: "Colorless", count: 0, color: "#94a3b8" },
+			W: { name: "White", count: 0, cardCount: 0, color: "#f9fafb" },
+			U: { name: "Blue", count: 0, cardCount: 0, color: "#38bdf8" },
+			B: { name: "Black", count: 0, cardCount: 0, color: "#334155" },
+			R: { name: "Red", count: 0, cardCount: 0, color: "#ef4444" },
+			G: { name: "Green", count: 0, cardCount: 0, color: "#22c55e" },
+			C: { name: "Colorless", count: 0, cardCount: 0, color: "#94a3b8" },
 		};
 
 		/** @type {Record<string, { count: number, name: string }>} */
 		const sources = {
-			W: { count: 0, name: "White" },
-			U: { count: 0, name: "Blue" },
-			B: { count: 0, name: "Black" },
-			R: { count: 0, name: "Red" },
-			G: { count: 0, name: "Green" },
-			C: { count: 0, name: "Colorless" },
+			W: { count: 0, cardCount: 0, name: "White" },
+			U: { count: 0, cardCount: 0, name: "Blue" },
+			B: { count: 0, cardCount: 0, name: "Black" },
+			R: { count: 0, cardCount: 0, name: "Red" },
+			G: { count: 0, cardCount: 0, name: "Green" },
+			C: { count: 0, cardCount: 0, name: "Colorless" },
 		};
 
 		let totalPips = 0;
@@ -894,6 +904,21 @@
 			// Parse mana sources (lands and mana-producing non-lands)
 			const produced = meta.produced_mana || [];
 			if (produced.length > 0) {
+				produced.forEach((p) => {
+					const upper = p.toUpperCase();
+					if (sources[upper]) sources[upper].cardCount += qty;
+				});
+			} else if (isLand) {
+				const nameLower = c.name.toLowerCase();
+				if (nameLower.includes("plains")) sources.W.cardCount += qty;
+				if (nameLower.includes("island")) sources.U.cardCount += qty;
+				if (nameLower.includes("swamp")) sources.B.cardCount += qty;
+				if (nameLower.includes("mountain")) sources.R.cardCount += qty;
+				if (nameLower.includes("forest")) sources.G.cardCount += qty;
+				if (nameLower.includes("wastes")) sources.C.cardCount += qty;
+			}
+
+			if (produced.length > 0) {
 				produced.forEach((/** @type {string} */ p) => {
 					const upper = p.toUpperCase();
 					if (sources[upper]) sources[upper].count += qty;
@@ -931,6 +956,10 @@
 				pipPct,
 				sourceCount,
 				sourcePct,
+				pipCardCount: pips[col].cardCount,
+				pipCardPct: (monoColorCount + multiColorCount) > 0 ? Math.round((pips[col].cardCount / (monoColorCount + multiColorCount)) * 100) : 0,
+				sourceCardCount: sources[col].cardCount,
+				sourceCardPct: landsCount > 0 ? Math.round((sources[col].cardCount / landsCount) * 100) : 0, // rough approx
 			};
 		});
 
@@ -1219,6 +1248,20 @@
 
 				<!-- 2. COLORS BENTO CARD -->
 				<div class="bento-card colors-card">
+					<div class="bento-card-header" style="align-items: center;">
+						<div class="title-group">
+							<h3>Colors</h3>
+						</div>
+						<div class="stats-toggle-group" style="display: flex; gap: 4px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 6px; font-size: 11px; font-weight: 600;">
+							<button class="toggle-btn {colorStatsViewMode === 'percentage' ? 'active' : ''}" onclick={() => colorStatsViewMode = 'percentage'}>%</button>
+							<button class="toggle-btn {colorStatsViewMode === 'pips' ? 'active' : ''}" onclick={() => colorStatsViewMode = 'pips'}>Pips</button>
+							<button class="toggle-btn {colorStatsViewMode === 'cards' ? 'active' : ''}" onclick={() => colorStatsViewMode = 'cards'}>Cards</button>
+						</div>
+					</div>
+				</div>
+
+				<!-- 2. COLORS BENTO CARD -->
+				<div class="bento-card colors-card">
 					<div class="bento-card-header">
 						<div class="title-group">
 							<h3>Colors</h3>
@@ -1240,8 +1283,8 @@
 							<div class="master-bar-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
 								<div class="stacked-progress-track" style="height: 10px; background: rgba(255,255,255,0.05); border-radius: 5px; display: flex; overflow: hidden;">
 									{#each colorBreakdownData.colorList as col}
-										{#if col.pipPct > 0}
-											<div class="stacked-segment" style="width: {col.pipPct}%; background-color: {col.color};" title="{col.name} Cost"></div>
+										{#if col.pipCount > 0}
+											<div class="stacked-segment" style="flex: {col.pipCount}; background-color: {col.color};" title="{col.name} Cost"></div>
 										{/if}
 									{/each}
 								</div>
@@ -1267,8 +1310,8 @@
 							<div class="master-bar-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
 								<div class="stacked-progress-track" style="height: 10px; background: rgba(255,255,255,0.05); border-radius: 5px; display: flex; overflow: hidden; opacity: 0.8;">
 									{#each colorBreakdownData.colorList as col}
-										{#if col.sourcePct > 0}
-											<div class="stacked-segment" style="width: {col.sourcePct}%; background-color: {col.color};" title="{col.name} Sources"></div>
+										{#if col.sourceCount > 0}
+											<div class="stacked-segment" style="flex: {col.sourceCount}; background-color: {col.color};" title="{col.name} Sources"></div>
 										{/if}
 									{/each}
 								</div>
@@ -1315,21 +1358,37 @@
 											
 											<!-- Cost Row -->
 											<div class="bar-stats-row" style="display: flex; align-items: center; gap: 0.75rem;">
-												<div class="color-progress-track" style="flex-grow: 1; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; position: relative;" title="{col.pipPct}% {col.name} Cost">
-													<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.pipPct}%; background-color: {col.color}; border-radius: 4px; transition: width 0.3s ease;"></div>
+												<div class="color-progress-track" style="flex-grow: 1; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; position: relative;" title="{col.name} Cost">
+													{#if colorStatsViewMode === 'cards'}
+														<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.pipCardPct}%; background-color: {col.color}; border-radius: 4px; transition: width 0.3s ease;"></div>
+													{:else}
+														<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.pipPct}%; background-color: {col.color}; border-radius: 4px; transition: width 0.3s ease;"></div>
+													{/if}
 												</div>
 												<div class="stat-col" style="display: flex; align-items: center; gap: 0.5rem; width: 35px; justify-content: flex-end; font-variant-numeric: tabular-nums;">
-													<span style="font-weight: 700; color: #f8fafc; font-size: 12px; text-align: right; width: 100%;">{col.pipPct}%</span>
+													<span style="font-weight: 700; color: #f8fafc; font-size: 12px; text-align: right; width: 100%;">
+														{#if colorStatsViewMode === 'percentage'}{col.pipPct}%
+														{:else if colorStatsViewMode === 'pips'}{col.pipCount}
+														{:else}{col.pipCardCount}{/if}
+													</span>
 												</div>
 											</div>
 											
 											<!-- Sources Row -->
 											<div class="bar-stats-row" style="display: flex; align-items: center; gap: 0.75rem;">
-												<div class="color-progress-track" style="flex-grow: 1; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; position: relative;" title="{col.sourcePct}% {col.name} Sources">
-													<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.sourcePct}%; background-color: {col.color}; opacity: 0.5; border-radius: 4px; transition: width 0.3s ease;"></div>
+												<div class="color-progress-track" style="flex-grow: 1; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; position: relative;" title="{col.name} Sources">
+													{#if colorStatsViewMode === 'cards'}
+														<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.sourceCardPct}%; background-color: {col.color}; opacity: 0.5; border-radius: 4px; transition: width 0.3s ease;"></div>
+													{:else}
+														<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.sourcePct}%; background-color: {col.color}; opacity: 0.5; border-radius: 4px; transition: width 0.3s ease;"></div>
+													{/if}
 												</div>
 												<div class="stat-col" style="display: flex; align-items: center; gap: 0.5rem; width: 35px; justify-content: flex-end; font-variant-numeric: tabular-nums;">
-													<span style="font-weight: 700; color: #f8fafc; font-size: 12px; text-align: right; width: 100%;">{col.sourcePct}%</span>
+													<span style="font-weight: 700; color: #f8fafc; font-size: 12px; text-align: right; width: 100%;">
+														{#if colorStatsViewMode === 'percentage'}{col.sourcePct}%
+														{:else if colorStatsViewMode === 'pips'}{col.sourceCount}
+														{:else}{col.sourceCardCount}{/if}
+													</span>
 												</div>
 											</div>
 											
