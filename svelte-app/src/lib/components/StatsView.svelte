@@ -1076,6 +1076,46 @@
 		};
 	});
 
+
+	// Arc calculations for the Colors donut chart
+	function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+		const angleInRadians = (angleInDegrees - 180) * Math.PI / 180.0;
+		return {
+			x: centerX + (radius * Math.cos(angleInRadians)),
+			y: centerY + (radius * Math.sin(angleInRadians))
+		};
+	}
+
+	function describeArc(x, y, radius, startAngle, endAngle) {
+		const start = polarToCartesian(x, y, radius, endAngle);
+		const end = polarToCartesian(x, y, radius, startAngle);
+		const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+		return [
+			"M", start.x, start.y,
+			"A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
+		].join(" ");
+	}
+
+	const colorsArcData = $derived.by(() => {
+		const list = colorBreakdownData.colorList.filter(c => c.pipCount > 0);
+		let currentAngle = 0;
+		const totalAngle = 180;
+		const gap = 6; // degrees gap between segments
+		const totalGaps = Math.max(0, list.length - 1) * gap;
+		const availableAngle = totalAngle - totalGaps;
+		const totalPips = colorBreakdownData.totalPips;
+		
+		return list.map(c => {
+			if (totalPips === 0) return { ...c, d: "" };
+			const segmentAngle = (c.pipCount / totalPips) * availableAngle;
+			const startAngle = currentAngle;
+			const endAngle = currentAngle + segmentAngle;
+			currentAngle = endAngle + gap;
+			// Avoid invalid arc if angle is too small
+			const d = segmentAngle > 0.1 ? describeArc(100, 100, 80, startAngle, endAngle) : "";
+			return { ...c, d };
+		});
+	});
 </script>
 
 <div class="stats-root-container">
@@ -1230,28 +1270,45 @@
 						{/if}
 					</div>
 
-					<div class="colors-list-scroll">
-						{#each colorBreakdownData.colorList as col}
-							<div class="color-row-item">
-								<div class="color-info">
-									<ManaSymbol symbol={col.symbol} size="16px" />
-									<span class="color-name">{col.name}</span>
-								</div>
-								<div class="color-progress-track">
-									<div
-										class="color-progress-fill"
-										style="width: {col.pipPct}%; background-color: {col.color};"
-									></div>
-								</div>
-								<div class="color-count-badge">
-									<span class="pips-val">{col.pipCount}</span>
-									<span class="pips-pct">{col.pipPct}%</span>
-								</div>
-								<span class="sources-text" title="{col.sourceCount} mana producing sources">
-									{col.sourceCount} {col.sourceCount === 1 ? 'src' : 'srcs'}
-								</span>
+					<div class="colors-body-content" style="display: flex; flex-direction: column; gap: 1.5rem; padding-top: 1rem; align-items: center;">
+						<!-- Half-Donut Chart -->
+						<div class="gauge-chart-container" style="position: relative; width: 200px; height: 100px;">
+							<svg viewBox="0 0 200 100" style="width: 100%; height: 100%; overflow: visible;">
+								{#each colorsArcData as arc}
+									{#if arc.d}
+										<path 
+											d={arc.d} 
+											fill="none" 
+											stroke={arc.color} 
+											stroke-width="18" 
+											stroke-linecap="round"
+										/>
+									{/if}
+								{/each}
+							</svg>
+							<div class="gauge-center-text" style="position: absolute; bottom: 0; left: 0; right: 0; text-align: center; display: flex; flex-direction: column;">
+								<span style="font-size: 28px; font-weight: 700; color: #f8fafc; line-height: 1.1;">{colorBreakdownData.totalPips}</span>
+								<span style="font-size: 13px; color: #94a3b8; font-weight: 500;">Mana Pips</span>
 							</div>
-						{/each}
+						</div>
+
+						<!-- Legend List -->
+						<div class="colors-legend-list" style="width: 100%; display: flex; flex-direction: column; gap: 0.6rem;">
+							{#each colorBreakdownData.colorList.filter(c => c.pipCount > 0 || c.sourceCount > 0) as col}
+								<div class="color-legend-row" style="display: flex; align-items: center; justify-content: space-between; font-size: 14px;">
+									<div class="color-legend-left" style="display: flex; align-items: center; gap: 0.5rem;">
+										<div class="color-dot" style="width: 8px; height: 8px; border-radius: 50%; background-color: {col.color};"></div>
+										<ManaSymbol symbol={col.symbol} size="16px" />
+										<span style="font-weight: 500; color: #f8fafc; margin-left: 0.25rem;">{col.name}</span>
+									</div>
+									<div class="color-legend-right" style="display: flex; align-items: center; gap: 0.75rem; color: #94a3b8;">
+										<span style="color: #f8fafc; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 24px; text-align: right;">{col.pipCount}</span>
+										<div class="vert-divider" style="width: 1px; height: 12px; background: rgba(255,255,255,0.1);"></div>
+										<span style="font-variant-numeric: tabular-nums; width: 36px; text-align: right;">{col.pipPct}%</span>
+									</div>
+								</div>
+							{/each}
+						</div>
 					</div>
 				</div>
 
