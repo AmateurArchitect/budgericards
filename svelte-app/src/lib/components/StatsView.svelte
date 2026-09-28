@@ -873,6 +873,15 @@
 					else multiColorCount += qty;
 				}
 
+				const colorsForCard = stats.colors || [];
+				colorsForCard.forEach((col) => {
+					const c = col.toUpperCase();
+					if (pips[c]) pips[c].cardCount += qty;
+				});
+				if (stats.manaCost && stats.manaCost.includes("{C}")) {
+					pips.C.cardCount += qty;
+				}
+
 				// Parse mana pips from mana_cost
 				const cost = stats.manaCost;
 				const matches = cost.match(/\{([^}]+)\}/g) || [];
@@ -1259,8 +1268,8 @@
 							<div class="master-bar-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
 								<div class="stacked-progress-track" style="height: 10px; background: rgba(255,255,255,0.05); border-radius: 5px; display: flex; overflow: hidden;">
 									{#each colorBreakdownData.colorList as col}
-										{#if col.pipCount > 0}
-											<div class="stacked-segment" style="flex: {col.pipCount}; background-color: {col.color};" title="{col.name} Cost"></div>
+										{#if (colorStatsViewMode === 'cards' ? col.pipCardCount : col.pipCount) > 0}
+											<div class="stacked-segment" style="flex: {colorStatsViewMode === 'cards' ? col.pipCardCount : col.pipCount}; background-color: {col.color};" title="{col.name} Cost"></div>
 										{/if}
 									{/each}
 								</div>
@@ -1268,10 +1277,14 @@
 									<span style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; min-width: max-content;">Costs</span>
 									<div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
 										<div style="display: flex; gap: 0.75rem;">
-											{#each colorBreakdownData.colorList.filter(c => c.pipCount > 0) as col}
-												<span style="display: flex; align-items: center; gap: 0.25rem;" title="{col.name}: {col.pipCount} pips">
+											{#each colorBreakdownData.colorList.filter(c => (colorStatsViewMode === 'cards' ? c.pipCardCount : c.pipCount) > 0) as col}
+												<span style="display: flex; align-items: center; gap: 0.25rem;" title="{col.name}">
 													<ManaSymbol symbol={col.symbol} size="12px" />
-													<strong style="color: #f8fafc;">{col.pipCount}</strong>
+													<strong style="color: #f8fafc;">
+														{#if colorStatsViewMode === 'percentage'}{col.pipPct}%
+														{:else if colorStatsViewMode === 'pips'}{col.pipCount}
+														{:else}{col.pipCardCount}{/if}
+													</strong>
 												</span>
 											{/each}
 										</div>
@@ -1286,8 +1299,8 @@
 							<div class="master-bar-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
 								<div class="stacked-progress-track" style="height: 10px; background: rgba(255,255,255,0.05); border-radius: 5px; display: flex; overflow: hidden; opacity: 0.8;">
 									{#each colorBreakdownData.colorList as col}
-										{#if col.sourceCount > 0}
-											<div class="stacked-segment" style="flex: {col.sourceCount}; background-color: {col.color};" title="{col.name} Sources"></div>
+										{#if (colorStatsViewMode === 'cards' ? col.sourceCardCount : col.sourceCount) > 0}
+											<div class="stacked-segment" style="flex: {colorStatsViewMode === 'cards' ? col.sourceCardCount : col.sourceCount}; background-color: {col.color};" title="{col.name} Sources"></div>
 										{/if}
 									{/each}
 								</div>
@@ -1295,10 +1308,14 @@
 									<span style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; min-width: max-content;">Sources</span>
 									<div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
 										<div style="display: flex; gap: 0.75rem;">
-											{#each colorBreakdownData.colorList.filter(c => c.sourceCount > 0) as col}
-												<span style="display: flex; align-items: center; gap: 0.25rem;" title="{col.name}: {col.sourceCount} sources">
+											{#each colorBreakdownData.colorList.filter(c => (colorStatsViewMode === 'cards' ? c.sourceCardCount : c.sourceCount) > 0) as col}
+												<span style="display: flex; align-items: center; gap: 0.25rem;" title="{col.name}">
 													<ManaSymbol symbol={col.symbol} size="12px" />
-													<strong style="color: #f8fafc;">{col.sourceCount}</strong>
+													<strong style="color: #f8fafc;">
+														{#if colorStatsViewMode === 'percentage'}{col.sourcePct}%
+														{:else if colorStatsViewMode === 'pips'}{col.sourceCount}
+														{:else}{col.sourceCardCount}{/if}
+													</strong>
 												</span>
 											{/each}
 										</div>
