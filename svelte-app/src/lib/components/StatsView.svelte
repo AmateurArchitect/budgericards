@@ -666,14 +666,14 @@
 	const cardTypesData = $derived.by(() => {
 		/** @type {Record<string, { count: number, color: string, cards: any[] }>} */
 		const types = {
-			Creatures: { count: 0, color: "#f97316", cards: [] },
-			Instants: { count: 0, color: "#38bdf8", cards: [] },
-			Sorceries: { count: 0, color: "#818cf8", cards: [] },
-			Artifacts: { count: 0, color: "#94a3b8", cards: [] },
-			Enchantments: { count: 0, color: "#ec4899", cards: [] },
-			Planeswalkers: { count: 0, color: "#a855f7", cards: [] },
-			Lands: { count: 0, color: "#84cc16", cards: [] },
-			Battles: { count: 0, color: "#f59e0b", cards: [] },
+			Creature: { count: 0, color: "#f97316", cards: [] },
+			Instant: { count: 0, color: "#38bdf8", cards: [] },
+			Sorcery: { count: 0, color: "#818cf8", cards: [] },
+			Artifact: { count: 0, color: "#94a3b8", cards: [] },
+			Enchantment: { count: 0, color: "#ec4899", cards: [] },
+			Planeswalker: { count: 0, color: "#a855f7", cards: [] },
+			Land: { count: 0, color: "#84cc16", cards: [] },
+			Battle: { count: 0, color: "#f59e0b", cards: [] },
 			Other: { count: 0, color: "#64748b", cards: [] },
 		};
 
@@ -717,29 +717,29 @@
 			else nonPermanentsCount += qty;
 
 			if (isCreature) {
-				types.Creatures.count += qty;
-				types.Creatures.cards.push(cardEntry);
+				types.Creature.count += qty;
+				types.Creature.cards.push(cardEntry);
 			} else if (lowerType.includes("instant")) {
-				types.Instants.count += qty;
-				types.Instants.cards.push(cardEntry);
+				types.Instant.count += qty;
+				types.Instant.cards.push(cardEntry);
 			} else if (lowerType.includes("sorcery")) {
-				types.Sorceries.count += qty;
-				types.Sorceries.cards.push(cardEntry);
+				types.Sorcery.count += qty;
+				types.Sorcery.cards.push(cardEntry);
 			} else if (lowerType.includes("planeswalker")) {
-				types.Planeswalkers.count += qty;
-				types.Planeswalkers.cards.push(cardEntry);
+				types.Planeswalker.count += qty;
+				types.Planeswalker.cards.push(cardEntry);
 			} else if (lowerType.includes("artifact")) {
-				types.Artifacts.count += qty;
-				types.Artifacts.cards.push(cardEntry);
+				types.Artifact.count += qty;
+				types.Artifact.cards.push(cardEntry);
 			} else if (lowerType.includes("enchantment")) {
-				types.Enchantments.count += qty;
-				types.Enchantments.cards.push(cardEntry);
+				types.Enchantment.count += qty;
+				types.Enchantment.cards.push(cardEntry);
 			} else if (lowerType.includes("land")) {
-				types.Lands.count += qty;
-				types.Lands.cards.push(cardEntry);
+				types.Land.count += qty;
+				types.Land.cards.push(cardEntry);
 			} else if (lowerType.includes("battle")) {
-				types.Battles.count += qty;
-				types.Battles.cards.push(cardEntry);
+				types.Battle.count += qty;
+				types.Battle.cards.push(cardEntry);
 			} else {
 				types.Other.count += qty;
 				types.Other.cards.push(cardEntry);
@@ -771,11 +771,11 @@
 			}
 		});
 
-		const creaturesCount = types.Creatures.count;
+		const creaturesCount = types.Creature.count;
 		const nonCreaturesCount =
 			activeCards.reduce((acc, c) => acc + (c.quantity || 1), 0) -
 			creaturesCount;
-		const landsCount = types.Lands.count;
+		const landsCount = types.Land.count;
 		const landsPct = Math.round(
 			(landsCount / Math.max(activeCards.length, 1)) * 100,
 		);
@@ -791,9 +791,9 @@
 			.filter(([_, info]) => info.count > 0)
 			.map(([type, info]) => {
 				let subtypes = /** @type {[string, number][]} */ ([]);
-				if (type === "Creatures") subtypes = sortedCreatureSubtypes;
-				if (type === "Artifacts") subtypes = sortedArtifactSubtypes;
-				if (type === "Lands") subtypes = sortedLandSubtypes;
+				if (type === "Creature") subtypes = sortedCreatureSubtypes;
+				if (type === "Artifact") subtypes = sortedArtifactSubtypes;
+				if (type === "Land") subtypes = sortedLandSubtypes;
 				
 				return {
 					type,
@@ -1285,29 +1285,55 @@
 							</div>
 						</div>
 
-						<div class="types-list-scroll">
-							{#each cardTypesData.activeTypesList as item}
-								<div class="type-group-container">
-									<div class="type-row-item arena-style">
-										<div class="type-info">
-											<span class="type-name">{item.type}</span>
+						<div class="types-columns-layout">
+							<div class="types-col">
+								{#each cardTypesData.activeTypesList.filter(i => i.type === "Creature") as item}
+									<div class="type-group-container">
+										<div class="type-row-item arena-style">
+											<div class="type-info">
+												<span class="type-name">{item.type}</span>
+											</div>
+											<div class="type-count-badge">
+												<span class="type-qty">{item.count}</span>
+											</div>
 										</div>
-										<div class="type-count-badge">
-											<span class="type-qty">{item.count}</span>
-										</div>
+										{#if item.subtypes && item.subtypes.length > 0}
+											<div class="subtypes-container">
+												{#each item.subtypes as [subName, subCount]}
+													<div class="subtype-row">
+														<span class="subtype-name">{subName}</span>
+														<span class="subtype-qty">{subCount}</span>
+													</div>
+												{/each}
+											</div>
+										{/if}
 									</div>
-									{#if item.subtypes && item.subtypes.length > 0}
-										<div class="subtypes-container">
-											{#each item.subtypes as [subName, subCount]}
-												<div class="subtype-row">
-													<span class="subtype-name">{subName}</span>
-													<span class="subtype-qty">{subCount}</span>
-												</div>
-											{/each}
+								{/each}
+							</div>
+							<div class="types-col">
+								{#each cardTypesData.activeTypesList.filter(i => i.type !== "Creature") as item}
+									<div class="type-group-container">
+										<div class="type-row-item arena-style">
+											<div class="type-info">
+												<span class="type-name">{item.type}</span>
+											</div>
+											<div class="type-count-badge">
+												<span class="type-qty">{item.count}</span>
+											</div>
 										</div>
-									{/if}
-								</div>
-							{/each}
+										{#if item.subtypes && item.subtypes.length > 0}
+											<div class="subtypes-container">
+												{#each item.subtypes as [subName, subCount]}
+													<div class="subtype-row">
+														<span class="subtype-name">{subName}</span>
+														<span class="subtype-qty">{subCount}</span>
+													</div>
+												{/each}
+											</div>
+										{/if}
+									</div>
+								{/each}
+							</div>
 						</div>
 					</div>
 				</div>
@@ -1672,18 +1698,38 @@
 		font-size: 15px;
 	}
 
-	.types-list-scroll {
+	.types-columns-layout {
+		display: flex;
+		gap: 1rem;
+		flex: 1;
+		overflow: hidden;
+	}
+
+	.types-col {
+		flex: 1;
 		display: flex;
 		flex-direction: column;
 		gap: 0.2rem;
 		overflow-y: auto;
-		flex: 1;
+		padding-right: 0.25rem;
+	}
+
+	/* Scrollbar styling for types-col */
+	.types-col::-webkit-scrollbar {
+		width: 4px;
+	}
+	.types-col::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	.types-col::-webkit-scrollbar-thumb {
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: 4px;
 	}
 
 	.type-group-container {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: 0;
 	}
 
 	.type-row-item.arena-style {
@@ -1691,7 +1737,7 @@
 		align-items: center;
 		justify-content: space-between;
 		font-size: 14px;
-		padding: 0.4rem 0.5rem;
+		padding: 0.25rem 0.5rem;
 		border-radius: var(--radius-sm, 3px);
 		background: transparent;
 	}
@@ -1704,7 +1750,7 @@
 		display: flex;
 		flex-direction: column;
 		padding-left: 0.75rem;
-		gap: 1px;
+		gap: 0;
 	}
 
 	.subtype-row {
@@ -1712,7 +1758,7 @@
 		align-items: center;
 		justify-content: space-between;
 		font-size: 14px;
-		padding: 0.25rem 0.5rem;
+		padding: 0.15rem 0.5rem;
 		color: #94a3b8;
 		border-left: 2px solid rgba(255, 255, 255, 0.08);
 	}
