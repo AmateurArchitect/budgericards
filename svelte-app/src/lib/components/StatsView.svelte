@@ -1096,25 +1096,50 @@
 		].join(" ");
 	}
 
-	const colorsArcData = $derived.by(() => {
-		const list = colorBreakdownData.colorList.filter(c => c.pipCount > 0);
+	function buildRingData(list, valueKey, totalValue, radius, thickness, gapDegrees) {
 		let currentAngle = 0;
 		const totalAngle = 180;
-		const gap = 6; // degrees gap between segments
-		const totalGaps = Math.max(0, list.length - 1) * gap;
+		const totalGaps = Math.max(0, list.length - 1) * gapDegrees;
 		const availableAngle = totalAngle - totalGaps;
-		const totalPips = colorBreakdownData.totalPips;
+		
+		// The angle taken up by the rounded cap on ONE side
+		const capAngle = ((thickness / 2) / (Math.PI * radius)) * 180;
 		
 		return list.map(c => {
-			if (totalPips === 0) return { ...c, d: "" };
-			const segmentAngle = (c.pipCount / totalPips) * availableAngle;
+			const val = c[valueKey];
+			if (totalValue === 0 || val === 0) return { ...c, d: "" };
+			
+			const segmentAngle = (val / totalValue) * availableAngle;
 			const startAngle = currentAngle;
 			const endAngle = currentAngle + segmentAngle;
-			currentAngle = endAngle + gap;
-			// Avoid invalid arc if angle is too small
-			const d = segmentAngle > 0.1 ? describeArc(100, 100, 80, startAngle, endAngle) : "";
+			currentAngle = endAngle + gapDegrees;
+			
+			// Adjust angles to account for the rounded caps extending outwards
+			let adjustedStart = startAngle + capAngle;
+			let adjustedEnd = endAngle - capAngle;
+			
+			// If segment is too small for rounded caps, just draw a dot at the center
+			if (adjustedEnd < adjustedStart) {
+				const center = (startAngle + endAngle) / 2;
+				adjustedStart = center - 0.01;
+				adjustedEnd = center + 0.01;
+			}
+			
+			const d = describeArc(100, 100, radius, adjustedStart, adjustedEnd);
 			return { ...c, d };
 		});
+	}
+
+	const colorsArcData = $derived.by(() => {
+		const pipsList = colorBreakdownData.colorList.filter(c => c.pipCount > 0);
+		const sourcesList = colorBreakdownData.colorList.filter(c => c.sourceCount > 0);
+		
+		const gap = 4; // 4 degrees gap
+		
+		const pipsArcs = buildRingData(pipsList, "pipCount", colorBreakdownData.totalPips, 84, 14, gap);
+		const sourcesArcs = buildRingData(sourcesList, "sourceCount", colorBreakdownData.totalSources, 66, 14, gap);
+		
+		return { pipsArcs, sourcesArcs };
 	});
 </script>
 
@@ -1271,24 +1296,44 @@
 					</div>
 
 					<div class="colors-body-content" style="display: flex; flex-direction: column; gap: 1.5rem; padding-top: 1rem; align-items: center;">
-						<!-- Half-Donut Chart -->
+						<!-- Half-Donut Chart (Double Ring) -->
 						<div class="gauge-chart-container" style="position: relative; width: 200px; height: 100px;">
 							<svg viewBox="0 0 200 100" style="width: 100%; height: 100%; overflow: visible;">
-								{#each colorsArcData as arc}
+								<!-- Track backgrounds (optional, for subtle track) -->
+								<path d="M 16 100 A 84 84 0 0 1 184 100" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="14" stroke-linecap="round"/>
+								<path d="M 34 100 A 66 66 0 0 1 166 100" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="14" stroke-linecap="round"/>
+								
+								<!-- Pips (Outer Ring) -->
+								{#each colorsArcData.pipsArcs as arc}
 									{#if arc.d}
 										<path 
 											d={arc.d} 
 											fill="none" 
 											stroke={arc.color} 
-											stroke-width="18" 
+											stroke-width="14" 
 											stroke-linecap="round"
 										/>
 									{/if}
 								{/each}
+
+								<!-- Sources (Inner Ring) -->
+								{#each colorsArcData.sourcesArcs as arc}
+									{#if arc.d}
+										<path 
+											d={arc.d} 
+											fill="none" 
+											stroke={arc.color} 
+											stroke-width="14" 
+											stroke-linecap="round"
+											opacity="0.8"
+										/>
+									{/if}
+								{/each}
 							</svg>
+							
 							<div class="gauge-center-text" style="position: absolute; bottom: 0; left: 0; right: 0; text-align: center; display: flex; flex-direction: column;">
 								<span style="font-size: 28px; font-weight: 700; color: #f8fafc; line-height: 1.1;">{colorBreakdownData.totalPips}</span>
-								<span style="font-size: 13px; color: #94a3b8; font-weight: 500;">Mana Pips</span>
+								<span style="font-size: 13px; color: #94a3b8; font-weight: 500;">Pips</span>
 							</div>
 						</div>
 
