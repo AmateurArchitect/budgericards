@@ -92,7 +92,7 @@
 		if (lower.includes("creature")) return "ms-creature";
 		if (lower.includes("planeswalker")) return "ms-planeswalker";
 		if (lower.includes("instant")) return "ms-instant";
-		if (lower.includes("sorcery")) return "ms-sorcery";
+		if (lower.includes("sorcer")) return "ms-sorcery";
 		if (lower.includes("battle")) return lower.includes("siege") ? "ms-battle-siege" : "ms-battle";
 		if (lower.includes("artifact")) return "ms-artifact";
 		if (lower.includes("enchantment")) return "ms-enchantment";
@@ -757,6 +757,7 @@
 
 				subs.forEach((/** @type {string} */ sub) => {
 					const clean = sub.trim();
+					if (clean === "//") return;
 					if (main.includes("creature") || isCreature) {
 						creatureSubtypes[clean] =
 							(creatureSubtypes[clean] || 0) + qty;
@@ -1538,7 +1539,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.4rem 0.85rem;
-		font-size: 12px;
+		font-size: 14px;
 		color: #94a3b8;
 		align-items: center;
 		justify-content: center;
@@ -1644,7 +1645,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.4rem 0.85rem;
-		font-size: 12px;
+		font-size: 14px;
 		color: #94a3b8;
 		align-items: center;
 	}
@@ -1668,7 +1669,7 @@
 	}
 
 	.legend-icon {
-		font-size: 14px;
+		font-size: 15px;
 	}
 
 	.types-list-scroll {
@@ -1689,7 +1690,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		font-size: 13px;
+		font-size: 14px;
 		padding: 0.4rem 0.5rem;
 		border-radius: var(--radius-sm, 3px);
 		background: transparent;
@@ -1710,7 +1711,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		font-size: 12px;
+		font-size: 14px;
 		padding: 0.25rem 0.5rem;
 		color: #94a3b8;
 		border-left: 2px solid rgba(255, 255, 255, 0.08);
@@ -1736,7 +1737,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.65rem;
-		font-size: 13px;
+		font-size: 14px;
 	}
 
 	.type-info, .color-info {
@@ -1749,7 +1750,7 @@
 
 	.type-name, .color-name {
 		font-weight: 500;
-		font-size: 13px;
+		font-size: 14px;
 		color: #f8fafc;
 		white-space: nowrap;
 	}
@@ -1787,12 +1788,12 @@
 	.type-qty, .pips-val {
 		font-weight: 700;
 		color: #f8fafc;
-		font-size: 13px;
+		font-size: 14px;
 	}
 
 	.pips-pct {
 		color: #94a3b8;
-		font-size: 12px;
+		font-size: 14px;
 	}
 
 	.identity-symbols-row {
@@ -1802,7 +1803,7 @@
 	}
 
 	.sources-text {
-		font-size: 12px;
+		font-size: 14px;
 		color: #94a3b8;
 		width: 48px;
 		text-align: right;
@@ -1910,7 +1911,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		font-size: 12px;
+		font-size: 14px;
 		padding: 0.2rem 0.4rem;
 		border-radius: var(--radius-sm, 3px);
 		background: rgba(255, 255, 255, 0.03);
