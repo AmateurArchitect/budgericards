@@ -1245,9 +1245,18 @@
 										{/if}
 									{/each}
 								</div>
-								<div class="master-bar-stats" style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; font-weight: 500;">
-									<span style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Costs</span>
-									<div style="display: flex; gap: 0.75rem;">
+								<div class="master-bar-stats" style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; font-weight: 500; flex-wrap: wrap; gap: 0.5rem;">
+									<span style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; min-width: max-content;">Costs</span>
+									<div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+										<div style="display: flex; gap: 0.5rem;">
+											{#each colorBreakdownData.colorList.filter(c => c.pipCount > 0) as col}
+												<span style="display: flex; align-items: center; gap: 0.25rem;" title="{col.name}: {col.pipCount} pips">
+													<div style="width: 6px; height: 6px; border-radius: 50%; background-color: {col.color};"></div>
+													<strong style="color: #f8fafc;">{col.pipCount}</strong>
+												</span>
+											{/each}
+										</div>
+										<span style="opacity: 0.3;">|</span>
 										<span><strong style="color: #f8fafc;">{colorBreakdownData.totalPips}</strong> Pips</span>
 										<span><strong style="color: #f8fafc;">{colorBreakdownData.monoColorCount + colorBreakdownData.multiColorCount}</strong> Cards</span>
 									</div>
@@ -1263,9 +1272,20 @@
 										{/if}
 									{/each}
 								</div>
-								<div class="master-bar-stats" style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; font-weight: 500;">
-									<span style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Sources</span>
-									<span><strong style="color: #f8fafc;">{colorBreakdownData.totalSources}</strong> Total</span>
+								<div class="master-bar-stats" style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; font-weight: 500; flex-wrap: wrap; gap: 0.5rem;">
+									<span style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; min-width: max-content;">Sources</span>
+									<div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+										<div style="display: flex; gap: 0.5rem;">
+											{#each colorBreakdownData.colorList.filter(c => c.sourceCount > 0) as col}
+												<span style="display: flex; align-items: center; gap: 0.25rem;" title="{col.name}: {col.sourceCount} sources">
+													<div style="width: 6px; height: 6px; border-radius: 50%; background-color: {col.color};"></div>
+													<strong style="color: #f8fafc;">{col.sourceCount}</strong>
+												</span>
+											{/each}
+										</div>
+										<span style="opacity: 0.3;">|</span>
+										<span><strong style="color: #f8fafc;">{colorBreakdownData.totalSources}</strong> Total</span>
+									</div>
 								</div>
 							</div>
 
