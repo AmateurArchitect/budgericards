@@ -1061,7 +1061,7 @@
 	/* Hovered card lifts up towards top of screen so name & mana cost are fully visible */
 	.arena-fan:not(.is-dragging-active)
 		.arena-card-wrapper:hover:not(.is-dragging):not(.arena-draw-slot) {
-		--lift-y: -22px;
+		--lift-y: -32px;
 		box-shadow:
 			0 22px 44px -8px rgba(0, 0, 0, 0.92),
 			0 10px 20px -4px rgba(0, 0, 0, 0.7),
