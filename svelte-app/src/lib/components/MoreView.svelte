@@ -2,12 +2,13 @@
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { onMount } from "svelte";
-	import { fly } from "svelte/transition";
+	import { fly, fade, scale } from "svelte/transition";
 	import {
 		Loader,
 		RotateCcw,
 		AlertTriangle,
 		SlidersHorizontal,
+		X,
 	} from "lucide-svelte";
 	import { getDeckTokens } from "$lib/api/tokens.js";
 
@@ -562,6 +563,8 @@
 	let isTokensLoading = $state(false);
 	let tokensError = $state("");
 	let lastTokensDeckFingerprint = "";
+	/** @type {import('$lib/api/tokens.js').RequiredToken | null} */
+	let selectedToken = $state(null);
 
 	async function loadTokens(force = false) {
 		if (activeCards.length === 0) {
@@ -669,19 +672,15 @@
 		}
 	});
 
-	// Default subtab when landing in 'more' if not already set
-	$effect(() => {
-		if (
-			settingsStore.statsSubTab !== "sample-hand" &&
-			settingsStore.statsSubTab !== "tokens" &&
-			settingsStore.statsSubTab !== "combos"
-		) {
-			settingsStore.statsSubTab = "sample-hand";
+	/** @param {KeyboardEvent} e */
+	function handleWindowKeydown(e) {
+		if (e.key === "Escape" && selectedToken) {
+			selectedToken = null;
 		}
-	});
+	}
 </script>
 
-<svelte:window onclick={handleDocumentClick} />
+<svelte:window onclick={handleDocumentClick} onkeydown={handleWindowKeydown} />
 
 <div
 	class="more-container"
@@ -889,22 +888,8 @@
 			{/if}
 		</div>
 	{:else if settingsStore.statsSubTab === "tokens"}
-		<!-- Tokens Panel -->
-		<div class="panel-card">
-			<div class="panel-header">
-				<h3>Required Tokens ({isTokensLoading ? "..." : requiredTokens.length})</h3>
-				{#if !isTokensLoading}
-					<button
-						class="reload-btn"
-						onclick={() => loadTokens(true)}
-						title="Refresh tokens from Scryfall"
-					>
-						<RotateCcw size={14} />
-						<span>Refresh</span>
-					</button>
-				{/if}
-			</div>
-
+		<!-- Tokens View (Containerless & borderless) -->
+		<div class="tokens-view">
 			{#if isTokensLoading}
 				<div class="loading-state">
 					<Loader class="spinner" size={32} />
@@ -914,7 +899,7 @@
 				<div class="error-state">
 					<AlertTriangle size={32} />
 					<p>{tokensError}</p>
-					<button class="reload-btn" onclick={() => loadTokens(true)}>
+					<button class="retry-btn" onclick={() => loadTokens(true)}>
 						<RotateCcw size={14} />
 						<span>Try Again</span>
 					</button>
@@ -926,7 +911,12 @@
 			{:else}
 				<div class="tokens-grid">
 					{#each requiredTokens as token}
-						<div class="token-card-wrapper">
+						<button
+							type="button"
+							class="token-card-btn"
+							onclick={() => (selectedToken = token)}
+							title={`View details for ${token.name}`}
+						>
 							{#if token.image_uri}
 								<img
 									src={token.image_uri}
@@ -939,19 +929,7 @@
 									<span>{token.name}</span>
 								</div>
 							{/if}
-							<p class="token-title">{token.name}</p>
-							{#if token.type_line}
-								<p class="token-type">{token.type_line}</p>
-							{/if}
-							{#if token.sourceCards && token.sourceCards.length > 0}
-								<p
-									class="token-source"
-									title={`Created by: ${token.sourceCards.join(", ")}`}
-								>
-									From: {token.sourceCards.join(", ")}
-								</p>
-							{/if}
-						</div>
+						</button>
 					{/each}
 				</div>
 			{/if}
@@ -1012,6 +990,102 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Token Detail Inspector Modal -->
+{#if selectedToken}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<div 
+		class="token-modal-backdrop" 
+		transition:fade={{ duration: 180 }}
+		onclick={() => (selectedToken = null)}
+		role="presentation"
+	>
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div 
+			class="token-modal-card"
+			transition:scale={{ duration: 220, start: 0.95 }}
+			onclick={(e) => e.stopPropagation()}
+			role="dialog"
+			aria-modal="true"
+			aria-label={selectedToken.name}
+		>
+			<button 
+				type="button" 
+				class="token-modal-close" 
+				onclick={() => (selectedToken = null)}
+				aria-label="Close"
+			>
+				<X size={18} />
+			</button>
+
+			<div class="token-modal-layout">
+				<div class="token-modal-art">
+					{#if selectedToken.image_uri}
+						<img
+							src={selectedToken.image_uri}
+							alt={selectedToken.name}
+							class="token-modal-img"
+						/>
+					{:else}
+						<div class="token-modal-img-fallback">
+							<span>{selectedToken.name}</span>
+						</div>
+					{/if}
+				</div>
+
+				<div class="token-modal-details">
+					<div class="token-modal-header">
+						<h2 class="token-modal-title">{selectedToken.name}</h2>
+						{#if selectedToken.type_line}
+							<div class="token-modal-badge">{selectedToken.type_line}</div>
+						{/if}
+					</div>
+
+					{#if selectedToken.oracle_text}
+						<div class="token-modal-text">
+							<p>{selectedToken.oracle_text}</p>
+						</div>
+					{/if}
+
+					{#if selectedToken.power !== undefined && selectedToken.toughness !== undefined}
+						<div class="token-modal-stats">
+							<span class="pt-box">{selectedToken.power} / {selectedToken.toughness}</span>
+						</div>
+					{/if}
+
+					<div class="token-producers-section">
+						<h4 class="producers-heading">
+							Produced in this deck by ({selectedToken.sourceCards?.length || 0})
+						</h4>
+						<div class="producers-list">
+							{#each selectedToken.sourceCards || [] as cardName}
+								{@const meta = getMeta(cardName)}
+								<div class="producer-item">
+									{#if meta.image_uris?.art_crop}
+										<img
+											src={meta.image_uris.art_crop}
+											alt={cardName}
+											class="producer-art"
+											loading="lazy"
+										/>
+									{:else}
+										<div class="producer-art-placeholder"></div>
+									{/if}
+									<div class="producer-info">
+										<span class="producer-name">{cardName}</span>
+										{#if meta.type_line}
+											<span class="producer-type">{meta.type_line}</span>
+										{/if}
+									</div>
+								</div>
+							{/each}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	.more-container {
@@ -1086,18 +1160,39 @@
 		}
 	}
 
-	/* Tokens Grid */
+	/* Tokens Grid & Cards (Clean borderless presentation) */
+	.tokens-view {
+		max-width: 1400px;
+		margin: 0 auto;
+		width: 100%;
+	}
+
 	.tokens-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 		gap: 1.5rem;
 	}
 
-	.token-card-wrapper {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 0.5rem;
+	.token-card-btn {
+		background: none;
+		border: none;
+		padding: 0;
+		margin: 0;
+		cursor: pointer;
+		border-radius: var(--radius-md);
+		display: block;
+		width: 100%;
+		text-align: left;
+		outline: none;
+		transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	.token-card-btn:hover {
+		transform: translateY(-6px) scale(1.02);
+	}
+
+	.token-card-btn:focus-visible .token-img {
+		box-shadow: 0 0 0 2px hsl(var(--primary)), 0 12px 28px rgba(0, 0, 0, 0.6);
 	}
 
 	.token-img {
@@ -1105,12 +1200,13 @@
 		aspect-ratio: 5 / 7;
 		border-radius: var(--radius-md);
 		object-fit: cover;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-		transition: transform 0.2s ease;
+		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+		transition: box-shadow 0.2s ease;
+		display: block;
 	}
 
-	.token-img:hover {
-		transform: translateY(-4px) scale(1.02);
+	.token-card-btn:hover .token-img {
+		box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55), 0 0 0 1px hsl(var(--primary) / 0.3);
 	}
 
 	.token-fallback {
@@ -1128,34 +1224,7 @@
 		color: hsl(var(--muted-foreground));
 	}
 
-	.token-title {
-		margin: 0;
-		font-size: 0.9rem;
-		font-weight: 600;
-		color: hsl(var(--foreground));
-		text-align: center;
-	}
-
-	.token-type {
-		margin: 0;
-		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground));
-		text-align: center;
-	}
-
-	.token-source {
-		margin: 0;
-		font-size: 0.72rem;
-		color: hsl(var(--muted-foreground) / 0.85);
-		text-align: center;
-		max-width: 100%;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		padding: 0 0.25rem;
-	}
-
-	.reload-btn {
+	.retry-btn {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.4rem;
@@ -1170,10 +1239,249 @@
 		transition: all 0.2s ease;
 	}
 
-	.reload-btn:hover {
+	.retry-btn:hover {
 		background: hsl(var(--secondary));
 		border-color: hsl(var(--border));
 		transform: translateY(-1px);
+	}
+
+	/* Token Inspector Modal */
+	.token-modal-backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.78);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+		z-index: 1000;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 1.5rem;
+	}
+
+	.token-modal-card {
+		position: relative;
+		background: hsl(var(--card));
+		border: 1px solid hsl(var(--border) / 0.6);
+		border-radius: var(--radius-lg);
+		box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px hsl(var(--border) / 0.3);
+		max-width: 760px;
+		width: 100%;
+		max-height: 90vh;
+		overflow-y: auto;
+		padding: 2rem;
+		box-sizing: border-box;
+	}
+
+	.token-modal-close {
+		position: absolute;
+		top: 1rem;
+		right: 1rem;
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: hsl(var(--secondary) / 0.6);
+		border: 1px solid hsl(var(--border) / 0.5);
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		transition: all 0.15s ease;
+		z-index: 2;
+	}
+
+	.token-modal-close:hover {
+		background: hsl(var(--secondary));
+		color: hsl(var(--foreground));
+		transform: scale(1.05);
+	}
+
+	.token-modal-layout {
+		display: flex;
+		gap: 2rem;
+		align-items: flex-start;
+	}
+
+	@media (max-width: 640px) {
+		.token-modal-layout {
+			flex-direction: column;
+			align-items: center;
+		}
+	}
+
+	.token-modal-art {
+		width: 270px;
+		flex-shrink: 0;
+	}
+
+	@media (max-width: 640px) {
+		.token-modal-art {
+			width: 220px;
+		}
+	}
+
+	.token-modal-img {
+		width: 100%;
+		aspect-ratio: 5 / 7;
+		border-radius: var(--radius-md);
+		object-fit: cover;
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+		display: block;
+	}
+
+	.token-modal-img-fallback {
+		width: 100%;
+		aspect-ratio: 5 / 7;
+		border-radius: var(--radius-md);
+		background: hsl(var(--secondary) / 0.5);
+		border: 1px dashed hsl(var(--border));
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 1rem;
+		text-align: center;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.token-modal-details {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+	}
+
+	.token-modal-header {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.token-modal-title {
+		margin: 0;
+		font-size: 1.4rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+		letter-spacing: -0.02em;
+	}
+
+	.token-modal-badge {
+		font-size: 0.8rem;
+		color: hsl(var(--muted-foreground));
+		font-weight: 500;
+	}
+
+	.token-modal-text {
+		background: hsl(var(--secondary) / 0.3);
+		border-left: 3px solid hsl(var(--primary) / 0.6);
+		padding: 0.75rem 1rem;
+		border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+		font-size: 0.88rem;
+		line-height: 1.45;
+		color: hsl(var(--foreground) / 0.9);
+	}
+
+	.token-modal-text p {
+		margin: 0;
+		white-space: pre-wrap;
+	}
+
+	.token-modal-stats {
+		display: flex;
+		justify-content: flex-end;
+	}
+
+	.pt-box {
+		display: inline-block;
+		font-size: 0.95rem;
+		font-weight: 700;
+		padding: 0.25rem 0.65rem;
+		background: hsl(var(--secondary));
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius-sm);
+		color: hsl(var(--foreground));
+	}
+
+	.token-producers-section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+		margin-top: 0.25rem;
+	}
+
+	.producers-heading {
+		margin: 0;
+		font-size: 0.75rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		font-weight: 700;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.producers-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		max-height: 220px;
+		overflow-y: auto;
+		padding-right: 0.25rem;
+	}
+
+	.producer-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		background: hsl(var(--secondary) / 0.35);
+		border: 1px solid hsl(var(--border) / 0.4);
+		padding: 0.45rem 0.75rem;
+		border-radius: var(--radius-md);
+		transition: background 0.15s ease;
+	}
+
+	.producer-item:hover {
+		background: hsl(var(--secondary) / 0.6);
+	}
+
+	.producer-art {
+		width: 38px;
+		height: 38px;
+		border-radius: var(--radius-sm);
+		object-fit: cover;
+		flex-shrink: 0;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+	}
+
+	.producer-art-placeholder {
+		width: 38px;
+		height: 38px;
+		border-radius: var(--radius-sm);
+		background: hsl(var(--secondary));
+		flex-shrink: 0;
+	}
+
+	.producer-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		min-width: 0;
+	}
+
+	.producer-name {
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.producer-type {
+		font-size: 0.72rem;
+		color: hsl(var(--muted-foreground));
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	/* Combos styles */
