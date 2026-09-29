@@ -3,6 +3,7 @@
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import ManaSymbol from "./ui/ManaSymbol.svelte";
+	import SampleHandView from "./SampleHandView.svelte";
 	import MoreView from "./MoreView.svelte";
 	import { parseManaCost } from "$lib/layouts/grouping.svelte.js";
 	import { onMount } from "svelte";
@@ -1122,6 +1123,7 @@
 
 	let rootContainer = $state(/** @type {HTMLElement | null} */ (null));
 	let isManualScrolling = false;
+	/** @type {ReturnType<typeof setTimeout> | null} */
 	let manualScrollTimeout = null;
 
 	/** @param {CustomEvent<string>} e */
@@ -1138,6 +1140,7 @@
 		}
 	}
 
+	/** @type {number | null} */
 	let scrollRafId = null;
 	function handleContainerScroll() {
 		if (isManualScrolling || !rootContainer) return;
@@ -1156,13 +1159,13 @@
 			}
 
 			const sections = [
-				{ id: "section-stats", tab: "stats" },
 				{ id: "section-sample-hand", tab: "sample-hand" },
+				{ id: "section-stats", tab: "stats" },
 				{ id: "section-tokens", tab: "tokens" },
 				{ id: "section-combos", tab: "combos" }
 			];
 
-			let currentTab = "stats";
+			let currentTab = "sample-hand";
 			for (const s of sections) {
 				const el = rootContainer.querySelector(`#${s.id}`);
 				if (el) {
@@ -1187,11 +1190,14 @@
 		// If loaded with a specific section tab already selected, scroll to it
 		if (
 			settingsStore.statsSubTab &&
-			settingsStore.statsSubTab !== "stats" &&
-			settingsStore.statsSubTab !== "dashboard"
+			settingsStore.statsSubTab !== "sample-hand"
 		) {
 			setTimeout(() => {
-				const targetId = `section-${settingsStore.statsSubTab}`;
+				const targetId =
+					settingsStore.statsSubTab === "dashboard" ||
+					settingsStore.statsSubTab === "stats"
+						? "section-stats"
+						: `section-${settingsStore.statsSubTab}`;
 				const el = rootContainer?.querySelector(`#${targetId}`);
 				if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 			}, 150);
@@ -1210,7 +1216,10 @@
 	bind:this={rootContainer}
 	onscroll={handleContainerScroll}
 >
-	<!-- Section 1: Stats -->
+	<!-- Section 1: Sample Hand -->
+	<SampleHandView />
+
+	<!-- Section 2: Stats -->
 	<section id="section-stats" class="stats-page-section">
 		<div class="stats-bento-viewport">
 			<div class="stats-grid">
@@ -1641,7 +1650,7 @@
 		</div>
 	</section>
 
-	<!-- Sections 2 (Sample Hand), 3 (Tokens), 4 (Combos) -->
+	<!-- Sections 3 (Tokens) & 4 (Combos) -->
 	<MoreView />
 </div>
 
@@ -1650,19 +1659,22 @@
 		flex: 1;
 		display: flex;
 		flex-direction: column;
+		gap: 5rem;
+		padding: 2rem 1.25rem 6rem;
 		height: 100%;
 		overflow-y: auto;
 		scroll-behavior: smooth;
 		background: transparent;
+		box-sizing: border-box;
 	}
 
 	.stats-page-section {
-		scroll-margin-top: 1.5rem;
+		scroll-margin-top: 2rem;
 		width: 100%;
 	}
 
 	.stats-bento-viewport {
-		padding: 1rem 1.25rem 0.5rem;
+		padding: 0;
 	}
 
 	.stats-grid {

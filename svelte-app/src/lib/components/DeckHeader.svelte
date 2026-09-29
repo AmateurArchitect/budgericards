@@ -1042,22 +1042,22 @@
 						<button
 							type="button"
 							role="radio"
-							aria-checked={settingsStore.statsSubTab === "dashboard" || settingsStore.statsSubTab === "stats"}
-							class="stats-tab-btn"
-							class:active={settingsStore.statsSubTab === "dashboard" || settingsStore.statsSubTab === "stats"}
-							onclick={() => jumpToSection("stats")}
-						>
-							Stats
-						</button>
-						<button
-							type="button"
-							role="radio"
 							aria-checked={settingsStore.statsSubTab === "sample-hand"}
 							class="stats-tab-btn"
 							class:active={settingsStore.statsSubTab === "sample-hand"}
 							onclick={() => jumpToSection("sample-hand")}
 						>
 							Sample Hand
+						</button>
+						<button
+							type="button"
+							role="radio"
+							aria-checked={settingsStore.statsSubTab === "dashboard" || settingsStore.statsSubTab === "stats"}
+							class="stats-tab-btn"
+							class:active={settingsStore.statsSubTab === "dashboard" || settingsStore.statsSubTab === "stats"}
+							onclick={() => jumpToSection("stats")}
+						>
+							Stats
 						</button>
 						<button
 							type="button"
