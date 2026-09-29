@@ -323,6 +323,15 @@
 	let showSortDropdown = $state(false);
 	let showTableColumnsDropdown = $state(false);
 
+	/** @param {string} sectionId */
+	function jumpToSection(sectionId) {
+		settingsStore.statsSubTab = sectionId;
+		const targetId = (sectionId === "dashboard" || sectionId === "stats") ? "section-stats" : `section-${sectionId}`;
+		if (typeof window !== "undefined") {
+			window.dispatchEvent(new CustomEvent("budgie-scroll-section", { detail: targetId }));
+		}
+	}
+
 	const toggleableColumns = [
 		{ id: "mana", label: "Mana Cost" },
 		{ id: "cmc", label: "Mana Value" },
@@ -1036,7 +1045,7 @@
 							aria-checked={settingsStore.statsSubTab === "dashboard" || settingsStore.statsSubTab === "stats"}
 							class="stats-tab-btn"
 							class:active={settingsStore.statsSubTab === "dashboard" || settingsStore.statsSubTab === "stats"}
-							onclick={() => (settingsStore.statsSubTab = "dashboard")}
+							onclick={() => jumpToSection("stats")}
 						>
 							Stats
 						</button>
@@ -1046,7 +1055,7 @@
 							aria-checked={settingsStore.statsSubTab === "sample-hand"}
 							class="stats-tab-btn"
 							class:active={settingsStore.statsSubTab === "sample-hand"}
-							onclick={() => (settingsStore.statsSubTab = "sample-hand")}
+							onclick={() => jumpToSection("sample-hand")}
 						>
 							Sample Hand
 						</button>
@@ -1056,7 +1065,7 @@
 							aria-checked={settingsStore.statsSubTab === "tokens"}
 							class="stats-tab-btn"
 							class:active={settingsStore.statsSubTab === "tokens"}
-							onclick={() => (settingsStore.statsSubTab = "tokens")}
+							onclick={() => jumpToSection("tokens")}
 						>
 							Tokens
 						</button>
@@ -1066,7 +1075,7 @@
 							aria-checked={settingsStore.statsSubTab === "combos"}
 							class="stats-tab-btn"
 							class:active={settingsStore.statsSubTab === "combos"}
-							onclick={() => (settingsStore.statsSubTab = "combos")}
+							onclick={() => jumpToSection("combos")}
 						>
 							Combos
 						</button>

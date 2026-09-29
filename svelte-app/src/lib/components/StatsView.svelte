@@ -1120,13 +1120,98 @@
 
 
 
+	let rootContainer = $state(/** @type {HTMLElement | null} */ (null));
+	let isManualScrolling = false;
+	let manualScrollTimeout = null;
 
+	/** @param {CustomEvent<string>} e */
+	function handleScrollToSection(e) {
+		const targetId = e.detail;
+		const el = rootContainer?.querySelector(`#${targetId}`);
+		if (el) {
+			isManualScrolling = true;
+			if (manualScrollTimeout) clearTimeout(manualScrollTimeout);
+			manualScrollTimeout = setTimeout(() => {
+				isManualScrolling = false;
+			}, 900);
+			el.scrollIntoView({ behavior: "smooth", block: "start" });
+		}
+	}
+
+	let scrollRafId = null;
+	function handleContainerScroll() {
+		if (isManualScrolling || !rootContainer) return;
+		if (scrollRafId) cancelAnimationFrame(scrollRafId);
+		scrollRafId = requestAnimationFrame(() => {
+			if (!rootContainer) return;
+			const containerRect = rootContainer.getBoundingClientRect();
+			const scrollTop = rootContainer.scrollTop;
+			const scrollHeight = rootContainer.scrollHeight;
+			const clientHeight = rootContainer.clientHeight;
+
+			// If reached the bottom, set to combos
+			if (scrollTop + clientHeight >= scrollHeight - 50) {
+				settingsStore.statsSubTab = "combos";
+				return;
+			}
+
+			const sections = [
+				{ id: "section-stats", tab: "stats" },
+				{ id: "section-sample-hand", tab: "sample-hand" },
+				{ id: "section-tokens", tab: "tokens" },
+				{ id: "section-combos", tab: "combos" }
+			];
+
+			let currentTab = "stats";
+			for (const s of sections) {
+				const el = rootContainer.querySelector(`#${s.id}`);
+				if (el) {
+					const rect = el.getBoundingClientRect();
+					const offset = rect.top - containerRect.top;
+					if (offset <= 140) {
+						currentTab = s.tab;
+					}
+				}
+			}
+			if (settingsStore.statsSubTab !== currentTab) {
+				settingsStore.statsSubTab = currentTab;
+			}
+		});
+	}
+
+	onMount(() => {
+		/** @param {any} e */
+		const onScrollEvent = (e) => handleScrollToSection(e);
+		window.addEventListener("budgie-scroll-section", onScrollEvent);
+
+		// If loaded with a specific section tab already selected, scroll to it
+		if (
+			settingsStore.statsSubTab &&
+			settingsStore.statsSubTab !== "stats" &&
+			settingsStore.statsSubTab !== "dashboard"
+		) {
+			setTimeout(() => {
+				const targetId = `section-${settingsStore.statsSubTab}`;
+				const el = rootContainer?.querySelector(`#${targetId}`);
+				if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+			}, 150);
+		}
+
+		return () => {
+			window.removeEventListener("budgie-scroll-section", onScrollEvent);
+			if (manualScrollTimeout) clearTimeout(manualScrollTimeout);
+			if (scrollRafId) cancelAnimationFrame(scrollRafId);
+		};
+	});
 </script>
 
-<div class="stats-root-container">
-	{#if settingsStore.statsSubTab === "sample-hand" || settingsStore.statsSubTab === "tokens" || settingsStore.statsSubTab === "combos"}
-		<MoreView />
-	{:else}
+<div
+	class="stats-root-container"
+	bind:this={rootContainer}
+	onscroll={handleContainerScroll}
+>
+	<!-- Section 1: Stats -->
+	<section id="section-stats" class="stats-page-section">
 		<div class="stats-bento-viewport">
 			<div class="stats-grid">
 				<!-- 1. MANA CURVE BENTO CARD -->
@@ -1554,7 +1639,10 @@
 				</div>
 			</div>
 		</div>
-	{/if}
+	</section>
+
+	<!-- Sections 2 (Sample Hand), 3 (Tokens), 4 (Combos) -->
+	<MoreView />
 </div>
 
 <style>
@@ -1563,14 +1651,18 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		overflow: hidden;
+		overflow-y: auto;
+		scroll-behavior: smooth;
 		background: transparent;
 	}
 
+	.stats-page-section {
+		scroll-margin-top: 1.5rem;
+		width: 100%;
+	}
+
 	.stats-bento-viewport {
-		flex: 1;
-		overflow-y: auto;
-		padding: 1rem 1.25rem;
+		padding: 1rem 1.25rem 0.5rem;
 	}
 
 	.stats-grid {

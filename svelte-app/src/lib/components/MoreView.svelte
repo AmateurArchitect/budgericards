@@ -665,9 +665,8 @@
 	});
 
 	$effect(() => {
-		if (settingsStore.statsSubTab === "tokens") {
+		if (activeCards.length > 0) {
 			loadTokens();
-		} else if (settingsStore.statsSubTab === "combos") {
 			loadCombos();
 		}
 	});
@@ -682,12 +681,16 @@
 
 <svelte:window onclick={handleDocumentClick} onkeydown={handleWindowKeydown} />
 
-<div
-	class="more-container"
-	class:sample-hand-mode={settingsStore.statsSubTab === "sample-hand"}
->
-	{#if settingsStore.statsSubTab === "sample-hand"}
-		<!-- Sample Hand Simulator (Arena-style Fan) -->
+<div class="more-container">
+	<!-- Sample Hand Simulator (Arena-style Fan) -->
+	<section id="section-sample-hand" class="stats-page-section">
+		<div class="section-header">
+			<div class="section-title-group">
+				<h3 class="section-title">Sample Hand</h3>
+				<span class="section-desc">Test your opening hands and mulligans</span>
+			</div>
+		</div>
+
 		<div class="arena-hand-view">
 			<div class="arena-controls-bar">
 				<div class="arena-hand-meta">
@@ -887,8 +890,19 @@
 				</div>
 			{/if}
 		</div>
-	{:else if settingsStore.statsSubTab === "tokens"}
-		<!-- Tokens View (Containerless & borderless) -->
+	</section>
+
+	<!-- Tokens View (Containerless & borderless) -->
+	<section id="section-tokens" class="stats-page-section">
+		<div class="section-header">
+			<div class="section-title-group">
+				<h3 class="section-title">Required Tokens</h3>
+				{#if !isTokensLoading && requiredTokens.length > 0}
+					<span class="section-count-badge">{requiredTokens.length}</span>
+				{/if}
+			</div>
+		</div>
+
 		<div class="tokens-view">
 			{#if isTokensLoading}
 				<div class="loading-state">
@@ -934,13 +948,20 @@
 				</div>
 			{/if}
 		</div>
-	{:else if settingsStore.statsSubTab === "combos"}
-		<!-- Combos Panel -->
-		<div class="panel-card">
-			<div class="panel-header">
-				<h3>Matched Combos ({combos.length})</h3>
-			</div>
+	</section>
 
+	<!-- Combos Section -->
+	<section id="section-combos" class="stats-page-section">
+		<div class="section-header">
+			<div class="section-title-group">
+				<h3 class="section-title">Matched Combos</h3>
+				{#if !isCombosLoading && combos.length > 0}
+					<span class="section-count-badge">{combos.length}</span>
+				{/if}
+			</div>
+		</div>
+
+		<div class="combos-view">
 			{#if isCombosLoading}
 				<div class="loading-state">
 					<Loader class="spinner" size={32} />
@@ -988,7 +1009,7 @@
 				</div>
 			{/if}
 		</div>
-	{/if}
+	</section>
 </div>
 
 <!-- Token Detail Inspector Modal -->
@@ -1090,41 +1111,67 @@
 {/if}
 
 <style>
-	.more-container {
-		flex: 1;
-		overflow-y: auto;
-		padding: 2rem;
-		background: transparent;
-		font-family: var(--font-sans), sans-serif;
+	.stats-page-section {
+		scroll-margin-top: 1.5rem;
+		width: 100%;
 	}
 
-	.more-container.sample-hand-mode {
-		padding: 0.5rem 1rem 2rem;
-	}
-
-	/* Panel layouts */
-	.panel-card {
-		background: hsl(var(--card) / 0.45);
-		backdrop-filter: blur(8px);
-		-webkit-backdrop-filter: blur(8px);
-		border: 1px solid hsl(var(--border) / 0.5);
-		border-radius: var(--radius-lg);
-		padding: 2rem;
-		max-width: 1200px;
-		margin: 0 auto;
-		display: flex;
-		flex-direction: column;
-		gap: 2rem;
-	}
-
-	.panel-header {
+	.section-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		border-bottom: 1px solid hsl(var(--border) / 0.3);
-		padding-bottom: 1rem;
+		margin-bottom: 1.25rem;
+		max-width: 1400px;
+		margin-left: auto;
+		margin-right: auto;
+		width: 100%;
+	}
+
+	.section-title-group {
+		display: flex;
+		align-items: baseline;
+		gap: 0.75rem;
 		flex-wrap: wrap;
-		gap: 1rem;
+	}
+
+	.section-title {
+		font-size: 1.25rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+		letter-spacing: -0.02em;
+		margin: 0;
+	}
+
+	.section-desc {
+		font-size: 0.8125rem;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.section-count-badge {
+		font-size: 0.75rem;
+		font-weight: 600;
+		background: hsl(var(--secondary));
+		border: 1px solid hsl(var(--border) / 0.6);
+		color: hsl(var(--foreground));
+		padding: 0.15rem 0.55rem;
+		border-radius: 9999px;
+	}
+
+	.more-container {
+		padding: 2.5rem 1.25rem 4rem;
+		background: transparent;
+		font-family: var(--font-sans), sans-serif;
+		display: flex;
+		flex-direction: column;
+		gap: 3.5rem;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.combos-view {
+		max-width: 1400px;
+		margin: 0 auto;
+		width: 100%;
 	}
 
 	h3 {
