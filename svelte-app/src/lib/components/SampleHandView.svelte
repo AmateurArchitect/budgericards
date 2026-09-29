@@ -1061,7 +1061,7 @@
 	/* Hovered card lifts up towards top of screen so name & mana cost are fully visible */
 	.arena-fan:not(.is-dragging-active)
 		.arena-card-wrapper:hover:not(.is-dragging):not(.arena-draw-slot) {
-		--lift-y: -44px;
+		--lift-y: -22px;
 		box-shadow:
 			0 22px 44px -8px rgba(0, 0, 0, 0.92),
 			0 10px 20px -4px rgba(0, 0, 0, 0.7),
@@ -1071,15 +1071,15 @@
 	/* ONLY the immediate card to the left pushes slightly left */
 	.arena-fan:not(.is-dragging-active):has(.arena-card-wrapper:hover:not(.is-dragging):not(.arena-draw-slot))
 		.arena-card-wrapper:has(+ .arena-card-wrapper:hover:not(.is-dragging):not(.arena-draw-slot)) {
-		--push-x: -24px;
-		--push-rot: -2deg;
+		--push-x: -12px;
+		--push-rot: -1deg;
 	}
 
 	/* ONLY the immediate card to the right pushes slightly right */
 	.arena-fan:not(.is-dragging-active)
 		.arena-card-wrapper:hover:not(.is-dragging):not(.arena-draw-slot) + .arena-card-wrapper:not(.arena-draw-slot) {
-		--push-x: 24px;
-		--push-rot: 2deg;
+		--push-x: 12px;
+		--push-rot: 1deg;
 	}
 
 	.arena-card-wrapper.is-dragging {
@@ -1120,7 +1120,7 @@
 	.arena-draw-slot:hover {
 		opacity: 1;
 		clip-path: none;
-		--lift-y: -10px;
+		--lift-y: -5px;
 		border-color: hsl(var(--primary) / 0.65);
 		background: hsl(var(--card) / 0.92);
 		box-shadow:
