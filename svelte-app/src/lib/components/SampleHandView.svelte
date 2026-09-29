@@ -463,6 +463,7 @@
 			y: Math.round(y * 10) / 10,
 			rot: Math.round(rot * 10) / 10,
 			z,
+			stepX: Math.round(stepX * 10) / 10,
 		};
 	});
 
@@ -537,7 +538,7 @@
 							<button
 								type="button"
 								class="arena-card-wrapper arena-draw-slot"
-								style="--x: {drawSlotItem.x}px; --y: {drawSlotItem.y}px; --rot: {drawSlotItem.rot}deg; --z: {drawSlotItem.z};"
+								style="--x: {drawSlotItem.x}px; --y: {drawSlotItem.y}px; --rot: {drawSlotItem.rot}deg; --z: {drawSlotItem.z}; --step-x: {drawSlotItem.stepX}px;"
 								onclick={drawCard}
 								title="Draw card ({library.length} left)"
 								aria-label="Draw card ({library.length} left)"
@@ -989,6 +990,7 @@
 	}
 
 	.arena-fan {
+		--card-w: 215px;
 		position: relative;
 		width: 100%;
 		height: 340px;
@@ -1066,30 +1068,18 @@
 			0 0 0 1px rgba(255, 255, 255, 0.22);
 	}
 
-	/* All cards to the left of the hovered card push left */
-	.arena-fan:not(.is-dragging-active):has(.arena-card-wrapper:hover:not(.is-dragging))
-		.arena-card-wrapper:has(~ .arena-card-wrapper:hover:not(.is-dragging)) {
-		--push-x: -16px;
+	/* ONLY the immediate card to the left pushes slightly left */
+	.arena-fan:not(.is-dragging-active):has(.arena-card-wrapper:hover:not(.is-dragging):not(.arena-draw-slot))
+		.arena-card-wrapper:has(+ .arena-card-wrapper:hover:not(.is-dragging):not(.arena-draw-slot)) {
+		--push-x: -24px;
+		--push-rot: -2deg;
 	}
 
-	/* Immediate card to the left pushes further left and tilts slightly */
-	.arena-fan:not(.is-dragging-active):has(.arena-card-wrapper:hover:not(.is-dragging))
-		.arena-card-wrapper:has(+ .arena-card-wrapper:hover:not(.is-dragging)) {
-		--push-x: -28px;
-		--push-rot: -2.5deg;
-	}
-
-	/* All cards to the right of the hovered card push right */
+	/* ONLY the immediate card to the right pushes slightly right */
 	.arena-fan:not(.is-dragging-active)
-		.arena-card-wrapper:hover:not(.is-dragging) ~ .arena-card-wrapper {
-		--push-x: 16px;
-	}
-
-	/* Immediate card to the right pushes further right and tilts slightly */
-	.arena-fan:not(.is-dragging-active)
-		.arena-card-wrapper:hover:not(.is-dragging) + .arena-card-wrapper {
-		--push-x: 28px;
-		--push-rot: 2.5deg;
+		.arena-card-wrapper:hover:not(.is-dragging):not(.arena-draw-slot) + .arena-card-wrapper:not(.arena-draw-slot) {
+		--push-x: 24px;
+		--push-rot: 2deg;
 	}
 
 	.arena-card-wrapper.is-dragging {
@@ -1101,12 +1091,12 @@
 			0 0 0 1px rgba(255, 255, 255, 0.25) !important;
 	}
 
-	/* Invisible draw card slot on the right */
+	/* Invisible draw card slot sitting where the next card in hand would be, overlapping the top card */
 	.arena-draw-slot {
 		opacity: 0;
 		cursor: pointer;
 		border: 2px dashed hsl(var(--border) / 0.75);
-		background: hsl(var(--card) / 0.5);
+		background: hsl(var(--card) / 0.55);
 		backdrop-filter: blur(12px);
 		-webkit-backdrop-filter: blur(12px);
 		display: flex;
@@ -1117,33 +1107,26 @@
 		padding: 1.5rem;
 		box-sizing: border-box;
 		text-align: center;
-		z-index: 0;
+		z-index: var(--z);
+		clip-path: inset(0 0 0 max(0px, calc(var(--card-w, 215px) - var(--step-x, 80px) - calc(var(--card-w, 215px) / 3))));
 		transition:
 			opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1),
 			transform 0.24s cubic-bezier(0.2, 0, 0, 1),
 			border-color 0.2s ease,
 			background-color 0.2s ease,
-			box-shadow 0.2s ease,
-			z-index 0s 0.22s;
+			box-shadow 0.2s ease;
 	}
 
 	.arena-draw-slot:hover {
 		opacity: 1;
-		z-index: var(--z);
-		--lift-y: -14px;
+		clip-path: none;
+		--lift-y: -10px;
 		border-color: hsl(var(--primary) / 0.65);
-		background: hsl(var(--card) / 0.9);
+		background: hsl(var(--card) / 0.92);
 		box-shadow:
 			0 20px 42px -8px rgba(0, 0, 0, 0.88),
 			0 0 24px -4px hsl(var(--primary) / 0.25),
 			0 0 0 1px hsl(var(--primary) / 0.35);
-		transition:
-			opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-			transform 0.24s cubic-bezier(0.2, 0, 0, 1),
-			border-color 0.2s ease,
-			background-color 0.2s ease,
-			box-shadow 0.2s ease,
-			z-index 0s;
 	}
 
 	.arena-draw-slot:active {
@@ -1244,6 +1227,9 @@
 	}
 
 	@media (max-width: 900px) {
+		.arena-fan {
+			--card-w: 170px;
+		}
 		.arena-card-wrapper {
 			width: 170px;
 			height: 238px;
