@@ -3,10 +3,7 @@
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { onMount } from "svelte";
 	import { fly } from "svelte/transition";
-	import {
-		RotateCcw,
-		SlidersHorizontal,
-	} from "lucide-svelte";
+	import { RotateCcw, SlidersHorizontal } from "lucide-svelte";
 
 	/**
 	 * @param {string} name
@@ -496,11 +493,7 @@
 								title={card.name}
 								role="listitem"
 								onpointerdown={(e) =>
-									handleCardPointerDown(
-										e,
-										card.id,
-										card.i,
-									)}
+									handleCardPointerDown(e, card.id, card.i)}
 							>
 								{#if card.img}
 									<img
@@ -513,8 +506,7 @@
 								{:else}
 									<div class="arena-card-fallback">
 										<div class="fallback-frame">
-											<span
-												class="fallback-card-title"
+											<span class="fallback-card-title"
 												>{card.name}</span
 											>
 										</div>
@@ -599,9 +591,7 @@
 							role="dialog"
 							tabindex="-1"
 						>
-							<div class="options-menu-header">
-								Hand Options
-							</div>
+							<div class="options-menu-header">Hand Options</div>
 
 							<div class="options-menu-item">
 								<div class="options-item-info">
@@ -682,7 +672,8 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding: 0 2rem 1rem;
+		gap: 1rem;
+		padding: 1rem 2rem 2rem 2rem;
 		position: relative;
 	}
 
@@ -691,7 +682,7 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 0.75rem;
+		gap: 1.5rem;
 		margin-top: 1rem;
 		z-index: 10;
 		font-variant-numeric: tabular-nums;
