@@ -3,7 +3,7 @@
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { onMount } from "svelte";
 	import { fly } from "svelte/transition";
-	import { RotateCcw, SlidersHorizontal } from "lucide-svelte";
+	import { RotateCcw, SlidersHorizontal, Plus } from "lucide-svelte";
 
 	/**
 	 * @param {string} name
@@ -17,7 +17,6 @@
 	let hand = $state([]);
 	/** @type {string[]} */
 	let library = $state([]);
-	let mulliganCount = $state(0);
 
 	let dealKey = $state(0);
 	let isOpeningDeal = $state(true);
@@ -317,29 +316,7 @@
 		};
 		deckStore.mainboard.forEach(addCardNames);
 		hand = [];
-		mulliganCount = 0;
 		drawHand(decklist, 7);
-	}
-
-	function mulligan() {
-		if (mulliganCount >= 7) return;
-		dealKey++;
-		isOpeningDeal = true;
-		mulliganCount++;
-		const targetHandSize = Math.max(0, 7 - mulliganCount);
-		/** @type {string[]} */
-		const decklist = [];
-		/**
-		 * @param {any} c
-		 */
-		const addCardNames = (c) => {
-			for (let i = 0; i < (c.quantity || 1); i++) {
-				decklist.push(c.name);
-			}
-		};
-		deckStore.mainboard.forEach(addCardNames);
-		hand = [];
-		drawHand(decklist, targetHandSize);
 	}
 
 	function drawCard() {
@@ -465,6 +442,30 @@
 		});
 	});
 
+	// Draw card ghost slot item on the right end of the hand fan
+	const drawSlotItem = $derived.by(() => {
+		if (library.length === 0 || hand.length === 0) return null;
+		const n = hand.length;
+		const mid = (n - 1) / 2;
+		const stepX = n > 1 ? Math.min(115, Math.max(34, 760 / (n - 1))) : 80;
+		const maxAngle = n > 1 ? Math.min(17, Math.max(3.5, (n - 1) * 2.8)) : 0;
+		const arcDepth = n > 1 ? Math.min(42, Math.max(8, (n - 1) * 6.5)) : 0;
+
+		const slotIndex = n;
+		const norm = mid > 0 ? (slotIndex - mid) / mid : 1;
+		const x = (slotIndex - mid) * stepX;
+		const y = Math.pow(Math.abs(norm), 1.65) * arcDepth;
+		const rot = norm * maxAngle;
+		const z = n + 1;
+
+		return {
+			x: Math.round(x * 10) / 10,
+			y: Math.round(y * 10) / 10,
+			rot: Math.round(rot * 10) / 10,
+			z,
+		};
+	});
+
 	onMount(() => {
 		resetSampleHand();
 		return () => {
@@ -531,6 +532,25 @@
 								{/if}
 							</div>
 						{/each}
+
+						{#if drawSlotItem}
+							<button
+								type="button"
+								class="arena-card-wrapper arena-draw-slot"
+								style="--x: {drawSlotItem.x}px; --y: {drawSlotItem.y}px; --rot: {drawSlotItem.rot}deg; --z: {drawSlotItem.z};"
+								onclick={drawCard}
+								title="Draw card ({library.length} left)"
+								aria-label="Draw card ({library.length} left)"
+							>
+								<div class="draw-slot-icon-wrap">
+									<Plus size={22} strokeWidth={2.5} />
+								</div>
+								<div class="draw-slot-label">
+									<span class="draw-slot-title">Draw Card</span>
+									<span class="draw-slot-count">({library.length} left)</span>
+								</div>
+							</button>
+						{/if}
 					</div>
 				{/key}
 			</div>
@@ -545,40 +565,15 @@
 				>
 			</div>
 
-			<div class="arena-actions">
+			<div class="arena-button-group">
 				<button
 					onclick={resetSampleHand}
-					class="arena-action-btn primary"
-					title="Reshuffle deck and draw an opening hand"
+					class="arena-btn-primary"
+					title="Reshuffle deck and draw a new 7-card hand"
 				>
-					<RotateCcw size={14} />
+					<RotateCcw size={15} />
 					<span>New Hand</span>
 				</button>
-
-				<button
-					onclick={mulligan}
-					class="arena-action-btn"
-					disabled={mulliganCount >= 7}
-					title="Mulligan hand"
-				>
-					<span
-						>Mulligan to {Math.max(
-							0,
-							7 - (mulliganCount + 1),
-						)}</span
-					>
-				</button>
-
-				<button
-					onclick={drawCard}
-					class="arena-action-btn"
-					disabled={library.length === 0}
-					title="Draw 1 card"
-				>
-					<span>Draw Card ({library.length} left)</span>
-				</button>
-
-				<div class="arena-actions-separator"></div>
 
 				<!-- Additional Options Trigger & Menu -->
 				<div class="arena-options-container">
@@ -587,16 +582,20 @@
 							e.stopPropagation();
 							showHandOptions = !showHandOptions;
 						}}
-						class="arena-action-btn icon-only"
+						class="arena-btn-secondary"
 						class:active={showHandOptions}
 						class:smoother-active={settingsStore.sampleHandSmoother}
 						title={settingsStore.sampleHandSmoother
-							? "Sample Hand Options (Hand Smoother On)"
-							: "Sample Hand Options"}
-						aria-label="Sample Hand Options"
+							? "Hand Options (Hand Smoother On)"
+							: "Hand Options"}
+						aria-label="Hand Options"
 						aria-expanded={showHandOptions}
 					>
 						<SlidersHorizontal size={14} />
+						<span>Options</span>
+						{#if settingsStore.sampleHandSmoother}
+							<span class="options-active-dot" title="Hand Smoother Active"></span>
+						{/if}
 					</button>
 
 					{#if showHandOptions}
@@ -720,107 +719,102 @@
 		letter-spacing: 0.01em;
 	}
 
-	.arena-actions {
+	.arena-button-group {
 		display: flex;
 		align-items: center;
-		gap: 0.35rem;
-		background: hsl(var(--card) / 0.6);
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
-		border: 1px solid hsl(var(--border) / 0.5);
-		padding: 4px;
-		border-radius: 9999px;
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+		justify-content: center;
+		gap: 0.75rem;
+		position: relative;
 	}
 
-	.arena-action-btn {
-		height: 32px;
-		background: transparent;
-		border: 1px solid transparent;
-		color: hsl(var(--muted-foreground));
-		padding: 0 0.85rem;
+	.arena-btn-primary {
+		height: 38px;
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground, 0 0% 100%));
+		border: 1px solid hsl(var(--primary) / 0.9);
+		padding: 0 1.25rem;
 		border-radius: 9999px;
-		font-size: 0.8125rem;
-		font-weight: 500;
+		font-size: 0.85rem;
+		font-weight: 600;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.4rem;
+		gap: 0.5rem;
 		cursor: pointer;
 		transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 		white-space: nowrap;
 		box-sizing: border-box;
-		font-variant-numeric: tabular-nums;
+		box-shadow:
+			0 4px 14px hsl(var(--primary) / 0.35),
+			0 1px 3px rgba(0, 0, 0, 0.2);
 	}
 
-	.arena-action-btn:hover:not(:disabled) {
-		background: hsl(var(--foreground) / 0.08);
-		color: hsl(var(--foreground));
+	.arena-btn-primary:hover {
+		background: hsl(var(--primary) / 0.88);
+		transform: translateY(-1px);
+		box-shadow:
+			0 6px 20px hsl(var(--primary) / 0.45),
+			0 2px 4px rgba(0, 0, 0, 0.2);
 	}
 
-	.arena-action-btn:active:not(:disabled) {
-		transform: scale(0.97);
+	.arena-btn-primary:active {
+		transform: translateY(0);
+		box-shadow:
+			0 2px 8px hsl(var(--primary) / 0.3),
+			0 1px 2px rgba(0, 0, 0, 0.2);
 	}
 
-	.arena-action-btn.primary {
-		background: hsl(var(--primary) / 0.15);
-		border-color: hsl(var(--primary) / 0.35);
-		color: hsl(var(--primary));
-		font-weight: 600;
-	}
-
-	.arena-action-btn.primary:hover:not(:disabled) {
-		background: hsl(var(--primary) / 0.25);
-		border-color: hsl(var(--primary) / 0.5);
-		color: hsl(var(--primary));
-	}
-
-	.arena-action-btn:disabled {
-		opacity: 0.35;
-		cursor: not-allowed;
-	}
-
-	.arena-action-btn.icon-only {
-		width: 32px;
-		height: 32px;
-		padding: 0;
+	.arena-btn-secondary {
+		height: 38px;
+		background: hsl(var(--card) / 0.65);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		border: 1px solid hsl(var(--border) / 0.75);
+		color: hsl(var(--muted-foreground));
+		padding: 0 1.1rem;
 		border-radius: 9999px;
+		font-size: 0.85rem;
+		font-weight: 500;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		color: hsl(var(--muted-foreground));
+		gap: 0.5rem;
+		cursor: pointer;
+		transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+		white-space: nowrap;
+		box-sizing: border-box;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 	}
 
-	.arena-action-btn.icon-only:hover:not(:disabled) {
-		background: hsl(var(--foreground) / 0.1);
+	.arena-btn-secondary:hover {
+		background: hsl(var(--foreground) / 0.08);
 		color: hsl(var(--foreground));
+		border-color: hsl(var(--foreground) / 0.25);
+		transform: translateY(-1px);
 	}
 
-	.arena-action-btn.icon-only.active {
-		background: hsl(var(--foreground) / 0.14);
+	.arena-btn-secondary:active {
+		transform: translateY(0);
+	}
+
+	.arena-btn-secondary.active {
+		background: hsl(var(--card));
 		color: hsl(var(--foreground));
-		border-color: hsl(var(--foreground) / 0.2);
+		border-color: hsl(var(--primary) / 0.6);
+		box-shadow: 0 0 0 1px hsl(var(--primary) / 0.4);
 	}
 
-	.arena-action-btn.icon-only.smoother-active {
-		background: hsl(var(--primary) / 0.15);
-		border-color: hsl(var(--primary) / 0.35);
-		color: hsl(var(--primary));
+	.arena-btn-secondary.smoother-active {
+		border-color: hsl(var(--primary) / 0.45);
 	}
 
-	.arena-action-btn.icon-only.smoother-active:hover:not(:disabled),
-	.arena-action-btn.icon-only.smoother-active.active {
-		background: hsl(var(--primary) / 0.25);
-		border-color: hsl(var(--primary) / 0.5);
-		color: hsl(var(--primary));
-	}
-
-	.arena-actions-separator {
-		width: 1px;
-		height: 18px;
-		background: hsl(var(--border) / 0.7);
-		margin: 0 2px;
-		flex-shrink: 0;
+	.options-active-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: hsl(var(--primary));
+		box-shadow: 0 0 6px hsl(var(--primary));
+		margin-left: 2px;
 	}
 
 	.arena-options-container {
@@ -1037,15 +1031,20 @@
 		margin-left: -107.5px;
 		margin-top: 0;
 		transform-origin: 50% 120%;
-		transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot))
+		transform: translate3d(
+				calc(var(--x) + var(--push-x, 0px)),
+				calc(var(--y) + var(--lift-y, 0px)),
+				0
+			)
+			rotate(calc(var(--rot) + var(--push-rot, 0deg)))
 			scale(var(--scale, 1));
 		z-index: var(--z);
 		animation: dealCard 0.33s cubic-bezier(0.18, 0.89, 0.32, 1.15) backwards;
 		animation-delay: var(--deal-delay, 0ms);
 		transition:
-			transform 0.22s cubic-bezier(0.2, 0, 0, 1),
-			box-shadow 0.22s ease,
-			z-index 0.05s step-end;
+			transform 0.24s cubic-bezier(0.2, 0, 0, 1),
+			box-shadow 0.24s ease,
+			opacity 0.24s ease;
 		cursor: grab;
 		touch-action: none;
 		border-radius: 11px;
@@ -1057,18 +1056,40 @@
 			0 0 0 1px rgba(255, 255, 255, 0.08);
 	}
 
-	.arena-card-wrapper:hover:not(.is-dragging) {
-		transform: translate3d(var(--x), calc(var(--y) - 8px), 0)
-			rotate(var(--rot)) scale(1.04);
-		z-index: 100 !important;
-		transition:
-			transform 0.22s cubic-bezier(0.2, 0, 0, 1),
-			box-shadow 0.22s ease,
-			z-index 0s;
+	/* Hovered card lifts up towards top of screen so name & mana cost are fully visible */
+	.arena-fan:not(.is-dragging-active)
+		.arena-card-wrapper:hover:not(.is-dragging):not(.arena-draw-slot) {
+		--lift-y: -44px;
 		box-shadow:
-			0 18px 36px -8px rgba(0, 0, 0, 0.85),
-			0 8px 16px -4px rgba(0, 0, 0, 0.6),
-			0 0 0 1px rgba(255, 255, 255, 0.18);
+			0 22px 44px -8px rgba(0, 0, 0, 0.92),
+			0 10px 20px -4px rgba(0, 0, 0, 0.7),
+			0 0 0 1px rgba(255, 255, 255, 0.22);
+	}
+
+	/* All cards to the left of the hovered card push left */
+	.arena-fan:not(.is-dragging-active):has(.arena-card-wrapper:hover:not(.is-dragging))
+		.arena-card-wrapper:has(~ .arena-card-wrapper:hover:not(.is-dragging)) {
+		--push-x: -16px;
+	}
+
+	/* Immediate card to the left pushes further left and tilts slightly */
+	.arena-fan:not(.is-dragging-active):has(.arena-card-wrapper:hover:not(.is-dragging))
+		.arena-card-wrapper:has(+ .arena-card-wrapper:hover:not(.is-dragging)) {
+		--push-x: -28px;
+		--push-rot: -2.5deg;
+	}
+
+	/* All cards to the right of the hovered card push right */
+	.arena-fan:not(.is-dragging-active)
+		.arena-card-wrapper:hover:not(.is-dragging) ~ .arena-card-wrapper {
+		--push-x: 16px;
+	}
+
+	/* Immediate card to the right pushes further right and tilts slightly */
+	.arena-fan:not(.is-dragging-active)
+		.arena-card-wrapper:hover:not(.is-dragging) + .arena-card-wrapper {
+		--push-x: 28px;
+		--push-rot: 2.5deg;
 	}
 
 	.arena-card-wrapper.is-dragging {
@@ -1078,6 +1099,106 @@
 			0 26px 54px -8px rgba(0, 0, 0, 0.95),
 			0 12px 28px -4px rgba(0, 0, 0, 0.7),
 			0 0 0 1px rgba(255, 255, 255, 0.25) !important;
+	}
+
+	/* Invisible draw card slot on the right */
+	.arena-draw-slot {
+		opacity: 0;
+		cursor: pointer;
+		border: 2px dashed hsl(var(--border) / 0.75);
+		background: hsl(var(--card) / 0.5);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.85rem;
+		padding: 1.5rem;
+		box-sizing: border-box;
+		text-align: center;
+		z-index: 0;
+		transition:
+			opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+			transform 0.24s cubic-bezier(0.2, 0, 0, 1),
+			border-color 0.2s ease,
+			background-color 0.2s ease,
+			box-shadow 0.2s ease,
+			z-index 0s 0.22s;
+	}
+
+	.arena-draw-slot:hover {
+		opacity: 1;
+		z-index: var(--z);
+		--lift-y: -14px;
+		border-color: hsl(var(--primary) / 0.65);
+		background: hsl(var(--card) / 0.9);
+		box-shadow:
+			0 20px 42px -8px rgba(0, 0, 0, 0.88),
+			0 0 24px -4px hsl(var(--primary) / 0.25),
+			0 0 0 1px hsl(var(--primary) / 0.35);
+		transition:
+			opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+			transform 0.24s cubic-bezier(0.2, 0, 0, 1),
+			border-color 0.2s ease,
+			background-color 0.2s ease,
+			box-shadow 0.2s ease,
+			z-index 0s;
+	}
+
+	.arena-draw-slot:active {
+		transform: translate3d(
+				calc(var(--x) + var(--push-x, 0px)),
+				calc(var(--y) + var(--lift-y, 0px) + 3px),
+				0
+			)
+			rotate(calc(var(--rot) + var(--push-rot, 0deg)))
+			scale(0.98);
+	}
+
+	.arena-fan.is-dragging-active .arena-draw-slot {
+		pointer-events: none;
+		opacity: 0 !important;
+	}
+
+	.draw-slot-icon-wrap {
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		background: hsl(var(--primary) / 0.15);
+		border: 1px solid hsl(var(--primary) / 0.4);
+		color: hsl(var(--primary));
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	.arena-draw-slot:hover .draw-slot-icon-wrap {
+		transform: scale(1.1);
+		background: hsl(var(--primary) / 0.25);
+		border-color: hsl(var(--primary) / 0.6);
+	}
+
+	.draw-slot-label {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.draw-slot-title {
+		font-size: 0.95rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+		letter-spacing: -0.01em;
+	}
+
+	.draw-slot-count {
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
+		font-variant-numeric: tabular-nums;
 	}
 
 	.arena-card-img {
