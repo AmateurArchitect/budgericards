@@ -1005,9 +1005,11 @@
 			class="token-modal-card"
 			transition:scale={{ duration: 220, start: 0.95 }}
 			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
 			role="dialog"
 			aria-modal="true"
 			aria-label={selectedToken.name}
+			tabindex="-1"
 		>
 			<button 
 				type="button" 
