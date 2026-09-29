@@ -376,8 +376,8 @@
 
 	.section-title-group {
 		display: flex;
-		align-items: baseline;
-		gap: 0.75rem;
+		align-items: center;
+		gap: 0.65rem;
 		flex-wrap: wrap;
 	}
 
@@ -389,16 +389,25 @@
 		color: hsl(var(--foreground));
 		letter-spacing: -0.01em;
 		margin: 0;
+		line-height: 1.2;
 	}
 
 	.section-count-badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
 		font-size: 0.75rem;
 		font-weight: 600;
 		background: hsl(var(--secondary));
 		border: 1px solid hsl(var(--border) / 0.6);
-		color: hsl(var(--foreground));
-		padding: 0.15rem 0.55rem;
+		color: hsl(var(--muted-foreground));
+		min-width: 1.35rem;
+		height: 1.35rem;
+		padding: 0 0.45rem;
 		border-radius: 9999px;
+		line-height: 1;
+		font-variant-numeric: tabular-nums;
+		box-sizing: border-box;
 	}
 
 	.more-container {
