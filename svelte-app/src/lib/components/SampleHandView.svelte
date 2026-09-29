@@ -43,6 +43,7 @@
 	let dragCurrentY = $state(0);
 	let isCardDragging = $state(false);
 	let dragHoverTargetIndex = $state(/** @type {number | null} */ (null));
+	let hasUserManuallyReordered = $state(false);
 
 	/**
 	 * @param {PointerEvent} e
@@ -119,6 +120,7 @@
 				const [moved] = newHand.splice(sourceIndex, 1);
 				newHand.splice(dragHoverTargetIndex, 0, moved);
 				hand = newHand;
+				hasUserManuallyReordered = true;
 			}
 		}
 
@@ -232,6 +234,97 @@
 		return Math.abs(handLands - targetLandsInHand);
 	}
 
+	const BASIC_LAND_NAMES = new Set([
+		"plains",
+		"island",
+		"swamp",
+		"mountain",
+		"forest",
+		"wastes",
+		"snow-covered plains",
+		"snow-covered island",
+		"snow-covered swamp",
+		"snow-covered mountain",
+		"snow-covered forest",
+	]);
+
+	/**
+	 * @param {string} name
+	 * @param {any} meta
+	 * @returns {boolean}
+	 */
+	function isBasicLand(name, meta) {
+		const typeLine = (meta.type_line || "").toLowerCase();
+		if (typeLine.includes("basic")) return true;
+		const cleanName = name
+			.toLowerCase()
+			.normalize("NFD")
+			.replace(/[\u0300-\u036f]/g, "")
+			.trim();
+		return BASIC_LAND_NAMES.has(cleanName);
+	}
+
+	/**
+	 * Returns the WUBRG order index (0 to 5) for basic lands.
+	 * @param {string} name
+	 * @returns {number}
+	 */
+	function getBasicLandOrder(name) {
+		const n = name
+			.toLowerCase()
+			.normalize("NFD")
+			.replace(/[\u0300-\u036f]/g, "");
+		if (n.includes("plains")) return 0; // W
+		if (n.includes("island")) return 1; // U
+		if (n.includes("swamp")) return 2; // B
+		if (n.includes("mountain")) return 3; // R
+		if (n.includes("forest")) return 4; // G
+		if (n.includes("wastes")) return 5; // C
+		return 6;
+	}
+
+	/**
+	 * Sorts cards: spells by CMC ascending (then alphabetical), then nonbasic lands (alphabetical), then basic lands (WUBRG order).
+	 * @param {{ id: string, name: string }[]} cards
+	 * @returns {{ id: string, name: string }[]}
+	 */
+	function sortHandCards(cards) {
+		return [...cards].sort((a, b) => {
+			const metaA = getMeta(a.name);
+			const metaB = getMeta(b.name);
+			const aIsLand = isLandCard(a.name, true);
+			const bIsLand = isLandCard(b.name, true);
+
+			if (!aIsLand && bIsLand) return -1;
+			if (aIsLand && !bIsLand) return 1;
+
+			if (!aIsLand && !bIsLand) {
+				const cmcA = metaA.cmc ?? 0;
+				const cmcB = metaB.cmc ?? 0;
+				if (cmcA !== cmcB) return cmcA - cmcB;
+				return a.name.localeCompare(b.name);
+			}
+
+			// Both are lands:
+			// Nonbasic lands to the left (alphabetical), basic lands to the right (WUBRG order)
+			const aIsBasic = isBasicLand(a.name, metaA);
+			const bIsBasic = isBasicLand(b.name, metaB);
+
+			if (!aIsBasic && bIsBasic) return -1;
+			if (aIsBasic && !bIsBasic) return 1;
+
+			if (!aIsBasic && !bIsBasic) {
+				return a.name.localeCompare(b.name);
+			}
+
+			// Both are basic lands: WUBRG order, then alphabetical
+			const orderA = getBasicLandOrder(a.name);
+			const orderB = getBasicLandOrder(b.name);
+			if (orderA !== orderB) return orderA - orderB;
+			return a.name.localeCompare(b.name);
+		});
+	}
+
 	/**
 	 * Standard Fisher-Yates shuffle.
 	 * @param {string[]} array
@@ -258,7 +351,7 @@
 		}
 
 		if (fullDeck.length < handSize) {
-			hand = fullDeck.map((n) => createHandCard(n));
+			hand = sortHandCards(fullDeck.map((n) => createHandCard(n)));
 			library = [];
 			return;
 		}
@@ -268,7 +361,7 @@
 
 		if (!useSmoother) {
 			const shuffled = shuffleArray(fullDeck);
-			hand = shuffled.slice(0, handSize).map((n) => createHandCard(n));
+			hand = sortHandCards(shuffled.slice(0, handSize).map((n) => createHandCard(n)));
 			library = shuffled.slice(handSize);
 			return;
 		}
@@ -297,13 +390,14 @@
 			if (fitC < fitA) chosen = optC;
 		}
 
-		hand = chosen.hand.map((n) => createHandCard(n));
+		hand = sortHandCards(chosen.hand.map((n) => createHandCard(n)));
 		library = chosen.deck;
 	}
 
 	function resetSampleHand() {
 		dealKey++;
 		isOpeningDeal = true;
+		hasUserManuallyReordered = false;
 		/** @type {string[]} */
 		const decklist = [];
 		/**
@@ -342,25 +436,8 @@
 	function manualSortHand() {
 		dealKey++;
 		isOpeningDeal = false;
-		hand = [...hand].sort((a, b) => {
-			const metaA = getMeta(a.name);
-			const metaB = getMeta(b.name);
-			const isLandA = (metaA.type_line || "")
-				.toLowerCase()
-				.includes("land");
-			const isLandB = (metaB.type_line || "")
-				.toLowerCase()
-				.includes("land");
-
-			if (isLandA && !isLandB) return 1;
-			if (!isLandA && isLandB) return -1;
-
-			const cmcA = metaA.cmc || 0;
-			const cmcB = metaB.cmc || 0;
-			if (cmcA !== cmcB) return cmcA - cmcB;
-
-			return a.name.localeCompare(b.name);
-		});
+		hasUserManuallyReordered = false;
+		hand = sortHandCards(hand);
 		showHandOptions = false;
 	}
 
@@ -474,6 +551,19 @@
 			window.removeEventListener("pointerup", handleWindowPointerUp);
 			window.removeEventListener("pointercancel", handleWindowPointerUp);
 		};
+	});
+
+	// If metadata loads asynchronously, ensure initial hand is sorted if user hasn't manually reordered
+	$effect(() => {
+		const metaCount = Object.keys(deckStore.metadata).length;
+		if (
+			metaCount > 0 &&
+			isOpeningDeal &&
+			!hasUserManuallyReordered &&
+			hand.length > 0
+		) {
+			hand = sortHandCards(hand);
+		}
 	});
 </script>
 
