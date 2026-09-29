@@ -852,6 +852,7 @@
 		let colorlessSpellsCount = 0;
 		let landsCount = 0;
 
+		// PASS 1: Tally sources
 		activeCards.forEach((/** @type {any} */ c) => {
 			const stats = getCardStats(c);
 			const meta = stats.meta;
@@ -861,7 +862,36 @@
 
 			if (isLand) {
 				landsCount += qty;
-			} else {
+			}
+			
+			const produced = meta.produced_mana || [];
+			if (produced.length > 0) {
+				produced.forEach((/** @type {string} */ p) => {
+					const upper = p.toUpperCase();
+					if (sources[upper]) {
+						sources[upper].cardCount += qty;
+						sources[upper].count += qty;
+					}
+				});
+			} else if (isLand) {
+				const nameLower = c.name.toLowerCase();
+				if (nameLower.includes("plains")) { sources.W.cardCount += qty; sources.W.count += qty; }
+				if (nameLower.includes("island")) { sources.U.cardCount += qty; sources.U.count += qty; }
+				if (nameLower.includes("swamp")) { sources.B.cardCount += qty; sources.B.count += qty; }
+				if (nameLower.includes("mountain")) { sources.R.cardCount += qty; sources.R.count += qty; }
+				if (nameLower.includes("forest")) { sources.G.cardCount += qty; sources.G.count += qty; }
+				if (nameLower.includes("wastes")) { sources.C.cardCount += qty; sources.C.count += qty; }
+			}
+		});
+
+		// PASS 2: Tally pips and cards
+		activeCards.forEach((/** @type {any} */ c) => {
+			const stats = getCardStats(c);
+			const typeLine = stats.typeLine.toLowerCase();
+			const qty = c.quantity || 1;
+			const isLand = typeLine.includes("land");
+
+			if (!isLand) {
 				const colors = stats.colors || [];
 				if (stats.colorCategory) {
 					if (stats.colorCategory === "Colorless") colorlessSpellsCount += qty;
@@ -873,16 +903,14 @@
 					else multiColorCount += qty;
 				}
 
-				const colorsForCard = stats.colors || [];
-				colorsForCard.forEach((col) => {
-					const c = col.toUpperCase();
-					if (pips[c]) pips[c].cardCount += qty;
+				colors.forEach((col) => {
+					const upperC = col.toUpperCase();
+					if (pips[upperC]) pips[upperC].cardCount += qty;
 				});
 				if (stats.manaCost && stats.manaCost.includes("{C}")) {
 					pips.C.cardCount += qty;
 				}
 
-				// Parse mana pips from mana_cost
 				const cost = stats.manaCost;
 				const matches = cost.match(/\{([^}]+)\}/g) || [];
 				matches.forEach((/** @type {string} */ sym) => {
@@ -894,45 +922,29 @@
 					else if (clean === "G") { pips.G.count += qty; totalPips += qty; }
 					else if (clean === "C") { pips.C.count += qty; totalPips += qty; }
 					else if (clean.includes("/")) {
-						// Hybrid mana: assign to both
 						const [a, b] = clean.split("/");
-						if (pips[a]) { pips[a].count += qty * 0.5; totalPips += qty * 0.5; }
-						if (pips[b]) { pips[b].count += qty * 0.5; totalPips += qty * 0.5; }
+						if (pips[a] && pips[b]) {
+							const aSources = sources[a].count;
+							const bSources = sources[b].count;
+							
+							if (aSources === 0 && bSources > 0) {
+								pips[b].count += qty;
+								totalPips += qty;
+							} else if (bSources === 0 && aSources > 0) {
+								pips[a].count += qty;
+								totalPips += qty;
+							} else {
+								pips[a].count += qty * 0.5;
+								pips[b].count += qty * 0.5;
+								totalPips += qty;
+							}
+						} else if (pips[a]) {
+							pips[a].count += qty; totalPips += qty;
+						} else if (pips[b]) {
+							pips[b].count += qty; totalPips += qty;
+						}
 					}
 				});
-			}
-
-			// Parse mana sources (lands and mana-producing non-lands)
-			const produced = meta.produced_mana || [];
-			if (produced.length > 0) {
-				produced.forEach((/** @type {string} */ p) => {
-					const upper = p.toUpperCase();
-					if (sources[upper]) sources[upper].cardCount += qty;
-				});
-			} else if (isLand) {
-				const nameLower = c.name.toLowerCase();
-				if (nameLower.includes("plains")) sources.W.cardCount += qty;
-				if (nameLower.includes("island")) sources.U.cardCount += qty;
-				if (nameLower.includes("swamp")) sources.B.cardCount += qty;
-				if (nameLower.includes("mountain")) sources.R.cardCount += qty;
-				if (nameLower.includes("forest")) sources.G.cardCount += qty;
-				if (nameLower.includes("wastes")) sources.C.cardCount += qty;
-			}
-
-			if (produced.length > 0) {
-				produced.forEach((/** @type {string} */ p) => {
-					const upper = p.toUpperCase();
-					if (sources[upper]) sources[upper].count += qty;
-				});
-			} else if (isLand) {
-				// Basic land or text fallback
-				const nameLower = c.name.toLowerCase();
-				if (nameLower.includes("plains")) sources.W.count += qty;
-				if (nameLower.includes("island")) sources.U.count += qty;
-				if (nameLower.includes("swamp")) sources.B.count += qty;
-				if (nameLower.includes("mountain")) sources.R.count += qty;
-				if (nameLower.includes("forest")) sources.G.count += qty;
-				if (nameLower.includes("wastes")) sources.C.count += qty;
 			}
 		});
 
