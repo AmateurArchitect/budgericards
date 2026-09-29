@@ -143,7 +143,7 @@
 	<section id="section-tokens" class="stats-page-section">
 		<div class="section-header">
 			<div class="section-title-group">
-				<h3 class="section-title">Required Tokens</h3>
+				<h3 class="section-title">Tokens</h3>
 				{#if !isTokensLoading && requiredTokens.length > 0}
 					<span class="section-count-badge">{requiredTokens.length}</span>
 				{/if}
@@ -201,7 +201,7 @@
 	<section id="section-combos" class="stats-page-section">
 		<div class="section-header">
 			<div class="section-title-group">
-				<h3 class="section-title">Matched Combos</h3>
+				<h3 class="section-title">Combos</h3>
 				{#if !isCombosLoading && combos.length > 0}
 					<span class="section-count-badge">{combos.length}</span>
 				{/if}
@@ -382,10 +382,12 @@
 	}
 
 	.section-title {
-		font-size: 1.25rem;
-		font-weight: 700;
+		font-family: "Charter", "Bitstream Charter", "Sitka Text", Cambria,
+			Georgia, serif;
+		font-size: 1.625rem;
+		font-weight: 600;
 		color: hsl(var(--foreground));
-		letter-spacing: -0.02em;
+		letter-spacing: -0.01em;
 		margin: 0;
 	}
 

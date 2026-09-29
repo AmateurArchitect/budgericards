@@ -465,13 +465,6 @@
 
 <!-- Sample Hand Simulator (Arena-style Fan) -->
 <section id="section-sample-hand" class="stats-page-section">
-	<div class="section-header">
-		<div class="section-title-group">
-			<h3 class="section-title">Sample Hand</h3>
-			<span class="section-desc">Test your opening hands and mulligans</span>
-		</div>
-	</div>
-
 	<div class="arena-hand-view">
 		<!-- 1. Hand of Cards on Top -->
 		{#if hand.length === 0}
@@ -679,37 +672,6 @@
 	.stats-page-section {
 		scroll-margin-top: 2rem;
 		width: 100%;
-	}
-
-	.section-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 1.5rem;
-		max-width: 1400px;
-		margin-left: auto;
-		margin-right: auto;
-		width: 100%;
-	}
-
-	.section-title-group {
-		display: flex;
-		align-items: baseline;
-		gap: 0.75rem;
-		flex-wrap: wrap;
-	}
-
-	.section-title {
-		font-size: 1.25rem;
-		font-weight: 700;
-		color: hsl(var(--foreground));
-		letter-spacing: -0.02em;
-		margin: 0;
-	}
-
-	.section-desc {
-		font-size: 0.8125rem;
-		color: hsl(var(--muted-foreground));
 	}
 
 	/* Arena-style Sample Hand */
