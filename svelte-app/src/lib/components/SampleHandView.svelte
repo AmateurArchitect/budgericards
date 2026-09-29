@@ -594,13 +594,13 @@
 			</div>
 		{:else}
 			<div class="arena-stage">
-				{#key dealKey}
-					<div
-						class="arena-fan"
-						class:is-dragging-active={isCardDragging}
-						role="list"
-						aria-label="Sample Hand Cards"
-					>
+				<div
+					class="arena-fan"
+					class:is-dragging-active={isCardDragging}
+					role="list"
+					aria-label="Sample Hand Cards"
+				>
+					{#key dealKey}
 						{#each handCards as card (card.id)}
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div
@@ -631,27 +631,27 @@
 								{/if}
 							</div>
 						{/each}
+					{/key}
 
-						{#if drawSlotItem}
-							<button
-								type="button"
-								class="arena-card-wrapper arena-draw-slot"
-								style="--x: {drawSlotItem.x}px; --y: {drawSlotItem.y}px; --rot: {drawSlotItem.rot}deg; --z: {drawSlotItem.z}; --step-x: {drawSlotItem.stepX}px;"
-								onclick={drawCard}
-								title="Draw card ({library.length} left)"
-								aria-label="Draw card ({library.length} left)"
-							>
-								<div class="draw-slot-icon-wrap">
-									<Plus size={22} strokeWidth={2.5} />
-								</div>
-								<div class="draw-slot-label">
-									<span class="draw-slot-title">Draw Card</span>
-									<span class="draw-slot-count">({library.length} left)</span>
-								</div>
-							</button>
-						{/if}
-					</div>
-				{/key}
+					{#if drawSlotItem}
+						<button
+							type="button"
+							class="arena-card-wrapper arena-draw-slot"
+							style="--x: {drawSlotItem.x}px; --y: {drawSlotItem.y}px; --rot: {drawSlotItem.rot}deg; --z: {drawSlotItem.z}; --step-x: {drawSlotItem.stepX}px;"
+							onclick={drawCard}
+							title="Draw card ({library.length} left)"
+							aria-label="Draw card ({library.length} left)"
+						>
+							<div class="draw-slot-icon-wrap">
+								<Plus size={22} strokeWidth={2.5} />
+							</div>
+							<div class="draw-slot-label">
+								<span class="draw-slot-title">Draw Card</span>
+								<span class="draw-slot-count">({library.length} left)</span>
+							</div>
+						</button>
+					{/if}
+				</div>
 			</div>
 		{/if}
 
@@ -1191,6 +1191,7 @@
 
 	/* Invisible draw card slot sitting where the next card in hand would be, overlapping the top card */
 	.arena-draw-slot {
+		animation: none !important;
 		opacity: 0;
 		cursor: pointer;
 		border: 2px dashed hsl(var(--border) / 0.75);
