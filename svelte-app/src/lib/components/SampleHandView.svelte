@@ -68,76 +68,75 @@
 		window.addEventListener("pointercancel", handleWindowPointerUp);
 	}
 
-	/**
-	 * @param {PointerEvent} e
-	 */
+	/** @param {PointerEvent} e */
 	function handleWindowPointerMove(e) {
 		if (!draggingCardId) return;
 
 		const dx = e.clientX - dragPointerStartX;
 		const dy = e.clientY - dragPointerStartY;
 
-		if (!isCardDragging && Math.hypot(dx, dy) > 5) {
-			isCardDragging = true;
-		}
-
-		if (isCardDragging) {
-			dragCurrentX = dx;
-			dragCurrentY = dy;
-
-			const sourceIndex = hand.findIndex((c) => c.id === draggingCardId);
-			if (sourceIndex !== -1 && hand.length > 1) {
-				const stepX = Math.min(
-					105,
-					Math.max(48, 860 / Math.max(1, hand.length)),
-				);
-				const approxIndexShift = Math.round(dx / stepX);
-				let target = sourceIndex + approxIndexShift;
-				target = Math.max(0, Math.min(hand.length - 1, target));
-				dragHoverTargetIndex = target;
+		if (!isCardDragging) {
+			if (Math.hypot(dx, dy) > 5) {
+				isCardDragging = true;
+				isOpeningDeal = false;
+			} else {
+				return;
 			}
 		}
+
+		dragCurrentX = dx;
+		dragCurrentY = dy;
+
+		const n = hand.length;
+		if (n <= 1) return;
+
+		const mid = (n - 1) / 2;
+		const stepX = Math.min(115, Math.max(34, 760 / (n - 1)));
+
+		const sourceIndex = hand.findIndex((c) => c.id === draggingCardId);
+		if (sourceIndex === -1) return;
+
+		const sourceNominalX = (sourceIndex - mid) * stepX;
+		const currentCardX = sourceNominalX + dx;
+
+		const targetIdx = Math.max(
+			0,
+			Math.min(n - 1, Math.round(currentCardX / stepX + mid)),
+		);
+		dragHoverTargetIndex = targetIdx;
 	}
 
-	function handleWindowPointerUp() {
-		if (draggingCardId) {
-			if (
-				isCardDragging &&
-				dragHoverTargetIndex !== null &&
-				dragHoverTargetIndex >= 0 &&
-				dragHoverTargetIndex < hand.length
-			) {
-				const fromIdx = hand.findIndex((c) => c.id === draggingCardId);
-				if (fromIdx !== -1 && fromIdx !== dragHoverTargetIndex) {
-					swapHandCards(fromIdx, dragHoverTargetIndex);
-				}
-			}
-
-			draggingCardId = null;
-			isCardDragging = false;
-			dragHoverTargetIndex = null;
-			dragCurrentX = 0;
-			dragCurrentY = 0;
-		}
-
+	/** @param {PointerEvent} e */
+	function handleWindowPointerUp(e) {
 		window.removeEventListener("pointermove", handleWindowPointerMove);
 		window.removeEventListener("pointerup", handleWindowPointerUp);
 		window.removeEventListener("pointercancel", handleWindowPointerUp);
+
+		if (isCardDragging && draggingCardId) {
+			const sourceIndex = hand.findIndex((c) => c.id === draggingCardId);
+			if (
+				sourceIndex !== -1 &&
+				dragHoverTargetIndex !== null &&
+				dragHoverTargetIndex !== sourceIndex
+			) {
+				const newHand = [...hand];
+				const [moved] = newHand.splice(sourceIndex, 1);
+				newHand.splice(dragHoverTargetIndex, 0, moved);
+				hand = newHand;
+			}
+		}
+
+		draggingCardId = null;
+		isCardDragging = false;
+		dragCurrentX = 0;
+		dragCurrentY = 0;
+		dragHoverTargetIndex = null;
 	}
 
-	/**
-	 * @param {number} fromIndex
-	 * @param {number} toIndex
-	 */
-	function swapHandCards(fromIndex, toIndex) {
-		const newHand = [...hand];
-		const [moved] = newHand.splice(fromIndex, 1);
-		newHand.splice(toIndex, 0, moved);
-		hand = newHand;
-	}
-
-	function handleDocumentClick() {
-		if (showHandOptions) {
+	/** @param {MouseEvent} e */
+	function handleDocumentClick(e) {
+		const target = /** @type {HTMLElement} */ (e.target);
+		if (showHandOptions && !target.closest(".arena-options-container")) {
 			showHandOptions = false;
 		}
 	}
@@ -374,20 +373,24 @@
 		showHandOptions = false;
 	}
 
-	// Dynamic Arena Hand Fan positioning
+	// Dynamic Arena Hand Fan positioning (restored to original authentic formula)
 	const handCards = $derived.by(() => {
 		const n = hand.length;
 		if (n === 0) return [];
-
-		const maxAngle = Math.min(24, Math.max(8, n * 2.6));
-		const arcDepth = Math.min(36, Math.max(10, n * 3.8));
-		const stepX = Math.min(105, Math.max(48, 860 / Math.max(1, n)));
 		const mid = (n - 1) / 2;
 
-		const sourceIndex = isCardDragging
-			? hand.findIndex((c) => c.id === draggingCardId)
-			: -1;
-		const targetIndex = dragHoverTargetIndex ?? -1;
+		const stepX = n > 1 ? Math.min(115, Math.max(34, 760 / (n - 1))) : 0;
+		const maxAngle = n > 1 ? Math.min(17, Math.max(3.5, (n - 1) * 2.8)) : 0;
+		const arcDepth = n > 1 ? Math.min(42, Math.max(8, (n - 1) * 6.5)) : 0;
+
+		const sourceIndex =
+			isCardDragging && draggingCardId
+				? hand.findIndex((c) => c.id === draggingCardId)
+				: -1;
+		const targetIndex =
+			isCardDragging && dragHoverTargetIndex !== null
+				? dragHoverTargetIndex
+				: -1;
 
 		return hand.map((cardItem, i) => {
 			const isThisCardDragging =
@@ -717,7 +720,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding: 1rem 2rem;
+		padding: 0 2rem 1rem;
 		position: relative;
 	}
 
@@ -727,7 +730,7 @@
 		align-items: center;
 		justify-content: center;
 		gap: 0.75rem;
-		margin-top: 1.5rem;
+		margin-top: 1rem;
 		z-index: 10;
 		font-variant-numeric: tabular-nums;
 	}
@@ -735,7 +738,6 @@
 	.arena-hand-meta {
 		display: flex;
 		align-items: center;
-		justify-content: center;
 		gap: 0.5rem;
 	}
 
@@ -768,15 +770,17 @@
 		color: hsl(var(--muted-foreground));
 		padding: 0 0.85rem;
 		border-radius: 9999px;
-		font-size: 0.78125rem;
+		font-size: 0.8125rem;
 		font-weight: 500;
 		display: inline-flex;
 		align-items: center;
+		justify-content: center;
 		gap: 0.4rem;
 		cursor: pointer;
-		transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+		transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 		white-space: nowrap;
-		user-select: none;
+		box-sizing: border-box;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.arena-action-btn:hover:not(:disabled) {
@@ -960,19 +964,17 @@
 		opacity: 0;
 		width: 0;
 		height: 0;
+		position: absolute;
 	}
 
 	.slider {
 		position: absolute;
 		cursor: pointer;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background-color: hsl(var(--secondary));
-		border: 1px solid hsl(var(--border));
+		inset: 0;
+		background-color: hsl(var(--muted) / 0.8);
 		transition: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 		border-radius: 9999px;
+		border: 1px solid hsl(var(--border));
 	}
 
 	.slider:before {
@@ -1014,7 +1016,7 @@
 		position: relative;
 		width: 100%;
 		max-width: 1200px;
-		height: 400px;
+		height: 380px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -1029,115 +1031,136 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		overflow: visible;
+	}
+
+	.arena-fan.is-dragging-active .arena-card-wrapper:not(.is-dragging) {
+		pointer-events: none;
+	}
+
+	@keyframes dealCard {
+		0% {
+			opacity: 0;
+			transform: translate3d(
+					calc(var(--x) * 0.57),
+					calc(var(--y) + 79px),
+					0
+				)
+				rotate(calc(var(--rot) * 0.48)) scale(0.82);
+		}
+		50% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 1;
+			transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot))
+				scale(1);
+		}
 	}
 
 	.arena-card-wrapper {
 		position: absolute;
-		top: 50%;
 		left: 50%;
-		width: 160px;
-		aspect-ratio: 5 / 7;
-		margin-left: -80px;
-		margin-top: -112px;
-		border-radius: 8px;
-		user-select: none;
-		touch-action: none;
-		cursor: grab;
+		top: 35px;
+		width: 215px;
+		height: 300px;
+		margin-left: -107.5px;
+		margin-top: 0;
+		transform-origin: 50% 120%;
+		transform: translate3d(var(--x), var(--y), 0) rotate(var(--rot))
+			scale(var(--scale, 1));
 		z-index: var(--z);
-		transform-origin: center bottom;
-		transform: translate(var(--x), var(--y)) rotate(var(--rot)) scale(var(--scale));
-		animation: arenaDeal 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+		animation: dealCard 0.33s cubic-bezier(0.18, 0.89, 0.32, 1.15) backwards;
 		animation-delay: var(--deal-delay, 0ms);
 		transition:
-			box-shadow 0.2s ease,
-			filter 0.15s ease;
-	}
-
-	@keyframes arenaDeal {
-		from {
-			opacity: 0;
-			transform: translate(var(--x), calc(var(--y) + 80px)) rotate(calc(var(--rot) * 0.4)) scale(0.85);
-		}
-		to {
-			opacity: 1;
-			transform: translate(var(--x), var(--y)) rotate(var(--rot)) scale(var(--scale));
-		}
+			transform 0.22s cubic-bezier(0.2, 0, 0, 1),
+			box-shadow 0.22s ease,
+			z-index 0.05s step-end;
+		cursor: grab;
+		touch-action: none;
+		border-radius: 11px;
+		user-select: none;
+		-webkit-user-select: none;
+		box-shadow:
+			0 12px 28px -6px rgba(0, 0, 0, 0.8),
+			0 4px 10px -2px rgba(0, 0, 0, 0.6),
+			0 0 0 1px rgba(255, 255, 255, 0.08);
 	}
 
 	.arena-card-wrapper:hover:not(.is-dragging) {
-		transform: translate(var(--x), calc(var(--y) - 24px)) rotate(calc(var(--rot) * 0.45)) scale(1.1);
-		z-index: 250 !important;
-		filter: brightness(1.06);
+		transform: translate3d(var(--x), calc(var(--y) - 8px), 0)
+			rotate(var(--rot)) scale(1.04);
+		z-index: 100 !important;
+		transition:
+			transform 0.22s cubic-bezier(0.2, 0, 0, 1),
+			box-shadow 0.22s ease,
+			z-index 0s;
+		box-shadow:
+			0 18px 36px -8px rgba(0, 0, 0, 0.85),
+			0 8px 16px -4px rgba(0, 0, 0, 0.6),
+			0 0 0 1px rgba(255, 255, 255, 0.18);
 	}
 
 	.arena-card-wrapper.is-dragging {
-		cursor: grabbing;
-		z-index: 500 !important;
-		filter: brightness(1.12);
+		cursor: grabbing !important;
 		transition: none !important;
-		animation: none !important;
+		box-shadow:
+			0 26px 54px -8px rgba(0, 0, 0, 0.95),
+			0 12px 28px -4px rgba(0, 0, 0, 0.7),
+			0 0 0 1px rgba(255, 255, 255, 0.25) !important;
 	}
 
 	.arena-card-img {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
-		border-radius: 8px;
-		box-shadow:
-			0 12px 30px rgba(0, 0, 0, 0.65),
-			0 2px 6px rgba(0, 0, 0, 0.4);
-		pointer-events: none;
 		display: block;
-	}
-
-	.arena-card-wrapper:hover:not(.is-dragging) .arena-card-img {
-		box-shadow:
-			0 20px 40px rgba(0, 0, 0, 0.8),
-			0 0 0 1px rgba(255, 255, 255, 0.2);
-	}
-
-	.arena-card-wrapper.is-dragging .arena-card-img {
-		box-shadow:
-			0 24px 50px rgba(0, 0, 0, 0.9),
-			0 0 0 2px hsl(var(--primary));
+		border-radius: 11px;
+		pointer-events: none;
 	}
 
 	.arena-card-fallback {
 		width: 100%;
 		height: 100%;
-		background: #1e293b;
-		border: 1px solid rgba(255, 255, 255, 0.15);
-		border-radius: 8px;
-		padding: 8px;
-		box-sizing: border-box;
+		border-radius: 11px;
+		background: #11141a;
+		border: 4px solid #1a202c;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+		padding: 1rem;
+		box-sizing: border-box;
 	}
 
 	.fallback-frame {
 		width: 100%;
 		height: 100%;
-		border: 1px dashed rgba(255, 255, 255, 0.2);
-		border-radius: 4px;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 6px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 6px;
+		padding: 0.75rem;
+		background: rgba(255, 255, 255, 0.02);
 		text-align: center;
-		box-sizing: border-box;
 	}
 
 	.fallback-card-title {
-		font-size: 0.75rem;
-		font-weight: 600;
-		color: #e2e8f0;
-		line-height: 1.2;
-		overflow: hidden;
-		display: -webkit-box;
-		line-clamp: 4;
-		-webkit-line-clamp: 4;
-		-webkit-box-orient: vertical;
+		font-size: 0.85rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+		line-height: 1.3;
+	}
+
+	@media (max-width: 900px) {
+		.arena-card-wrapper {
+			width: 170px;
+			height: 238px;
+			margin-left: -85px;
+			margin-top: -95px;
+		}
+		.arena-stage {
+			height: 400px;
+		}
 	}
 </style>
