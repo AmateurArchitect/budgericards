@@ -201,15 +201,21 @@
 	 * @param {string[]} fullDeck
 	 * @param {number} seed
 	 */
-	function generateDecklistVariations(fullDeck, seed) {
+	/**
+	 * Generates a randomized decklist and opening hand candidate.
+	 * @param {string[]} fullDeck
+	 * @param {number} seed
+	 * @param {number} [handSize=7]
+	 */
+	function generateDecklistVariations(fullDeck, seed, handSize = 7) {
 		const copy = [...fullDeck];
 		for (let i = copy.length - 1; i > 0; i--) {
 			const j = Math.floor(seededRandom(seed + i * 31) * (i + 1));
 			[copy[i], copy[j]] = [copy[j], copy[i]];
 		}
 		return {
-			hand: copy.slice(0, 7),
-			deck: copy.slice(7),
+			hand: copy.slice(0, handSize),
+			deck: copy.slice(handSize),
 		};
 	}
 
@@ -218,12 +224,13 @@
 	 * @param {number} handLands
 	 * @param {number} deckLands
 	 * @param {number} totalCards
+	 * @param {number} [handSize=7]
 	 */
-	function evaluateHandFit(handLands, deckLands, totalCards) {
+	function evaluateHandFit(handLands, deckLands, totalCards, handSize = 7) {
 		if (totalCards === 0) return 0;
 		const targetRatio = deckLands / totalCards;
-		const targetLandsIn7 = targetRatio * 7;
-		return Math.abs(handLands - targetLandsIn7);
+		const targetLandsInHand = targetRatio * handSize;
+		return Math.abs(handLands - targetLandsInHand);
 	}
 
 	/**
@@ -240,11 +247,18 @@
 	}
 
 	/**
-	 * Draws a 7-card opening hand using optional smoother algorithm.
+	 * Draws an opening hand using optional smoother algorithm.
 	 * @param {string[]} fullDeck
+	 * @param {number} [handSize=7]
 	 */
-	function drawHand(fullDeck) {
-		if (fullDeck.length < 7) {
+	function drawHand(fullDeck, handSize = 7) {
+		if (handSize === 0) {
+			hand = [];
+			library = [...fullDeck];
+			return;
+		}
+
+		if (fullDeck.length < handSize) {
 			hand = fullDeck.map((n) => createHandCard(n));
 			library = [];
 			return;
@@ -255,8 +269,8 @@
 
 		if (!useSmoother) {
 			const shuffled = shuffleArray(fullDeck);
-			hand = shuffled.slice(0, 7).map((n) => createHandCard(n));
-			library = shuffled.slice(7);
+			hand = shuffled.slice(0, handSize).map((n) => createHandCard(n));
+			library = shuffled.slice(handSize);
 			return;
 		}
 
@@ -265,22 +279,22 @@
 		const seedB = Math.floor(Math.random() * 1000000) + 1000000;
 		const seedC = Math.floor(Math.random() * 1000000) + 2000000;
 
-		const optA = generateDecklistVariations(fullDeck, seedA);
-		const optB = generateDecklistVariations(fullDeck, seedB);
+		const optA = generateDecklistVariations(fullDeck, seedA, handSize);
+		const optB = generateDecklistVariations(fullDeck, seedB, handSize);
 
 		const landsA = countLands(optA.hand, strictArenaParity);
 		const landsB = countLands(optB.hand, strictArenaParity);
 
-		const fitA = evaluateHandFit(landsA, totalLands, fullDeck.length);
-		const fitB = evaluateHandFit(landsB, totalLands, fullDeck.length);
+		const fitA = evaluateHandFit(landsA, totalLands, fullDeck.length, handSize);
+		const fitB = evaluateHandFit(landsB, totalLands, fullDeck.length, handSize);
 
 		let chosen = optA;
 		if (fitB < fitA) {
 			chosen = optB;
 		} else if (fitA === fitB && !strictArenaParity) {
-			const optC = generateDecklistVariations(fullDeck, seedC);
+			const optC = generateDecklistVariations(fullDeck, seedC, handSize);
 			const landsC = countLands(optC.hand, strictArenaParity);
-			const fitC = evaluateHandFit(landsC, totalLands, fullDeck.length);
+			const fitC = evaluateHandFit(landsC, totalLands, fullDeck.length, handSize);
 			if (fitC < fitA) chosen = optC;
 		}
 
@@ -304,13 +318,15 @@
 		deckStore.mainboard.forEach(addCardNames);
 		hand = [];
 		mulliganCount = 0;
-		drawHand(decklist);
+		drawHand(decklist, 7);
 	}
 
 	function mulligan() {
+		if (mulliganCount >= 7) return;
 		dealKey++;
 		isOpeningDeal = true;
 		mulliganCount++;
+		const targetHandSize = Math.max(0, 7 - mulliganCount);
 		/** @type {string[]} */
 		const decklist = [];
 		/**
@@ -322,7 +338,8 @@
 			}
 		};
 		deckStore.mainboard.forEach(addCardNames);
-		drawHand(decklist);
+		hand = [];
+		drawHand(decklist, targetHandSize);
 	}
 
 	function drawCard() {
