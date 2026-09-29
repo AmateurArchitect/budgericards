@@ -1343,19 +1343,14 @@
 
 						<!-- BOTTOM SECTION: Individual Colors Breakdown (Percentages) -->
 						<div class="colors-list-scroll">
-							<!-- Legend header for the dual bars -->
-							<div class="colors-list-header" style="display: flex; justify-content: flex-end; padding-right: 0.25rem; margin-bottom: 0.75rem; gap: 0.75rem; font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
-								<span style="display: flex; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; background: rgba(255,255,255,0.7); border-radius: 2px;"></div> Cost</span>
-								<span style="display: flex; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; background: rgba(255,255,255,0.3); border-radius: 2px;"></div> Srcs</span>
-							</div>
+
 							
 							<div style="display: flex; flex-direction: column; gap: 0.75rem;">
 								{#each colorBreakdownData.colorList.filter((c) => c.pipCount > 0 || c.sourceCount > 0) as col}
 									<div class="color-row-item" style="display: flex; align-items: center; gap: 0.75rem;">
-										<!-- Color Icon & Name -->
-										<div class="color-info" style="display: flex; align-items: center; gap: 0.5rem; width: 85px; flex-shrink: 0;">
+										<!-- Color Icon -->
+										<div class="color-info" style="display: flex; align-items: center; justify-content: center; width: 24px; flex-shrink: 0;">
 											<ManaSymbol symbol={col.symbol} size="16px" />
-											<span class="color-name" style="font-weight: 500; font-size: 13px; color: #f8fafc; white-space: nowrap;">{col.name}</span>
 										</div>
 										
 										<!-- Dual Bars & Stats (Percentages Only) -->
@@ -1370,12 +1365,13 @@
 														<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.pipPct}%; background-color: {col.color}; border-radius: 4px; transition: width 0.3s ease;"></div>
 													{/if}
 												</div>
-												<div class="stat-col" style="display: flex; align-items: center; gap: 0.5rem; width: 35px; justify-content: flex-end; font-variant-numeric: tabular-nums;">
-													<span style="font-weight: 700; color: #f8fafc; font-size: 12px; text-align: right; width: 100%;">
+												<div class="stat-col" style="display: flex; align-items: baseline; gap: 0.35rem; width: 65px; justify-content: flex-end; font-variant-numeric: tabular-nums;">
+													<span style="font-weight: 700; color: #f8fafc; font-size: 12px; text-align: right;">
 														{#if colorStatsViewMode === 'percentage'}{col.pipPct}%
 														{:else if colorStatsViewMode === 'pips'}{col.pipCount}
 														{:else}{col.pipCardCount}{/if}
 													</span>
+													<span style="font-size: 10px; color: #64748b; font-weight: 600; text-transform: uppercase;">Cost</span>
 												</div>
 											</div>
 											
@@ -1388,12 +1384,13 @@
 														<div class="color-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: {col.sourcePct}%; background-color: {col.color}; opacity: 0.5; border-radius: 4px; transition: width 0.3s ease;"></div>
 													{/if}
 												</div>
-												<div class="stat-col" style="display: flex; align-items: center; gap: 0.5rem; width: 35px; justify-content: flex-end; font-variant-numeric: tabular-nums;">
-													<span style="font-weight: 700; color: #f8fafc; font-size: 12px; text-align: right; width: 100%;">
+												<div class="stat-col" style="display: flex; align-items: baseline; gap: 0.35rem; width: 65px; justify-content: flex-end; font-variant-numeric: tabular-nums;">
+													<span style="font-weight: 700; color: #94a3b8; font-size: 12px; text-align: right;">
 														{#if colorStatsViewMode === 'percentage'}{col.sourcePct}%
 														{:else if colorStatsViewMode === 'pips'}{col.sourceCount}
 														{:else}{col.sourceCardCount}{/if}
 													</span>
+													<span style="font-size: 10px; color: #64748b; font-weight: 600; text-transform: uppercase;">Sources</span>
 												</div>
 											</div>
 											
