@@ -81,6 +81,7 @@ function pruneScryfallCard(card) {
 			digital: card.digital,
 			textless: card.textless,
 			full_art: card.full_art,
+			all_parts: card.all_parts || null,
 			prices: card.prices ? {
 				usd: card.prices.usd,
 				usd_foil: card.prices.usd_foil,

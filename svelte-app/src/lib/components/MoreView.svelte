@@ -9,6 +9,7 @@
 		AlertTriangle,
 		SlidersHorizontal,
 	} from "lucide-svelte";
+	import { getDeckTokens } from "$lib/api/tokens.js";
 
 	// Gather all active cards (mainboard + commander + companion)
 	const activeCards = $derived([
@@ -555,34 +556,51 @@
 		});
 	});
 
-	// 2. Required Tokens Finder (Scryfall metadata all_parts)
-	const requiredTokens = $derived.by(() => {
-		/** @type {any[]} */
-		const tokens = [];
-		const seen = new Set();
-		activeCards.forEach((c) => {
-			const meta = getMeta(c.name);
-			if (meta.all_parts) {
-				/**
-				 * @param {any} part
-				 */
-				const processPart = (part) => {
-					if (part.component === "token" && !seen.has(part.name)) {
-						seen.add(part.name);
-						tokens.push({
-							name: part.name,
-							image_uri:
-								part.image_uris?.normal ||
-								part.image_uris?.large ||
-								null,
-						});
-					}
+	// 2. Required Tokens Finder (Scryfall metadata & token service)
+	/** @type {import('$lib/api/tokens.js').RequiredToken[]} */
+	let requiredTokens = $state([]);
+	let isTokensLoading = $state(false);
+	let tokensError = $state("");
+	let lastTokensDeckFingerprint = "";
+
+	async function loadTokens(force = false) {
+		if (activeCards.length === 0) {
+			requiredTokens = [];
+			return;
+		}
+
+		const currentFingerprint = activeCards
+			.map((c) => c.name)
+			.sort()
+			.join("|");
+
+		if (!force && currentFingerprint === lastTokensDeckFingerprint && requiredTokens.length > 0) {
+			return;
+		}
+
+		isTokensLoading = true;
+		tokensError = "";
+
+		try {
+			const enrichedCards = activeCards.map((c) => {
+				const meta = getMeta(c.name);
+				return {
+					name: c.name,
+					oracle_text: meta.oracle_text || "",
+					text: meta.oracle_text || "",
 				};
-				meta.all_parts.forEach(processPart);
-			}
-		});
-		return tokens;
-	});
+			});
+
+			const tokens = await getDeckTokens(enrichedCards);
+			requiredTokens = tokens;
+			lastTokensDeckFingerprint = currentFingerprint;
+		} catch (e) {
+			console.error("Failed to load tokens:", e);
+			tokensError = "Failed to load tokens from Scryfall.";
+		} finally {
+			isTokensLoading = false;
+		}
+	}
 
 	// 3. Combos Finder (Commander Spellbook API)
 	/** @type {any[]} */
@@ -644,7 +662,9 @@
 	});
 
 	$effect(() => {
-		if (settingsStore.statsSubTab === "combos") {
+		if (settingsStore.statsSubTab === "tokens") {
+			loadTokens();
+		} else if (settingsStore.statsSubTab === "combos") {
 			loadCombos();
 		}
 	});
@@ -872,10 +892,34 @@
 		<!-- Tokens Panel -->
 		<div class="panel-card">
 			<div class="panel-header">
-				<h3>Required Tokens ({requiredTokens.length})</h3>
+				<h3>Required Tokens ({isTokensLoading ? "..." : requiredTokens.length})</h3>
+				{#if !isTokensLoading}
+					<button
+						class="reload-btn"
+						onclick={() => loadTokens(true)}
+						title="Refresh tokens from Scryfall"
+					>
+						<RotateCcw size={14} />
+						<span>Refresh</span>
+					</button>
+				{/if}
 			</div>
 
-			{#if requiredTokens.length === 0}
+			{#if isTokensLoading}
+				<div class="loading-state">
+					<Loader class="spinner" size={32} />
+					<p>Finding required tokens from Scryfall...</p>
+				</div>
+			{:else if tokensError}
+				<div class="error-state">
+					<AlertTriangle size={32} />
+					<p>{tokensError}</p>
+					<button class="reload-btn" onclick={() => loadTokens(true)}>
+						<RotateCcw size={14} />
+						<span>Try Again</span>
+					</button>
+				</div>
+			{:else if requiredTokens.length === 0}
 				<div class="empty-panel-state">
 					<p>No tokens are required for the cards in this deck.</p>
 				</div>
@@ -888,6 +932,7 @@
 									src={token.image_uri}
 									alt={token.name}
 									class="token-img"
+									loading="lazy"
 								/>
 							{:else}
 								<div class="token-fallback">
@@ -895,6 +940,17 @@
 								</div>
 							{/if}
 							<p class="token-title">{token.name}</p>
+							{#if token.type_line}
+								<p class="token-type">{token.type_line}</p>
+							{/if}
+							{#if token.sourceCards && token.sourceCards.length > 0}
+								<p
+									class="token-source"
+									title={`Created by: ${token.sourceCards.join(", ")}`}
+								>
+									From: {token.sourceCards.join(", ")}
+								</p>
+							{/if}
 						</div>
 					{/each}
 				</div>
@@ -1074,10 +1130,50 @@
 
 	.token-title {
 		margin: 0;
-		font-size: 0.85rem;
-		font-weight: 500;
+		font-size: 0.9rem;
+		font-weight: 600;
 		color: hsl(var(--foreground));
 		text-align: center;
+	}
+
+	.token-type {
+		margin: 0;
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+		text-align: center;
+	}
+
+	.token-source {
+		margin: 0;
+		font-size: 0.72rem;
+		color: hsl(var(--muted-foreground) / 0.85);
+		text-align: center;
+		max-width: 100%;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		padding: 0 0.25rem;
+	}
+
+	.reload-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		background: hsl(var(--secondary) / 0.5);
+		border: 1px solid hsl(var(--border) / 0.5);
+		color: hsl(var(--foreground));
+		font-size: 0.8rem;
+		font-weight: 500;
+		padding: 0.4rem 0.75rem;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.reload-btn:hover {
+		background: hsl(var(--secondary));
+		border-color: hsl(var(--border));
+		transform: translateY(-1px);
 	}
 
 	/* Combos styles */
