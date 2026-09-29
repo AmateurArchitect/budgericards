@@ -1,7 +1,7 @@
 <script>
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
-	import { onMount } from "svelte";
+	import { onMount, untrack } from "svelte";
 	import { fly } from "svelte/transition";
 	import { RotateCcw, SlidersHorizontal, Plus } from "lucide-svelte";
 
@@ -409,7 +409,6 @@
 			}
 		};
 		deckStore.mainboard.forEach(addCardNames);
-		hand = [];
 		drawHand(decklist, 7);
 	}
 
@@ -556,13 +555,22 @@
 	// If metadata loads asynchronously, ensure initial hand is sorted if user hasn't manually reordered
 	$effect(() => {
 		const metaCount = Object.keys(deckStore.metadata).length;
-		if (
-			metaCount > 0 &&
-			isOpeningDeal &&
-			!hasUserManuallyReordered &&
-			hand.length > 0
-		) {
-			hand = sortHandCards(hand);
+		if (metaCount > 0) {
+			untrack(() => {
+				if (
+					isOpeningDeal &&
+					!hasUserManuallyReordered &&
+					hand.length > 0
+				) {
+					const sorted = sortHandCards(hand);
+					const hasChanged = sorted.some(
+						(c, idx) => c.id !== hand[idx].id,
+					);
+					if (hasChanged) {
+						hand = sorted;
+					}
+				}
+			});
 		}
 	});
 </script>
