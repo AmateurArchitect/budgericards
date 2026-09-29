@@ -903,7 +903,7 @@
 					else multiColorCount += qty;
 				}
 
-				colors.forEach((col) => {
+				colors.forEach((/** @type {string} */ col) => {
 					const upperC = col.toUpperCase();
 					if (pips[upperC]) pips[upperC].cardCount += qty;
 				});
