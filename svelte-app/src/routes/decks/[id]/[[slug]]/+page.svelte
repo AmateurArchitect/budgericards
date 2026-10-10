@@ -12,16 +12,28 @@
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { layoutStore } from "$lib/stores/layout.svelte.js";
-	import { fade, slide } from "svelte/transition";
+	import { fade, slide, fly } from "svelte/transition";
 	import { Loader } from "lucide-svelte";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import StatsView from "$lib/components/StatsView.svelte";
 	import SettingsView from "$lib/components/SettingsView.svelte";
+	import BottomToolbar from "$lib/components/BottomToolbar.svelte";
+	import DeckQuickActionsSidebar from "$lib/components/DeckQuickActionsSidebar.svelte";
 	import { page } from "$app/stores";
 	import { goto } from "$app/navigation";
 
 	let isHydrated = $state(false);
+	let showHelpModal = $state(false);
+
+	// Sync leftSidebarWidth in layoutStore when search panel is docked to the left
+	$effect(() => {
+		if (searchStore.isOpen && searchStore.isDocked && searchStore.panelPosition === 'left') {
+			layoutStore.leftSidebarWidth = 380;
+		} else {
+			layoutStore.leftSidebarWidth = 0;
+		}
+	});
 
 	onMount(() => {
 		priceStore.load();
@@ -192,38 +204,123 @@
 	ondrop={handleGlobalDrop}
 	style={Object.entries(layoutStore.cssVariables).map(([k, v]) => `${k}: ${v}`).join("; ")}
 >
-	<main class="app-layout">
-		{#if searchStore.isOpen}
-			<div class="search-panel-container" transition:slide={{ duration: 250 }}>
-				<SearchPanel />
-			</div>
+	<main 
+		class="app-layout"
+		class:has-docked-left={searchStore.isOpen && searchStore.isDocked && searchStore.panelPosition === 'left'}
+	>
+		<!-- Left Docked Search Panel -->
+		{#if searchStore.isOpen && searchStore.isDocked && searchStore.panelPosition === 'left'}
+			<SearchPanel />
 		{/if}
-		
-		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div
-			class="deck-area"
-			onclick={handleDeckAreaClick}
-		>
-			<DeckHeader />
-			{#if settingsStore.deckViewMode === 'list'}
-				<ImportView />
-			{:else if settingsStore.deckViewMode === 'table'}
-				<TableView />
-			{:else if settingsStore.deckViewMode === 'spoiler'}
-				<SpoilerView />
-			{:else if settingsStore.deckViewMode === 'stats'}
-				<StatsView />
-			{:else if settingsStore.deckViewMode === 'settings'}
-				<SettingsView />
-			{:else}
-				<StacksView />
+
+		<div class="deck-main-column">
+			<!-- Above Docked Search Panel -->
+			{#if searchStore.isOpen && searchStore.isDocked && searchStore.panelPosition === 'above'}
+				<SearchPanel />
+			{/if}
+
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="deck-area"
+				onclick={handleDeckAreaClick}
+			>
+				<DeckHeader />
+				{#if settingsStore.deckViewMode === 'list'}
+					<ImportView />
+				{:else if settingsStore.deckViewMode === 'table'}
+					<TableView />
+				{:else if settingsStore.deckViewMode === 'spoiler'}
+					<SpoilerView />
+				{:else if settingsStore.deckViewMode === 'stats'}
+					<StatsView />
+				{:else if settingsStore.deckViewMode === 'settings'}
+					<SettingsView />
+				{:else}
+					<StacksView />
+				{/if}
+			</div>
+
+			<!-- Below Docked Search Panel -->
+			{#if searchStore.isOpen && searchStore.isDocked && searchStore.panelPosition === 'below'}
+				<SearchPanel />
 			{/if}
 		</div>
 	</main>
 
+	<!-- Undocked / Floating Search Panel -->
+	{#if searchStore.isOpen && !searchStore.isDocked}
+		<SearchPanel />
+	{/if}
+
+	<!-- Left Deck Quick Actions Sidebar -->
+	<DeckQuickActionsSidebar />
+
+	<!-- Floating Figma-Style Bottom Toolbar -->
+	<BottomToolbar onHelpClick={() => (showHelpModal = true)} />
+
 	<MaybeboardCleanupModal bind:isOpen={interactionStore.maybeboardCleanupModal.isOpen} />
 	<SideboardPanel />
+
+	{#if showHelpModal}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div
+			class="help-backdrop"
+			onclick={(e) => {
+				if (e.target === e.currentTarget) showHelpModal = false;
+			}}
+			role="presentation"
+			transition:fade={{ duration: 150 }}
+		>
+			<div class="help-card" transition:fly={{ y: 10, duration: 200 }}>
+				<div class="help-header">
+					<h3>Keyboard Shortcuts & Tips</h3>
+					<button
+						class="help-close-btn"
+						onclick={() => (showHelpModal = false)}
+						aria-label="Close help"
+					>
+						&times;
+					</button>
+				</div>
+				<div class="help-body">
+					<div class="shortcut-list">
+						<div class="shortcut-row">
+							<span>Search Cards</span>
+							<kbd>⌘ /</kbd>
+						</div>
+						<div class="shortcut-row">
+							<span>Quick Search</span>
+							<kbd>/</kbd>
+						</div>
+						<div class="shortcut-row">
+							<span>Deck Actions</span>
+							<kbd>⌘ S</kbd>
+						</div>
+						<div class="shortcut-row">
+							<span>Undo / Redo</span>
+							<kbd>⌘ Z / ⌘ ⇧ Z</kbd>
+						</div>
+						<div class="shortcut-row">
+							<span>Multi-select Cards</span>
+							<kbd>⌘ Click</kbd>
+						</div>
+						<div class="shortcut-row">
+							<span>Range select Cards</span>
+							<kbd>⇧ Click</kbd>
+						</div>
+						<div class="shortcut-row">
+							<span>Clear Selection</span>
+							<kbd>Esc</kbd>
+						</div>
+					</div>
+					<div class="help-footer">
+						<span>Budgie — Fast, beautiful MTG deckbuilder</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 	{#if deckStore.isImagePreloading}
 		<div class="stripey-loader" transition:slide={{ axis: 'y', duration: 200 }}>
@@ -282,6 +379,20 @@
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
+		min-width: 0;
+	}
+
+	.app-layout.has-docked-left {
+		flex-direction: row;
+	}
+
+	.deck-main-column {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		min-width: 0;
+		height: 100%;
 	}
 
 	.deck-area {
@@ -298,6 +409,88 @@
 			transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
 			border-top-color 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 		will-change: transform;
+	}
+
+	/* Help Modal */
+	.help-backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.65);
+		backdrop-filter: blur(4px);
+		z-index: 1300;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.help-card {
+		background: #141824;
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		border-radius: var(--radius-md);
+		width: 420px;
+		max-width: 90vw;
+		box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
+		overflow: hidden;
+		color: hsl(var(--foreground));
+	}
+
+	.help-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 14px 18px;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	}
+
+	.help-header h3 {
+		margin: 0;
+		font-size: 0.95rem;
+		font-weight: 700;
+	}
+
+	.help-close-btn {
+		background: transparent;
+		border: none;
+		font-size: 1.25rem;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		line-height: 1;
+	}
+
+	.help-close-btn:hover {
+		color: hsl(var(--foreground));
+	}
+
+	.shortcut-list {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		padding: 16px 18px;
+	}
+
+	.shortcut-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		font-size: 0.85rem;
+	}
+
+	.shortcut-row kbd {
+		padding: 3px 8px;
+		background: rgba(255, 255, 255, 0.08);
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		border-radius: 4px;
+		font-size: 0.75rem;
+		font-family: var(--font-mono, monospace);
+		color: hsl(var(--foreground));
+	}
+
+	.help-footer {
+		padding: 10px 18px;
+		border-top: 1px solid rgba(255, 255, 255, 0.06);
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+		text-align: center;
 	}
 
 	:global(.app-shell-main:not(.top-nav-hidden)) .deck-area {

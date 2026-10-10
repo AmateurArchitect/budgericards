@@ -2,12 +2,150 @@
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { priceStore } from "$lib/stores/prices.svelte.js";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
+	import { toastStore } from "$lib/stores/toast.svelte.js";
+	import { isCommanderFormat } from "$lib/constants/formats.js";
 	import Card from "./Card.svelte";
-	import { slide, fade } from "svelte/transition";
-	import { Trash2 } from "lucide-svelte";
+	import Input from "./ui/Input.svelte";
+	import SearchOptionsModal from "./SearchOptionsModal.svelte";
+	import MultiSortModal from "./MultiSortModal.svelte";
+	import { slide, fade, fly } from "svelte/transition";
+	import {
+		Search,
+		Trash2,
+		X,
+		SlidersHorizontal,
+		ArrowDownWideNarrow,
+		HelpCircle,
+		ChevronDown,
+		PanelTop,
+		PanelBottom,
+		PanelLeft,
+		Pin,
+		PinOff
+	} from "lucide-svelte";
 
 	let isDraggingDeckCard = $state(false);
 	let gridContainer = $state(/** @type {HTMLElement | null} */ (null));
+	let showCollectionDropdown = $state(false);
+	let showSearchOptions = $state(false);
+	let showSearchSort = $state(false);
+	/** @type {HTMLElement | null} */
+	let searchSettingsBtn = $state(null);
+
+	const searchPlaceholders = [
+		"Lightning Bolt",
+		"t:creature cmc<=2",
+		"is:commander id=gw",
+		"o:draw"
+	];
+	let placeholderIndex = $state(0);
+
+	$effect(() => {
+		const interval = setInterval(() => {
+			placeholderIndex = (placeholderIndex + 1) % searchPlaceholders.length;
+		}, 4000);
+		return () => clearInterval(interval);
+	});
+
+	const collections = [
+		{ id: "scryfall", label: "All Cards (Scryfall)" },
+		{ divider: true },
+		{ id: "sideboard", label: "Deck Sideboard" },
+		{ id: "maybeboard", label: "Deck Maybeboard" },
+		{ divider: true },
+		{ id: "budget-edh-26.2", label: "Budget EDH 26.2" },
+		{ id: "budget-staples", label: "Budget Staples" },
+	];
+
+	const activeCollection = $derived(
+		collections.find((c) => c.id === searchStore.collection) || collections[0]
+	);
+
+	const activeCollectionLabel = $derived(
+		activeCollection?.label?.split(" (")[0] || "All Cards"
+	);
+
+	const isCustomSearchSortActive = $derived(
+		Boolean(searchStore.activeSorts && searchStore.activeSorts.length > 0)
+	);
+
+	/** @param {string} id */
+	function selectCollection(id) {
+		searchStore.collection = id;
+		showCollectionDropdown = false;
+	}
+
+	/** @param {any} card */
+	function addSearchCard(card) {
+		if (!card) return;
+		const isLocalBoard = ["sideboard", "maybeboard"].includes(searchStore.collection);
+		const currentBoard = searchStore.collection;
+		const price =
+			searchStore.collection === "scryfall"
+				? card.prices?.usd
+					? parseFloat(card.prices.usd)
+					: null
+				: priceStore.getPrice(card.name);
+
+		if (isLocalBoard) {
+			deckStore.moveCard(
+				card.name,
+				currentBoard,
+				deckStore.activeBoard,
+				card.id,
+				price,
+			);
+		} else {
+			let targetBoard = deckStore.activeBoard;
+			const meta = card.type_line
+				? card
+				: deckStore.metadata[card.name?.toLowerCase()] || card;
+			const typeLine = (meta.type_line || "").toLowerCase();
+			const oracle = (meta.oracle_text || "").toLowerCase();
+			const facesOracle = (meta.card_faces || [])
+				.map((/** @type {any} */ f) => (f.oracle_text || "").toLowerCase())
+				.join(" ");
+			const isLegendaryCreature =
+				typeLine.includes("legendary") && typeLine.includes("creature");
+			const isPlaneswalker = typeLine.includes("planeswalker");
+			const canBeCommander =
+				oracle.includes("can be your commander") ||
+				facesOracle.includes("can be your commander");
+			const isCompanion =
+				oracle.includes("companion —") ||
+				facesOracle.includes("companion —");
+			const isCommander = isCommanderFormat(deckStore.format);
+
+			const isCommanderCandidate =
+				isLegendaryCreature ||
+				canBeCommander ||
+				(deckStore.format === "Brawl" && isPlaneswalker);
+
+			const isDeckEmpty = deckStore.totalCount === 0;
+			const isFormatUnset =
+				!deckStore.format ||
+				deckStore.format === "List" ||
+				deckStore.format === "None" ||
+				deckStore.format === "Draft";
+
+			if (isDeckEmpty && isFormatUnset && isCommanderCandidate) {
+				deckStore.format = "Commander";
+				targetBoard = "commander";
+				toastStore.show(
+					`Set format to Commander with ${card.name} as commander.`,
+				);
+			} else if (
+				isCommander &&
+				deckStore.commander.length === 0 &&
+				isCommanderCandidate
+			) {
+				targetBoard = "commander";
+			} else if (isCompanion && deckStore.companion.length === 0) {
+				targetBoard = "companion";
+			}
+			deckStore.addCard(card.name, targetBoard, price, card);
+		}
+	}
 
 	/** @param {DragEvent} e */
 	function handleDragOver(e) {
@@ -20,8 +158,7 @@
 		}
 	}
 
-	/** @param {DragEvent} e */
-	function handleDragLeave(e) {
+	function handleDragLeave() {
 		isDraggingDeckCard = false;
 	}
 
@@ -78,50 +215,94 @@
 
 	/** @param {WheelEvent} e */
 	function handleWheel(e) {
-		if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-			e.preventDefault();
-			const container = /** @type {HTMLElement} */ (e.currentTarget);
-			container.scrollLeft += e.deltaY;
+		if (searchStore.panelPosition !== "left") {
+			if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+				e.preventDefault();
+				const container = /** @type {HTMLElement} */ (e.currentTarget);
+				container.scrollLeft += e.deltaY;
+			}
 		}
 	}
 
-	// The Stage: Container expands if searchStore is open
 	const isExpanded = $derived(searchStore.isOpen);
 
 	/** @param {Event} e */
 	function handleScroll(e) {
 		const target = /** @type {HTMLElement} */ (e.currentTarget);
 		if (searchStore.totalResults < 500) {
-			const scrollRemaining = target.scrollWidth - target.scrollLeft - target.clientWidth;
-			// 40 cards * 152px card width = 6080px
-			if (scrollRemaining < 6080) {
-				searchStore.loadNextBatch();
+			if (searchStore.panelPosition === "left") {
+				const scrollRemaining = target.scrollHeight - target.scrollTop - target.clientHeight;
+				if (scrollRemaining < 1200) {
+					searchStore.loadNextBatch();
+				}
+			} else {
+				const scrollRemaining = target.scrollWidth - target.scrollLeft - target.clientWidth;
+				if (scrollRemaining < 6080) {
+					searchStore.loadNextBatch();
+				}
 			}
 		}
 	}
 
 	$effect(() => {
-		// Reset scroll position on query or page changes
 		const _q = searchStore.query;
 		const _p = searchStore.currentPage;
 		if (gridContainer) {
-			gridContainer.scrollLeft = 0;
+			if (searchStore.panelPosition === "left") {
+				gridContainer.scrollTop = 0;
+			} else {
+				gridContainer.scrollLeft = 0;
+			}
 		}
 	});
+
+	/** @param {HTMLElement} node */
+	function smartAlign(node) {
+		function align() {
+			node.style.left = "0";
+			node.style.right = "auto";
+			const rect = node.getBoundingClientRect();
+			if (rect.right > window.innerWidth - 10) {
+				node.style.left = "auto";
+				node.style.right = "0";
+			}
+		}
+		align();
+		window.addEventListener("resize", align);
+		return {
+			destroy() {
+				window.removeEventListener("resize", align);
+			},
+		};
+	}
 </script>
+
+<svelte:window 
+	onclick={(e) => {
+		const target = /** @type {HTMLElement} */ (e.target);
+		if (!target.closest('.collection-picker-container')) {
+			showCollectionDropdown = false;
+		}
+	}}
+/>
 
 <section
 	class="search-panel"
+	class:is-docked={searchStore.isDocked}
+	class:is-floating={!searchStore.isDocked}
+	class:pos-below={searchStore.panelPosition === 'below'}
+	class:pos-above={searchStore.panelPosition === 'above'}
+	class:pos-left={searchStore.panelPosition === 'left'}
 	class:drag-over={isDraggingDeckCard}
 	ondragover={handleDragOver}
 	ondragleave={handleDragLeave}
 	ondrop={handleDrop}
-	aria-label="Card search results and removal zone"
+	aria-label="Card search panel"
 >
 	{#if isDraggingDeckCard}
 		<div class="remove-overlay" transition:fade={{ duration: 150 }}>
 			<div class="remove-content">
-				<Trash2 size={48} />
+				<Trash2 size={44} />
 				<p>
 					{searchStore.collection === "sideboard" ||
 					searchStore.collection === "maybeboard"
@@ -131,8 +312,192 @@
 			</div>
 		</div>
 	{/if}
+
 	{#if isExpanded}
-		<div transition:slide={{ duration: 300 }} class="expanded-content">
+		<div class="panel-inner-container">
+			<!-- Panel Integrated Control Bar -->
+			<div class="panel-header-bar">
+				<!-- Search Input Group -->
+				<div class="search-input-pill">
+					<Search size={14} class="search-bar-icon" />
+					<Input
+						class="panel-search-input"
+						placeholder={searchPlaceholders[placeholderIndex]}
+						bind:value={searchStore.query}
+						onfocus={() => searchStore.setFocus(true)}
+						onblur={() => searchStore.setFocus(false)}
+						onkeydown={(/** @type {KeyboardEvent} */ e) => {
+							if (e.key === "Escape") {
+								searchStore.closeSearch();
+								return;
+							}
+							if (e.key === "Tab") {
+								if (isFewResults) {
+									e.preventDefault();
+									searchStore.cycleHighlight(e.shiftKey ? -1 : 1);
+								}
+								return;
+							}
+							if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+								if (isFewResults && targetCard) {
+									e.preventDefault();
+									addSearchCard(targetCard);
+									const inputEl = /** @type {HTMLInputElement | null} */ (e.target);
+									inputEl?.select();
+								}
+							}
+						}}
+					/>
+					{#if searchStore.query !== ""}
+						<button
+							type="button"
+							class="clear-query-btn"
+							title="Clear search query"
+							onclick={() => (searchStore.query = "")}
+						>
+							<X size={13} />
+						</button>
+					{:else}
+						<a
+							href="https://scryfall.com/docs/syntax"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="syntax-help-btn"
+							title="Scryfall search syntax guide"
+						>
+							<HelpCircle size={13} />
+						</a>
+					{/if}
+				</div>
+
+				<!-- Collection Selector Dropdown -->
+				<div class="collection-picker-container">
+					<button
+						type="button"
+						class="header-tool-btn collection-trigger-btn"
+						onclick={(e) => {
+							e.stopPropagation();
+							showCollectionDropdown = !showCollectionDropdown;
+						}}
+						aria-expanded={showCollectionDropdown}
+						title="Filter search collection"
+					>
+						<span class="collection-label-text">{activeCollectionLabel}</span>
+						<ChevronDown size={13} class="chevron" />
+					</button>
+
+					{#if showCollectionDropdown}
+						<div class="dropdown-menu-box" use:smartAlign transition:fly={{ y: 4, duration: 150 }}>
+							{#each collections as item}
+								{#if item.divider}
+									<div class="menu-divider"></div>
+								{:else if item.id}
+									<button
+										type="button"
+										class="dropdown-item-btn"
+										class:active={searchStore.collection === item.id}
+										onclick={() => selectCollection(item.id)}
+									>
+										{item.label}
+									</button>
+								{/if}
+							{/each}
+						</div>
+					{/if}
+				</div>
+
+				<!-- Sort Button -->
+				<button
+					type="button"
+					class="header-tool-btn"
+					class:active={showSearchSort || isCustomSearchSortActive}
+					onclick={() => (showSearchSort = !showSearchSort)}
+					aria-label="Sort search results"
+					title={isCustomSearchSortActive ? "Active sort configuration" : "Sort search results"}
+				>
+					<ArrowDownWideNarrow size={14} />
+				</button>
+
+				<!-- Settings / Options Button -->
+				<button
+					type="button"
+					bind:this={searchSettingsBtn}
+					class="header-tool-btn"
+					class:active={showSearchOptions}
+					onclick={() => (showSearchOptions = !showSearchOptions)}
+					aria-label="Search filter options"
+					title="Search options & filters"
+				>
+					<SlidersHorizontal size={14} />
+				</button>
+
+				<div class="bar-divider"></div>
+
+				<!-- Position Toggles: Above, Below, Left -->
+				<div class="position-toggle-group" role="group" aria-label="Search panel position">
+					<button
+						type="button"
+						class="pos-btn"
+						class:active={searchStore.panelPosition === 'above'}
+						onclick={() => searchStore.setPanelPosition('above')}
+						aria-label="Position above deck area"
+						title="Position above deck area"
+					>
+						<PanelTop size={14} />
+					</button>
+
+					<button
+						type="button"
+						class="pos-btn"
+						class:active={searchStore.panelPosition === 'below'}
+						onclick={() => searchStore.setPanelPosition('below')}
+						aria-label="Position below deck area"
+						title="Position below deck area"
+					>
+						<PanelBottom size={14} />
+					</button>
+
+					<button
+						type="button"
+						class="pos-btn"
+						class:active={searchStore.panelPosition === 'left'}
+						onclick={() => searchStore.setPanelPosition('left')}
+						aria-label="Position to the left (vertical)"
+						title="Position to the left (vertical)"
+					>
+						<PanelLeft size={14} />
+					</button>
+				</div>
+
+				<!-- Dock / Undock Toggle -->
+				<button
+					type="button"
+					class="header-tool-btn dock-btn"
+					class:active={searchStore.isDocked}
+					onclick={() => searchStore.toggleDocked()}
+					aria-label={searchStore.isDocked ? "Undock panel (Float)" : "Dock panel"}
+					title={searchStore.isDocked ? "Undock panel (Float)" : "Dock panel to workspace"}
+				>
+					{#if searchStore.isDocked}
+						<Pin size={14} />
+					{:else}
+						<PinOff size={14} />
+					{/if}
+				</button>
+
+				<!-- Close Search Button -->
+				<button
+					type="button"
+					class="close-panel-btn"
+					onclick={() => searchStore.closeSearch()}
+					aria-label="Close search (Esc)"
+					title="Close search (Esc)"
+				>
+					<X size={15} />
+				</button>
+			</div>
+
+			<!-- Marginal Info / Autocomplete Row -->
 			<div class="results-marginal-zone">
 				{#if searchStore.isSearching || (searchStore.query.length >= 3 && searchStore.totalResults > 0) || (searchStore.totalResults >= 500 && !searchStore.showLargeSearchOverride) || (searchStore.totalResults > 0 && searchStore.totalResults <= 8)}
 					<div class="results-marginal" transition:fade={{ duration: 150 }}>
@@ -141,8 +506,7 @@
 							<span>Searching...</span>
 						{:else if searchStore.totalResults >= 500 && !searchStore.showLargeSearchOverride}
 							<span class="large-search-subheader-warning">
-								Your search matches <span class="count">{searchStore.totalResults}</span> cards. 
-								Narrow down your query, or 
+								Matches <span class="count">{searchStore.totalResults}</span> cards. 
 								<button class="override-link-btn" onclick={() => searchStore.overrideLargeSearch()}>search anyway</button>.
 							</span>
 						{:else if isFewResults && targetCard}
@@ -163,7 +527,14 @@
 				{/if}
 			</div>
 
-			<div bind:this={gridContainer} class="results-grid" onwheel={handleWheel} onscroll={handleScroll}>
+			<!-- Results Grid (Horizontal Shelf vs Vertical Panel) -->
+			<div
+				bind:this={gridContainer}
+				class="results-grid"
+				class:is-vertical={searchStore.panelPosition === 'left'}
+				onwheel={handleWheel}
+				onscroll={handleScroll}
+			>
 				{#if searchStore.totalResults >= 500 && !searchStore.showLargeSearchOverride}
 					<div class="status-container" in:fade={{ duration: 150 }}>
 						<div class="status-msg">
@@ -197,7 +568,7 @@
 								{:else if searchStore.collection === "maybeboard" && deckStore.maybeboard.length === 0}
 									Maybeboard Empty
 								{:else if !["sideboard", "maybeboard"].includes(searchStore.collection)}
-									Search for a card name or try using Scryfall syntax.
+									Search for cards by name or syntax.
 								{/if}
 							</div>
 						{:else if searchStore.query.length < 3}
@@ -217,8 +588,9 @@
 				{/if}
 			</div>
 
+			<!-- Large Search Pagination Bar -->
 			{#if searchStore.totalResults >= 500 && searchStore.showLargeSearchOverride && searchStore.query.length >= 3}
-				<div class="search-pagination" transition:slide={{ duration: 200 }}>
+				<div class="search-pagination" transition:slide={{ duration: 180 }}>
 					<button 
 						disabled={searchStore.currentPage === 1} 
 						onclick={() => searchStore.goToPage(1)}
@@ -261,64 +633,317 @@
 			{/if}
 		</div>
 	{/if}
+
+	<SearchOptionsModal
+		bind:isOpen={showSearchOptions}
+		triggerElement={searchSettingsBtn}
+	/>
+
+	<MultiSortModal bind:isOpen={showSearchSort} target="search" />
 </section>
 
 <style>
 	.search-panel {
-		background: hsl(var(--background));
+		background: #0f1219;
+		position: relative;
+		user-select: none;
 		display: flex;
 		flex-direction: column;
-		overflow: hidden;
-		position: relative;
+		box-sizing: border-box;
+		transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
-	.remove-overlay {
-		position: absolute;
-		inset: 0;
-		background: hsla(var(--destructive) / 0.15);
-		backdrop-filter: blur(8px);
-		z-index: 100;
+	/* Docked Mode (takes layout space) */
+	.search-panel.is-docked {
+		position: relative;
+		z-index: 30;
+	}
+
+	.search-panel.is-docked.pos-above {
+		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.search-panel.is-docked.pos-below {
+		border-top: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.search-panel.is-docked.pos-left {
+		width: 380px;
+		height: 100%;
+		border-right: 1px solid rgba(255, 255, 255, 0.1);
+		flex-shrink: 0;
+	}
+
+	/* Floating Mode (hovers over canvas) */
+	.search-panel.is-floating {
+		position: fixed;
+		z-index: 850;
+		background: rgba(15, 18, 25, 0.94);
+		backdrop-filter: blur(24px) saturate(160%);
+		-webkit-backdrop-filter: blur(24px) saturate(160%);
+		border: 1px solid rgba(255, 255, 255, 0.14);
+		border-radius: 16px;
+		box-shadow:
+			0 24px 64px -8px rgba(0, 0, 0, 0.8),
+			0 4px 16px rgba(0, 0, 0, 0.4),
+			inset 0 1px 0 rgba(255, 255, 255, 0.12);
+	}
+
+	.search-panel.is-floating.pos-below {
+		bottom: 4.8rem;
+		left: 1.5rem;
+		right: 1.5rem;
+		max-height: 48vh;
+	}
+
+	.search-panel.is-floating.pos-above {
+		top: 3.5rem;
+		left: 1.5rem;
+		right: 1.5rem;
+		max-height: 48vh;
+	}
+
+	.search-panel.is-floating.pos-left {
+		top: 3.5rem;
+		bottom: 4.8rem;
+		left: 1.5rem;
+		width: 380px;
+		max-width: calc(100vw - 3rem);
+	}
+
+	.panel-inner-container {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		overflow: hidden;
+	}
+
+	/* Panel Integrated Header Bar */
+	.panel-header-bar {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 8px 12px;
+		background: rgba(255, 255, 255, 0.03);
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		flex-shrink: 0;
+		overflow-x: auto;
+	}
+
+	.search-input-pill {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		flex: 1;
+		min-width: 160px;
+		height: 32px;
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		border-radius: 9999px;
+		padding: 0 10px;
+		transition: all 0.15s ease;
+	}
+
+	.search-input-pill:focus-within {
+		border-color: hsl(var(--primary));
+		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.25);
+		background: rgba(255, 255, 255, 0.08);
+	}
+
+	:global(.search-bar-icon) {
+		color: hsl(var(--muted-foreground));
+		flex-shrink: 0;
+	}
+
+	:global(.panel-search-input) {
+		flex: 1;
+		border: none !important;
+		background: transparent !important;
+		padding: 0 !important;
+		height: auto !important;
+		font-size: 0.82rem !important;
+		color: hsl(var(--foreground)) !important;
+		box-shadow: none !important;
+		outline: none !important;
+	}
+
+	.clear-query-btn, .syntax-help-btn {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		border: 2px dashed hsl(var(--destructive) / 0.4);
-		margin: 8px;
-		border-radius: var(--radius);
-		pointer-events: none;
+		background: transparent;
+		border: none;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		padding: 2px;
+		border-radius: 9999px;
 	}
 
-	.remove-content {
+	.clear-query-btn:hover, .syntax-help-btn:hover {
+		color: hsl(var(--foreground));
+	}
+
+	/* Header Action Buttons */
+	.header-tool-btn {
 		display: flex;
-		flex-direction: column;
 		align-items: center;
-		gap: 1rem;
-		color: hsl(var(--destructive));
+		justify-content: center;
+		height: 30px;
+		padding: 0 8px;
+		background: rgba(255, 255, 255, 0.04);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: var(--radius-sm);
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		font-size: 0.8rem;
+		transition: all 0.15s ease;
+		flex-shrink: 0;
 	}
 
-	.remove-content p {
-		font-weight: 700;
-		font-size: 1.125rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
+	.header-tool-btn:hover {
+		background: rgba(255, 255, 255, 0.08);
+		color: hsl(var(--foreground));
 	}
 
-	.expanded-content {
-		border-bottom: 1px solid hsl(var(--border));
+	.header-tool-btn.active {
+		background: hsl(var(--primary) / 0.2);
+		border-color: hsl(var(--primary));
+		color: hsl(var(--primary-foreground, #ffffff));
+	}
+
+	.collection-picker-container {
+		position: relative;
+	}
+
+	.collection-trigger-btn {
+		gap: 6px;
+		font-weight: 500;
+	}
+
+	.collection-label-text {
+		max-width: 120px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.dropdown-menu-box {
+		position: absolute;
+		top: calc(100% + 4px);
+		left: 0;
+		background: #141824;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: var(--radius-sm);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+		min-width: 180px;
+		padding: 4px;
+		z-index: 1000;
+	}
+
+	.dropdown-item-btn {
+		width: 100%;
+		display: block;
+		padding: 6px 10px;
+		border: none;
+		background: transparent;
+		color: hsl(var(--foreground));
+		font-size: 0.8rem;
+		text-align: left;
+		border-radius: 4px;
+		cursor: pointer;
+		transition: background 0.15s ease;
+	}
+
+	.dropdown-item-btn:hover {
+		background: rgba(255, 255, 255, 0.08);
+	}
+
+	.dropdown-item-btn.active {
+		background: hsl(var(--primary));
+		color: #ffffff;
+	}
+
+	.menu-divider {
+		height: 1px;
+		background: rgba(255, 255, 255, 0.1);
+		margin: 4px 0;
+	}
+
+	.bar-divider {
+		width: 1px;
+		height: 18px;
+		background: rgba(255, 255, 255, 0.1);
+		margin: 0 2px;
+		flex-shrink: 0;
+	}
+
+	/* Position Toggles */
+	.position-toggle-group {
 		display: flex;
-		flex-direction: column;
+		align-items: center;
+		background: rgba(255, 255, 255, 0.04);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: var(--radius-sm);
+		padding: 1px;
+		flex-shrink: 0;
 	}
 
+	.pos-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 26px;
+		height: 26px;
+		background: transparent;
+		border: none;
+		border-radius: 3px;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.pos-btn:hover {
+		color: hsl(var(--foreground));
+	}
+
+	.pos-btn.active {
+		background: hsl(var(--primary));
+		color: #ffffff;
+	}
+
+	.close-panel-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 28px;
+		height: 28px;
+		background: transparent;
+		border: none;
+		border-radius: var(--radius-sm);
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		transition: all 0.15s ease;
+		flex-shrink: 0;
+	}
+
+	.close-panel-btn:hover {
+		background: rgba(255, 255, 255, 0.08);
+		color: hsl(var(--foreground));
+	}
+
+	/* Marginal / Autocomplete */
 	.results-marginal-zone {
-		height: 32px;
-		min-height: 32px;
+		height: 28px;
+		min-height: 28px;
 		display: flex;
 		align-items: center;
-		padding: 4px 20px 0 20px;
+		padding: 2px 16px;
 		box-sizing: border-box;
+		flex-shrink: 0;
 	}
 
 	.results-marginal {
-		font-size: 13px;
+		font-size: 12px;
 		font-weight: 500;
 		color: hsl(var(--muted-foreground));
 		display: flex;
@@ -335,7 +960,7 @@
 	.marginal-autocomplete-info {
 		display: flex;
 		align-items: center;
-		gap: 0.85rem;
+		gap: 0.75rem;
 		flex-wrap: wrap;
 	}
 
@@ -343,7 +968,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		font-size: 12px;
+		font-size: 11px;
 		color: hsl(var(--muted-foreground));
 	}
 
@@ -356,22 +981,16 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		min-width: 18px;
-		height: 18px;
-		padding: 0 5px;
+		min-width: 16px;
+		height: 16px;
+		padding: 0 4px;
 		font-size: 10px;
 		font-family: inherit;
 		font-weight: 600;
-		line-height: 1;
 		color: hsl(var(--foreground) / 0.85);
 		background: hsl(var(--muted) / 0.8);
 		border: 1px solid hsl(var(--border));
 		border-radius: 3px;
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-	}
-
-	.large-search-subheader-warning {
-		color: hsl(var(--muted-foreground));
 	}
 
 	.override-link-btn {
@@ -390,8 +1009,8 @@
 	}
 
 	.spinner {
-		width: 14px;
-		height: 14px;
+		width: 12px;
+		height: 12px;
 		border: 2px solid hsl(var(--muted-foreground) / 0.3);
 		border-top-color: hsl(var(--primary));
 		border-radius: 50%;
@@ -404,15 +1023,75 @@
 		}
 	}
 
+	/* Results Grid */
 	.results-grid {
 		display: flex;
-		gap: var(--column-gap);
-		padding: 8px var(--base-margin) 1.5rem var(--base-margin);
-		overflow-x: scroll;
+		gap: var(--column-gap, 12px);
+		padding: 6px var(--base-margin, 16px) 16px var(--base-margin, 16px);
+		position: relative;
+		flex: 1;
+		min-height: 220px;
+	}
+
+	/* Horizontal Mode (default / above / below) */
+	.results-grid:not(.is-vertical) {
+		overflow-x: auto;
 		overflow-y: hidden;
 		align-items: flex-start;
-		min-height: calc(var(--card-height) + 2.5rem + 6px);
-		position: relative;
+		min-height: calc(var(--card-height, 220px) + 2rem);
+	}
+
+	.results-grid:not(.is-vertical)::-webkit-scrollbar {
+		height: 6px;
+	}
+
+	.results-grid:not(.is-vertical)::-webkit-scrollbar-thumb {
+		background: rgba(255, 255, 255, 0.2);
+		border-radius: 3px;
+	}
+
+	/* Vertical Mode (left side) */
+	.results-grid.is-vertical {
+		flex-direction: column;
+		overflow-y: auto;
+		overflow-x: hidden;
+		align-items: center;
+		padding: 8px 12px;
+		gap: 10px;
+	}
+
+	.results-grid.is-vertical::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	.results-grid.is-vertical::-webkit-scrollbar-thumb {
+		background: rgba(255, 255, 255, 0.2);
+		border-radius: 3px;
+	}
+
+	.staggered-card {
+		opacity: 0;
+		transform: translateY(8px);
+		animation: card-pop-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+		animation-delay: calc(var(--i) * 35ms);
+		flex-shrink: 0;
+	}
+
+	.results-grid.is-vertical .staggered-card {
+		width: 100%;
+		display: flex;
+		justify-content: center;
+	}
+
+	@keyframes card-pop-in {
+		0% {
+			opacity: 0;
+			transform: scale(0.96) translateY(8px);
+		}
+		100% {
+			opacity: 1;
+			transform: scale(1) translateY(0);
+		}
 	}
 
 	.status-container {
@@ -423,149 +1102,73 @@
 		justify-content: center;
 	}
 
-	.results-grid::-webkit-scrollbar {
-		height: 6px;
-	}
-
-	.staggered-card {
-		opacity: 0;
-		transform: translateY(10px);
-		animation: card-pop-in 450ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-		animation-delay: calc(var(--i) * 50ms);
-		flex-shrink: 0;
-	}
-
-	@keyframes card-pop-in {
-		0% {
-			opacity: 0;
-			transform: scale(0.95) translateY(10px);
-		}
-		100% {
-			opacity: 1;
-			transform: scale(1) translateY(0);
-		}
-	}
-
-	.results-grid::-webkit-scrollbar-track {
-		background: transparent;
-	}
-
-	.results-grid::-webkit-scrollbar-thumb {
-		background: hsl(var(--border));
-		border-radius: var(--radius-sm);
-	}
-
-	.results-grid::-webkit-scrollbar-thumb:hover {
-		background: hsl(var(--muted-foreground) / 0.5);
-	}
-
 	.status-msg {
-		flex: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
 		color: hsl(var(--muted-foreground));
-		font-size: 0.875rem;
-		font-weight: 500;
-		height: 40px;
+		font-size: 0.85rem;
+		text-align: center;
+		padding: 1rem;
 	}
 
 	.status-msg.error {
 		color: hsl(var(--destructive));
 	}
 
-	.spinner {
-		width: 12px;
-		height: 12px;
-		border: 2px solid hsl(var(--border));
-		border-top-color: hsl(var(--primary));
-		border-radius: 50%;
-		animation: spin 0.8s linear infinite;
+	/* Drag-drop Remove Overlay */
+	.remove-overlay {
+		position: absolute;
+		inset: 0;
+		background: rgba(220, 38, 38, 0.85);
+		backdrop-filter: blur(8px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
 	}
 
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
+	.remove-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+		color: white;
+		font-weight: 600;
+		font-size: 1.1rem;
 	}
 
-	:global(.search-panel .card-container) {
-		width: var(--card-width) !important;
-		flex-shrink: 0;
-	}
-
+	/* Pagination */
 	.search-pagination {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.5rem;
-		padding: 0.5rem 1rem;
-		background: hsl(var(--muted) / 0.1);
-		border-top: 1px solid hsl(var(--border));
-		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground));
-		height: 36px;
+		gap: 8px;
+		padding: 6px 12px;
+		background: rgba(0, 0, 0, 0.2);
+		border-top: 1px solid rgba(255, 255, 255, 0.08);
+		flex-shrink: 0;
 	}
 
 	.pagination-btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 24px;
-		height: 24px;
-		border: 1px solid hsl(var(--border));
-		background: hsl(var(--background));
+		padding: 3px 8px;
+		background: rgba(255, 255, 255, 0.06);
+		border: 1px solid rgba(255, 255, 255, 0.1);
 		border-radius: var(--radius-sm);
-		cursor: pointer;
-		font-weight: 600;
 		color: hsl(var(--foreground));
-		transition: all 0.2s;
-	}
-
-	.pagination-btn:hover:not(:disabled) {
-		background: hsl(var(--accent));
-		border-color: hsl(var(--primary) / 0.3);
+		cursor: pointer;
+		font-size: 0.8rem;
 	}
 
 	.pagination-btn:disabled {
 		opacity: 0.4;
 		cursor: not-allowed;
-		border-color: hsl(var(--border) / 0.5);
 	}
 
 	.pagination-info {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.35rem;
-		font-weight: 500;
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
 	}
 
-	.page-num {
-		font-weight: 700;
+	.pagination-info .page-num {
 		color: hsl(var(--foreground));
-	}
-
-	.matches-count {
-		color: hsl(var(--muted-foreground) / 0.8);
-		font-size: 0.6875rem;
-	}
-
-
-
-	.override-link-btn {
-		background: none;
-		border: none;
-		padding: 0;
-		color: hsl(var(--primary));
 		font-weight: 600;
-		text-decoration: underline;
-		cursor: pointer;
-		display: inline;
-		font-size: inherit;
-		transition: color 0.2s;
-	}
-
-	.override-link-btn:hover {
-		color: var(--accent-hover);
 	}
 </style>

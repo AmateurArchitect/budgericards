@@ -65,12 +65,13 @@ class LayoutStore {
 	});
 
 	/** Ideal card width based on actual measured app width */
-	cardWidthCalc = $derived(`(${this.appWidth}px - ${this.totalSpacing}px) / ${this.numCols}`);
+	cardWidthCalc = $derived(`(${this.appWidth - this.leftSidebarWidth - this.rightSidebarWidth}px - ${this.totalSpacing}px) / ${this.numCols}`);
 
 	/** Final clamped card width */
 	cardWidth = $derived(`clamp(120px, min(${this.cardWidthCalc}, 23.5vh), 240px)`);
 
 	rightSidebarWidth = $state(0);
+	leftSidebarWidth = $state(0);
 	isTopNavVisible = $state(true);
 
 	/** Layout utility for CSS variables */
@@ -81,7 +82,8 @@ class LayoutStore {
 		"--num-cols": this.numCols,
 		"--base-margin": `${this.baseMargin}px`,
 		"--is-condensed": this.isCondensed ? "1" : "0",
-		"--right-sidebar-width": `${this.rightSidebarWidth}px`
+		"--right-sidebar-width": `${this.rightSidebarWidth}px`,
+		"--left-sidebar-width": `${this.leftSidebarWidth}px`
 	});
 }
 

@@ -680,8 +680,8 @@
 	</div>
 </header>
 
-<!-- Search Input Drawer (when Search is Open) -->
-{#if searchStore.isOpen}
+<!-- Search Input Drawer (when Search is Open outside deckbuilder) -->
+{#if searchStore.isOpen && !isDeckPage}
 	<div class="search-drawer" transition:slide={{ duration: 180 }}>
 		<div class="search-drawer-inner">
 			<!-- Switch to Vertical Layout Button -->

@@ -335,6 +335,7 @@ function createInteractionStore() {
 		activeAnimations: [],
 		editingCardId: null,
 		sideboardExpanded: (typeof window !== 'undefined' ? localStorage.getItem("budgericards_sideboard_expanded") !== "false" : true),
+		deckSidebarOpen: false,
 		quantityModal: {
 			isOpen: false,
 			card: null,
@@ -2094,6 +2095,17 @@ function createInteractionStore() {
 			if (typeof window !== 'undefined') {
 				localStorage.setItem("budgericards_sideboard_expanded", String(val));
 			}
+		},
+
+		get deckSidebarOpen() {
+			return state.deckSidebarOpen;
+		},
+		/** @param {boolean} val */
+		setDeckSidebarOpen(val) {
+			state.deckSidebarOpen = val;
+		},
+		toggleDeckSidebar() {
+			state.deckSidebarOpen = !state.deckSidebarOpen;
 		},
 
 		/**

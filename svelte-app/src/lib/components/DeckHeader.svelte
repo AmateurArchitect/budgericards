@@ -34,7 +34,6 @@
 	} from "lucide-svelte";
 	import Button from "./ui/Button.svelte";
 	import ManaSymbol from "./ui/ManaSymbol.svelte";
-	import DeckOptionsModal from "./DeckOptionsModal.svelte";
 	import ViewOptionsModal from "./ViewOptionsModal.svelte";
 	import MultiSortModal from "./MultiSortModal.svelte";
 	import { fade, fly } from "svelte/transition";
@@ -43,7 +42,6 @@
 	/** @type {{ isTopBar?: boolean }} */
 	let { isTopBar = false } = $props();
 
-	let showDeckOptionsModal = $state(false);
 	let showViewOptionsModal = $state(false);
 	let showAboutModal = $state(false);
 	let showDisplaySort = $state(false);
@@ -521,7 +519,7 @@
 					!deckStore.name || deckStore.name === "Untitled Deck";
 				if (isUnnamed) {
 					e.preventDefault();
-					showDeckOptionsModal = true;
+					interactionStore.setDeckSidebarOpen(true);
 				}
 			}
 		};
@@ -548,17 +546,17 @@
 			bind:this={deckInfoBtn}
 			onclick={(e) => {
 				e.stopPropagation();
-				showDeckOptionsModal = true;
+				interactionStore.setDeckSidebarOpen(true);
 			}}
 			onkeydown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {
 					e.preventDefault();
 					e.stopPropagation();
-					showDeckOptionsModal = true;
+					interactionStore.setDeckSidebarOpen(true);
 				}
 			}}
-			aria-label="Open deck options"
-			title="Click to edit deck options"
+			aria-label="Open deck quick actions"
+			title="Click to open deck actions & info"
 		>
 			<div
 				class="deck-art-drop-zone"
@@ -708,12 +706,6 @@
 				</div>
 			</div>
 		</div>
-
-		<DeckOptionsModal
-			bind:isOpen={showDeckOptionsModal}
-			fallbackArt={deckImage()}
-			triggerElement={deckInfoBtn}
-		/>
 	</div>
 
 	<div class="deck-controls-right">
@@ -1108,52 +1100,6 @@
 				</div>
 			{/if}
 
-			<!-- Card Search Column with CARD SEARCH eyebrow -->
-			{#if settingsStore.deckViewMode === "stacks" || settingsStore.deckViewMode === "spoiler"}
-				<div class="control-column search-column">
-					<span class="eyebrow-label">CARD SEARCH</span>
-					<button
-						class="deck-search-btn"
-						onclick={() => {
-							if (searchStore.isOpen) {
-								searchStore.closeSearch();
-							} else {
-								searchStore.openSearch();
-								setTimeout(() => {
-									const inputEl =
-										document.querySelector(
-											".header-search-input input",
-										) ||
-										document.querySelector(
-											".header-search-input",
-										);
-									/** @type {HTMLElement | null} */ (
-										inputEl
-									)?.focus();
-								}, 50);
-							}
-						}}
-						aria-label="Card search (⌘/ or /)"
-						title="Card Search (⌘/ or /)"
-					>
-						<div class="deck-search-left">
-							<Search size={14} class="deck-search-icon" />
-							{#key placeholderIndex}
-								<span
-									class="deck-search-text"
-									in:fade={{ duration: 160 }}
-								>
-									{searchHints[placeholderIndex]}
-								</span>
-							{/key}
-						</div>
-						<div class="shortcut-keycaps">
-							<kbd class="key-cap">⌘</kbd>
-							<kbd class="key-cap">/</kbd>
-						</div>
-					</button>
-				</div>
-			{/if}
 		{/if}
 	</div>
 </div>
