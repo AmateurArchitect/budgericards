@@ -105,10 +105,15 @@
 		}
 	});
 
-	// Reactively parse input text
+	// Reactively parse input text, filtering out standalone deck URLs so they are not treated as unrecognized cards
 	const parsedCards = $derived.by(() => {
 		if (!rawText.trim()) return [];
-		return parseDecklist(rawText);
+		const cleanText = rawText
+			.split(/\r?\n/)
+			.filter(line => !detectDeckUrl(line.trim()))
+			.join('\n');
+		if (!cleanText.trim()) return [];
+		return parseDecklist(cleanText);
 	});
 
 	// Reactively validate card names against local card database without self-referential reactive cycles
@@ -1017,6 +1022,10 @@
 										<span class="badge skip-badge">{skippedDuplicatesCount} skipped</span>
 									{/if}
 								</div>
+							{:else if detectedUrl}
+								<div class="preview-badges">
+									<span class="badge url-badge">{detectedUrl.platform === 'cubecobra' ? 'CubeCobra' : detectedUrl.platform === 'archidekt' ? 'Archidekt' : 'Moxfield'} URL</span>
+								</div>
 							{/if}
 						</div>
 					</div>
@@ -1043,13 +1052,48 @@
 
 					<div class="preview-list-container">
 						{#if previewCards.length === 0}
-							<div class="preview-empty">
-								<div class="empty-icon-circle">
-									<FileText size={24} />
+							{#if detectedUrl}
+								<div class="url-stage-card">
+									<div class="url-stage-icon-wrap">
+										<Globe size={28} class="url-stage-icon" />
+									</div>
+									<div class="url-stage-header">
+										<span class="url-stage-platform">
+											{detectedUrl.platform === 'cubecobra' ? 'CubeCobra Cube' : detectedUrl.platform === 'archidekt' ? 'Archidekt Deck' : 'Moxfield Deck'}
+										</span>
+										<span class="url-stage-id">{detectedUrl.id}</span>
+									</div>
+									<p class="url-stage-description">
+										{#if detectedUrl.platform === 'cubecobra'}
+											Ready to fetch cube cards, quantities, set printings, and tags directly.
+										{:else}
+											Ready to fetch deck cards, printings, and custom categories.
+										{/if}
+									</p>
+									<button
+										type="button"
+										class="url-stage-fetch-btn"
+										onclick={() => handleFetchUrl(detectedUrl.url)}
+										disabled={isFetchingUrl || isProcessing}
+									>
+										{#if isFetchingUrl}
+											<Loader2 size={15} class="spin" />
+											<span>Fetching {detectedUrl.platform === 'cubecobra' ? 'Cube' : 'Deck'}...</span>
+										{:else}
+											<Sparkles size={15} />
+											<span>Fetch {detectedUrl.platform === 'cubecobra' ? 'Cube' : 'Deck'} List</span>
+										{/if}
+									</button>
 								</div>
-								<p class="empty-main-text">No cards parsed yet</p>
-								<p class="empty-sub-text">Type or paste card names into the left box to see a live preview of your import.</p>
-							</div>
+							{:else}
+								<div class="preview-empty">
+									<div class="empty-icon-circle">
+										<FileText size={24} />
+									</div>
+									<p class="empty-main-text">No cards parsed yet</p>
+									<p class="empty-sub-text">Type or paste card names into the left box to see a live preview of your import.</p>
+								</div>
+							{/if}
 						{:else}
 							<div class="card-items-list" role="list">
 								{#each previewCards as card, i (i + '_' + card.name)}
@@ -1138,6 +1182,11 @@
 						{:else}
 							<span class="warning-text">All cards are duplicates and set to be skipped.</span>
 						{/if}
+					{:else if detectedUrl}
+						<span class="url-pending-hint">
+							<Sparkles size={14} class="url-hint-icon" />
+							<span>{detectedUrl.platform === 'cubecobra' ? 'CubeCobra' : detectedUrl.platform === 'archidekt' ? 'Archidekt' : 'Moxfield'} link detected — click to load cards.</span>
+						</span>
 					{/if}
 				</div>
 
@@ -1149,18 +1198,35 @@
 					>
 						Cancel
 					</Button>
-					<button
-						type="button"
-						class="import-submit-btn"
-						onclick={handleImport}
-						disabled={isProcessing || importableCards.length === 0}
-					>
-						{#if isProcessing}
-							Importing...
-						{:else}
-							Import {importableQuantity > 0 ? `${importableQuantity} ` : ""}Card{importableQuantity === 1 ? "" : "s"}
-						{/if}
-					</button>
+					{#if detectedUrl && importableCards.length === 0}
+						<button
+							type="button"
+							class="import-submit-btn url-action-btn"
+							onclick={() => handleFetchUrl(detectedUrl.url)}
+							disabled={isProcessing || isFetchingUrl}
+						>
+							{#if isFetchingUrl}
+								<Loader2 size={15} class="spin" />
+								<span>Fetching {detectedUrl.platform === 'cubecobra' ? 'Cube' : 'Deck'}...</span>
+							{:else}
+								<Sparkles size={15} />
+								<span>Fetch {detectedUrl.platform === 'cubecobra' ? 'Cube' : 'Deck'}</span>
+							{/if}
+						</button>
+					{:else}
+						<button
+							type="button"
+							class="import-submit-btn"
+							onclick={handleImport}
+							disabled={isProcessing || importableCards.length === 0}
+						>
+							{#if isProcessing}
+								Importing...
+							{:else}
+								Import {importableQuantity > 0 ? `${importableQuantity} ` : ""}Card{importableQuantity === 1 ? "" : "s"}
+							{/if}
+						</button>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -1945,6 +2011,131 @@
 		min-height: 0;
 		overflow-y: auto;
 		padding: 12px 16px;
+	}
+
+	/* URL Staging Card (shown when a deck link is detected before cards are fetched) */
+	.url-stage-card {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		padding: 32px 20px;
+		margin: 20px 8px;
+		background: linear-gradient(180deg, rgba(99, 102, 241, 0.09) 0%, rgba(168, 85, 247, 0.04) 100%);
+		border: 1px solid rgba(99, 102, 241, 0.28);
+		border-radius: 12px;
+		box-sizing: border-box;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+	}
+
+	.url-stage-icon-wrap {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 54px;
+		height: 54px;
+		border-radius: 14px;
+		background: rgba(99, 102, 241, 0.16);
+		border: 1px solid rgba(99, 102, 241, 0.35);
+		margin-bottom: 14px;
+		box-shadow: 0 0 20px rgba(99, 102, 241, 0.25);
+	}
+
+	:global(.url-stage-icon) {
+		color: #818cf8;
+	}
+
+	.url-stage-header {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		margin-bottom: 10px;
+	}
+
+	.url-stage-platform {
+		font-size: 15px;
+		font-weight: 600;
+		color: #f1f5f9;
+	}
+
+	.url-stage-id {
+		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+		font-size: 11.5px;
+		color: #cbd5e1;
+		background: rgba(255, 255, 255, 0.06);
+		padding: 2px 8px;
+		border-radius: 5px;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		max-width: 240px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.url-stage-description {
+		font-size: 12px;
+		color: #94a3b8;
+		line-height: 1.5;
+		margin: 0 0 18px 0;
+		max-width: 260px;
+	}
+
+	.url-stage-fetch-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		padding: 9px 18px;
+		background: #6366f1;
+		border: 1px solid rgba(255, 255, 255, 0.18);
+		border-radius: 7px;
+		color: #ffffff;
+		font-size: 13px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+	}
+
+	.url-stage-fetch-btn:hover:not(:disabled) {
+		background: #4f46e5;
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+	}
+
+	.url-stage-fetch-btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.url-badge {
+		background: rgba(99, 102, 241, 0.15) !important;
+		border-color: rgba(99, 102, 241, 0.35) !important;
+		color: #a5b4fc !important;
+	}
+
+	.url-pending-hint {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		font-size: 12.5px;
+		color: #a5b4fc;
+	}
+
+	:global(.url-hint-icon) {
+		color: #818cf8;
+	}
+
+	.url-action-btn {
+		background: #6366f1 !important;
+		display: inline-flex !important;
+		align-items: center !important;
+		gap: 7px !important;
+	}
+
+	.url-action-btn:hover:not(:disabled) {
+		background: #4f46e5 !important;
 	}
 
 	.preview-empty {
