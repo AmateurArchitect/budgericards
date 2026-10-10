@@ -402,9 +402,9 @@
 		}
 
 		// Safety check against accidental massive imports (e.g. cubes into constructed decks)
-		const currentDeckSize = deckStore.cards?.length || 0;
+		const currentDeckSize = (deckStore.mainboard?.length || 0) + (deckStore.sideboard?.length || 0) + (deckStore.maybeboard?.length || 0) + (deckStore.commander?.length || 0);
 		if (importableQuantity >= 150 || (currentDeckSize > 0 && importableQuantity > 60)) {
-			const deckName = deckStore.activeDeck?.name || "this deck";
+			const deckName = deckStore.name || "this deck";
 			const msg = `You are about to import ${importableQuantity} cards into "${deckName}" (${currentDeckSize} cards currently in deck).\n\nAre you sure you want to proceed?`;
 			if (!confirm(msg)) {
 				return;
@@ -1036,7 +1036,7 @@
 						<div class="large-batch-banner">
 							<AlertTriangle size={14} class="banner-icon-warning" />
 							<span>
-								Large batch: <strong>{importableQuantity}</strong> cards ready to import into {targetBoard} of <strong>{deckStore.activeDeck?.name || 'this deck'}</strong>.
+								Large batch: <strong>{importableQuantity}</strong> cards ready to import into {targetBoard} of <strong>{deckStore.name || 'this deck'}</strong>.
 							</span>
 						</div>
 					{/if}

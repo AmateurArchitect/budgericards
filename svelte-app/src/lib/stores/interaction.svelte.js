@@ -910,7 +910,7 @@ function createInteractionStore() {
 			if (text) {
 				const detectedDeck = detectDeckUrl(text.trim());
 				if (detectedDeck) {
-					interactionStore.openAdvancedImport(text.trim());
+					interactionStore.openAdvancedImportModal(text.trim());
 					return;
 				}
 

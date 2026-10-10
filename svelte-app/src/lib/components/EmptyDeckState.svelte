@@ -630,7 +630,7 @@
 		const detectedDeck = detectDeckUrl(text.trim());
 		if (detectedDeck) {
 			e.preventDefault();
-			interactionStore.openAdvancedImport(text.trim());
+			interactionStore.openAdvancedImportModal(text.trim());
 			return;
 		}
 

@@ -57,3 +57,8 @@ Living list of solutions to code errors.
 - **Error Signature:** `Argument of type 'T[]' is not assignable to parameter of type 'null | undefined'.`
 - **Fix Pattern:** Add an explicit JSDoc `@param {T[] | null} [paramName]` annotation above the function definition.
 - **Logic:** When a JavaScript function specifies a default value of `= null` without an accompanying JSDoc `@param` tag, TypeScript's type checker infers the parameter's type strictly as `null` rather than a nullable union. Explicitly annotating the type informs the compiler of the accepted values.
+
+## deckStore Active Deck Name & Board Arrays
+- **Error Signature:** `Property 'cards' does not exist on type ...` or `Property 'activeDeck' does not exist on type ...` when querying deck metadata from `deckStore`.
+- **Fix Pattern:** Access the active deck name directly via `deckStore.name`, and card arrays via their board getters: `deckStore.mainboard`, `deckStore.sideboard`, `deckStore.maybeboard`, `deckStore.commander` (or `deckStore.currentBoardCards`).
+- **Logic:** `deckStore` encapsulates active deck state and exposes direct top-level getters (`name`, `format`, `mainboard`, etc.) rather than an `.activeDeck` wrapper or a flat `.cards` array.
