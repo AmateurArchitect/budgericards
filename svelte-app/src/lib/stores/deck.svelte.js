@@ -1554,6 +1554,7 @@ function createDeck() {
 		 * @param {string} zone
 		 * @param {number | null} price
 		 * @param {any} cardMetadata
+		 * @param {string[] | null} [initialTags]
 		 */
 		addCard(cardName, zone, price, cardMetadata = null, initialTags = null) {
 			const targetZoneName = zone || activeDeck.deck.activeBoard;

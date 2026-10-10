@@ -568,59 +568,64 @@
 				</div>
 			</div>
 
-			<!-- Body: Two-Column Layout -->
+			<!-- Body: Three-Column Layout -->
 			<div class="modal-body">
-				<!-- Left Column: Input & Options (Containers removed, clean spacing) -->
-				<div class="form-column">
-					<!-- Text Input Area -->
-					<div class="input-section">
-						<div class="section-label-row">
-							<span class="section-label">Card List</span>
-							<div class="input-tools">
+				<!-- Column 1: Card List Input -->
+				<div class="input-column">
+					<div class="column-header">
+						<span class="column-title">Card List</span>
+						<div class="input-tools">
+							<button
+								class="tool-btn"
+								onclick={pasteFromClipboard}
+								title="Paste from clipboard"
+								type="button"
+								disabled={isProcessing}
+							>
+								<Copy size={13} />
+								<span>Paste</span>
+							</button>
+							{#if rawText.trim()}
 								<button
-									class="tool-btn"
-									onclick={pasteFromClipboard}
-									title="Paste from clipboard"
+									class="tool-btn danger"
+									onclick={clearInput}
+									title="Clear text"
 									type="button"
 									disabled={isProcessing}
 								>
-									<Copy size={13} />
-									<span>Paste Clipboard</span>
+									<Trash2 size={13} />
+									<span>Clear</span>
 								</button>
-								{#if rawText.trim()}
-									<button
-										class="tool-btn danger"
-										onclick={clearInput}
-										title="Clear text"
-										type="button"
-										disabled={isProcessing}
-									>
-										<Trash2 size={13} />
-										<span>Clear</span>
-									</button>
-								{/if}
-							</div>
-						</div>
-
-						<div class="textarea-wrapper">
-							<textarea
-								bind:this={textareaEl}
-								bind:value={rawText}
-								class="import-textarea"
-								placeholder="Paste cards here, for example:&#10;4 Lightning Bolt #Removal&#10;2 Counterspell (MH2) 267 #Counter&#10;1 Sol Ring #Ramp"
-								disabled={isProcessing}
-								spellcheck="false"
-							></textarea>
-							{#if rawText.trim()}
-								<div class="textarea-footer">
-									<span>{rawText.split('\n').filter(l => l.trim()).length} line{rawText.split('\n').filter(l => l.trim()).length === 1 ? '' : 's'}</span>
-								</div>
 							{/if}
 						</div>
 					</div>
 
-					<!-- Options Group: Clean spacing without visible card containers -->
-					<div class="options-container">
+					<div class="textarea-wrapper">
+						<textarea
+							bind:this={textareaEl}
+							bind:value={rawText}
+							class="import-textarea"
+							placeholder="Paste cards here, for example:&#10;4 Lightning Bolt #Removal&#10;2 Counterspell (MH2) 267 #Counter&#10;1 Sol Ring #Ramp"
+							disabled={isProcessing}
+							spellcheck="false"
+						></textarea>
+						<div class="textarea-footer">
+							{#if rawText.trim()}
+								<span>{rawText.split('\n').filter(l => l.trim()).length} line{rawText.split('\n').filter(l => l.trim()).length === 1 ? '' : 's'}</span>
+							{:else}
+								<span class="syntax-hint">Supports set codes, numbers, and #tags</span>
+							{/if}
+						</div>
+					</div>
+				</div>
+
+				<!-- Column 2: Import Options & Configuration -->
+				<div class="options-column">
+					<div class="column-header">
+						<span class="column-title">Import Options</span>
+					</div>
+
+					<div class="options-scroll-content">
 						<!-- Target Board -->
 						<div class="option-group">
 							<div class="option-header">
@@ -903,11 +908,11 @@
 					</div>
 				</div>
 
-				<!-- Right Column: Live Parsed List Preview -->
+				<!-- Column 3: Live Parsed List Preview -->
 				<div class="preview-column">
-					<div class="preview-header">
+					<div class="column-header preview-header">
 						<div class="preview-title-row">
-							<span class="preview-title">Parsed Cards</span>
+							<span class="column-title">Parsed Cards</span>
 							{#if previewCards.length > 0}
 								<div class="preview-badges">
 									<span class="badge count-badge">{totalParsedCount} parsed</span>
@@ -1089,10 +1094,10 @@
 		pointer-events: auto;
 		display: flex;
 		flex-direction: column;
-		width: 920px;
+		width: 1200px;
 		max-width: 96vw;
-		height: 720px;
-		max-height: 90vh;
+		height: 760px;
+		max-height: 92vh;
 		background: #0f1219;
 		border: 1px solid rgba(255, 255, 255, 0.08);
 		border-radius: 14px;
@@ -1184,7 +1189,7 @@
 		color: #f8fafc;
 	}
 
-	/* Body Layout */
+	/* Body Layout: 3 Columns */
 	.modal-body {
 		display: flex;
 		flex: 1;
@@ -1192,43 +1197,56 @@
 		overflow: hidden;
 	}
 
-	.form-column {
-		width: 50%;
+	/* Column 1: Card List Input */
+	.input-column {
+		flex: 1;
 		display: flex;
 		flex-direction: column;
-		gap: 18px;
-		padding: 20px;
+		min-width: 0;
+		min-height: 0;
 		border-right: 1px solid rgba(255, 255, 255, 0.07);
-		overflow-y: auto;
+		background: rgba(255, 255, 255, 0.01);
 	}
 
+	/* Column 2: Import Options & Tags */
+	.options-column {
+		flex: 1.05;
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		min-height: 0;
+		border-right: 1px solid rgba(255, 255, 255, 0.07);
+	}
+
+	/* Column 3: Live Preview */
 	.preview-column {
-		width: 50%;
+		flex: 1.15;
 		display: flex;
 		flex-direction: column;
 		background: rgba(0, 0, 0, 0.2);
+		min-width: 0;
 		min-height: 0;
 		overflow: hidden;
 	}
 
-	/* Input Section */
-	.input-section {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-
-	.section-label-row {
+	/* Consistent Column Headers */
+	.column-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		padding: 12px 18px;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+		background: rgba(255, 255, 255, 0.015);
+		min-height: 48px;
+		box-sizing: border-box;
+		flex-shrink: 0;
 	}
 
-	.section-label {
-		font-size: 12px;
-		font-weight: 600;
+	.column-title {
+		font-size: 11px;
+		font-weight: 700;
 		text-transform: uppercase;
-		letter-spacing: 0.05em;
+		letter-spacing: 0.06em;
 		color: #94a3b8;
 	}
 
@@ -1264,23 +1282,30 @@
 		color: #fca5a5;
 	}
 
+	/* Textarea Wrapper (expands to fill Column 1 height) */
 	.textarea-wrapper {
 		position: relative;
+		flex: 1;
 		display: flex;
 		flex-direction: column;
+		min-height: 0;
+		padding: 14px 16px;
+		box-sizing: border-box;
 	}
 
 	.import-textarea {
 		width: 100%;
-		height: 135px;
-		padding: 10px 12px;
+		flex: 1;
+		height: 100%;
+		min-height: 0;
+		padding: 12px 14px;
 		background: #080b11;
 		border: 1px solid rgba(255, 255, 255, 0.1);
 		border-radius: 8px;
 		color: #f1f5f9;
 		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-		font-size: 14px;
-		line-height: 1.5;
+		font-size: 13.5px;
+		line-height: 1.55;
 		resize: none;
 		outline: none;
 		transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -1293,22 +1318,30 @@
 	}
 
 	.textarea-footer {
-		position: absolute;
-		bottom: 8px;
-		right: 10px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 8px 4px 0;
 		font-size: 11px;
 		color: #64748b;
-		pointer-events: none;
-		background: rgba(8, 11, 17, 0.85);
-		padding: 2px 6px;
-		border-radius: 4px;
+		flex-shrink: 0;
 	}
 
-	/* Options Container (Clean Spacing, No Visible Box Containers) */
-	.options-container {
+	.syntax-hint {
+		color: #475569;
+		font-size: 11px;
+	}
+
+	/* Column 2: Options Scroll Content */
+	.options-scroll-content {
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
+		padding: 16px 18px;
 		display: flex;
 		flex-direction: column;
 		gap: 16px;
+		box-sizing: border-box;
 	}
 
 	.option-group {
@@ -1393,14 +1426,6 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-	}
-
-	.preview-title {
-		font-size: 12px;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: #94a3b8;
 	}
 
 	.preview-badges {
@@ -1955,18 +1980,30 @@
 		outline-offset: 2px;
 	}
 
-	/* Responsive for narrow screens */
-	@media (max-width: 680px) {
+	/* Responsive for medium and narrow screens */
+	@media (max-width: 1080px) {
+		.modal-container {
+			width: 96vw;
+			height: 90vh;
+		}
 		.modal-body {
 			flex-direction: column;
+			overflow-y: auto;
 		}
-		.form-column, .preview-column {
+		.input-column, .options-column, .preview-column {
 			width: 100%;
 			border-right: none;
-		}
-		.form-column {
-			max-height: 50%;
 			border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+			flex: none;
+		}
+		.input-column {
+			height: 260px;
+		}
+		.options-column {
+			max-height: 380px;
+		}
+		.preview-column {
+			min-height: 280px;
 		}
 	}
 </style>

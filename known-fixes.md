@@ -52,3 +52,8 @@ Living list of solutions to code errors.
 - **Error Signature:** `<svelte:component> is deprecated in runes mode — components are dynamic by default https://svelte.dev/e/svelte_component_deprecated`
 - **Fix Pattern:** Assign the dynamic component expression to a capitalized variable via `{@const Component = item.icon}` or in script, then render directly with `<Component ... />` instead of `<svelte:component this={...} />`.
 - **Logic:** Svelte 5 runes mode natively supports capitalized component variables as dynamic tags, deprecating the legacy `<svelte:component>` element.
+
+## JSDoc Optional Parameter with Null Default
+- **Error Signature:** `Argument of type 'T[]' is not assignable to parameter of type 'null | undefined'.`
+- **Fix Pattern:** Add an explicit JSDoc `@param {T[] | null} [paramName]` annotation above the function definition.
+- **Logic:** When a JavaScript function specifies a default value of `= null` without an accompanying JSDoc `@param` tag, TypeScript's type checker infers the parameter's type strictly as `null` rather than a nullable union. Explicitly annotating the type informs the compiler of the accepted values.

@@ -6,6 +6,7 @@
  * @property {string} [set]
  * @property {string} [collector_number]
  * @property {string} [scryfallId]
+ * @property {string[]} [tags]
  */
 
 /**
