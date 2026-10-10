@@ -20,9 +20,12 @@
 		Loader2,
 		Sliders,
 		Tags,
-		Plus
+		Plus,
+		Globe,
+		Link2
 	} from "lucide-svelte";
 	import Button from "$lib/components/ui/Button.svelte";
+	import { detectDeckUrl, importDeckFromUrl } from "$lib/api/deckUrlImport.js";
 
 	let isOpen = $derived(interactionStore.advancedImportModal.isOpen);
 	let initialText = $derived(interactionStore.advancedImportModal.initialText);
@@ -47,7 +50,11 @@
 	let tagInputEl = $state(null);
 
 	let isProcessing = $state(false);
+	let isFetchingUrl = $state(false);
 	let progressMessage = $state("");
+
+	// URL detection from textarea text
+	let detectedUrl = $derived(detectDeckUrl(rawText));
 
 	/** @type {HTMLTextAreaElement | null} */
 	let textareaEl = $state(null);
@@ -81,6 +88,7 @@
 				activeSuggestionIdx = -1;
 				isKeyboardNavigatingTags = false;
 				isProcessing = false;
+				isFetchingUrl = false;
 				progressMessage = "";
 
 				setTimeout(() => {
@@ -343,6 +351,39 @@
 	}
 
 	/**
+	 * Fetches a deck from an external URL (CubeCobra, Archidekt, Moxfield).
+	 * @param {string} [urlToFetch]
+	 */
+	async function handleFetchUrl(urlToFetch) {
+		const targetUrl = (urlToFetch || (detectedUrl && detectedUrl.url) || "").trim();
+		if (!targetUrl) return;
+
+		isFetchingUrl = true;
+		progressMessage = "Fetching deck list...";
+		try {
+			const res = await importDeckFromUrl(targetUrl);
+			if (res.success && res.decklistText) {
+				rawText = res.decklistText;
+				toastStore.show(`Loaded ${res.cardCount} cards from ${res.title}!`, { type: "success" });
+			} else {
+				toastStore.show(res.error || "Failed to load deck from URL.", { type: "error" });
+			}
+		} catch (err) {
+			toastStore.show(err instanceof Error ? err.message : "Error fetching deck.", { type: "error" });
+		} finally {
+			isFetchingUrl = false;
+			progressMessage = "";
+		}
+	}
+
+	async function promptUrlImport() {
+		const input = prompt("Enter a CubeCobra, Archidekt, or Moxfield deck/cube URL:");
+		if (input && input.trim()) {
+			await handleFetchUrl(input.trim());
+		}
+	}
+
+	/**
 	 * @param {any} printing
 	 */
 	function getCheapestPrice(printing) {
@@ -577,10 +618,20 @@
 						<div class="input-tools">
 							<button
 								class="tool-btn"
+								onclick={promptUrlImport}
+								title="Import deck or cube from URL"
+								type="button"
+								disabled={isProcessing || isFetchingUrl}
+							>
+								<Globe size={13} />
+								<span>URL</span>
+							</button>
+							<button
+								class="tool-btn"
 								onclick={pasteFromClipboard}
 								title="Paste from clipboard"
 								type="button"
-								disabled={isProcessing}
+								disabled={isProcessing || isFetchingUrl}
 							>
 								<Copy size={13} />
 								<span>Paste</span>
@@ -591,7 +642,7 @@
 									onclick={clearInput}
 									title="Clear text"
 									type="button"
-									disabled={isProcessing}
+									disabled={isProcessing || isFetchingUrl}
 								>
 									<Trash2 size={13} />
 									<span>Clear</span>
@@ -601,6 +652,35 @@
 					</div>
 
 					<div class="textarea-wrapper">
+						{#if detectedUrl}
+							<div class="url-detect-banner">
+								<div class="url-banner-info">
+									<Globe size={15} class="url-banner-icon" />
+									<div class="url-banner-text">
+										<span class="url-banner-title">
+											Detected {detectedUrl.platform === 'cubecobra' ? 'CubeCobra' : detectedUrl.platform === 'archidekt' ? 'Archidekt' : 'Moxfield'} link
+										</span>
+										<span class="url-banner-desc">
+											{detectedUrl.platform === 'cubecobra' ? 'Click to import cube list directly' : 'Click to fetch via serverless proxy'}
+										</span>
+									</div>
+								</div>
+								<button
+									type="button"
+									class="url-banner-btn"
+									onclick={() => handleFetchUrl(detectedUrl.url)}
+									disabled={isFetchingUrl || isProcessing}
+								>
+									{#if isFetchingUrl}
+										<Loader2 size={13} class="spin" />
+										<span>Fetching...</span>
+									{:else}
+										<Sparkles size={13} />
+										<span>Fetch {detectedUrl.platform === 'cubecobra' ? 'Cube' : 'Deck'}</span>
+									{/if}
+								</button>
+							</div>
+						{/if}
 						<textarea
 							bind:this={textareaEl}
 							bind:value={rawText}
@@ -1291,6 +1371,96 @@
 		min-height: 0;
 		padding: 14px 16px;
 		box-sizing: border-box;
+	}
+
+	.url-detect-banner {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		margin-bottom: 10px;
+		padding: 10px 14px;
+		background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.1));
+		border: 1px solid rgba(99, 102, 241, 0.35);
+		border-radius: 8px;
+		flex-shrink: 0;
+	}
+
+	.url-banner-info {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-width: 0;
+	}
+
+	:global(.url-banner-icon) {
+		color: #818cf8;
+		flex-shrink: 0;
+	}
+
+	.url-banner-text {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.url-banner-title {
+		font-size: 12.5px;
+		font-weight: 600;
+		color: #f1f5f9;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.url-banner-desc {
+		font-size: 11px;
+		color: #94a3b8;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.url-banner-btn {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 7px 13px;
+		background: #6366f1;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 6px;
+		color: #ffffff;
+		font-size: 11.5px;
+		font-weight: 600;
+		cursor: pointer;
+		flex-shrink: 0;
+		transition: all 0.15s ease;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+	}
+
+	.url-banner-btn:hover:not(:disabled) {
+		background: #4f46e5;
+		transform: translateY(-1px);
+		box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+	}
+
+	.url-banner-btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	:global(.spin) {
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	.import-textarea {
