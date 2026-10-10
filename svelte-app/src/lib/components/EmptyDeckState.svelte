@@ -12,6 +12,7 @@
 	import CommanderSearchPanel from "./CommanderSearchPanel.svelte";
 	import { parseDecklist } from "$lib/utils/decklistParser.js";
 	import { batchProcess } from "$lib/utils/promise.js";
+	import { detectDeckUrl } from "$lib/api/deckUrlImport.js";
 	import {
 		getCardByName,
 		runLocalSearch,
@@ -625,6 +626,13 @@
 
 		const text = e.clipboardData?.getData("text/plain") || "";
 		if (!text) return;
+
+		const detectedDeck = detectDeckUrl(text.trim());
+		if (detectedDeck) {
+			e.preventDefault();
+			interactionStore.openAdvancedImport(text.trim());
+			return;
+		}
 
 		const parsed = parseDecklist(text);
 		if (parsed.length === 0) return;

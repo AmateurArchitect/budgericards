@@ -6,6 +6,7 @@ import { priceStore } from "./prices.svelte.js";
 import { toastStore } from "./toast.svelte.js";
 import { settingsStore } from "./settings.svelte.js";
 import { getPartnerLogic, canPair, canCardBeCommander } from "../utils/legality.js";
+import { detectDeckUrl } from "../api/deckUrlImport.js";
 
 /**
  * Parses a single text cell/column value into card details
@@ -907,6 +908,12 @@ function createInteractionStore() {
 			}
 
 			if (text) {
+				const detectedDeck = detectDeckUrl(text.trim());
+				if (detectedDeck) {
+					interactionStore.openAdvancedImport(text.trim());
+					return;
+				}
+
 				const rows = text.split(/\r?\n/).map(line => line.split('\t'));
 				const isSingleCellSelected = state.selectedCells.size === 1;
 				const isRangeSelected = state.selectedCells.size > 1;

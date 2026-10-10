@@ -401,6 +401,16 @@
 			return;
 		}
 
+		// Safety check against accidental massive imports (e.g. cubes into constructed decks)
+		const currentDeckSize = deckStore.cards?.length || 0;
+		if (importableQuantity >= 150 || (currentDeckSize > 0 && importableQuantity > 60)) {
+			const deckName = deckStore.activeDeck?.name || "this deck";
+			const msg = `You are about to import ${importableQuantity} cards into "${deckName}" (${currentDeckSize} cards currently in deck).\n\nAre you sure you want to proceed?`;
+			if (!confirm(msg)) {
+				return;
+			}
+		}
+
 		isProcessing = true;
 		progressMessage = "Resolving card data...";
 
@@ -1017,6 +1027,16 @@
 							<AlertTriangle size={14} class="banner-icon" />
 							<span>
 								<strong>{unrecognizedCount}</strong> line{unrecognizedCount === 1 ? "" : "s"} not recognized as Magic cards (will be ignored)
+							</span>
+						</div>
+					{/if}
+
+					<!-- Large Batch Notice -->
+					{#if importableQuantity >= 100}
+						<div class="large-batch-banner">
+							<AlertTriangle size={14} class="banner-icon-warning" />
+							<span>
+								Large batch: <strong>{importableQuantity}</strong> cards ready to import into {targetBoard} of <strong>{deckStore.activeDeck?.name || 'this deck'}</strong>.
 							</span>
 						</div>
 					{/if}
@@ -1896,6 +1916,27 @@
 
 	:global(.banner-icon) {
 		color: #f97316;
+		flex-shrink: 0;
+	}
+
+	.large-batch-banner {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 16px;
+		background: rgba(245, 158, 11, 0.12);
+		border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+		color: #fde68a;
+		font-size: 13px;
+		line-height: 1.4;
+	}
+
+	.large-batch-banner strong {
+		color: #fff;
+	}
+
+	:global(.banner-icon-warning) {
+		color: #fbbf24;
 		flex-shrink: 0;
 	}
 
