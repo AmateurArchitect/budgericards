@@ -175,36 +175,36 @@
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 	}
 
-	/* Card Search Button Prominence */
+	/* Card Search Button Prominence (Neutral Accent) */
 	.toolbar-btn.search-trigger-btn {
-		background: hsl(var(--primary) / 0.16);
-		border: 1px solid hsl(var(--primary) / 0.45);
+		background: rgba(255, 255, 255, 0.12);
+		border: 1px solid rgba(255, 255, 255, 0.22);
 		color: #ffffff;
 		font-weight: 600;
 		padding: 0 14px;
-		box-shadow: 0 0 16px -2px hsl(var(--primary) / 0.25);
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 	}
 
 	.toolbar-btn.search-trigger-btn:hover {
-		background: hsl(var(--primary) / 0.28);
-		border-color: hsl(var(--primary) / 0.7);
-		box-shadow: 0 0 20px hsl(var(--primary) / 0.45);
+		background: rgba(255, 255, 255, 0.18);
+		border-color: rgba(255, 255, 255, 0.35);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 		color: #ffffff;
 	}
 
 	.toolbar-btn.search-trigger-btn.active {
-		background: hsl(var(--primary));
-		border-color: hsl(var(--primary));
-		color: #ffffff;
-		box-shadow: 0 0 24px 2px hsl(var(--primary) / 0.6);
+		background: #ffffff;
+		border-color: #ffffff;
+		color: #0b0e14;
+		box-shadow: 0 4px 20px rgba(255, 255, 255, 0.25);
 	}
 
 	.toolbar-btn.search-trigger-btn :global(.btn-icon) {
-		color: hsl(var(--primary-light, #60a5fa));
+		color: rgba(255, 255, 255, 0.9);
 	}
 
 	.toolbar-btn.search-trigger-btn.active :global(.btn-icon) {
-		color: #ffffff;
+		color: #0b0e14;
 	}
 
 	.toolbar-btn:disabled {
@@ -245,15 +245,15 @@
 	}
 
 	.toolbar-btn.search-trigger-btn .keycap-pill {
-		background: hsl(var(--primary) / 0.25);
-		border-color: hsl(var(--primary) / 0.4);
-		color: #ffffff;
+		background: rgba(255, 255, 255, 0.12);
+		border-color: rgba(255, 255, 255, 0.2);
+		color: rgba(255, 255, 255, 0.9);
 	}
 
 	.toolbar-btn.search-trigger-btn.active .keycap-pill {
-		background: rgba(0, 0, 0, 0.3);
-		border-color: rgba(255, 255, 255, 0.2);
-		color: #ffffff;
+		background: rgba(0, 0, 0, 0.1);
+		border-color: rgba(0, 0, 0, 0.15);
+		color: #0b0e14;
 	}
 
 	@media (max-width: 640px) {
