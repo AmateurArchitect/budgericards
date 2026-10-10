@@ -213,7 +213,7 @@
 	></div>
 
 	<!-- Left Slide-over Sidebar Panel -->
-	<aside 
+	<div 
 		class="quick-actions-sidebar"
 		role="dialog"
 		aria-modal="true"
@@ -452,7 +452,7 @@
 				</button>
 			</div>
 		</div>
-	</aside>
+	</div>
 {/if}
 
 <style>

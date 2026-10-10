@@ -310,6 +310,7 @@ function getCardCellValue(card, columnKey) {
  * @property {{cardId: string, columnKey: string, initialKey: string} | null} inlineEditTrigger
  * @property {string | null} copiedColumnKey
  * @property {boolean} sideboardExpanded
+ * @property {boolean} deckSidebarOpen
  * @property {Object} bulkTagsModal
  * @property {boolean} bulkTagsModal.isOpen
  * @property {any[]} bulkTagsModal.cards

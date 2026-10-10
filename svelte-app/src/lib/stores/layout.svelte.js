@@ -18,6 +18,8 @@ class LayoutStore {
 
 	// --- App Width Tracking ---
 	appWidth = $state(typeof window !== 'undefined' ? document.documentElement.clientWidth : 1920);
+	rightSidebarWidth = $state(0);
+	leftSidebarWidth = $state(0);
 
 	constructor() {
 		if (typeof window !== 'undefined') {
@@ -70,8 +72,6 @@ class LayoutStore {
 	/** Final clamped card width */
 	cardWidth = $derived(`clamp(120px, min(${this.cardWidthCalc}, 23.5vh), 240px)`);
 
-	rightSidebarWidth = $state(0);
-	leftSidebarWidth = $state(0);
 	isTopNavVisible = $state(true);
 
 	/** Layout utility for CSS variables */
