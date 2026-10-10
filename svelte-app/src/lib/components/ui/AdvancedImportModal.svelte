@@ -18,7 +18,9 @@
 		AlertTriangle,
 		Check,
 		Loader2,
-		Sliders
+		Sliders,
+		Tags,
+		Plus
 	} from "lucide-svelte";
 	import Button from "$lib/components/ui/Button.svelte";
 
@@ -35,6 +37,14 @@
 	let duplicateStrategy = $state("add");
 	/** @type {'default' | 'cheapest' | 'newest' | 'oldest'} */
 	let printingPreference = $state("default");
+	/** @type {string[]} */
+	let selectedTags = $state([]);
+	let tagInputValue = $state("");
+	let isTagSuggestionsOpen = $state(false);
+	let activeSuggestionIdx = $state(-1);
+	let isKeyboardNavigatingTags = $state(false);
+	/** @type {HTMLInputElement | null} */
+	let tagInputEl = $state(null);
 
 	let isProcessing = $state(false);
 	let progressMessage = $state("");
@@ -65,6 +75,11 @@
 				quantityMode = "imported";
 				duplicateStrategy = "add";
 				printingPreference = "default";
+				selectedTags = [];
+				tagInputValue = "";
+				isTagSuggestionsOpen = false;
+				activeSuggestionIdx = -1;
+				isKeyboardNavigatingTags = false;
 				isProcessing = false;
 				progressMessage = "";
 
@@ -132,6 +147,122 @@
 		};
 	});
 
+	// All unique tags across all boards in the deck
+	const deckTagsList = $derived.by(() => {
+		const allTags = new Set();
+		const boards = ["commander", "companion", "mainboard", "sideboard", "maybeboard"];
+		const storeAny = /** @type {any} */ (deckStore);
+		for (const board of boards) {
+			for (const c of storeAny[board] || []) {
+				if (c.tags) {
+					for (const t of c.tags) {
+						if (t && typeof t === "string" && t.trim()) allTags.add(t.trim());
+					}
+				}
+			}
+		}
+		return [...allTags].sort((a, b) => a.localeCompare(b));
+	});
+
+	// Deck tags not yet added to selectedTags
+	const availableDeckTags = $derived.by(() => {
+		const selectedSet = new Set(selectedTags.map(t => t.toLowerCase()));
+		return deckTagsList.filter(t => !selectedSet.has(t.toLowerCase()));
+	});
+
+	// Filtered suggestions based on user input
+	const filteredTagSuggestions = $derived.by(() => {
+		const query = tagInputValue.trim().toLowerCase();
+		if (!query) return availableDeckTags;
+		return availableDeckTags
+			.filter(t => t.toLowerCase().includes(query))
+			.sort((a, b) => {
+				const aLower = a.toLowerCase();
+				const bLower = b.toLowerCase();
+				const aStarts = aLower.startsWith(query);
+				const bStarts = bLower.startsWith(query);
+				if (aStarts && !bStarts) return -1;
+				if (!aStarts && bStarts) return 1;
+				return aLower.localeCompare(bLower);
+			});
+	});
+
+	// Auto-highlight top suggestion when typing
+	$effect(() => {
+		const query = tagInputValue.trim();
+		if (query && filteredTagSuggestions.length > 0) {
+			activeSuggestionIdx = 0;
+			isTagSuggestionsOpen = true;
+			isKeyboardNavigatingTags = false;
+		} else if (!query) {
+			activeSuggestionIdx = -1;
+			isKeyboardNavigatingTags = false;
+		}
+	});
+
+	/**
+	 * @param {string} tag
+	 */
+	function addTag(tag) {
+		const trimmed = (tag || "").trim();
+		if (!trimmed) return;
+		if (!selectedTags.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
+			selectedTags = [...selectedTags, trimmed];
+		}
+		tagInputValue = "";
+		isTagSuggestionsOpen = false;
+		activeSuggestionIdx = -1;
+		if (tagInputEl) tagInputEl.focus();
+	}
+
+	/**
+	 * @param {string} tagToRemove
+	 */
+	function removeTag(tagToRemove) {
+		selectedTags = selectedTags.filter(t => t.toLowerCase() !== tagToRemove.toLowerCase());
+	}
+
+	/**
+	 * @param {KeyboardEvent} e
+	 */
+	function handleTagInputKeydown(e) {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			if (isTagSuggestionsOpen && activeSuggestionIdx >= 0 && filteredTagSuggestions[activeSuggestionIdx]) {
+				addTag(filteredTagSuggestions[activeSuggestionIdx]);
+			} else if (tagInputValue.trim()) {
+				addTag(tagInputValue);
+			}
+		} else if (e.key === "," || e.key === "Tab") {
+			if (tagInputValue.trim()) {
+				e.preventDefault();
+				if (isTagSuggestionsOpen && activeSuggestionIdx >= 0 && filteredTagSuggestions[activeSuggestionIdx]) {
+					addTag(filteredTagSuggestions[activeSuggestionIdx]);
+				} else {
+					addTag(tagInputValue);
+				}
+			}
+		} else if (e.key === "ArrowDown") {
+			if (filteredTagSuggestions.length > 0) {
+				e.preventDefault();
+				isTagSuggestionsOpen = true;
+				isKeyboardNavigatingTags = true;
+				activeSuggestionIdx = (activeSuggestionIdx + 1) % filteredTagSuggestions.length;
+			}
+		} else if (e.key === "ArrowUp") {
+			if (filteredTagSuggestions.length > 0) {
+				e.preventDefault();
+				isTagSuggestionsOpen = true;
+				isKeyboardNavigatingTags = true;
+				activeSuggestionIdx = (activeSuggestionIdx - 1 + filteredTagSuggestions.length) % filteredTagSuggestions.length;
+			}
+		} else if (e.key === "Escape") {
+			isTagSuggestionsOpen = false;
+		} else if (e.key === "Backspace" && !tagInputValue && selectedTags.length > 0) {
+			selectedTags = selectedTags.slice(0, -1);
+		}
+	}
+
 	// Cards currently in the target board
 	const existingBoardCards = $derived.by(() => {
 		const board = deckStore[targetBoard];
@@ -162,6 +293,9 @@
 			const effectiveQty = quantityMode === "one" ? 1 : Math.max(1, card.quantity || 1);
 			const willSkip = isUnrecognized || (isDuplicate && duplicateStrategy === "skip");
 
+			const inlineTags = card.tags || [];
+			const effectiveTags = [...new Set([...selectedTags, ...inlineTags])];
+
 			return {
 				...card,
 				name,
@@ -171,7 +305,8 @@
 				isUnrecognized,
 				isDuplicate,
 				existingCount,
-				willSkip
+				willSkip,
+				effectiveTags
 			};
 		});
 	});
@@ -352,12 +487,13 @@
 					const resolved = resolutionCache.get(card.name.toLowerCase());
 					const price = resolved?.price ?? 0;
 					const metadata = resolved?.metadata ?? (card.set ? { set: card.set.toLowerCase(), collector_number: card.collector_number } : null);
+					const cardTags = card.effectiveTags && card.effectiveTags.length > 0 ? card.effectiveTags : selectedTags;
 
 					if (targetBoard === "maybeboard") {
-						deckStore.addCard(card.name, "maybeboard", price, metadata);
+						deckStore.addCard(card.name, "maybeboard", price, metadata, cardTags);
 					} else {
 						for (let q = 0; q < card.effectiveQty; q++) {
-							deckStore.addCard(card.name, targetBoard, price, metadata);
+							deckStore.addCard(card.name, targetBoard, price, metadata, cardTags);
 						}
 					}
 				}
@@ -368,12 +504,13 @@
 
 			const targetTitle = targetBoard.charAt(0).toUpperCase() + targetBoard.slice(1);
 			const totalAdded = importableQuantity;
+			const tagMsg = selectedTags.length > 0 ? ` tagged [${selectedTags.join(", ")}]` : "";
 			const skippedParts = [];
 			if (skippedDuplicatesCount > 0) skippedParts.push(`${skippedDuplicatesCount} duplicates skipped`);
 			if (unrecognizedCount > 0) skippedParts.push(`${unrecognizedCount} unrecognized ignored`);
 			const suffix = skippedParts.length > 0 ? ` (${skippedParts.join(", ")})` : "";
 
-			toastStore.show(`Imported ${totalAdded} card${totalAdded === 1 ? "" : "s"} into ${targetTitle}${suffix}.`, { type: "success" });
+			toastStore.show(`Imported ${totalAdded} card${totalAdded === 1 ? "" : "s"} into ${targetTitle}${tagMsg}${suffix}.`, { type: "success" });
 
 			handleClose();
 		} catch (e) {
@@ -470,7 +607,7 @@
 								bind:this={textareaEl}
 								bind:value={rawText}
 								class="import-textarea"
-								placeholder="Paste cards here, for example:&#10;4 Lightning Bolt&#10;2 Counterspell (MH2) 267&#10;1 Sol Ring"
+								placeholder="Paste cards here, for example:&#10;4 Lightning Bolt #Removal&#10;2 Counterspell (MH2) 267 #Counter&#10;1 Sol Ring #Ramp"
 								disabled={isProcessing}
 								spellcheck="false"
 							></textarea>
@@ -648,6 +785,121 @@
 								</button>
 							</div>
 						</div>
+
+						<!-- Tags -->
+						<div class="option-group">
+							<div class="option-header">
+								<Tags size={15} class="option-icon" />
+								<span class="option-title">Tags</span>
+								{#if selectedTags.length > 0}
+									<span class="option-count-pill">{selectedTags.length}</span>
+								{/if}
+							</div>
+
+							<div class="tags-widget-container">
+								<!-- Selected tags pills if any -->
+								{#if selectedTags.length > 0}
+									<div class="selected-tags-pills">
+										{#each selectedTags as tag (tag)}
+											<div class="tag-pill">
+												<span class="tag-pill-text">#{tag}</span>
+												<button
+													type="button"
+													class="tag-pill-remove"
+													onclick={() => removeTag(tag)}
+													aria-label="Remove tag {tag}"
+													disabled={isProcessing}
+												>
+													<X size={12} />
+												</button>
+											</div>
+										{/each}
+									</div>
+								{/if}
+
+								<!-- Tag input row -->
+								<div class="tag-input-row">
+									<div class="tag-input-wrapper">
+										<input
+											bind:this={tagInputEl}
+											type="text"
+											class="tag-input"
+											placeholder={selectedTags.length === 0 ? "Add tags (e.g. Ramp, Removal)..." : "Add another tag..."}
+											bind:value={tagInputValue}
+											onfocus={() => {
+												if (availableDeckTags.length > 0) isTagSuggestionsOpen = true;
+											}}
+											onblur={() => {
+												setTimeout(() => {
+													isTagSuggestionsOpen = false;
+												}, 180);
+											}}
+											onkeydown={handleTagInputKeydown}
+											disabled={isProcessing}
+											autocomplete="off"
+											spellcheck="false"
+										/>
+										{#if tagInputValue.trim()}
+											<span class="tag-enter-hint">↵</span>
+										{/if}
+									</div>
+									{#if tagInputValue.trim()}
+										<button
+											type="button"
+											class="add-tag-btn"
+											onclick={() => addTag(tagInputValue)}
+											disabled={isProcessing}
+											title="Add tag"
+											aria-label="Add tag"
+										>
+											<Plus size={14} />
+										</button>
+									{/if}
+								</div>
+
+								<!-- Autocomplete Suggestions Dropdown -->
+								{#if isTagSuggestionsOpen && filteredTagSuggestions.length > 0}
+									<div class="tag-suggestions-menu" role="listbox">
+										{#each filteredTagSuggestions as tag, idx}
+											<button
+												type="button"
+												class="suggestion-item"
+												class:active={(tagInputValue.trim().length > 0 || isKeyboardNavigatingTags) && idx === activeSuggestionIdx}
+												role="option"
+												aria-selected={(tagInputValue.trim().length > 0 || isKeyboardNavigatingTags) && idx === activeSuggestionIdx}
+												onmousedown={(e) => {
+													e.preventDefault();
+													addTag(tag);
+												}}
+											>
+												<span class="suggestion-tag-name">#{tag}</span>
+												<span class="suggestion-add-label">+ Add</span>
+											</button>
+										{/each}
+									</div>
+								{/if}
+
+								<!-- Quick Tag Suggestions Chips -->
+								{#if availableDeckTags.length > 0 && selectedTags.length < 3 && !tagInputValue.trim()}
+									<div class="quick-tags-row">
+										<span class="quick-tags-label">Deck tags:</span>
+										<div class="quick-tags-chips">
+											{#each availableDeckTags.slice(0, 4) as quickTag}
+												<button
+													type="button"
+													class="quick-tag-chip"
+													onclick={() => addTag(quickTag)}
+													disabled={isProcessing}
+													title="Add tag #{quickTag}"
+												>
+													+{quickTag}
+												</button>
+											{/each}
+										</div>
+									</div>
+								{/if}
+							</div>
+						</div>
 					</div>
 				</div>
 
@@ -660,6 +912,9 @@
 								<div class="preview-badges">
 									<span class="badge count-badge">{totalParsedCount} parsed</span>
 									<span class="badge qty-badge">{importableQuantity} to import</span>
+									{#if selectedTags.length > 0}
+										<span class="badge tag-count-badge">{selectedTags.length} tag{selectedTags.length === 1 ? '' : 's'}</span>
+									{/if}
 									{#if unrecognizedCount > 0}
 										<span class="badge unrec-badge">{unrecognizedCount} unrecognized</span>
 									{/if}
@@ -715,6 +970,13 @@
 												<span class="card-set-badge">
 													{card.set.toUpperCase()}{card.collector_number ? ` #${card.collector_number}` : ""}
 												</span>
+											{/if}
+											{#if card.effectiveTags && card.effectiveTags.length > 0 && !card.isUnrecognized}
+												<div class="card-tags-list">
+													{#each card.effectiveTags as tag}
+														<span class="card-tag-badge" title="Tag: {tag}">#{tag}</span>
+													{/each}
+												</div>
 											{/if}
 										</div>
 
@@ -1175,6 +1437,251 @@
 		background: rgba(239, 68, 68, 0.15);
 		color: #fca5a5;
 		border: 1px solid rgba(239, 68, 68, 0.25);
+	}
+
+	.tag-count-badge {
+		background: rgba(99, 102, 241, 0.15);
+		color: #a5b4fc;
+		border: 1px solid rgba(99, 102, 241, 0.25);
+	}
+
+	/* Tags Widget Styles */
+	.option-count-pill {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 18px;
+		height: 18px;
+		padding: 0 5px;
+		font-size: 11px;
+		font-weight: 600;
+		border-radius: 9px;
+		background: rgba(99, 102, 241, 0.15);
+		color: #a5b4fc;
+		border: 1px solid rgba(99, 102, 241, 0.3);
+	}
+
+	.tags-widget-container {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.selected-tags-pills {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		margin-bottom: 6px;
+	}
+
+	.tag-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		padding: 3px 8px;
+		font-size: 12px;
+		font-weight: 500;
+		color: #e0e7ff;
+		background: rgba(99, 102, 241, 0.18);
+		border: 1px solid rgba(99, 102, 241, 0.35);
+		border-radius: 6px;
+		transition: background 0.15s ease;
+	}
+
+	.tag-pill:hover {
+		background: rgba(99, 102, 241, 0.26);
+	}
+
+	.tag-pill-text {
+		letter-spacing: -0.01em;
+	}
+
+	.tag-pill-remove {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 14px;
+		height: 14px;
+		padding: 0;
+		background: transparent;
+		border: none;
+		color: #a5b4fc;
+		cursor: pointer;
+		border-radius: 3px;
+		transition: all 0.1s ease;
+	}
+
+	.tag-pill-remove:hover:not(:disabled) {
+		background: rgba(239, 68, 68, 0.2);
+		color: #fca5a5;
+	}
+
+	.tag-input-row {
+		display: flex;
+		gap: 6px;
+		align-items: center;
+	}
+
+	.tag-input-wrapper {
+		position: relative;
+		flex: 1;
+		display: flex;
+		align-items: center;
+	}
+
+	.tag-input {
+		width: 100%;
+		height: 34px;
+		padding: 0 28px 0 10px;
+		background: #080b11;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		border-radius: 6px;
+		color: #f1f5f9;
+		font-size: 13px;
+		outline: none;
+		transition: border-color 0.15s ease, box-shadow 0.15s ease;
+		box-sizing: border-box;
+	}
+
+	.tag-input:focus {
+		border-color: #6366f1;
+		box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+	}
+
+	.tag-enter-hint {
+		position: absolute;
+		right: 9px;
+		font-size: 11px;
+		color: #64748b;
+		pointer-events: none;
+	}
+
+	.add-tag-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 34px;
+		height: 34px;
+		background: rgba(99, 102, 241, 0.15);
+		border: 1px solid rgba(99, 102, 241, 0.3);
+		border-radius: 6px;
+		color: #818cf8;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		flex-shrink: 0;
+	}
+
+	.add-tag-btn:hover:not(:disabled) {
+		background: rgba(99, 102, 241, 0.25);
+		color: #fff;
+	}
+
+	.tag-suggestions-menu {
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: calc(100% + 4px);
+		z-index: 50;
+		max-height: 180px;
+		overflow-y: auto;
+		background: #0d1117;
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		border-radius: 8px;
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+		padding: 4px;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.suggestion-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 6px 10px;
+		border-radius: 5px;
+		border: none;
+		background: transparent;
+		color: #cbd5e1;
+		font-size: 13px;
+		cursor: pointer;
+		text-align: left;
+		transition: background 0.1s ease;
+	}
+
+	.suggestion-item:hover, .suggestion-item.active {
+		background: rgba(99, 102, 241, 0.18);
+		color: #f8fafc;
+	}
+
+	.suggestion-tag-name {
+		font-weight: 500;
+	}
+
+	.suggestion-add-label {
+		font-size: 11px;
+		color: #818cf8;
+	}
+
+	.quick-tags-row {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin-top: 6px;
+		flex-wrap: wrap;
+	}
+
+	.quick-tags-label {
+		font-size: 11px;
+		color: #64748b;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		font-weight: 500;
+	}
+
+	.quick-tags-chips {
+		display: flex;
+		gap: 5px;
+		flex-wrap: wrap;
+	}
+
+	.quick-tag-chip {
+		display: inline-flex;
+		align-items: center;
+		font-size: 11px;
+		padding: 2px 7px;
+		border-radius: 4px;
+		background: rgba(255, 255, 255, 0.04);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		color: #94a3b8;
+		cursor: pointer;
+		transition: all 0.12s ease;
+	}
+
+	.quick-tag-chip:hover:not(:disabled) {
+		background: rgba(99, 102, 241, 0.12);
+		border-color: rgba(99, 102, 241, 0.3);
+		color: #cbd5e1;
+	}
+
+	/* Card item tags list in preview */
+	.card-tags-list {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		flex-wrap: wrap;
+		margin-left: 4px;
+	}
+
+	.card-tag-badge {
+		font-size: 10px;
+		font-weight: 600;
+		padding: 1px 5px;
+		border-radius: 3px;
+		background: rgba(99, 102, 241, 0.12);
+		border: 1px solid rgba(99, 102, 241, 0.25);
+		color: #a5b4fc;
+		white-space: nowrap;
 	}
 
 	.unrecognized-banner {

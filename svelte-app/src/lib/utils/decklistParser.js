@@ -181,14 +181,35 @@ export function parseDecklist(text) {
 
 		// Remove foil tags, frame tags, etc. (e.g. *F*, *E*, *RE*)
 		name = name.replace(/\s+\*([^*]+)\*/gi, '');
-		
-		// Remove Archidekt categories or custom tags starting with # or caret ^
-		name = name.split('#')[0].split('^')[0];
-		
+
+		// Extract Archidekt categories or custom tags starting with # or caret ^
+		/** @type {string[]} */
+		const lineTags = [];
+		const caretMatches = name.match(/\^([^^]+)\^/g);
+		if (caretMatches) {
+			for (const m of caretMatches) {
+				const tag = m.slice(1, -1).trim();
+				if (tag) lineTags.push(tag);
+			}
+			name = name.replace(/\^([^^]+)\^/g, '');
+		}
+		if (name.includes('#')) {
+			const hashParts = name.split('#');
+			name = hashParts[0];
+			for (let i = 1; i < hashParts.length; i++) {
+				const tag = hashParts[i]
+					.replace(/\s+[\$€£]\s*\d+([.,]\d+)?/g, '')
+					.replace(/\s+\d+([.,]\d+)?\s*[\$€£]/g, '')
+					.trim();
+				if (tag) lineTags.push(tag);
+			}
+		}
+		name = name.split('^')[0];
+
 		// Remove trailing price info ($1.23, 1.23€, etc.)
 		name = name.replace(/\s+[\$€£]\s*\d+([.,]\d+)?/g, '');
 		name = name.replace(/\s+\d+([.,]\d+)?\s*[\$€£]/g, '');
-		
+
 		// 6. Normalize split card/DFCs separators
 		// Scryfall collection API prefers "Card A // Card B"
 		// If user provides "Card A / Card B", normalize it.
@@ -204,7 +225,8 @@ export function parseDecklist(text) {
 				quantity,
 				board: lineBoard,
 				set,
-				collector_number
+				collector_number,
+				...(lineTags.length > 0 ? { tags: lineTags } : {})
 			});
 		}
 	}

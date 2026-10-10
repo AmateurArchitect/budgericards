@@ -742,7 +742,16 @@ function createDeck() {
 			const existing = activeDeck.deck.maybeboard[existingIdx];
 			existing.addedAt = Date.now();
 			if (cardObj.overrides && !existing.overrides) existing.overrides = cardObj.overrides;
-			if (cardObj.tags && !existing.tags) existing.tags = cardObj.tags;
+			if (cardObj.tags && cardObj.tags.length > 0) {
+				const existingTags = existing.tags || [];
+				const merged = new Set([...existingTags, ...cardObj.tags]);
+				existing.tags = Array.from(merged);
+				if (!existing.primaryTag && existing.tags.length > 0) {
+					existing.primaryTag = existing.tags[0];
+				}
+			} else if (cardObj.tags && !existing.tags) {
+				existing.tags = cardObj.tags;
+			}
 			if (cardObj.primaryTag && !existing.primaryTag) existing.primaryTag = cardObj.primaryTag;
 			if (cardObj.customColumn && !existing.customColumn) existing.customColumn = cardObj.customColumn;
 			
@@ -1381,15 +1390,24 @@ function createDeck() {
 					name: pc.name,
 					price: price
 				};
+				if (Array.isArray(pc.tags) && pc.tags.length > 0) {
+					cardObj.tags = [...pc.tags];
+					cardObj.primaryTag = pc.tags[0];
+				}
 				tryAddToMaybeboard(cardObj, false);
 			} else {
 				for (let i = 0; i < pc.quantity; i++) {
-					targetBoard.push({
+					const newCardObj = {
 						id: generateId(),
 						name: pc.name,
 						price: price,
 						addedAt: Date.now()
-					});
+					};
+					if (Array.isArray(pc.tags) && pc.tags.length > 0) {
+						newCardObj.tags = [...pc.tags];
+						newCardObj.primaryTag = pc.tags[0];
+					}
+					targetBoard.push(newCardObj);
 				}
 			}
 		}
@@ -1537,7 +1555,7 @@ function createDeck() {
 		 * @param {number | null} price
 		 * @param {any} cardMetadata
 		 */
-		addCard(cardName, zone, price, cardMetadata = null) {
+		addCard(cardName, zone, price, cardMetadata = null, initialTags = null) {
 			const targetZoneName = zone || activeDeck.deck.activeBoard;
 			if (targetZoneName === 'maybeboard') {
 				if (cardMetadata) {
@@ -1562,6 +1580,17 @@ function createDeck() {
 				if (existingCard?.tags) cardObj.tags = [...existingCard.tags];
 				if (existingCard?.primaryTag) cardObj.primaryTag = existingCard.primaryTag;
 				if (existingCard?.customColumn) cardObj.customColumn = existingCard.customColumn;
+
+				if (Array.isArray(initialTags) && initialTags.length > 0) {
+					const tagsSet = new Set(cardObj.tags || []);
+					for (const t of initialTags) {
+						if (t && typeof t === 'string' && t.trim()) tagsSet.add(t.trim());
+					}
+					cardObj.tags = Array.from(tagsSet);
+					if (!cardObj.primaryTag && cardObj.tags.length > 0) {
+						cardObj.primaryTag = cardObj.tags[0];
+					}
+				}
 
 				saveHistory(activeDeck);
 				const success = tryAddToMaybeboard(cardObj, false);
@@ -1604,6 +1633,17 @@ function createDeck() {
 			if (existingCard?.tags) newCardObj.tags = [...existingCard.tags];
 			if (existingCard?.primaryTag) newCardObj.primaryTag = existingCard.primaryTag;
 			if (existingCard?.customColumn) newCardObj.customColumn = existingCard.customColumn;
+
+			if (Array.isArray(initialTags) && initialTags.length > 0) {
+				const tagsSet = new Set(newCardObj.tags || []);
+				for (const t of initialTags) {
+					if (t && typeof t === 'string' && t.trim()) tagsSet.add(t.trim());
+				}
+				newCardObj.tags = Array.from(tagsSet);
+				if (!newCardObj.primaryTag && newCardObj.tags.length > 0) {
+					newCardObj.primaryTag = newCardObj.tags[0];
+				}
+			}
 
 			targetZone.push(newCardObj);
 
