@@ -44,17 +44,17 @@
 
 		<div class="toolbar-divider" aria-hidden="true"></div>
 
-		<!-- Card Search Button -->
+		<!-- Card Search Button (Primary Focus) -->
 		<button
 			type="button"
 			class="toolbar-btn search-trigger-btn"
 			class:active={searchStore.isOpen}
 			onclick={handleSearchClick}
-			aria-label="Card search (⌘/)"
-			title="Search Cards (⌘/ or /)"
+			aria-label="Card search (⌘/ or /)"
+			title="Card Search (⌘/ or /)"
 		>
 			<Search size={15} class="btn-icon" />
-			<span class="btn-label">Search</span>
+			<span class="btn-label font-semibold">Card Search</span>
 			<div class="keycap-pill" aria-hidden="true">
 				<span>⌘/</span>
 			</div>
@@ -116,8 +116,8 @@
 	.toolbar-pill {
 		display: flex;
 		align-items: center;
-		gap: 3px;
-		padding: 5px 8px;
+		gap: 4px;
+		padding: 6px;
 		background: rgba(15, 18, 25, 0.88);
 		backdrop-filter: blur(20px) saturate(180%);
 		-webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -141,9 +141,10 @@
 	.toolbar-btn {
 		display: flex;
 		align-items: center;
+		justify-content: center;
 		gap: 6px;
 		height: 34px;
-		padding: 0 10px;
+		padding: 0 12px;
 		background: transparent;
 		border: 1px solid transparent;
 		border-radius: 9999px;
@@ -154,6 +155,7 @@
 		outline: none;
 		transition: all 0.15s ease;
 		white-space: nowrap;
+		box-sizing: border-box;
 	}
 
 	.toolbar-btn:hover:not(:disabled) {
@@ -167,10 +169,42 @@
 	}
 
 	.toolbar-btn.active {
-		background: hsl(var(--primary));
+		background: rgba(255, 255, 255, 0.14);
 		color: #ffffff;
-		border-color: hsl(var(--primary-dark, var(--primary)));
-		box-shadow: 0 2px 10px hsl(var(--primary) / 0.4);
+		border-color: rgba(255, 255, 255, 0.2);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+	}
+
+	/* Card Search Button Prominence */
+	.toolbar-btn.search-trigger-btn {
+		background: hsl(var(--primary) / 0.16);
+		border: 1px solid hsl(var(--primary) / 0.45);
+		color: #ffffff;
+		font-weight: 600;
+		padding: 0 14px;
+		box-shadow: 0 0 16px -2px hsl(var(--primary) / 0.25);
+	}
+
+	.toolbar-btn.search-trigger-btn:hover {
+		background: hsl(var(--primary) / 0.28);
+		border-color: hsl(var(--primary) / 0.7);
+		box-shadow: 0 0 20px hsl(var(--primary) / 0.45);
+		color: #ffffff;
+	}
+
+	.toolbar-btn.search-trigger-btn.active {
+		background: hsl(var(--primary));
+		border-color: hsl(var(--primary));
+		color: #ffffff;
+		box-shadow: 0 0 24px 2px hsl(var(--primary) / 0.6);
+	}
+
+	.toolbar-btn.search-trigger-btn :global(.btn-icon) {
+		color: hsl(var(--primary-light, #60a5fa));
+	}
+
+	.toolbar-btn.search-trigger-btn.active :global(.btn-icon) {
+		color: #ffffff;
 	}
 
 	.toolbar-btn:disabled {
@@ -187,14 +221,14 @@
 	.history-group {
 		display: flex;
 		align-items: center;
-		gap: 1px;
+		gap: 2px;
 	}
 
 	.toolbar-divider {
 		width: 1px;
 		height: 18px;
 		background: rgba(255, 255, 255, 0.12);
-		margin: 0 3px;
+		margin: 0 2px;
 	}
 
 	.keycap-pill {
@@ -210,8 +244,14 @@
 		margin-left: 2px;
 	}
 
-	.toolbar-btn.active .keycap-pill {
-		background: rgba(0, 0, 0, 0.25);
+	.toolbar-btn.search-trigger-btn .keycap-pill {
+		background: hsl(var(--primary) / 0.25);
+		border-color: hsl(var(--primary) / 0.4);
+		color: #ffffff;
+	}
+
+	.toolbar-btn.search-trigger-btn.active .keycap-pill {
+		background: rgba(0, 0, 0, 0.3);
 		border-color: rgba(255, 255, 255, 0.2);
 		color: #ffffff;
 	}
