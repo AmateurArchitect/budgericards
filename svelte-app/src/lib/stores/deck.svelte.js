@@ -2208,6 +2208,9 @@ function createDeck() {
 		get canRedo() { return activeDeck.redoStack.length > 0; },
 
 		selectDeckId(id) {
+			if (!id || (activeDeckId && (activeDeckId === id || activeDeckId.startsWith(id)))) {
+				return;
+			}
 			if (activeDeckId !== id) {
 				// Search loadedDecks for a matching prefix
 				const matchingId = Object.keys(loadedDecks).find(k => k.startsWith(id));

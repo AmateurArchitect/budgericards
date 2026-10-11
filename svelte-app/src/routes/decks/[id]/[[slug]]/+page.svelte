@@ -43,7 +43,7 @@
 	// Reactively select the deck whenever the ID in the URL changes
 	$effect(() => {
 		const id = $page.params.id;
-		if (id) {
+		if (id && (!deckStore.id || !deckStore.id.startsWith(id))) {
 			untrack(() => {
 				const prevId = deckStore.id;
 				deckStore.selectDeckId(id);
@@ -66,7 +66,9 @@
 			.replace(/^-+|-+$/g, "");
 	}
 
-	// Reactively update URL slug when deck name changes
+	// Reactively update URL slug when deck name changes (debounced with keepFocus)
+	/** @type {any} */
+	let slugDebounceTimer = null;
 	$effect(() => {
 		const id = deckStore.id;
 		const name = deckStore.name;
@@ -76,9 +78,19 @@
 			const currentSlug = $page.params.slug;
 			const currentId = $page.params.id;
 			if (currentSlug !== expectedSlug || currentId !== shortId) {
-				goto(`/decks/${shortId}/${expectedSlug}`, { replaceState: true, noScroll: true });
+				clearTimeout(slugDebounceTimer);
+				slugDebounceTimer = setTimeout(() => {
+					goto(`/decks/${shortId}/${expectedSlug}`, {
+						replaceState: true,
+						noScroll: true,
+						keepFocus: true
+					});
+				}, 600);
 			}
 		}
+		return () => {
+			clearTimeout(slugDebounceTimer);
+		};
 	});
 
 	$effect(() => {

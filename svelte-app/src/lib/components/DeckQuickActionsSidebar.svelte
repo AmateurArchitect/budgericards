@@ -30,7 +30,7 @@
 
 	const moreFormats = ALL_FORMATS.filter(f => !primaryFormats.includes(f));
 
-	const deckImage = $derived(() => {
+	const deckImage = $derived.by(() => {
 		if (deckStore.coverArt) return deckStore.coverArt;
 		if (deckStore.commander && deckStore.commander.length > 0) {
 			const c = deckStore.commander[0];
@@ -44,7 +44,7 @@
 		return null;
 	});
 
-	const colorIdentity = $derived(() => {
+	const colorIdentity = $derived.by(() => {
 		const cols = new Set();
 		const list = [
 			...(deckStore.commander || []),
@@ -235,7 +235,7 @@
 					aria-label="Close sidebar"
 					title="Close (Esc)"
 				>
-					<X size={18} />
+					<X size={17} />
 				</button>
 			</div>
 		</div>
@@ -246,33 +246,52 @@
 			<div 
 				class="cover-art-zone"
 				class:drag-over={isDragOverArt}
+				class:has-art={!!deckImage && !deckImageError}
 				ondragover={handleArtDragOver}
 				ondragleave={handleArtDragLeave}
 				ondrop={handleArtDrop}
 				role="region"
 				aria-label="Deck Cover Art"
 			>
-				{#if deckImage() && !deckImageError}
+				{#if deckImage && !deckImageError}
 					<img 
-						src={deckImage()} 
+						src={deckImage} 
 						alt="Deck Art" 
 						class="cover-art-image" 
 						onerror={() => { deckImageError = true; }}
 					/>
+					<div class="art-overlay-gradient"></div>
+					<div class="art-badge-hint">
+						<ImageIcon size={12} />
+						<span>Drop card to replace cover</span>
+					</div>
+					{#if deckStore.coverArt}
+						<button 
+							type="button" 
+							class="art-reset-btn"
+							onclick={() => { deckStore.coverArt = null; }}
+							title="Reset custom cover art"
+							aria-label="Reset custom cover art"
+						>
+							<X size={12} />
+						</button>
+					{/if}
 				{:else}
 					<div class="cover-art-empty">
-						<ImageIcon size={28} />
-						<span>Drop card art here to set cover</span>
+						<div class="empty-art-icon-circle">
+							<ImageIcon size={18} />
+						</div>
+						<div class="empty-art-text">
+							<span class="empty-art-title">Deck Cover Art</span>
+							<span class="empty-art-sub">Drag & drop any card here to set</span>
+						</div>
 					</div>
 				{/if}
-				<div class="art-overlay-gradient"></div>
-				<div class="art-badge-hint">
-					<span>Drag & drop card here to update cover</span>
-				</div>
 			</div>
 
 			<!-- Deck Identity Fields -->
 			<div class="section-group">
+				<h3 class="section-title">Deck Details</h3>
 				<div class="form-group">
 					<label for="deck-sidebar-name">Deck Name</label>
 					<Input 
@@ -308,7 +327,7 @@
 							<div class="dropdown-menu" in:fade={{ duration: 100 }}>
 								{#each primaryFormats as format}
 									<button 
-										type="button"
+										type="button" 
 										class="dropdown-item" 
 										class:active={deckStore.format === format}
 										onclick={() => selectFormat(format)}
@@ -333,7 +352,7 @@
 										<div class="nested-menu" in:fade={{ duration: 100 }}>
 											{#each moreFormats as format}
 												<button 
-													type="button"
+													type="button" 
 													class="dropdown-item" 
 													class:active={deckStore.format === format}
 													onclick={() => selectFormat(format)}
@@ -354,10 +373,10 @@
 			<div class="stats-summary-card">
 				<div class="stats-header">
 					<span class="stats-label">OVERVIEW</span>
-					{#if colorIdentity().length > 0}
-						<div class="color-dots">
-							{#each colorIdentity() as col}
-								<ManaSymbol symbol={col} size="15px" />
+					{#if colorIdentity.length > 0}
+						<div class="color-dots-pill">
+							{#each colorIdentity as col}
+								<ManaSymbol symbol={col} size="14px" />
 							{/each}
 						</div>
 					{/if}
@@ -365,7 +384,7 @@
 				<div class="stats-metrics-grid">
 					<div class="metric-box">
 						<span class="metric-value">{totalCardCount}</span>
-						<span class="metric-title">Main Cards</span>
+						<span class="metric-title">Cards</span>
 					</div>
 					<div class="metric-box">
 						<span class="metric-value">{deckStore.sideboard.length}</span>
@@ -377,8 +396,8 @@
 					</div>
 					{#if estimatedPrice}
 						<div class="metric-box price-box">
-							<span class="metric-value">{estimatedPrice}</span>
-							<span class="metric-title">Est. Price</span>
+							<span class="price-title">Est. Deck Value</span>
+							<span class="price-value">{estimatedPrice}</span>
 						</div>
 					{/if}
 				</div>
@@ -417,7 +436,7 @@
 							close();
 						}}
 					>
-						<FileText size={16} />
+						<FileText size={16} class="action-icon" />
 						<div class="action-btn-text">
 							<span class="action-btn-title">Paste & Import Decklist</span>
 							<span class="action-btn-desc">Switch to full-text list editor</span>
@@ -433,7 +452,7 @@
 								interactionStore.maybeboardCleanupModal.isOpen = true;
 							}}
 						>
-							<Sparkles size={16} />
+							<Sparkles size={16} class="action-icon" />
 							<div class="action-btn-text">
 								<span class="action-btn-title">Clean up Maybeboard</span>
 								<span class="action-btn-desc">{deckStore.maybeboard.length} cards in maybeboard</span>
@@ -447,7 +466,7 @@
 			<div class="section-group danger-group">
 				<h3 class="section-title danger-title">Danger Zone</h3>
 				<button type="button" class="btn-delete" onclick={handleDelete}>
-					<Trash2 size={16} />
+					<Trash2 size={15} />
 					<span>Delete Deck</span>
 				</button>
 			</div>
@@ -459,8 +478,9 @@
 	.sidebar-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.55);
-		backdrop-filter: blur(4px);
+		background: rgba(0, 0, 0, 0.65);
+		backdrop-filter: blur(6px);
+		-webkit-backdrop-filter: blur(6px);
 		z-index: 1200;
 	}
 
@@ -469,23 +489,22 @@
 		top: 0;
 		left: 0;
 		bottom: 0;
-		width: 360px;
-		max-width: 90vw;
-		background: #0f1219;
+		width: 370px;
+		max-width: 92vw;
+		background: #0d1017;
 		border-right: 1px solid rgba(255, 255, 255, 0.1);
-		box-shadow: 16px 0 48px rgba(0, 0, 0, 0.7);
+		box-shadow: 20px 0 60px rgba(0, 0, 0, 0.85);
 		z-index: 1210;
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
-		user-select: none;
 	}
 
 	.sidebar-header {
 		padding: 16px 20px;
 		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-		background: rgba(15, 18, 25, 0.95);
-		backdrop-filter: blur(12px);
+		background: rgba(255, 255, 255, 0.015);
+		flex-shrink: 0;
 	}
 
 	.header-title-row {
@@ -497,8 +516,7 @@
 	.title-with-badge {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		color: hsl(var(--foreground));
+		gap: 10px;
 	}
 
 	:global(.title-icon) {
@@ -506,21 +524,22 @@
 	}
 
 	.sidebar-title {
-		margin: 0;
-		font-size: 1.05rem;
+		font-size: 1rem;
 		font-weight: 700;
 		letter-spacing: -0.01em;
+		color: #ffffff;
+		margin: 0;
 	}
 
 	.close-button {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 30px;
-		height: 30px;
+		width: 28px;
+		height: 28px;
 		background: transparent;
-		border: none;
-		border-radius: var(--radius-sm);
+		border: 1px solid transparent;
+		border-radius: var(--radius-sm, 6px);
 		color: hsl(var(--muted-foreground));
 		cursor: pointer;
 		transition: all 0.15s ease;
@@ -528,7 +547,8 @@
 
 	.close-button:hover {
 		background: rgba(255, 255, 255, 0.08);
-		color: hsl(var(--foreground));
+		color: #ffffff;
+		border-color: rgba(255, 255, 255, 0.1);
 	}
 
 	.sidebar-body {
@@ -537,52 +557,104 @@
 		padding: 20px;
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: 22px;
+	}
+
+	/* Scrollbar styling */
+	.sidebar-body::-webkit-scrollbar {
+		width: 6px;
+	}
+	.sidebar-body::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	.sidebar-body::-webkit-scrollbar-thumb {
+		background: rgba(255, 255, 255, 0.12);
+		border-radius: 9999px;
 	}
 
 	/* Cover Art Area */
 	.cover-art-zone {
 		position: relative;
 		width: 100%;
-		height: 128px;
-		border-radius: var(--radius-md);
-		border: 1px solid rgba(255, 255, 255, 0.12);
+		height: 124px;
+		min-height: 124px;
+		flex-shrink: 0;
+		border-radius: var(--radius-md, 8px);
+		border: 1px dashed rgba(255, 255, 255, 0.18);
 		overflow: hidden;
-		background: #090c10;
+		background: rgba(255, 255, 255, 0.02);
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		transition: all 0.2s ease;
+		transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+		box-sizing: border-box;
+	}
+
+	.cover-art-zone.has-art {
+		border-style: solid;
+		border-color: rgba(255, 255, 255, 0.1);
+		background: #090c10;
 	}
 
 	.cover-art-zone.drag-over {
 		border-color: hsl(var(--primary));
-		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.3);
-		transform: scale(1.02);
+		border-style: solid;
+		box-shadow: 0 0 0 3px hsl(var(--primary) / 0.25);
+		background: hsl(var(--primary) / 0.08);
 	}
 
 	.cover-art-image {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
-		object-position: center;
+		object-position: center 25%;
+		display: block;
 	}
 
 	.cover-art-empty {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		justify-content: center;
 		gap: 8px;
-		color: hsl(var(--muted-foreground));
-		font-size: 0.78rem;
 		text-align: center;
-		padding: 12px;
+		padding: 16px;
+		user-select: none;
+	}
+
+	.empty-art-icon-circle {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 34px;
+		height: 34px;
+		border-radius: 9999px;
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		color: hsl(var(--muted-foreground));
+	}
+
+	.empty-art-text {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.empty-art-title {
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+	}
+
+	.empty-art-sub {
+		font-size: 0.72rem;
+		color: hsl(var(--muted-foreground));
 	}
 
 	.art-overlay-gradient {
 		position: absolute;
 		inset: 0;
-		background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, transparent 60%);
+		background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.1) 60%, transparent 100%);
 		pointer-events: none;
 	}
 
@@ -590,11 +662,41 @@
 		position: absolute;
 		bottom: 8px;
 		left: 10px;
-		right: 10px;
-		font-size: 0.72rem;
-		color: rgba(255, 255, 255, 0.75);
-		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		padding: 3px 8px;
+		background: rgba(0, 0, 0, 0.65);
+		backdrop-filter: blur(6px);
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 9999px;
+		font-size: 0.68rem;
+		color: rgba(255, 255, 255, 0.85);
 		pointer-events: none;
+	}
+
+	.art-reset-btn {
+		position: absolute;
+		top: 8px;
+		right: 8px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 22px;
+		height: 22px;
+		background: rgba(0, 0, 0, 0.7);
+		backdrop-filter: blur(4px);
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		border-radius: 9999px;
+		color: rgba(255, 255, 255, 0.8);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.art-reset-btn:hover {
+		background: rgba(239, 68, 68, 0.85);
+		border-color: rgba(239, 68, 68, 1);
+		color: white;
 	}
 
 	/* Section Groups */
@@ -606,10 +708,10 @@
 
 	.section-title {
 		margin: 0;
-		font-size: 0.75rem;
+		font-size: 0.72rem;
 		font-weight: 700;
 		text-transform: uppercase;
-		letter-spacing: 0.05em;
+		letter-spacing: 0.06em;
 		color: hsl(var(--muted-foreground));
 	}
 
@@ -628,15 +730,22 @@
 	/* Dropdown / Select */
 	.styled-select {
 		width: 100%;
-		padding: 8px 12px;
-		background: rgba(255, 255, 255, 0.04);
-		border: 1px solid rgba(255, 255, 255, 0.12);
-		border-radius: var(--radius-sm);
+		height: 38px;
+		padding: 0 32px 0 12px;
+		background-color: rgba(255, 255, 255, 0.04);
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.45)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		background-position: right 12px center;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: var(--radius-sm, 6px);
 		color: hsl(var(--foreground));
 		font-size: 0.85rem;
 		outline: none;
 		cursor: pointer;
+		appearance: none;
+		-webkit-appearance: none;
 		transition: all 0.15s ease;
+		box-sizing: border-box;
 	}
 
 	.styled-select:focus {
@@ -651,27 +760,31 @@
 
 	.dropdown-trigger {
 		width: 100%;
+		height: 38px;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 8px 12px;
+		padding: 0 12px;
 		background: rgba(255, 255, 255, 0.04);
-		border: 1px solid rgba(255, 255, 255, 0.12);
-		border-radius: var(--radius-sm);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: var(--radius-sm, 6px);
 		color: hsl(var(--foreground));
 		font-size: 0.85rem;
 		cursor: pointer;
 		transition: all 0.15s ease;
+		box-sizing: border-box;
 	}
 
 	.dropdown-trigger:hover {
-		background: rgba(255, 255, 255, 0.08);
+		background: rgba(255, 255, 255, 0.07);
+		border-color: rgba(255, 255, 255, 0.16);
 	}
 
 	.chevron-wrapper {
 		display: flex;
 		align-items: center;
 		transition: transform 0.2s ease;
+		color: hsl(var(--muted-foreground));
 	}
 
 	.chevron-wrapper.open {
@@ -691,7 +804,7 @@
 		right: 0;
 		background: #161b26;
 		border: 1px solid rgba(255, 255, 255, 0.15);
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-sm, 6px);
 		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 		z-index: 1225;
 		max-height: 240px;
@@ -707,7 +820,7 @@
 		padding: 7px 10px;
 		border: none;
 		background: transparent;
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-sm, 6px);
 		color: hsl(var(--foreground));
 		font-size: 0.82rem;
 		text-align: left;
@@ -734,7 +847,7 @@
 		left: calc(100% + 4px);
 		background: #161b26;
 		border: 1px solid rgba(255, 255, 255, 0.15);
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-sm, 6px);
 		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 		padding: 4px;
 		min-width: 140px;
@@ -745,10 +858,10 @@
 
 	/* Stats Summary Card */
 	.stats-summary-card {
-		background: rgba(255, 255, 255, 0.03);
+		background: rgba(255, 255, 255, 0.025);
 		border: 1px solid rgba(255, 255, 255, 0.08);
-		border-radius: var(--radius-md);
-		padding: 12px 14px;
+		border-radius: var(--radius-md, 8px);
+		padding: 14px;
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
@@ -761,15 +874,20 @@
 	}
 
 	.stats-label {
-		font-size: 0.72rem;
+		font-size: 0.7rem;
 		font-weight: 700;
-		letter-spacing: 0.05em;
+		letter-spacing: 0.06em;
 		color: hsl(var(--muted-foreground));
 	}
 
-	.color-dots {
+	.color-dots-pill {
 		display: flex;
-		gap: 3px;
+		align-items: center;
+		gap: 4px;
+		padding: 3px 7px;
+		background: rgba(0, 0, 0, 0.35);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		border-radius: 9999px;
 	}
 
 	.stats-metrics-grid {
@@ -783,30 +901,48 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		padding: 8px 4px;
-		background: rgba(0, 0, 0, 0.25);
-		border-radius: var(--radius-sm);
-		border: 1px solid rgba(255, 255, 255, 0.04);
+		padding: 9px 4px;
+		background: rgba(0, 0, 0, 0.35);
+		border-radius: var(--radius-sm, 6px);
+		border: 1px solid rgba(255, 255, 255, 0.05);
+	}
+
+	.metric-value {
+		font-size: 1.15rem;
+		font-weight: 700;
+		color: #ffffff;
+		line-height: 1.2;
+	}
+
+	.metric-title {
+		font-size: 0.65rem;
+		font-weight: 600;
+		color: hsl(var(--muted-foreground));
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		margin-top: 2px;
 	}
 
 	.metric-box.price-box {
 		grid-column: span 3;
 		flex-direction: row;
 		justify-content: space-between;
-		padding: 8px 12px;
+		align-items: center;
+		padding: 9px 12px;
 	}
 
-	.metric-value {
-		font-size: 1rem;
-		font-weight: 700;
-		color: hsl(var(--foreground));
-	}
-
-	.metric-title {
-		font-size: 0.68rem;
+	.price-title {
+		font-size: 0.72rem;
+		font-weight: 600;
 		color: hsl(var(--muted-foreground));
 		text-transform: uppercase;
 		letter-spacing: 0.03em;
+	}
+
+	.price-value {
+		font-size: 1.05rem;
+		font-weight: 700;
+		color: #34d399;
 	}
 
 	/* Quick Links */
@@ -823,7 +959,7 @@
 		padding: 10px 12px;
 		background: rgba(255, 255, 255, 0.03);
 		border: 1px solid rgba(255, 255, 255, 0.08);
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-sm, 6px);
 		color: hsl(var(--foreground));
 		cursor: pointer;
 		text-align: left;
@@ -834,6 +970,11 @@
 		background: rgba(255, 255, 255, 0.07);
 		border-color: rgba(255, 255, 255, 0.15);
 		transform: translateX(2px);
+	}
+
+	:global(.action-icon) {
+		color: hsl(var(--muted-foreground));
+		flex-shrink: 0;
 	}
 
 	.action-btn-text {
@@ -854,8 +995,8 @@
 	/* Danger Zone */
 	.danger-group {
 		margin-top: auto;
-		padding-top: 12px;
-		border-top: 1px solid rgba(239, 68, 68, 0.2);
+		padding-top: 14px;
+		border-top: 1px solid rgba(239, 68, 68, 0.18);
 	}
 
 	.danger-title {
@@ -869,9 +1010,9 @@
 		justify-content: center;
 		gap: 8px;
 		padding: 9px 12px;
-		background: hsl(var(--destructive) / 0.15);
-		border: 1px solid hsl(var(--destructive) / 0.4);
-		border-radius: var(--radius-sm);
+		background: hsl(var(--destructive) / 0.12);
+		border: 1px solid hsl(var(--destructive) / 0.35);
+		border-radius: var(--radius-sm, 6px);
 		color: hsl(var(--destructive));
 		font-size: 0.82rem;
 		font-weight: 600;
