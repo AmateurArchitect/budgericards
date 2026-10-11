@@ -175,20 +175,18 @@
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 	}
 
-	/* Card Search Button Prominence (Blue Primary) */
+	/* Card Search Button Prominence (Blue Primary, No Glow) */
 	.toolbar-btn.search-trigger-btn {
 		background: hsl(var(--primary));
 		border: 1px solid hsl(var(--primary));
 		color: #ffffff;
 		font-weight: 600;
 		padding: 0 14px;
-		box-shadow: 0 2px 14px hsl(var(--primary) / 0.4);
 	}
 
 	.toolbar-btn.search-trigger-btn:hover {
 		background: hsl(var(--primary-light, 217 88% 68%));
 		border-color: hsl(var(--primary-light, 217 88% 68%));
-		box-shadow: 0 4px 18px hsl(var(--primary) / 0.55);
 		color: #ffffff;
 	}
 
@@ -196,7 +194,7 @@
 		background: hsl(var(--primary-dark, 217 75% 51%));
 		border-color: hsl(var(--primary-dark, 217 75% 51%));
 		color: #ffffff;
-		box-shadow: 0 2px 10px hsl(var(--primary) / 0.6), inset 0 1px 2px rgba(0, 0, 0, 0.2);
+		box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
 	}
 
 	.toolbar-btn.search-trigger-btn :global(.btn-icon) {
