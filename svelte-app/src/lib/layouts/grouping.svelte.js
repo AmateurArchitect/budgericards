@@ -2,6 +2,7 @@ import { compareColors } from "$lib/utils/colors.js";
 import { deckStore } from "$lib/stores/deck.svelte.js";
 import { settingsStore } from "$lib/stores/settings.svelte.js";
 import { checkLegality } from "$lib/utils/legality.js";
+import { isLandCard } from "$lib/utils/cards.js";
 
 export function parseManaCost(manaCostStr) {
 	if (!manaCostStr) return [];
@@ -86,18 +87,7 @@ export function getGroupedCategories() {
 			const isCreatureOverride = overrides.creature !== undefined ? overrides.creature : null;
 			const isCreature = isCreatureOverride !== null ? isCreatureOverride : typeLineStr.includes("creature");
 
-			const basicLandNames = [
-				"plains",
-				"island",
-				"swamp",
-				"mountain",
-				"forest",
-				"wastes",
-			];
-			const isBasicLand = basicLandNames.some((name) =>
-				card.name.toLowerCase().includes(name),
-			);
-			const isLand = (typeLineStr.includes("land") || isBasicLand) && !typeLineStr.includes("//");
+			const isLand = isLandCard(typeLineStr, card.name, details?.card_faces);
 
 			if (effectiveGrouping === "none") {
 				groupKey = "Deck";
@@ -433,8 +423,8 @@ function compare(a, b, factor) {
 	if (factor === "added" || factor === "recent") return (b.addedAt || 0) - (a.addedAt || 0);
 	if (factor === "price") return a.price - b.price;
 	if (factor === "cmc") {
-		const aIsLand = (a.type || "").toLowerCase().includes("land");
-		const bIsLand = (b.type || "").toLowerCase().includes("land");
+		const aIsLand = isLandCard(a.type || "", a.name, a.card?.card_faces);
+		const bIsLand = isLandCard(b.type || "", b.name, b.card?.card_faces);
 		const aCmc = aIsLand ? -1 : (a.cmc || 0);
 		const bCmc = bIsLand ? -1 : (b.cmc || 0);
 		return aCmc - bCmc;
@@ -531,10 +521,8 @@ function getCardPrimaryKey(card) {
 	if (!details) return "Unknown";
 	if (details.notFound || card.notFound) return "Unknown";
 	
-	const basicLandNames = ["plains", "island", "swamp", "mountain", "forest", "wastes"];
-	const isBasicLandName = basicLandNames.some(name => card.name.toLowerCase().includes(name));
 	const typeLineStr = (details.type_line || "").toLowerCase();
-	const isLand = (typeLineStr.includes("land") || isBasicLandName) && !typeLineStr.includes("//");
+	const isLand = isLandCard(typeLineStr, card.name, details.card_faces);
 	
 	if (isLand) return "Lands";
 	
@@ -563,9 +551,7 @@ function cardMatchesKey(card, key) {
 	if (key === "Enchantments") return typeLineStr.includes("enchantment");
 	if (key === "Battles") return typeLineStr.includes("battle");
 	if (key === "Lands") {
-		const basicLandNames = ["plains", "island", "swamp", "mountain", "forest", "wastes"];
-		const isBasicLandName = basicLandNames.some(name => card.name.toLowerCase().includes(name));
-		return typeLineStr.includes("land") || isBasicLandName;
+		return isLandCard(typeLineStr, card.name, details.card_faces);
 	}
 	return false;
 }

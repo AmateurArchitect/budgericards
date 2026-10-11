@@ -6,6 +6,7 @@
 	import Input from "$lib/components/ui/Input.svelte";
 	import Button from "$lib/components/ui/Button.svelte";
 	import { untrack } from "svelte";
+	import { isLandCard } from "$lib/utils/cards.js";
 
 	// --- Legal Magic: The Gathering Vocabulary Lists ---
 	const LEGAL_SUPERTYPES = ["Basic", "Legendary", "Snow", "World", "Ongoing"];
@@ -91,7 +92,7 @@
 		const typeLineStr = (card.type_line || metadata.type_line || "").toLowerCase();
 		const colors = card.colors || metadata.colors || [];
 		
-		if (typeLineStr.includes("land") && !typeLineStr.includes("//")) {
+		if (isLandCard(typeLineStr, card.name, metadata.card_faces || card.card_faces)) {
 			return "Lands";
 		}
 		if (colors.length > 1) {

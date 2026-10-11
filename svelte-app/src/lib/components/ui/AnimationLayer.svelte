@@ -4,6 +4,7 @@
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { fade } from "svelte/transition";
 	import { onMount } from "svelte";
+	import { isLandCard } from "$lib/utils/cards.js";
 
 	/** @param {HTMLElement} node */
 	function portal(node) {
@@ -31,7 +32,7 @@
 		const details = card;
 		
 		let key = "Other";
-		const isLand = details.type_line?.includes("Land") && !details.type_line.includes("//");
+		const isLand = isLandCard(details.type_line, details.name, details.card_faces);
 
 		if (details.notFound) {
 			key = "Unknown";

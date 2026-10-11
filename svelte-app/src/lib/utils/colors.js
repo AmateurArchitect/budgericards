@@ -1,3 +1,5 @@
+import { isLandCard } from './cards.js';
+
 /**
  * @param {any} card
  * @param {boolean} isLand
@@ -58,8 +60,8 @@ export function compareColors(a, b, useColorIdentity) {
 	// 1. Determine IsLand
 	const aType = (a.type_line || a.type || "").toLowerCase();
 	const bType = (b.type_line || b.type || "").toLowerCase();
-	const aIsLand = aType.includes("land");
-	const bIsLand = bType.includes("land");
+	const aIsLand = isLandCard(aType, a.name, a.card_faces || a.card?.card_faces);
+	const bIsLand = isLandCard(bType, b.name, b.card_faces || b.card?.card_faces);
 
 	// 2. Fetch Colors (Identity vs Casting Cost)
 	const aIds = (useColorIdentity || aIsLand) ? (a.color_identity || []) : (a.colors || []);

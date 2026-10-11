@@ -171,56 +171,6 @@
 			});
 		}
 	}
-
-	/** @param {any} card */
-	function getCardPrimaryKey(card) {
-		const metadata = deckStore.metadata[card.name.toLowerCase()];
-		const details = card.type_line ? card : metadata;
-		if (!details) return "Unknown";
-		if (details.notFound || card.notFound) return "Unknown";
-		
-		const basicLandNames = ["plains", "island", "swamp", "mountain", "forest", "wastes"];
-		const isBasicLandName = basicLandNames.some(name => card.name.toLowerCase().includes(name));
-		const typeLineStr = (details.type_line || "").toLowerCase();
-		const isLand = (typeLineStr.includes("land") || isBasicLandName) && !typeLineStr.includes("//");
-		
-		if (isLand) return "Lands";
-		
-		const tl = typeLineStr;
-		if (tl.includes("creature")) return "Creatures";
-		else if (tl.includes("planeswalker")) return "Planeswalkers";
-		else if (tl.includes("instant")) return "Instants";
-		else if (tl.includes("sorcery")) return "Sorceries";
-		else if (tl.includes("artifact")) return "Artifacts";
-		else if (tl.includes("enchantment")) return "Enchantments";
-		else if (tl.includes("battle")) return "Battles";
-		return "Other";
-	}
-
-	/**
-	 * @param {any} card
-	 * @param {string} key
-	 */
-	function cardMatchesKey(card, key) {
-		const metadata = deckStore.metadata[card.name.toLowerCase()];
-		const details = card.type_line ? card : metadata;
-		if (!details) return false;
-		const typeLineStr = (details.type_line || "").toLowerCase();
-		
-		if (key === "Creatures") return typeLineStr.includes("creature");
-		if (key === "Planeswalkers") return typeLineStr.includes("planeswalker");
-		if (key === "Instants") return typeLineStr.includes("instant");
-		if (key === "Sorceries") return typeLineStr.includes("sorcery");
-		if (key === "Artifacts") return typeLineStr.includes("artifact");
-		if (key === "Enchantments") return typeLineStr.includes("enchantment");
-		if (key === "Battles") return typeLineStr.includes("battle");
-		if (key === "Lands") {
-			const basicLandNames = ["plains", "island", "swamp", "mountain", "forest", "wastes"];
-			const isBasicLandName = basicLandNames.some(name => card.name.toLowerCase().includes(name));
-			return typeLineStr.includes("land") || isBasicLandName;
-		}
-		return false;
-	}
 </script>
 
 <svelte:window onclickcapture={handleWindowClick} />
