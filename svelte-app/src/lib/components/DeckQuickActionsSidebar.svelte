@@ -1,10 +1,12 @@
 <script>
 	import { fade, fly } from 'svelte/transition';
-	import { X, ChevronDown, ChevronRight, Image as ImageIcon, Trash2, FileText, Sparkles, Layers, DollarSign } from 'lucide-svelte';
+	import { X, ChevronDown, ChevronRight, Image as ImageIcon, Trash2, FileText, Sparkles, Layers, DollarSign, Check, Loader2, Save } from 'lucide-svelte';
 	import { deckStore } from '$lib/stores/deck.svelte.js';
 	import { interactionStore } from '$lib/stores/interaction.svelte.js';
 	import { settingsStore } from '$lib/stores/settings.svelte.js';
 	import { priceStore } from '$lib/stores/prices.svelte.js';
+	import { toastStore } from '$lib/stores/toast.svelte.js';
+	import { authStore } from '$lib/stores/auth.svelte.js';
 	import Input from '$lib/components/ui/Input.svelte';
 	import ManaSymbol from '$lib/components/ui/ManaSymbol.svelte';
 	import { ALL_FORMATS } from '$lib/constants/formats.js';
@@ -16,6 +18,10 @@
 	let isMoreFormatsVisible = $state(false);
 	let isDragOverArt = $state(false);
 	let deckImageError = $state(false);
+	let isSaving = $state(false);
+	let isSaved = $state(false);
+	/** @type {any} */
+	let savedTimer = null;
 	/** @type {any} */
 	let closeTimer = null;
 
@@ -81,7 +87,44 @@
 		return total > 0 ? `$${total.toFixed(2)}` : null;
 	});
 
+	async function handleSaveName() {
+		const currentName = (deckStore.name || '').trim();
+		if (!currentName) {
+			deckStore.name = 'Untitled Deck';
+		} else {
+			deckStore.name = currentName;
+		}
+
+		isSaving = true;
+		try {
+			await deckStore.save();
+			isSaved = true;
+			clearTimeout(savedTimer);
+			savedTimer = setTimeout(() => {
+				isSaved = false;
+			}, 3000);
+			toastStore.show("Deck saved", { type: "success", duration: 2500 });
+		} catch (err) {
+			console.error("Save error:", err);
+			toastStore.show("Failed to save deck", { type: "error" });
+		} finally {
+			isSaving = false;
+		}
+	}
+
+	/** @param {KeyboardEvent} e */
+	function handleNameKeydown(e) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			/** @type {HTMLInputElement} */ (e.currentTarget).blur();
+			handleSaveName();
+		}
+	}
+
 	function close() {
+		if (deckStore.name && deckStore.name !== 'Untitled Deck') {
+			deckStore.save().catch(console.error);
+		}
 		interactionStore.setDeckSidebarOpen(false);
 		showFormatDropdown = false;
 		isMoreFormatsVisible = false;
@@ -291,14 +334,55 @@
 
 			<!-- Deck Identity Fields -->
 			<div class="section-group">
-				<h3 class="section-title">Deck Details</h3>
+				<div class="section-title-row">
+					<h3 class="section-title">Deck Details</h3>
+					{#if isSaved}
+						<span class="save-status-badge saved" in:fade={{ duration: 150 }}>
+							<Check size={12} />
+							<span>Saved</span>
+						</span>
+					{:else if isSaving || deckStore.syncState?.isSyncing}
+						<span class="save-status-badge saving" in:fade={{ duration: 150 }}>
+							<Loader2 size={12} class="animate-spin" />
+							<span>Saving...</span>
+						</span>
+					{:else if authStore.isAuthenticated && deckStore.syncState?.lastSynced}
+						<span class="save-status-badge synced">
+							<Check size={11} />
+							<span>Synced</span>
+						</span>
+					{/if}
+				</div>
+
 				<div class="form-group">
 					<label for="deck-sidebar-name">Deck Name</label>
-					<Input 
-						id="deck-sidebar-name" 
-						bind:value={deckStore.name} 
-						placeholder="Untitled Deck"
-					/>
+					<div class="input-with-action">
+						<Input 
+							id="deck-sidebar-name" 
+							bind:value={deckStore.name} 
+							placeholder="Untitled Deck"
+							onkeydown={handleNameKeydown}
+							onblur={handleSaveName}
+						/>
+						<button 
+							type="button" 
+							class="name-save-btn" 
+							class:saved={isSaved}
+							onclick={handleSaveName}
+							disabled={isSaving}
+							title="Save Deck (Enter)"
+							aria-label="Save Deck"
+						>
+							{#if isSaving}
+								<Loader2 size={14} class="animate-spin" />
+							{:else if isSaved}
+								<Check size={14} />
+							{:else}
+								<Save size={14} />
+							{/if}
+						</button>
+					</div>
+					<span class="input-hint">Press Enter or click Save to save your changes</span>
 				</div>
 
 				<div class="form-group">
@@ -706,6 +790,43 @@
 		gap: 12px;
 	}
 
+	.section-title-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.save-status-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		font-size: 0.72rem;
+		font-weight: 600;
+		padding: 2px 8px;
+		border-radius: 9999px;
+	}
+
+	.save-status-badge.saved {
+		background: hsla(142, 70%, 45%, 0.15);
+		color: hsl(142, 70%, 45%);
+		border: 1px solid hsla(142, 70%, 45%, 0.3);
+	}
+
+	.save-status-badge.saving {
+		background: hsla(var(--primary) / 0.15);
+		color: hsl(var(--primary));
+		border: 1px solid hsla(var(--primary) / 0.3);
+	}
+
+	.save-status-badge.synced {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+		color: hsl(var(--muted-foreground));
+		font-size: 0.7rem;
+		font-weight: 500;
+	}
+
 	.section-title {
 		margin: 0;
 		font-size: 0.72rem;
@@ -725,6 +846,54 @@
 		font-size: 0.8rem;
 		font-weight: 600;
 		color: hsl(var(--foreground));
+	}
+
+	.input-with-action {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		width: 100%;
+	}
+
+	.input-with-action :global(.ui-input) {
+		flex: 1;
+	}
+
+	.name-save-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		height: 2.25rem;
+		min-width: 2.25rem;
+		padding: 0 10px;
+		background: hsl(var(--primary) / 0.15);
+		color: hsl(var(--primary));
+		border: 1px solid hsl(var(--primary) / 0.3);
+		border-radius: var(--radius);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.name-save-btn:hover:not(:disabled) {
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
+	}
+
+	.name-save-btn.saved {
+		background: hsla(142, 70%, 45%, 0.2);
+		color: hsl(142, 70%, 45%);
+		border-color: hsla(142, 70%, 45%, 0.4);
+	}
+
+	.name-save-btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.input-hint {
+		font-size: 0.72rem;
+		color: hsl(var(--muted-foreground));
+		margin-top: 1px;
 	}
 
 	/* Dropdown / Select */

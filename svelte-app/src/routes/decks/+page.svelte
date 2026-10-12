@@ -33,6 +33,8 @@
 	let decks = $state([]);
 	/** @type {any[]} */
 	let localDrafts = $state([]);
+	/** @type {any[]} */
+	let localCachedDecks = $state([]);
 	let isLoading = $state(false);
 	let error = $state("");
 	let hasLoaded = false;
@@ -96,6 +98,14 @@
 			localDrafts = JSON.parse(
 				localStorage.getItem("budgericards_local_drafts") || "[]",
 			);
+			try {
+				const cachedDecksRaw = JSON.parse(
+					localStorage.getItem("budgericards_cached_decks") || "{}",
+				);
+				localCachedDecks = Object.values(cachedDecksRaw);
+			} catch (e) {
+				localCachedDecks = [];
+			}
 			const cached = localStorage.getItem(
 				"budgericards_cached_synced_decks",
 			);
@@ -377,6 +387,17 @@
 					decks.filter((/** @type {any} */ d) => d.id !== deckId),
 				);
 			}
+
+			try {
+				const cached = JSON.parse(
+					localStorage.getItem("budgericards_cached_decks") || "{}",
+				);
+				if (cached[deckId]) {
+					delete cached[deckId];
+					localStorage.setItem("budgericards_cached_decks", JSON.stringify(cached));
+					localCachedDecks = Object.values(cached);
+				}
+			} catch (e) {}
 
 			if (selectedDeck?.id === deckId) {
 				selectedDeck = null;
@@ -989,7 +1010,20 @@
 			...d,
 			isDraft: false,
 		}));
-		return [...mappedDrafts, ...mappedDecks];
+		const existingIds = new Set([
+			...mappedDecks.map((d) => d.id),
+			...mappedDrafts.map((d) => d.id),
+		]);
+		const mappedCached = localCachedDecks
+			.filter((d) => d && d.id && !existingIds.has(d.id))
+			.map((d) => ({
+				...d,
+				isDraft: false,
+				updated_at: d.metadata?.updatedAt
+					? new Date(d.metadata.updatedAt).toISOString()
+					: new Date().toISOString(),
+			}));
+		return [...mappedDrafts, ...mappedCached, ...mappedDecks];
 	});
 
 	const availableFormats = $derived.by(() => {

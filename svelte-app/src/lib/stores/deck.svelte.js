@@ -209,6 +209,8 @@ function createDeck() {
 	/** @type {Record<string, ReturnType<typeof createDeckState>>} */
 	let loadedDecks = $state({});
 	let activeDeckId = $state('');
+	/** @type {Record<string, string>} */
+	let idAliases = {};
 
 	// Derived helper to get the active deck state
 	const activeDeck = $derived.by(() => {
@@ -480,6 +482,7 @@ function createDeck() {
 
 			if (updatedId) {
 				const oldId = deckState.deck.id;
+				idAliases[oldId] = updatedId;
 				deckState.deck.id = updatedId;
 
 				if (sessionStorage.getItem('budgericards_active_deck_id') === oldId) {
@@ -501,6 +504,19 @@ function createDeck() {
 				if (newDrafts.length !== drafts.length) {
 					localStorage.setItem('budgericards_local_drafts', JSON.stringify(newDrafts));
 				}
+			}
+
+			if (data && typeof localStorage !== 'undefined') {
+				try {
+					let cachedSynced = JSON.parse(localStorage.getItem('budgericards_cached_synced_decks') || '[]');
+					const idx = cachedSynced.findIndex(/** @param {any} d */ d => d.id === data.id);
+					if (idx !== -1) {
+						cachedSynced[idx] = data;
+					} else {
+						cachedSynced.unshift(data);
+					}
+					localStorage.setItem('budgericards_cached_synced_decks', JSON.stringify(cachedSynced));
+				} catch (e) {}
 			}
 
 			syncState.lastSynced = Date.now();
@@ -1427,8 +1443,24 @@ function createDeck() {
 		get id() { return activeDeck.deck.id; },
 		get syncState() { return syncState; },
 		async syncNow() { await triggerCloudSyncNow(activeDeck); },
+		async save() {
+			if (typeof sessionStorage !== 'undefined') {
+				sessionStorage.removeItem('budgericards_is_new_draft');
+			}
+			persist(activeDeck);
+			if (browser && authStore.isAuthenticated) {
+				await triggerCloudSyncNow(activeDeck);
+			}
+		},
 		get name() { return activeDeck.deck.name; },
-		set name(val) { saveHistory(activeDeck); activeDeck.deck.name = val; persist(activeDeck); },
+		set name(val) { 
+			if (typeof sessionStorage !== 'undefined' && val && val.trim() !== '' && val !== 'Untitled Deck') {
+				sessionStorage.removeItem('budgericards_is_new_draft');
+			}
+			saveHistory(activeDeck); 
+			activeDeck.deck.name = val; 
+			persist(activeDeck); 
+		},
 		get activeBoard() { return activeDeck.deck.activeBoard; },
 		set activeBoard(val) { 
 			activeDeck.deck.activeBoard = val; 
@@ -2208,12 +2240,13 @@ function createDeck() {
 		get canRedo() { return activeDeck.redoStack.length > 0; },
 
 		selectDeckId(id) {
-			if (!id || (activeDeckId && (activeDeckId === id || activeDeckId.startsWith(id)))) {
+			if (!id || (activeDeckId && (activeDeckId === id || activeDeckId.startsWith(id) || (idAliases[id] && (activeDeckId === idAliases[id] || activeDeckId.startsWith(idAliases[id])))))) {
 				return;
 			}
-			if (activeDeckId !== id) {
+			const resolvedId = idAliases[id] || id;
+			if (activeDeckId !== resolvedId) {
 				// Search loadedDecks for a matching prefix
-				const matchingId = Object.keys(loadedDecks).find(k => k.startsWith(id));
+				const matchingId = Object.keys(loadedDecks).find(k => k === resolvedId || k.startsWith(resolvedId));
 				if (matchingId) {
 					activeDeckId = matchingId;
 					sessionStorage.setItem('budgericards_active_deck_id', matchingId);
@@ -2223,7 +2256,7 @@ function createDeck() {
 				// Search localDrafts/cache for a matching prefix
 				if (browser) {
 					const drafts = JSON.parse(localStorage.getItem('budgericards_local_drafts') || '[]');
-					const draft = drafts.find(/** @param {any} d */ d => d.id.startsWith(id));
+					const draft = drafts.find(/** @param {any} d */ d => d.id === resolvedId || d.id.startsWith(resolvedId));
 					if (draft) {
 						activeDeckId = draft.id;
 						sessionStorage.setItem('budgericards_active_deck_id', draft.id);
@@ -2232,7 +2265,7 @@ function createDeck() {
 					}
 
 					const cached = JSON.parse(localStorage.getItem('budgericards_cached_decks') || '{}');
-					const cachedId = Object.keys(cached).find(k => k.startsWith(id));
+					const cachedId = Object.keys(cached).find(k => k === resolvedId || k.startsWith(resolvedId));
 					if (cachedId) {
 						activeDeckId = cachedId;
 						sessionStorage.setItem('budgericards_active_deck_id', cachedId);
@@ -2241,9 +2274,9 @@ function createDeck() {
 					}
 				}
 
-				sessionStorage.setItem('budgericards_active_deck_id', id);
-				activeDeckId = id;
-				loadedDecks[id] = createDeckState({ id });
+				sessionStorage.setItem('budgericards_active_deck_id', resolvedId);
+				activeDeckId = resolvedId;
+				loadedDecks[resolvedId] = createDeckState({ id: resolvedId });
 			}
 		},
 
