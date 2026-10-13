@@ -22,6 +22,7 @@
 	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { layoutStore } from "$lib/stores/layout.svelte.js";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
+	import { toastStore } from "$lib/stores/toast.svelte.js";
 	import { FORMAT_CATEGORIES } from "$lib/constants/formats.js";
 	import { syncService } from "$lib/syncService";
 	import { onMount, tick } from "svelte";
@@ -352,12 +353,26 @@
 	}
 
 	/**
+	 * Matches IDs allowing exact match or prefix match (short nanoid vs full UUID)
+	 * @param {string | null | undefined} a
+	 * @param {string | null | undefined} b
+	 */
+	function idsMatch(a, b) {
+		if (!a || !b) return false;
+		const strA = String(a).toLowerCase().trim();
+		const strB = String(b).toLowerCase().trim();
+		return strA === strB || strA.startsWith(strB) || strB.startsWith(strA);
+	}
+
+	/**
 	 * @param {string} deckId
-	 * @param {MouseEvent} e
+	 * @param {MouseEvent | Event | undefined} [e]
 	 * @param {boolean} [isDraft]
 	 */
 	async function handleDeleteDeck(deckId, e, isDraft = false) {
-		e.stopPropagation();
+		if (e && typeof e.stopPropagation === "function") {
+			e.stopPropagation();
+		}
 		if (
 			!confirm(
 				"Are you sure you want to delete this deck? This cannot be undone.",
@@ -367,55 +382,89 @@
 		}
 
 		try {
-			if (isDraft) {
+			// 1. Attempt cloud deletion if it could exist in Supabase
+			try {
+				const { error: deleteError } =
+					await syncService.deleteDeck(deckId);
+				if (deleteError) {
+					console.warn(
+						"Cloud deletion returned error (continuing local deletion):",
+						deleteError,
+					);
+				}
+			} catch (cloudErr) {
+				console.warn(
+					"Cloud deletion failed (continuing local deletion):",
+					cloudErr,
+				);
+			}
+
+			// 2. Remove from synced decks state & local synced cache
+			updateSyncedDecks(
+				decks.filter((/** @type {any} */ d) => !idsMatch(d.id, deckId)),
+			);
+
+			// 3. Remove from local drafts in state & localStorage
+			try {
 				let drafts = JSON.parse(
 					localStorage.getItem("budgericards_local_drafts") || "[]",
 				);
 				drafts = drafts.filter(
-					/** @param {any} d */ (d) => d.id !== deckId,
+					/** @param {any} d */ (d) => !idsMatch(d.id, deckId),
 				);
 				localStorage.setItem(
 					"budgericards_local_drafts",
 					JSON.stringify(drafts),
 				);
 				localDrafts = drafts;
-			} else {
-				const { error: deleteError } =
-					await syncService.deleteDeck(deckId);
-				if (deleteError) throw deleteError;
-				updateSyncedDecks(
-					decks.filter((/** @type {any} */ d) => d.id !== deckId),
-				);
+			} catch (draftErr) {
+				console.error("Failed to clean drafts in storage:", draftErr);
 			}
 
+			// 4. Remove from cached decks in state & localStorage
 			try {
 				const cached = JSON.parse(
 					localStorage.getItem("budgericards_cached_decks") || "{}",
 				);
-				if (cached[deckId]) {
-					delete cached[deckId];
-					localStorage.setItem("budgericards_cached_decks", JSON.stringify(cached));
-					localCachedDecks = Object.values(cached);
+				let changedCached = false;
+				for (const key of Object.keys(cached)) {
+					if (idsMatch(key, deckId)) {
+						delete cached[key];
+						changedCached = true;
+					}
 				}
-			} catch (e) {}
+				if (changedCached) {
+					localStorage.setItem(
+						"budgericards_cached_decks",
+						JSON.stringify(cached),
+					);
+				}
+				localCachedDecks = Object.values(cached);
+			} catch (cachedErr) {
+				console.error("Failed to clean cached decks in storage:", cachedErr);
+			}
 
-			if (selectedDeck?.id === deckId) {
+			// 5. Remove from active deck session storage if matching
+			if (typeof sessionStorage !== "undefined") {
+				const activeId = sessionStorage.getItem(
+					"budgericards_active_deck_id",
+				);
+				if (idsMatch(activeId, deckId)) {
+					sessionStorage.removeItem("budgericards_active_deck_id");
+				}
+			}
+
+			// 6. Reset selectedDeck if matching
+			if (selectedDeck && idsMatch(selectedDeck.id, deckId)) {
 				selectedDeck = null;
 			}
 
-			if (deckStore.id === deckId) {
-				deckStore.setDeck({
-					id: "",
-					name: "",
-					commander: [],
-					companion: [],
-					mainboard: [],
-					sideboard: [],
-					maybeboard: [],
-					garbage: [],
-					coverArt: null,
-				});
+			// 7. Reset deckStore if currently loaded
+			if (idsMatch(deckStore.id, deckId)) {
+				deckStore.clearMetadataAndCards();
 			}
+
+			toastStore.show("Deck deleted", { type: "info" });
 		} catch (err) {
 			console.error("Failed to delete deck:", err);
 			alert("Failed to delete deck. Please try again.");
@@ -766,8 +815,8 @@
 			{
 				label: deck.isDraft ? "Delete Draft" : "Delete Deck",
 				danger: true,
-				action: (/** @type {any} */ event) =>
-					handleDeleteDeck(deck.id, event, deck.isDraft),
+				action: () =>
+					handleDeleteDeck(deck.id, undefined, deck.isDraft),
 			},
 		);
 
@@ -999,23 +1048,36 @@
 	}
 
 	const allDecks = $derived.by(() => {
-		const mappedDrafts = localDrafts.map((d) => ({
-			...d,
-			isDraft: true,
-			updated_at: d.metadata?.updatedAt
-				? new Date(d.metadata.updatedAt).toISOString()
-				: new Date().toISOString(),
-		}));
 		const mappedDecks = decks.map((d) => ({
 			...d,
 			isDraft: false,
 		}));
-		const existingIds = new Set([
-			...mappedDecks.map((d) => d.id),
-			...mappedDrafts.map((d) => d.id),
-		]);
+
+		// Filter out local drafts that already match a synced deck (exact or prefix match)
+		const mappedDrafts = localDrafts
+			.filter(
+				(draft) =>
+					draft &&
+					draft.id &&
+					!mappedDecks.some((synced) => idsMatch(synced.id, draft.id)),
+			)
+			.map((d) => ({
+				...d,
+				isDraft: true,
+				updated_at: d.metadata?.updatedAt
+					? new Date(d.metadata.updatedAt).toISOString()
+					: new Date().toISOString(),
+			}));
+
+		// Filter out cached decks that already match a synced deck or a draft
 		const mappedCached = localCachedDecks
-			.filter((d) => d && d.id && !existingIds.has(d.id))
+			.filter(
+				(c) =>
+					c &&
+					c.id &&
+					!mappedDecks.some((s) => idsMatch(s.id, c.id)) &&
+					!mappedDrafts.some((d) => idsMatch(d.id, c.id)),
+			)
 			.map((d) => ({
 				...d,
 				isDraft: false,
@@ -1023,6 +1085,7 @@
 					? new Date(d.metadata.updatedAt).toISOString()
 					: new Date().toISOString(),
 			}));
+
 		return [...mappedDrafts, ...mappedCached, ...mappedDecks];
 	});
 

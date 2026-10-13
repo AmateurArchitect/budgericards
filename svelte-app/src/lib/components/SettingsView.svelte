@@ -13,18 +13,42 @@
 
 		const id = deckStore.id;
 
+		const matchesId = (/** @type {any} */ otherId) => {
+			if (!otherId || !id) return false;
+			const a = String(otherId).toLowerCase().trim();
+			const b = String(id).toLowerCase().trim();
+			return a === b || a.startsWith(b) || b.startsWith(a);
+		};
+
 		// 1. Delete from local drafts
-		let drafts = JSON.parse(localStorage.getItem("budgericards_local_drafts") || "[]");
-		drafts = drafts.filter(/** @param {any} d */ d => d.id !== id);
-		localStorage.setItem("budgericards_local_drafts", JSON.stringify(drafts));
+		try {
+			let drafts = JSON.parse(localStorage.getItem("budgericards_local_drafts") || "[]");
+			drafts = drafts.filter(/** @param {any} d */ (d) => !matchesId(d.id));
+			localStorage.setItem("budgericards_local_drafts", JSON.stringify(drafts));
+		} catch (e) {}
 
 		// 2. Delete from cached decks
-		const cached = JSON.parse(localStorage.getItem("budgericards_cached_decks") || "{}");
-		delete cached[id];
-		localStorage.setItem("budgericards_cached_decks", JSON.stringify(cached));
+		try {
+			const cached = JSON.parse(localStorage.getItem("budgericards_cached_decks") || "{}");
+			for (const k of Object.keys(cached)) {
+				if (matchesId(k)) delete cached[k];
+			}
+			localStorage.setItem("budgericards_cached_decks", JSON.stringify(cached));
+		} catch (e) {}
 
-		// 3. Delete from Supabase cloud
-		await syncService.deleteDeck(id);
+		// 3. Delete from synced cache
+		try {
+			let synced = JSON.parse(localStorage.getItem("budgericards_cached_synced_decks") || "[]");
+			synced = synced.filter(/** @param {any} d */ (d) => !matchesId(d.id));
+			localStorage.setItem("budgericards_cached_synced_decks", JSON.stringify(synced));
+		} catch (e) {}
+
+		// 4. Delete from Supabase cloud
+		try {
+			await syncService.deleteDeck(id);
+		} catch (e) {
+			console.warn("Failed to delete from cloud:", e);
+		}
 
 		// Clear active deck state
 		deckStore.clearMetadataAndCards();
