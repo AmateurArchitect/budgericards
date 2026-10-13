@@ -28,7 +28,6 @@
 	import SearchOptionsModal from "./SearchOptionsModal.svelte";
 	import ViewOptionsModal from "./ViewOptionsModal.svelte";
 	import DisplayNamePromptModal from "./DisplayNamePromptModal.svelte";
-	import ConfirmModal from "./ConfirmModal.svelte";
 	import MultiSortModal from "./MultiSortModal.svelte";
 
 	let showCollectionDropdown = $state(false);
@@ -896,7 +895,6 @@
 
 <ViewOptionsModal bind:isOpen={showViewOptionsModal} triggerElement={null} />
 <DisplayNamePromptModal />
-<ConfirmModal />
 
 {#if showAboutModal}
 	<div

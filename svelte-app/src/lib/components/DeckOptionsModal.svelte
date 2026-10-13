@@ -7,6 +7,7 @@
 	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { syncService } from '$lib/syncService';
+	import { confirmStore } from '$lib/stores/confirm.svelte.js';
 
 	/** @type {{ isOpen: boolean, fallbackArt: string | null, triggerElement: HTMLElement | null }} */
 	let { isOpen = $bindable(false), fallbackArt = null, triggerElement = null } = $props();
@@ -130,7 +131,15 @@
 	}
 
 	async function handleDelete() {
-		if (!confirm("Are you sure you want to delete this deck? This cannot be undone.")) {
+		const deckName = deckStore.name ? ` "${deckStore.name}"` : " this deck";
+		const confirmed = await confirmStore.show({
+			title: "Delete Deck",
+			message: `Are you sure you want to delete${deckName}? This cannot be undone.`,
+			confirmText: "Delete",
+			cancelText: "Cancel",
+			variant: "destructive"
+		});
+		if (!confirmed) {
 			return;
 		}
 

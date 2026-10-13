@@ -1,5 +1,6 @@
 <script>
 	import { fade, scale } from "svelte/transition";
+	import { Trash2, AlertTriangle, X } from "lucide-svelte";
 	import { confirmStore } from "$lib/stores/confirm.svelte.js";
 	import Button from "./ui/Button.svelte";
 
@@ -20,6 +21,10 @@
 			e.preventDefault();
 			confirmStore.cancel();
 		} else if (e.key === "Enter") {
+			const active = document.activeElement;
+			if (active && active.tagName === "BUTTON" && active.classList.contains("cancel-btn")) {
+				return;
+			}
 			e.preventDefault();
 			confirmStore.confirm();
 		}
@@ -34,21 +39,44 @@
 			class="modal-backdrop"
 			role="presentation"
 			onclick={() => confirmStore.cancel()}
-			in:fade={{ duration: 200 }}
-			out:fade={{ duration: 150 }}
+			in:fade={{ duration: 180 }}
+			out:fade={{ duration: 140 }}
 		></div>
 
 		<div
 			class="modal-content"
+			class:is-destructive={confirmStore.variant === "destructive"}
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="confirm-title"
 			tabindex="-1"
-			in:scale={{ duration: 200, start: 0.96 }}
-			out:scale={{ duration: 150, start: 0.96 }}
+			in:scale={{ duration: 180, start: 0.95 }}
+			out:scale={{ duration: 140, start: 0.95 }}
 		>
+			<button
+				class="close-btn"
+				onclick={() => confirmStore.cancel()}
+				aria-label="Close dialog"
+			>
+				<X size={15} />
+			</button>
+
 			<div class="modal-body">
-				<h2 id="confirm-title">{confirmStore.title}</h2>
+				<div class="modal-header">
+					{#if confirmStore.variant === "destructive"}
+						<div class="icon-badge destructive">
+							<Trash2 size={18} />
+						</div>
+					{:else}
+						<div class="icon-badge default">
+							<AlertTriangle size={18} />
+						</div>
+					{/if}
+					<div class="header-text">
+						<h2 id="confirm-title">{confirmStore.title}</h2>
+					</div>
+				</div>
+
 				<p class="message">{confirmStore.message}</p>
 
 				{#if confirmStore.list.length > 0}
@@ -62,15 +90,37 @@
 					</ul>
 				{/if}
 
-				<p class="prompt">Would you like to save the rest of the deck?</p>
+				{#if confirmStore.prompt}
+					<p class="prompt">{confirmStore.prompt}</p>
+				{/if}
 
 				<div class="actions">
-					<Button variant="outline" onclick={() => confirmStore.cancel()}>
-						Cancel
+					<Button
+						variant="outline"
+						size="sm"
+						onclick={() => confirmStore.cancel()}
+						class="cancel-btn"
+					>
+						{confirmStore.cancelText}
 					</Button>
-					<Button variant="default" onclick={() => confirmStore.confirm()} class="confirm-btn">
-						OK
-					</Button>
+
+					{#if confirmStore.variant === "destructive"}
+						<button
+							class="confirm-btn destructive"
+							onclick={() => confirmStore.confirm()}
+						>
+							{confirmStore.confirmText}
+						</button>
+					{:else}
+						<Button
+							variant="default"
+							size="sm"
+							onclick={() => confirmStore.confirm()}
+							class="confirm-btn default"
+						>
+							{confirmStore.confirmText}
+						</Button>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -96,42 +146,111 @@
 		left: 0;
 		width: 100%;
 		height: 100%;
-		background: rgba(0, 0, 0, 0.65);
-		backdrop-filter: blur(10px);
+		background: rgba(0, 0, 0, 0.72);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
 	}
 
 	.modal-content {
 		position: relative;
-		background: hsl(var(--popover) / 0.95);
-		backdrop-filter: blur(24px);
-		border: 1px solid hsl(var(--border) / 0.6);
+		background: hsl(var(--popover) / 0.96);
+		backdrop-filter: blur(28px);
+		-webkit-backdrop-filter: blur(28px);
+		border: 1px solid hsl(var(--border) / 0.65);
 		border-radius: var(--radius-lg);
 		width: 90%;
-		max-width: 440px;
+		max-width: 420px;
 		box-shadow: 
-			0 40px 80px rgba(0, 0, 0, 0.7),
-			0 0 0 1px hsl(var(--border) / 0.3);
+			0 30px 60px -15px rgba(0, 0, 0, 0.8),
+			0 0 0 1px hsl(var(--border) / 0.25);
 		outline: none;
 		overflow: hidden;
+		animation: modal-enter 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	.modal-content.is-destructive {
+		border-top: 1px solid rgba(239, 68, 68, 0.4);
+		box-shadow:
+			0 30px 60px -15px rgba(0, 0, 0, 0.85),
+			0 0 35px -10px rgba(220, 38, 38, 0.18),
+			0 0 0 1px hsl(var(--border) / 0.3);
+	}
+
+	.close-btn {
+		position: absolute;
+		top: 1rem;
+		right: 1rem;
+		width: 28px;
+		height: 28px;
+		border-radius: var(--radius-sm);
+		border: none;
+		background: transparent;
+		color: hsl(var(--muted-foreground));
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		transition: background-color 0.15s, color 0.15s;
+		z-index: 2;
+	}
+
+	.close-btn:hover {
+		background: hsla(0, 0%, 100%, 0.08);
+		color: hsl(var(--foreground));
 	}
 
 	.modal-body {
-		padding: 1.75rem;
+		padding: 1.5rem;
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 0.875rem;
+	}
+
+	.modal-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding-right: 1.5rem;
+	}
+
+	.icon-badge {
+		width: 36px;
+		height: 36px;
+		border-radius: var(--radius-md);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+
+	.icon-badge.destructive {
+		background: rgba(220, 38, 38, 0.14);
+		color: #ef4444;
+		border: 1px solid rgba(220, 38, 38, 0.25);
+	}
+
+	.icon-badge.default {
+		background: hsl(var(--primary) / 0.12);
+		color: hsl(var(--primary-light));
+		border: 1px solid hsl(var(--primary) / 0.25);
+	}
+
+	.header-text {
+		display: flex;
+		flex-direction: column;
 	}
 
 	h2 {
 		font-family: var(--font-sans), sans-serif;
-		font-size: 1.25rem;
+		font-size: 1.15rem;
 		font-weight: 600;
+		letter-spacing: -0.01em;
 		margin: 0;
 		color: #ffffff;
 	}
 
 	.message {
-		font-size: 0.9rem;
+		font-size: 0.875rem;
 		color: hsl(var(--muted-foreground));
 		line-height: 1.5;
 		margin: 0;
@@ -165,29 +284,64 @@
 	}
 
 	.prompt {
-		font-size: 0.9rem;
+		font-size: 0.875rem;
 		color: hsl(var(--foreground));
 		font-weight: 500;
-		margin: 0.25rem 0 0.5rem 0;
+		margin: 0.15rem 0 0.25rem 0;
 	}
 
 	.actions {
 		display: flex;
 		justify-content: flex-end;
-		gap: 0.75rem;
+		align-items: center;
+		gap: 0.625rem;
 		width: 100%;
+		margin-top: 0.5rem;
 	}
 
 	:global(.actions button) {
-		min-width: 80px;
+		min-width: 76px;
 	}
 
-	:global(.actions .confirm-btn) {
-		background-color: hsl(var(--primary)) !important;
+	.confirm-btn.destructive {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		height: 2rem;
+		padding: 0 1rem;
+		border-radius: var(--radius);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		font-family: inherit;
+		border: 1px solid rgba(239, 68, 68, 0.4);
+		background: #dc2626;
+		color: #ffffff;
+		cursor: pointer;
+		transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.08s;
+		box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35);
+		outline: none;
+	}
+
+	.confirm-btn.destructive:hover {
+		background: #b91c1c;
+		border-color: rgba(239, 68, 68, 0.6);
+		box-shadow: 0 4px 12px rgba(220, 38, 38, 0.5);
+	}
+
+	.confirm-btn.destructive:active {
+		transform: scale(0.98);
+	}
+
+	.confirm-btn.destructive:focus-visible {
+		box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px rgba(239, 68, 68, 0.5);
+	}
+
+	:global(.actions .confirm-btn.default) {
+		background-color: hsl(var(--primary-dark)) !important;
 		color: white !important;
 	}
 
-	:global(.actions .confirm-btn:hover) {
-		background-color: hsl(var(--primary-dark)) !important;
+	:global(.actions .confirm-btn.default:hover) {
+		background-color: hsl(var(--primary)) !important;
 	}
 </style>

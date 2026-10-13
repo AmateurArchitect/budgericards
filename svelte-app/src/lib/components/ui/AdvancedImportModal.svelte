@@ -5,6 +5,7 @@
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { priceStore } from "$lib/stores/prices.svelte.js";
 	import { toastStore } from "$lib/stores/toast.svelte.js";
+	import { confirmStore } from "$lib/stores/confirm.svelte.js";
 	import { parseDecklist } from "$lib/utils/decklistParser.js";
 	import { getCardByName } from "$lib/localSearch";
 	import { fetchCollection, scryfallFetch } from "$lib/api/scryfall.js";
@@ -410,8 +411,14 @@
 		const currentDeckSize = (deckStore.mainboard?.length || 0) + (deckStore.sideboard?.length || 0) + (deckStore.maybeboard?.length || 0) + (deckStore.commander?.length || 0);
 		if (importableQuantity >= 150 || (currentDeckSize > 0 && importableQuantity > 60)) {
 			const deckName = deckStore.name || "this deck";
-			const msg = `You are about to import ${importableQuantity} cards into "${deckName}" (${currentDeckSize} cards currently in deck).\n\nAre you sure you want to proceed?`;
-			if (!confirm(msg)) {
+			const confirmed = await confirmStore.show({
+				title: "Large Import Warning",
+				message: `You are about to import ${importableQuantity} cards into "${deckName}" (${currentDeckSize} cards currently in deck). Are you sure you want to proceed?`,
+				confirmText: "Proceed",
+				cancelText: "Cancel",
+				variant: "default"
+			});
+			if (!confirmed) {
 				return;
 			}
 		}

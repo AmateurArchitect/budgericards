@@ -23,6 +23,7 @@
 	import { layoutStore } from "$lib/stores/layout.svelte.js";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { toastStore } from "$lib/stores/toast.svelte.js";
+	import { confirmStore } from "$lib/stores/confirm.svelte.js";
 	import { FORMAT_CATEGORIES } from "$lib/constants/formats.js";
 	import { syncService } from "$lib/syncService";
 	import { onMount, tick } from "svelte";
@@ -373,11 +374,20 @@
 		if (e && typeof e.stopPropagation === "function") {
 			e.stopPropagation();
 		}
-		if (
-			!confirm(
-				"Are you sure you want to delete this deck? This cannot be undone.",
-			)
-		) {
+		const targetDeck =
+			decks.find((d) => d.id === deckId) ||
+			localDrafts.find((d) => d.id === deckId) ||
+			localCachedDecks.find((d) => d.id === deckId);
+		const deckName = targetDeck?.name ? ` "${targetDeck.name}"` : " this deck";
+
+		const confirmed = await confirmStore.show({
+			title: "Delete Deck",
+			message: `Are you sure you want to delete${deckName}? This cannot be undone.`,
+			confirmText: "Delete",
+			cancelText: "Cancel",
+			variant: "destructive"
+		});
+		if (!confirmed) {
 			return;
 		}
 

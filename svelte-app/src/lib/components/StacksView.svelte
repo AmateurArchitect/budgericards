@@ -7,6 +7,7 @@
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { layoutStore } from "$lib/stores/layout.svelte.js";
+	import { confirmStore } from "$lib/stores/confirm.svelte.js";
 	import {
 		createStacksEngine,
 		getStackCount,
@@ -27,7 +28,7 @@
 	const ENTRY_ANIM_DURATION = 200; // ms (normally 200)
 	const ENTRY_STAGGER_DELAY = 20;  // ms (normally 20)
 
-	function generateTagsFromCurrentStacks() {
+	async function generateTagsFromCurrentStacks() {
 		const cardsToUpdate = [];
 		let hasAnyExistingTags = false;
 
@@ -70,9 +71,13 @@
 
 		let overwrite = false;
 		if (hasAnyExistingTags) {
-			overwrite = confirm(
-				"Some cards already have tags. Do you want to overwrite existing tags? (Cancel will append the new tags instead)",
-			);
+			overwrite = await confirmStore.show({
+				title: "Overwrite Existing Tags?",
+				message: "Some cards already have tags. Do you want to overwrite existing tags or append the new tags?",
+				confirmText: "Overwrite",
+				cancelText: "Append",
+				variant: "default"
+			});
 		}
 
 		for (const item of cardsToUpdate) {

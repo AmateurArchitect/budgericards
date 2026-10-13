@@ -3,11 +3,20 @@
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { syncService } from "$lib/syncService";
 	import { ALL_FORMATS } from "$lib/constants/formats.js";
+	import { confirmStore } from "$lib/stores/confirm.svelte.js";
 
 	const formats = ALL_FORMATS;
 
 	async function handleDelete() {
-		if (!confirm("Are you sure you want to delete this deck? This cannot be undone.")) {
+		const deckName = deckStore.name ? ` "${deckStore.name}"` : " this deck";
+		const confirmed = await confirmStore.show({
+			title: "Delete Deck",
+			message: `Are you sure you want to delete${deckName}? This cannot be undone.`,
+			confirmText: "Delete",
+			cancelText: "Cancel",
+			variant: "destructive"
+		});
+		if (!confirmed) {
 			return;
 		}
 

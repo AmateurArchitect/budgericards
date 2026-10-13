@@ -1,6 +1,7 @@
 <script>
 	import { fade, fly } from "svelte/transition";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
+	import { confirmStore } from "$lib/stores/confirm.svelte.js";
 	import { X, Trash2, CheckSquare, Square } from "lucide-svelte";
 	import { onMount } from "svelte";
 
@@ -110,8 +111,15 @@
 		selectedIds = [];
 	}
 
-	function purgeAll() {
-		if (confirm("Are you sure you want to completely purge your maybeboard?")) {
+	async function purgeAll() {
+		const confirmed = await confirmStore.show({
+			title: "Purge Maybeboard",
+			message: "Are you sure you want to completely purge your maybeboard? This cannot be undone.",
+			confirmText: "Purge",
+			cancelText: "Cancel",
+			variant: "destructive"
+		});
+		if (confirmed) {
 			deckStore.clearMetadataAndCards; // Wait, we just want to clear maybeboard
 			deckStore.batchUpdate(() => {
 				const cards = [...deckStore.maybeboard];

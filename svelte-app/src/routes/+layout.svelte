@@ -16,6 +16,7 @@
 	import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
 	import BulkTagsModal from '$lib/components/ui/BulkTagsModal.svelte';
 	import AdvancedImportModal from '$lib/components/ui/AdvancedImportModal.svelte';
+	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import { syncManager } from '$lib/syncManager.svelte';
 	import { loginBgStore } from '$lib/stores/loginBg.svelte.js';
 	import { page } from '$app/stores';
@@ -203,6 +204,7 @@
 	<BulkTagsModal />
 	<AdvancedImportModal />
 	<ToastContainer />
+	<ConfirmModal />
 </div>
 
 <style>
