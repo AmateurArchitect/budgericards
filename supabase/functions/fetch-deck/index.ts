@@ -1,6 +1,6 @@
 // Follow this setup guide to integrate the Supabase Edge Function:
 // https://supabase.com/docs/guides/functions
-
+// @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {

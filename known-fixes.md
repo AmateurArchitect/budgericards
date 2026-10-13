@@ -62,3 +62,8 @@ Living list of solutions to code errors.
 - **Error Signature:** `Property 'cards' does not exist on type ...` or `Property 'activeDeck' does not exist on type ...` when querying deck metadata from `deckStore`.
 - **Fix Pattern:** Access the active deck name directly via `deckStore.name`, and card arrays via their board getters: `deckStore.mainboard`, `deckStore.sideboard`, `deckStore.maybeboard`, `deckStore.commander` (or `deckStore.currentBoardCards`).
 - **Logic:** `deckStore` encapsulates active deck state and exposes direct top-level getters (`name`, `format`, `mainboard`, etc.) rather than an `.activeDeck` wrapper or a flat `.cards` array.
+
+## Supabase Edge Function Deno URL Imports
+- **Error Signature:** `Cannot find module 'https://deno.land/...' or its corresponding type declarations.`
+- **Fix Pattern:** Place `// @ts-ignore` directly above the `https://` module import in the Edge Function file (e.g. `supabase/functions/*/index.ts`).
+- **Logic:** Supabase Edge Functions run in the Deno runtime where HTTPS imports are resolved natively at runtime. In workspaces configured for standard Node/web TypeScript without Deno language tooling active, TypeScript compiler checks flag remote URL imports as non-existent local modules. Adding `// @ts-ignore` suppresses the language server error without affecting Deno's runtime execution.
