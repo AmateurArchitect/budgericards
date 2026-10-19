@@ -216,17 +216,38 @@
 
 	/**
 	 * @param {string} tag
+	 * @param {boolean} [focusInput=true]
 	 */
-	function addTag(tag) {
-		const trimmed = (tag || "").trim();
-		if (!trimmed) return;
-		if (!selectedTags.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
-			selectedTags = [...selectedTags, trimmed];
+	function addTag(tag, focusInput = true) {
+		const raw = (tag || "").trim();
+		if (!raw) return;
+		const tagsToAdd = raw.includes(",")
+			? raw.split(",").map(t => t.trim()).filter(Boolean)
+			: [raw];
+
+		let updated = [...selectedTags];
+		for (const t of tagsToAdd) {
+			if (!updated.some(existing => existing.toLowerCase() === t.toLowerCase())) {
+				updated.push(t);
+			}
 		}
+		selectedTags = updated;
 		tagInputValue = "";
 		isTagSuggestionsOpen = false;
 		activeSuggestionIdx = -1;
-		if (tagInputEl) tagInputEl.focus();
+		if (focusInput && tagInputEl) tagInputEl.focus();
+	}
+
+	/**
+	 * Commits whatever is currently in the tag text field (or highlighted suggestion)
+	 * @param {boolean} [focusInput=false]
+	 */
+	function commitCurrentTagInput(focusInput = false) {
+		if (isTagSuggestionsOpen && activeSuggestionIdx >= 0 && filteredTagSuggestions[activeSuggestionIdx]) {
+			addTag(filteredTagSuggestions[activeSuggestionIdx], focusInput);
+		} else if (tagInputValue.trim()) {
+			addTag(tagInputValue, focusInput);
+		}
 	}
 
 	/**
@@ -242,19 +263,11 @@
 	function handleTagInputKeydown(e) {
 		if (e.key === "Enter") {
 			e.preventDefault();
-			if (isTagSuggestionsOpen && activeSuggestionIdx >= 0 && filteredTagSuggestions[activeSuggestionIdx]) {
-				addTag(filteredTagSuggestions[activeSuggestionIdx]);
-			} else if (tagInputValue.trim()) {
-				addTag(tagInputValue);
-			}
+			commitCurrentTagInput(true);
 		} else if (e.key === "," || e.key === "Tab") {
 			if (tagInputValue.trim()) {
 				e.preventDefault();
-				if (isTagSuggestionsOpen && activeSuggestionIdx >= 0 && filteredTagSuggestions[activeSuggestionIdx]) {
-					addTag(filteredTagSuggestions[activeSuggestionIdx]);
-				} else {
-					addTag(tagInputValue);
-				}
+				commitCurrentTagInput(true);
 			}
 		} else if (e.key === "ArrowDown") {
 			if (filteredTagSuggestions.length > 0) {
@@ -271,10 +284,23 @@
 				activeSuggestionIdx = (activeSuggestionIdx - 1 + filteredTagSuggestions.length) % filteredTagSuggestions.length;
 			}
 		} else if (e.key === "Escape") {
-			isTagSuggestionsOpen = false;
+			if (isTagSuggestionsOpen) {
+				e.stopPropagation();
+				isTagSuggestionsOpen = false;
+			} else if (tagInputValue.trim()) {
+				e.stopPropagation();
+				tagInputValue = "";
+			}
 		} else if (e.key === "Backspace" && !tagInputValue && selectedTags.length > 0) {
 			selectedTags = selectedTags.slice(0, -1);
 		}
+	}
+
+	function handleTagInputBlur() {
+		setTimeout(() => {
+			isTagSuggestionsOpen = false;
+			commitCurrentTagInput(false);
+		}, 180);
 	}
 
 	// Cards currently in the target board
@@ -402,6 +428,9 @@
 	}
 
 	async function handleImport() {
+		// Auto-apply tag input text if user hasn't pressed enter
+		commitCurrentTagInput(false);
+
 		if (importableCards.length === 0) {
 			toastStore.show("No recognized cards to import", { type: "error" });
 			return;
@@ -550,7 +579,7 @@
 					const resolved = resolutionCache.get(card.name.toLowerCase());
 					const price = resolved?.price ?? 0;
 					const metadata = resolved?.metadata ?? (card.set ? { set: card.set.toLowerCase(), collector_number: card.collector_number } : null);
-					const cardTags = card.effectiveTags && card.effectiveTags.length > 0 ? card.effectiveTags : selectedTags;
+					const cardTags = [...new Set([...(card.effectiveTags || []), ...selectedTags])];
 
 					if (targetBoard === "maybeboard") {
 						deckStore.addCard(card.name, "maybeboard", price, metadata, cardTags);
@@ -936,11 +965,7 @@
 											onfocus={() => {
 												if (availableDeckTags.length > 0) isTagSuggestionsOpen = true;
 											}}
-											onblur={() => {
-												setTimeout(() => {
-													isTagSuggestionsOpen = false;
-												}, 180);
-											}}
+											onblur={handleTagInputBlur}
 											onkeydown={handleTagInputKeydown}
 											disabled={isProcessing}
 											autocomplete="off"
@@ -954,7 +979,8 @@
 										<button
 											type="button"
 											class="add-tag-btn"
-											onclick={() => addTag(tagInputValue)}
+											onmousedown={(e) => e.preventDefault()}
+											onclick={() => commitCurrentTagInput(true)}
 											disabled={isProcessing}
 											title="Add tag"
 											aria-label="Add tag"
