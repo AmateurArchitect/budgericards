@@ -47,6 +47,17 @@
 		return () => clearInterval(interval);
 	});
 
+	$effect(() => {
+		if (searchStore.isOpen) {
+			setTimeout(() => {
+				const inputEl =
+					document.querySelector(".panel-search-input input") ||
+					document.querySelector(".panel-search-input");
+				/** @type {HTMLElement | null} */ (inputEl)?.focus();
+			}, 60);
+		}
+	});
+
 	const collections = [
 		{ id: "scryfall", label: "All Cards (Scryfall)" },
 		{ divider: true },
@@ -670,6 +681,7 @@
 	.search-panel.is-docked.pos-left {
 		width: 380px;
 		height: 100%;
+		max-height: 100%;
 		border-right: 1px solid rgba(255, 255, 255, 0.1);
 		flex-shrink: 0;
 	}
@@ -690,10 +702,13 @@
 	}
 
 	.search-panel.is-floating.pos-below {
-		bottom: 4.8rem;
+		bottom: 0;
 		left: 1.5rem;
 		right: 1.5rem;
 		max-height: 48vh;
+		border-bottom-left-radius: 0;
+		border-bottom-right-radius: 0;
+		border-bottom: none;
 	}
 
 	.search-panel.is-floating.pos-above {
@@ -705,10 +720,13 @@
 
 	.search-panel.is-floating.pos-left {
 		top: 3.5rem;
-		bottom: 4.8rem;
+		bottom: 0;
 		left: 1.5rem;
 		width: 380px;
 		max-width: calc(100vw - 3rem);
+		border-bottom-left-radius: 0;
+		border-bottom-right-radius: 0;
+		border-bottom: none;
 	}
 
 	.panel-inner-container {

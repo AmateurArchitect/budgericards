@@ -178,7 +178,7 @@
 	style={Object.entries(layoutStore.cssVariables).map(([k, v]) => `${k}: ${v}`).join("; ")}
 >
 	{#if $page.url.pathname !== '/login' && !$page.url.pathname.startsWith('/auth')}
-		<div class="app-shell-main" class:top-nav-hidden={!layoutStore.isTopNavVisible}>
+		<div class="app-shell-main" class:top-nav-hidden={!layoutStore.isTopNavVisible} class:top-nav-autohide={settingsStore.autoHideDeckbuilderNav}>
 			<Header />
 			<div class="app-content-wrapper">
 				{@render children()}

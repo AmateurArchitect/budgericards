@@ -72,7 +72,7 @@
 	});
 
 	$effect(() => {
-		if (searchStore.isOpen) {
+		if (searchStore.isOpen && !isDeckPage) {
 			setTimeout(() => {
 				const inputEl =
 					document.querySelector(".header-search-input input") ||
@@ -100,7 +100,7 @@
 
 	const isHeaderRevealed = $derived(
 		!isAutoHideActive ||
-		searchStore.isOpen ||
+		(!isDeckPage && searchStore.isOpen) ||
 		isNearTop ||
 		isHeaderHovered ||
 		isFocusedWithin ||
@@ -234,7 +234,7 @@
 
 	/** @param {MouseEvent} e */
 	function handleWindowMouseMove(e) {
-		if (!isAutoHideActive || searchStore.isOpen) return;
+		if (!isAutoHideActive || (!isDeckPage && searchStore.isOpen)) return;
 
 		// 1. Hovering near the top edge triggers reveal with 50ms hover-intent delay
 		if (e.clientY <= 16) {
@@ -465,7 +465,9 @@
 				searchStore.openSearch();
 				setTimeout(() => {
 					const inputEl =
+						document.querySelector(".panel-search-input input") ||
 						document.querySelector(".header-search-input input") ||
+						document.querySelector(".panel-search-input") ||
 						document.querySelector(".header-search-input");
 					/** @type {HTMLElement | null} */ (inputEl)?.focus();
 				}, 50);
@@ -481,7 +483,9 @@
 			}
 			setTimeout(() => {
 				const inputEl =
+					document.querySelector(".panel-search-input input") ||
 					document.querySelector(".header-search-input input") ||
+					document.querySelector(".panel-search-input") ||
 					document.querySelector(".header-search-input");
 				/** @type {HTMLElement | null} */ (inputEl)?.focus();
 			}, 50);
@@ -502,7 +506,7 @@
 	onresize={updateDeckHeaderBottom}
 />
 
-{#if isAutoHideActive && !searchStore.isOpen}
+{#if isAutoHideActive}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="top-nav-trigger-zone"
@@ -517,7 +521,7 @@
 <header
 	class="global-header-bar"
 	class:on-deck-page={isDeckPage}
-	class:is-auto-hide={isAutoHideActive && !searchStore.isOpen}
+	class:is-auto-hide={isAutoHideActive}
 	class:is-revealed={isHeaderRevealed}
 	onmouseenter={handleHeaderMouseEnter}
 	onmouseleave={handleHeaderMouseLeave}

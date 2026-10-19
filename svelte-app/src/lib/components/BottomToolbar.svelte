@@ -15,7 +15,9 @@
 			searchStore.openSearch();
 			setTimeout(() => {
 				const inputEl =
+					document.querySelector(".panel-search-input input") ||
 					document.querySelector(".search-panel-input input") ||
+					document.querySelector(".panel-search-input") ||
 					document.querySelector(".header-search-input input");
 				/** @type {HTMLElement | null} */ (inputEl)?.focus();
 			}, 60);
@@ -108,7 +110,7 @@
 		bottom: 1.25rem;
 		left: 50%;
 		transform: translateX(-50%);
-		z-index: 1000;
+		z-index: 1100;
 		pointer-events: auto;
 		user-select: none;
 	}

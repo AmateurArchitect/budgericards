@@ -505,7 +505,7 @@
 		text-align: center;
 	}
 
-	:global(.app-shell-main:not(.top-nav-hidden)) .deck-area {
+	:global(.app-shell-main.top-nav-autohide:not(.top-nav-hidden)) .deck-area {
 		transform: translateY(48px);
 	}
 
