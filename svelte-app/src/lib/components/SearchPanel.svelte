@@ -236,6 +236,7 @@
 	}
 
 	const isExpanded = $derived(searchStore.isOpen);
+	const isSideLayout = $derived(searchStore.panelPosition === 'left');
 
 	/** @param {Event} e */
 	function handleScroll(e) {
@@ -326,10 +327,9 @@
 
 	{#if isExpanded}
 		<div class="panel-inner-container">
-			<!-- Panel Integrated Control Bar -->
-			<div class="panel-header-bar">
-				<!-- Search Input Group -->
-				<div class="search-input-pill">
+			<!-- Reusable Header Component Snippets -->
+			{#snippet searchInput(isFullWidth = false)}
+				<div class="search-input-pill" class:full-width={isFullWidth}>
 					<Search size={14} class="search-bar-icon" />
 					<Input
 						class="panel-search-input"
@@ -380,8 +380,9 @@
 						</a>
 					{/if}
 				</div>
+			{/snippet}
 
-				<!-- Collection Selector Dropdown -->
+			{#snippet collectionPicker()}
 				<div class="collection-picker-container">
 					<button
 						type="button"
@@ -416,7 +417,9 @@
 						</div>
 					{/if}
 				</div>
+			{/snippet}
 
+			{#snippet headerActions()}
 				<!-- Sort Button -->
 				<button
 					type="button"
@@ -454,7 +457,7 @@
 						aria-label="Position above deck area"
 						title="Position above deck area"
 					>
-						<PanelTop size={14} />
+						<PanelTop size={13} />
 					</button>
 
 					<button
@@ -465,7 +468,7 @@
 						aria-label="Position below deck area"
 						title="Position below deck area"
 					>
-						<PanelBottom size={14} />
+						<PanelBottom size={13} />
 					</button>
 
 					<button
@@ -476,7 +479,7 @@
 						aria-label="Position to the left (vertical)"
 						title="Position to the left (vertical)"
 					>
-						<PanelLeft size={14} />
+						<PanelLeft size={13} />
 					</button>
 				</div>
 
@@ -490,9 +493,9 @@
 					title={searchStore.isDocked ? "Undock panel (Float)" : "Dock panel to workspace"}
 				>
 					{#if searchStore.isDocked}
-						<Pin size={14} />
+						<Pin size={13} />
 					{:else}
-						<PinOff size={14} />
+						<PinOff size={13} />
 					{/if}
 				</button>
 
@@ -504,8 +507,31 @@
 					aria-label="Close search (Esc)"
 					title="Close search (Esc)"
 				>
-					<X size={15} />
+					<X size={14} />
 				</button>
+			{/snippet}
+
+			<!-- Panel Integrated Control Bar -->
+			<div class="panel-header-bar" class:is-side-layout={isSideLayout}>
+				{#if isSideLayout}
+					<!-- Row 1: Collection Picker on Left, Tools & Window Actions on Right -->
+					<div class="header-top-row">
+						{@render collectionPicker()}
+						<div class="header-actions-group">
+							{@render headerActions()}
+						</div>
+					</div>
+
+					<!-- Row 2: Full-Width Search Input -->
+					<div class="header-search-row">
+						{@render searchInput(true)}
+					</div>
+				{:else}
+					<!-- Single Horizontal Row (Above/Below shelf mode) -->
+					{@render searchInput(false)}
+					{@render collectionPicker()}
+					{@render headerActions()}
+				{/if}
 			</div>
 
 			<!-- Marginal Info / Autocomplete Row -->
@@ -748,6 +774,35 @@
 		overflow-x: auto;
 	}
 
+	.panel-header-bar.is-side-layout {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 8px;
+		padding: 10px 12px 8px 12px;
+		overflow: visible;
+	}
+
+	.header-top-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+		gap: 6px;
+	}
+
+	.header-actions-group {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		flex-shrink: 0;
+	}
+
+	.header-search-row {
+		display: flex;
+		align-items: center;
+		width: 100%;
+	}
+
 	.search-input-pill {
 		display: flex;
 		align-items: center;
@@ -760,6 +815,42 @@
 		border-radius: 9999px;
 		padding: 0 10px;
 		transition: all 0.15s ease;
+	}
+
+	.search-input-pill.full-width {
+		flex: 1;
+		width: 100%;
+		min-width: 0;
+		height: 34px;
+	}
+
+	.panel-header-bar.is-side-layout .collection-trigger-btn {
+		height: 28px;
+		padding: 0 8px;
+		font-size: 0.78rem;
+	}
+
+	.panel-header-bar.is-side-layout .collection-label-text {
+		max-width: 105px;
+	}
+
+	.panel-header-bar.is-side-layout .header-tool-btn {
+		height: 28px;
+		padding: 0 6px;
+	}
+
+	.panel-header-bar.is-side-layout .pos-btn {
+		width: 24px;
+		height: 24px;
+	}
+
+	.panel-header-bar.is-side-layout .position-toggle-group {
+		padding: 1px;
+	}
+
+	.panel-header-bar.is-side-layout .close-panel-btn {
+		width: 26px;
+		height: 26px;
 	}
 
 	.search-input-pill:focus-within {
@@ -958,6 +1049,22 @@
 		padding: 2px 16px;
 		box-sizing: border-box;
 		flex-shrink: 0;
+	}
+
+	.search-panel.pos-left .results-marginal-zone {
+		height: auto;
+		min-height: 24px;
+		padding: 4px 12px 6px 12px;
+	}
+
+	.search-panel.pos-left .results-marginal {
+		font-size: 11px;
+		flex-wrap: wrap;
+	}
+
+	.search-panel.pos-left .marginal-autocomplete-info {
+		gap: 0.35rem;
+		font-size: 11px;
 	}
 
 	.results-marginal {
