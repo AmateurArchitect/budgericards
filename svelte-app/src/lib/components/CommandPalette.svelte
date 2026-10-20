@@ -393,14 +393,15 @@
 				>
 					<div class="card-names-list" bind:this={listEl}>
 						{#each matchedCards as card, idx}
-							<button
-								type="button"
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<div
 								class="card-name-item"
 								class:active={selectedIndex === idx}
 								onclick={() => selectCard(card)}
 								onmouseenter={() => (selectedIndex = idx)}
 								role="option"
 								aria-selected={selectedIndex === idx}
+								tabindex="-1"
 								title={card.name}
 							>
 								<span class="card-name-text">{card.name}</span>
@@ -438,7 +439,7 @@
 										<kbd class="key-cap row-enter-badge" title="Add to deck (Enter)">↵</kbd>
 									</div>
 								{/if}
-							</button>
+							</div>
 						{/each}
 					</div>
 

@@ -67,3 +67,8 @@ Living list of solutions to code errors.
 - **Error Signature:** `Cannot find module 'https://deno.land/...' or its corresponding type declarations.`
 - **Fix Pattern:** Place `// @ts-ignore` directly above the `https://` module import in the Edge Function file (e.g. `supabase/functions/*/index.ts`).
 - **Logic:** Supabase Edge Functions run in the Deno runtime where HTTPS imports are resolved natively at runtime. In workspaces configured for standard Node/web TypeScript without Deno language tooling active, TypeScript compiler checks flag remote URL imports as non-existent local modules. Adding `// @ts-ignore` suppresses the language server error without affecting Deno's runtime execution.
+
+## Nested Button Elements (Hydration Mismatch)
+- **Error Signature:** `<button> cannot be a descendant of <button>`. When rendering this component on the server, the resulting HTML will be modified by the browser (by moving, removing, or inserting elements), likely resulting in a `hydration_mismatch` warning.
+- **Fix Pattern:** Replace the parent interactive container `<button>` with a `<div role="option" tabindex="-1">` (or appropriate ARIA role) and keep the child `<button>` elements intact.
+- **Logic:** HTML5 specifications disallow `<button>` elements as descendants of other `<button>` elements. Browsers automatically restructure the DOM on hydration by ejecting or closing the parent `<button>`, causing SSR hydration mismatches. Using an outer `<div>` with ARIA roles ensures a valid DOM structure while preserving full interactivity.
