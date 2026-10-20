@@ -2,13 +2,12 @@
 	import { searchStore } from "$lib/stores/search.svelte.js";
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { priceStore } from "$lib/stores/prices.svelte.js";
+	import { interactionStore } from "$lib/stores/interaction.svelte.js";
 	import { db } from "$lib/db";
 	import { scryfallFetch } from "$lib/api/scryfall.js";
-	import { parseManaCost } from "$lib/layouts/grouping.svelte.js";
-	import ManaSymbol from "./ui/ManaSymbol.svelte";
 	import { fade, scale } from "svelte/transition";
 	import { cubicOut } from "svelte/easing";
-	import { Search, X } from "lucide-svelte";
+	import { Search, X, Plus, Layers, Tags } from "lucide-svelte";
 
 	let query = $state("");
 	let selectedIndex = $state(0);
@@ -139,19 +138,94 @@
 		})();
 	});
 
+	let selectedCard = $derived(
+		matchedCards.length > 0 &&
+			selectedIndex >= 0 &&
+			selectedIndex < matchedCards.length
+			? matchedCards[selectedIndex]
+			: null,
+	);
+
+	let previewImgUrl = $derived.by(() => {
+		if (!selectedCard) return "";
+		if (selectedCard.image) return selectedCard.image;
+		if (selectedCard.image_uris?.normal) return selectedCard.image_uris.normal;
+
+		const meta = deckStore.metadata[selectedCard.name.toLowerCase()];
+		if (meta?.image) return meta.image;
+		if (meta?.image_uris?.normal) return meta.image_uris.normal;
+		if (meta?.card_faces && meta.card_faces[0]?.image_uris?.normal) {
+			return meta.card_faces[0].image_uris.normal;
+		}
+
+		return `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(selectedCard.name)}&format=image&version=normal`;
+	});
+
 	function openSidePanel() {
 		searchStore.openSearchWithQuery(query.trim());
 	}
 
 	/** @param {any} card */
 	function selectCard(card) {
+		if (!card) return;
 		searchStore.addCardToDeck(card);
 		searchStore.closePalette();
 	}
 
+	/** @param {string} cardName */
+	function findCardInBoards(cardName) {
+		const boards = ["commander", "companion", "mainboard", "sideboard", "maybeboard"];
+		for (const b of boards) {
+			const boardCards = /** @type {any[]} */ (/** @type {any} */ (deckStore)[b]);
+			if (boardCards) {
+				const found = boardCards.find(
+					(c) => c.name.toLowerCase() === cardName.toLowerCase(),
+				);
+				if (found) return { card: found, board: b };
+			}
+		}
+		return null;
+	}
+
+	/** @param {any} card */
+	function handlePrinting(card) {
+		if (!card) return;
+		const price = card.prices?.usd
+			? parseFloat(card.prices.usd)
+			: priceStore.getPrice(card.name);
+
+		let existing = findCardInBoards(card.name);
+		if (!existing) {
+			searchStore.addCardToDeck(card);
+			existing = findCardInBoards(card.name);
+		}
+
+		searchStore.closePalette();
+		interactionStore.showPrintingPickerModal(
+			existing?.card || card,
+			existing?.board || deckStore.activeBoard,
+			price,
+		);
+	}
+
+	/** @param {any} card */
+	function handleTag(card) {
+		if (!card) return;
+		let existing = findCardInBoards(card.name);
+		if (!existing) {
+			searchStore.addCardToDeck(card);
+			existing = findCardInBoards(card.name);
+		}
+
+		searchStore.closePalette();
+		interactionStore.showBulkTagsModal([
+			existing?.card || { ...card, board: deckStore.activeBoard },
+		]);
+	}
+
 	function scrollActiveIntoView() {
 		setTimeout(() => {
-			const activeEl = listEl?.querySelector(".matched-card-item.active");
+			const activeEl = listEl?.querySelector(".card-name-item.active");
 			if (activeEl) {
 				activeEl.scrollIntoView({ block: "nearest" });
 			}
@@ -180,9 +254,9 @@
 		}
 
 		if (e.key === "Tab") {
-			if (matchedCards.length > 0) {
+			if (selectedCard) {
 				e.preventDefault();
-				query = matchedCards[selectedIndex].name;
+				query = selectedCard.name;
 			}
 			return;
 		}
@@ -193,14 +267,34 @@
 			return;
 		}
 
+		// Keyboard shortcuts for Printing (P / Alt+P) and Tags (T / Alt+T)
+		const isInputFocused = document.activeElement === inputEl;
+		if (
+			selectedCard &&
+			(e.key.toLowerCase() === "p" || e.code === "KeyP") &&
+			(e.altKey || e.ctrlKey || e.metaKey || !isInputFocused)
+		) {
+			e.preventDefault();
+			handlePrinting(selectedCard);
+			return;
+		}
+
+		if (
+			selectedCard &&
+			(e.key.toLowerCase() === "t" || e.code === "KeyT") &&
+			(e.altKey || e.ctrlKey || e.metaKey || !isInputFocused)
+		) {
+			e.preventDefault();
+			handleTag(selectedCard);
+			return;
+		}
+
 		if (e.key === "Enter") {
 			e.preventDefault();
-			if (
-				matchedCards.length > 0 &&
-				selectedIndex >= 0 &&
-				selectedIndex < matchedCards.length
-			) {
-				selectCard(matchedCards[selectedIndex]);
+			if (e.metaKey || e.ctrlKey) {
+				openSidePanel();
+			} else if (selectedCard) {
+				selectCard(selectedCard);
 			} else {
 				openSidePanel();
 			}
@@ -213,108 +307,146 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="command-palette-backdrop"
-		transition:fade={{ duration: 150 }}
+		transition:fade={{ duration: 120 }}
 		onclick={(e) => {
 			if (e.target === e.currentTarget) searchStore.closePalette();
 		}}
 	>
 		<div
-			class="command-palette-container"
-			transition:scale={{ duration: 180, start: 0.96, easing: cubicOut }}
+			class="command-palette"
+			class:has-matches={matchedCards.length > 0}
+			transition:scale={{ duration: 140, start: 0.97, easing: cubicOut }}
 			role="dialog"
-			aria-label="Card search bar"
+			aria-label="Card search command palette"
 			aria-modal="true"
 		>
-			<!-- Close control above and to the right of the main search bar -->
-			<div class="close-control-row">
-				<button
-					type="button"
-					class="close-palette-btn"
-					onclick={() => searchStore.closePalette()}
-					aria-label="Close search (Esc)"
-					title="Close (Esc)"
-				>
-					<X size={18} />
-				</button>
-			</div>
+			<!-- Integrated Search Bar Header -->
+			<div class="palette-header">
+				<Search size={15} class="header-search-icon" />
+				<input
+					bind:this={inputEl}
+					type="text"
+					class="palette-input"
+					placeholder="Type a card name..."
+					bind:value={query}
+					onkeydown={handleKeydown}
+					autocomplete="off"
+					spellcheck="false"
+				/>
 
-			<!-- Main Search Bar -->
-			<div class="main-search-bar">
-				<div class="search-input-col">
-					<Search size={18} class="search-input-icon" />
-					<input
-						bind:this={inputEl}
-						type="text"
-						class="main-search-input"
-						placeholder="Type a card name..."
-						bind:value={query}
-						onkeydown={handleKeydown}
-						autocomplete="off"
-						spellcheck="false"
-					/>
+				<div class="header-actions">
+					<button
+						type="button"
+						class="header-action-btn search-trigger-btn"
+						onclick={openSidePanel}
+						title="Open card search panel (Enter or ⌘↵)"
+					>
+						<span>Search</span>
+						<kbd class="key-cap">{matchedCards.length > 0 ? "⌘↵" : "↵"}</kbd>
+					</button>
+
+					<button
+						type="button"
+						class="header-action-btn close-btn"
+						onclick={() => searchStore.closePalette()}
+						title="Close (Esc)"
+						aria-label="Close"
+					>
+						<X size={13} />
+						<kbd class="key-cap">esc</kbd>
+					</button>
 				</div>
-
-				<!-- Search Button on the right of the main search bar to open panel -->
-				<button
-					type="button"
-					class="search-panel-trigger-btn"
-					onclick={openSidePanel}
-					title="Open card search panel (Enter)"
-				>
-					<Search size={14} />
-					<span>Search</span>
-				</button>
 			</div>
 
-			<!-- When we can guess the user is typing a card name, we show the matched cards below, otherwise we don't. -->
-			{#if matchedCards.length > 0}
-				<div class="matched-cards-dropdown" bind:this={listEl} role="listbox">
-					{#each matchedCards as card, idx}
-						{@const manaSymbols = parseManaCost(card.mana_cost || card.mana)}
-						{@const price =
-							card.prices?.usd !== undefined && card.prices?.usd !== null
-								? parseFloat(card.prices.usd)
-								: priceStore.getPrice(card.name)}
-						<button
-							type="button"
-							class="matched-card-item"
-							class:active={selectedIndex === idx}
-							data-tooltip-img={card.image || card.image_uris?.normal || null}
-							onclick={() => selectCard(card)}
-							onmouseenter={() => (selectedIndex = idx)}
-							role="option"
-							aria-selected={selectedIndex === idx}
-						>
-							<div class="card-info-left">
-								<span class="card-name">{card.name}</span>
-								{#if card.type || card.type_line}
-									<span class="card-type">{card.type || card.type_line}</span>
-								{/if}
-							</div>
+			<!-- Visually integrated Card List and Preview area -->
+			{#if matchedCards.length > 0 && selectedCard}
+				<div class="palette-divider"></div>
+				<div class="palette-body">
+					<!-- Left: Pure list of card names -->
+					<div class="card-names-list" bind:this={listEl} role="listbox">
+						{#each matchedCards as card, idx}
+							<button
+								type="button"
+								class="card-name-item"
+								class:active={selectedIndex === idx}
+								onclick={() => selectCard(card)}
+								onmouseenter={() => (selectedIndex = idx)}
+								role="option"
+								aria-selected={selectedIndex === idx}
+								title={card.name}
+							>
+								<span class="card-name-text">{card.name}</span>
+							</button>
+						{/each}
+					</div>
 
-							<div class="card-info-right">
-								{#if manaSymbols && manaSymbols.length > 0}
-									<div class="card-mana">
-										{#each manaSymbols as sym}
-											{#if sym === "//"}
-												<span class="mana-slash">//</span>
-											{:else}
-												<ManaSymbol symbol={sym} size="13px" />
-											{/if}
-										{/each}
+					<div class="vertical-divider"></div>
+
+					<!-- Right: Selected card preview & option buttons -->
+					<div class="card-details-pane">
+						<div class="preview-img-container">
+							{#if previewImgUrl}
+								<img
+									src={previewImgUrl}
+									alt={selectedCard.name}
+									class="card-preview-img"
+									onerror={(e) => {
+										const el = /** @type {HTMLImageElement} */ (e.currentTarget);
+										if (!el.src.includes("&fuzzy=")) {
+											el.src = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(selectedCard.name)}&format=image&version=normal`;
+										}
+									}}
+								/>
+							{:else}
+								<div class="preview-placeholder">
+									<span>No Preview</span>
+								</div>
+							{/if}
+						</div>
+
+						<div class="card-actions-wrapper">
+							<button
+								type="button"
+								class="palette-action-btn add-btn"
+								onclick={() => selectCard(selectedCard)}
+								title="Add to deck (Enter)"
+							>
+								<div class="btn-left">
+									<Plus size={13} />
+									<span>Add Card</span>
+								</div>
+								<kbd class="key-cap">↵</kbd>
+							</button>
+
+							<div class="secondary-actions-row">
+								<button
+									type="button"
+									class="palette-action-btn secondary-btn"
+									onclick={() => handlePrinting(selectedCard)}
+									title="Change printings (P)"
+								>
+									<div class="btn-left">
+										<Layers size={13} />
+										<span>Printing</span>
 									</div>
-								{/if}
+									<kbd class="key-cap">P</kbd>
+								</button>
 
-								{#if price !== null && price !== undefined}
-									<span class="card-price">${price.toFixed(2)}</span>
-								{/if}
-
-								{#if selectedIndex === idx}
-									<kbd class="enter-badge">↵</kbd>
-								{/if}
+								<button
+									type="button"
+									class="palette-action-btn secondary-btn"
+									onclick={() => handleTag(selectedCard)}
+									title="Edit tags (T)"
+								>
+									<div class="btn-left">
+										<Tags size={13} />
+										<span>Tags</span>
+									</div>
+									<kbd class="key-cap">T</kbd>
+								</button>
 							</div>
-						</button>
-					{/each}
+						</div>
+					</div>
 				</div>
 			{/if}
 		</div>
@@ -326,8 +458,8 @@
 		position: fixed;
 		inset: 0;
 		background: rgba(0, 0, 0, 0.7);
-		backdrop-filter: blur(8px);
-		-webkit-backdrop-filter: blur(8px);
+		backdrop-filter: blur(6px);
+		-webkit-backdrop-filter: blur(6px);
 		z-index: 1500;
 		display: flex;
 		align-items: flex-start;
@@ -337,215 +469,316 @@
 		padding-right: 1rem;
 	}
 
-	.command-palette-container {
-		width: 580px;
+	/* Single visually integrated container styled like ContextMenu */
+	.command-palette {
+		width: 480px;
 		max-width: 100%;
-		display: flex;
-		flex-direction: column;
-		user-select: none;
-	}
-
-	/* Close control above and to the right of the main search bar */
-	.close-control-row {
-		display: flex;
-		justify-content: flex-end;
-		margin-bottom: 8px;
-	}
-
-	.close-palette-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 32px;
-		height: 32px;
-		border-radius: 50%;
-		background: rgba(255, 255, 255, 0.08);
-		border: 1px solid rgba(255, 255, 255, 0.14);
-		color: hsl(var(--muted-foreground));
-		cursor: pointer;
-		transition: all 0.15s ease;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-	}
-
-	.close-palette-btn:hover {
-		background: rgba(255, 255, 255, 0.18);
-		color: #ffffff;
-		transform: scale(1.05);
-	}
-
-	/* Main Search Bar */
-	.main-search-bar {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		background: #141824;
-		border: 1px solid rgba(255, 255, 255, 0.14);
-		border-radius: 12px;
-		padding: 6px 6px 6px 14px;
+		background: hsl(var(--popover));
+		border: 1px solid hsla(var(--border) / 0.6);
+		border-radius: var(--radius);
 		box-shadow:
-			0 16px 48px -8px rgba(0, 0, 0, 0.85),
-			0 0 0 1px rgba(255, 255, 255, 0.06);
+			0 15px 35px -5px rgba(0, 0, 0, 0.55),
+			0 0 0 1px hsla(255, 100%, 100%, 0.04);
+		overflow: hidden;
+		user-select: none;
+		outline: none;
+		transition: width 0.15s ease;
 	}
 
-	.search-input-col {
-		flex: 1;
-		min-width: 0;
+	.command-palette.has-matches {
+		width: 520px;
+	}
+
+	/* Integrated search bar header */
+	.palette-header {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: 8px;
+		padding: 6px 8px 6px 12px;
+		background: transparent;
 	}
 
-	:global(.search-input-icon) {
+	:global(.header-search-icon) {
 		color: hsl(var(--muted-foreground));
 		flex-shrink: 0;
 	}
 
-	.main-search-input {
+	.palette-input {
 		flex: 1;
 		min-width: 0;
 		background: transparent;
 		border: none;
 		outline: none;
-		color: #ffffff;
-		font-size: 1.05rem;
+		color: var(--text-primary, #ffffff);
+		font-size: 0.92rem;
 		font-family: inherit;
 	}
 
-	.main-search-input::placeholder {
+	.palette-input::placeholder {
 		color: hsl(var(--muted-foreground) / 0.7);
-		font-size: 0.95rem;
+		font-size: 0.88rem;
 	}
 
-	/* Search button on the right of the main search bar */
-	.search-panel-trigger-btn {
+	.header-actions {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		padding: 8px 16px;
-		border-radius: 8px;
-		background: hsl(var(--primary));
-		color: #ffffff;
-		font-size: 0.85rem;
-		font-weight: 600;
-		cursor: pointer;
-		border: none;
-		transition: all 0.15s ease;
+		gap: 5px;
 		flex-shrink: 0;
 	}
 
-	.search-panel-trigger-btn:hover {
-		background: hsl(var(--primary) / 0.88);
-		transform: translateY(-1px);
+	.header-action-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		padding: 3px 7px;
+		border-radius: var(--radius-sm);
+		border: 1px solid hsla(var(--border) / 0.5);
+		background: hsla(var(--muted) / 0.3);
+		color: var(--text-primary, #ffffff);
+		font-size: 0.76rem;
+		font-weight: 500;
+		cursor: pointer;
+		user-select: none;
+		transition: all 0.1s ease;
 	}
 
-	/* Matched Cards Dropdown below */
-	.matched-cards-dropdown {
-		margin-top: 8px;
-		background: #141824;
-		border: 1px solid rgba(255, 255, 255, 0.14);
-		border-radius: 12px;
-		box-shadow:
-			0 16px 48px -8px rgba(0, 0, 0, 0.85),
-			0 0 0 1px rgba(255, 255, 255, 0.06);
-		overflow: hidden;
-		max-height: 340px;
+	.header-action-btn:hover {
+		background: hsl(var(--primary) / 0.9);
+		border-color: hsl(var(--primary));
+		color: #ffffff;
+	}
+
+	.header-action-btn:hover .key-cap {
+		border-color: hsla(0, 0%, 100%, 0.4);
+		color: #ffffff;
+		background: hsla(0, 0%, 100%, 0.15);
+	}
+
+	.header-action-btn.close-btn {
+		background: transparent;
+		border-color: hsla(var(--border) / 0.4);
+		color: hsl(var(--muted-foreground));
+		padding: 3px 5px;
+	}
+
+	.header-action-btn.close-btn:hover {
+		background: hsla(0, 70%, 50%, 0.2);
+		border-color: hsla(0, 70%, 50%, 0.4);
+		color: #ffffff;
+	}
+
+	/* Divider between header and list */
+	.palette-divider {
+		height: 1px;
+		background: hsla(var(--border) / 0.5);
+	}
+
+	/* Body containing list and preview */
+	.palette-body {
+		display: flex;
+		align-items: stretch;
+		min-height: 250px;
+		max-height: 290px;
+	}
+
+	/* Left column: Card names list */
+	.card-names-list {
+		flex: 1;
+		min-width: 0;
 		overflow-y: auto;
+		padding: 5px;
 		display: flex;
 		flex-direction: column;
+		gap: 1px;
+		scrollbar-width: thin;
+		scrollbar-color: hsla(var(--border) / 0.8) transparent;
 	}
 
-	.matched-cards-dropdown::-webkit-scrollbar {
-		width: 6px;
+	.card-names-list::-webkit-scrollbar {
+		width: 4px;
 	}
 
-	.matched-cards-dropdown::-webkit-scrollbar-thumb {
-		background: rgba(255, 255, 255, 0.18);
-		border-radius: 3px;
+	.card-names-list::-webkit-scrollbar-thumb {
+		background: hsla(var(--border) / 0.8);
+		border-radius: 4px;
 	}
 
-	.matched-card-item {
+	.card-name-item {
+		display: flex;
+		align-items: center;
+		padding: 5px 8px;
+		border-radius: var(--radius-sm);
+		border: none;
+		background: transparent;
+		color: var(--text-primary, #ffffff);
+		font-size: 0.85rem;
+		font-weight: 500;
+		text-align: left;
+		cursor: pointer;
+		width: 100%;
+		transition: none;
+	}
+
+	.card-name-item:hover,
+	.card-name-item.active {
+		background: hsl(var(--primary) / 0.9);
+		color: #ffffff;
+	}
+
+	.card-name-text {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.vertical-divider {
+		width: 1px;
+		background: hsla(var(--border) / 0.5);
+		flex-shrink: 0;
+	}
+
+	/* Right column: Card details & preview */
+	.card-details-pane {
+		width: 185px;
+		flex-shrink: 0;
+		background: hsla(var(--muted) / 0.12);
+		padding: 8px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+	}
+
+	.preview-img-container {
 		width: 100%;
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		padding: 10px 14px;
-		background: transparent;
-		border: none;
-		border-left: 3px solid transparent;
-		cursor: pointer;
-		text-align: left;
-		color: inherit;
-		transition: background 0.1s ease, border-color 0.1s ease;
-	}
-
-	.matched-card-item:hover,
-	.matched-card-item.active {
-		background: hsl(var(--primary) / 0.14);
-		border-left-color: hsl(var(--primary));
-	}
-
-	.card-info-left {
+		justify-content: center;
 		flex: 1;
-		min-width: 0;
+		min-height: 0;
+	}
+
+	.card-preview-img {
+		max-width: 130px;
+		max-height: 182px;
+		width: auto;
+		height: auto;
+		aspect-ratio: 63 / 88;
+		border-radius: 6px;
+		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		object-fit: cover;
+	}
+
+	.preview-placeholder {
+		width: 130px;
+		height: 182px;
+		border-radius: 6px;
+		border: 1px dashed hsla(var(--border) / 0.6);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: hsl(var(--muted-foreground));
+		font-size: 0.75rem;
+	}
+
+	.card-actions-wrapper {
+		width: 100%;
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: 4px;
 	}
 
-	.card-name {
-		font-size: 0.95rem;
-		font-weight: 600;
+	.palette-action-btn {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 6px;
+		width: 100%;
+		padding: 4px 7px;
+		border-radius: var(--radius-sm);
+		font-size: 0.76rem;
+		font-weight: 500;
+		cursor: pointer;
+		user-select: none;
+		border: 1px solid hsla(var(--border) / 0.5);
+		background: hsla(var(--muted) / 0.25);
+		color: var(--text-primary, #ffffff);
+		transition: all 0.1s ease;
+	}
+
+	.palette-action-btn:hover {
+		background: hsl(var(--primary) / 0.9);
+		border-color: hsl(var(--primary));
 		color: #ffffff;
+	}
+
+	.palette-action-btn:hover .key-cap {
+		border-color: hsla(0, 0%, 100%, 0.4);
+		color: #ffffff;
+		background: hsla(0, 0%, 100%, 0.15);
+	}
+
+	.palette-action-btn.add-btn {
+		background: hsl(var(--primary));
+		border-color: hsl(var(--primary));
+		color: #ffffff;
+	}
+
+	.palette-action-btn.add-btn:hover {
+		background: hsl(var(--primary) / 0.85);
+	}
+
+	.secondary-actions-row {
+		display: flex;
+		gap: 4px;
+		width: 100%;
+	}
+
+	.secondary-actions-row .palette-action-btn {
+		flex: 1;
+		min-width: 0;
+		padding: 4px 5px;
+	}
+
+	.btn-left {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		min-width: 0;
+	}
+
+	.btn-left span {
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
 
-	.card-type {
-		font-size: 0.78rem;
-		color: hsl(var(--muted-foreground));
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.card-info-right {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		flex-shrink: 0;
-	}
-
-	.card-mana {
-		display: flex;
-		align-items: center;
-		gap: 2px;
-	}
-
-	.mana-slash {
-		font-size: 11px;
-		color: hsl(var(--muted-foreground));
-	}
-
-	.card-price {
-		font-size: 0.82rem;
-		font-weight: 600;
-		color: hsl(var(--foreground) / 0.85);
-	}
-
-	.enter-badge {
+	/* Keyboard shortcut badge styled like ContextMenu */
+	.key-cap {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		min-width: 18px;
-		height: 18px;
-		padding: 0 4px;
-		font-size: 11px;
-		font-family: inherit;
+		min-width: 1.125rem;
+		height: 1.125rem;
+		padding: 0 3px;
+		font-family:
+			system-ui,
+			-apple-system,
+			sans-serif;
+		font-size: 0.65rem;
 		font-weight: 600;
-		color: #ffffff;
-		background: hsl(var(--primary));
-		border-radius: 3px;
+		color: var(--text-secondary, hsl(var(--muted-foreground)));
+		background: hsla(var(--muted) / 0.3);
+		border: 1px solid hsla(var(--border) / 0.5);
+		border-radius: var(--radius-sm);
+		box-shadow:
+			0 1px 0 hsla(var(--border) / 0.6),
+			inset 0 1px 0 hsla(255, 100%, 100%, 0.02);
+		line-height: 1;
+		user-select: none;
+		flex-shrink: 0;
+		transition: all 0.1s ease;
 	}
 </style>
