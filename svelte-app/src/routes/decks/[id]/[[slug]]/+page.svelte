@@ -384,13 +384,9 @@
 	.app-layout {
 		flex: 1;
 		display: flex;
-		flex-direction: column;
+		flex-direction: row;
 		overflow: hidden;
 		min-width: 0;
-	}
-
-	.app-layout.has-docked-left {
-		flex-direction: row;
 	}
 
 	.deck-main-column {

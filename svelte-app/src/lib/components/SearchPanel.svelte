@@ -9,6 +9,7 @@
 	import SearchOptionsModal from "./SearchOptionsModal.svelte";
 	import MultiSortModal from "./MultiSortModal.svelte";
 	import { slide, fade, fly } from "svelte/transition";
+	import { cubicOut } from "svelte/easing";
 	import {
 		Search,
 		Trash2,
@@ -233,7 +234,6 @@
 		}
 	}
 
-	const isExpanded = $derived(searchStore.isOpen);
 	const isSideLayout = $derived(searchStore.panelPosition === 'left');
 
 	/** @param {Event} e */
@@ -297,6 +297,11 @@
 />
 
 <section
+	transition:slide={{
+		axis: searchStore.panelPosition === 'left' ? 'x' : 'y',
+		duration: 250,
+		easing: cubicOut
+	}}
 	class="search-panel"
 	class:is-docked={searchStore.isDocked}
 	class:is-floating={!searchStore.isDocked}
@@ -323,8 +328,7 @@
 		</div>
 	{/if}
 
-	{#if isExpanded}
-		<div class="panel-inner-container">
+	<div class="panel-inner-container">
 			<!-- Reusable Header Component Snippets -->
 			{#snippet searchInput(isFullWidth = false)}
 				<div class="search-input-pill" class:full-width={isFullWidth}>
@@ -652,7 +656,6 @@
 				</div>
 			{/if}
 		</div>
-	{/if}
 
 	<SearchOptionsModal
 		bind:isOpen={showSearchOptions}
@@ -670,13 +673,13 @@
 		display: flex;
 		flex-direction: column;
 		box-sizing: border-box;
-		transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
 	/* Docked Mode (takes layout space) */
 	.search-panel.is-docked {
 		position: relative;
 		z-index: 30;
+		flex-shrink: 0;
 	}
 
 	.search-panel.is-docked.pos-above {
@@ -693,6 +696,12 @@
 		max-height: 100%;
 		border-right: 1px solid rgba(255, 255, 255, 0.1);
 		flex-shrink: 0;
+	}
+
+	.search-panel.pos-left .panel-inner-container {
+		width: 380px;
+		min-width: 380px;
+		height: 100%;
 	}
 
 	/* Floating Mode (hovers over canvas) */
@@ -750,7 +759,7 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		padding: 8px 12px;
+		padding: 12px 24px;
 		background: rgba(255, 255, 255, 0.03);
 		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 		flex-shrink: 0;
@@ -761,7 +770,7 @@
 		flex-direction: column;
 		align-items: stretch;
 		gap: 8px;
-		padding: 10px 12px 8px 12px;
+		padding: 16px 24px 12px 24px;
 		overflow: visible;
 	}
 
@@ -1029,7 +1038,7 @@
 		min-height: 28px;
 		display: flex;
 		align-items: center;
-		padding: 2px 16px;
+		padding: 4px 24px;
 		box-sizing: border-box;
 		flex-shrink: 0;
 	}
@@ -1037,7 +1046,7 @@
 	.search-panel.pos-left .results-marginal-zone {
 		height: auto;
 		min-height: 24px;
-		padding: 4px 12px 6px 12px;
+		padding: 6px 24px;
 	}
 
 	.search-panel.pos-left .results-marginal {
@@ -1134,8 +1143,8 @@
 	/* Results Grid */
 	.results-grid {
 		display: flex;
-		gap: var(--column-gap, 12px);
-		padding: 6px var(--base-margin, 16px) 16px var(--base-margin, 16px);
+		gap: var(--column-gap, 16px);
+		padding: 8px 24px 20px 24px;
 		position: relative;
 		flex: 1;
 		min-height: 220px;
@@ -1162,12 +1171,12 @@
 	.results-grid.is-vertical {
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
-		gap: 10px;
-		padding: 8px 12px 24px 12px;
+		gap: 12px;
+		padding: 8px 24px 24px 24px;
 		overflow-y: auto;
 		overflow-x: hidden;
 		align-content: start;
-		--card-width: calc((380px - 24px - 10px) / 2);
+		--card-width: calc((380px - 48px - 12px) / 2);
 	}
 
 	.results-grid.is-vertical::-webkit-scrollbar {
@@ -1256,7 +1265,7 @@
 		align-items: center;
 		justify-content: center;
 		gap: 8px;
-		padding: 6px 12px;
+		padding: 8px 24px;
 		background: rgba(0, 0, 0, 0.2);
 		border-top: 1px solid rgba(255, 255, 255, 0.08);
 		flex-shrink: 0;
