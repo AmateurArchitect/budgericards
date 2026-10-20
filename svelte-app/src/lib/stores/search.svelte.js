@@ -26,7 +26,7 @@ function createSearch() {
 		showLargeSearchOverride: false,
 		highlightedIndex: 0,
 		panelPosition: (typeof window !== 'undefined' ? (localStorage.getItem("budgericards_search_panel_pos") || "below") : "below"),
-		isDocked: (typeof window !== 'undefined' ? localStorage.getItem("budgericards_search_panel_docked") === "true" : false),
+		isDocked: true,
 	});
 
 	/** @type {Map<string, any>} */
@@ -848,17 +848,17 @@ function createSearch() {
 			}
 		},
 		get isDocked() {
-			return state.isDocked;
+			return true;
 		},
-		/** @param {boolean} val */
-		setIsDocked(val) {
-			state.isDocked = val;
+		/** @param {boolean} [_val] */
+		setIsDocked(_val) {
+			state.isDocked = true;
 			if (typeof window !== 'undefined') {
-				localStorage.setItem("budgericards_search_panel_docked", String(val));
+				localStorage.setItem("budgericards_search_panel_docked", "true");
 			}
 		},
 		toggleDocked() {
-			this.setIsDocked(!state.isDocked);
+			this.setIsDocked(true);
 		},
 		get hasTriggered() { return state.hasTriggered; },
 		get isExpanded() {

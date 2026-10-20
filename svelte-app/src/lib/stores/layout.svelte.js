@@ -66,8 +66,8 @@ class LayoutStore {
 		return edgeMargins + internalGaps + groupSpacers;
 	});
 
-	/** Ideal card width based on actual measured app width */
-	cardWidthCalc = $derived(`(${this.appWidth - this.leftSidebarWidth - this.rightSidebarWidth}px - ${this.totalSpacing}px) / ${this.numCols}`);
+	/** Ideal card width based on actual measured app width (not reduced by left dock so cards stay full-size and overflow columns scroll horizontally) */
+	cardWidthCalc = $derived(`(${this.appWidth - this.rightSidebarWidth}px - ${this.totalSpacing}px) / ${this.numCols}`);
 
 	/** Final clamped card width */
 	cardWidth = $derived(`clamp(120px, min(${this.cardWidthCalc}, 23.5vh), 240px)`);

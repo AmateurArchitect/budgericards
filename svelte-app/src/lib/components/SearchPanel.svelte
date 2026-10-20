@@ -19,9 +19,7 @@
 		ChevronDown,
 		PanelTop,
 		PanelBottom,
-		PanelLeft,
-		Pin,
-		PinOff
+		PanelLeft
 	} from "lucide-svelte";
 
 	let isDraggingDeckCard = $state(false);
@@ -483,21 +481,6 @@
 					</button>
 				</div>
 
-				<!-- Dock / Undock Toggle -->
-				<button
-					type="button"
-					class="header-tool-btn dock-btn"
-					class:active={searchStore.isDocked}
-					onclick={() => searchStore.toggleDocked()}
-					aria-label={searchStore.isDocked ? "Undock panel (Float)" : "Dock panel"}
-					title={searchStore.isDocked ? "Undock panel (Float)" : "Dock panel to workspace"}
-				>
-					{#if searchStore.isDocked}
-						<Pin size={13} />
-					{:else}
-						<PinOff size={13} />
-					{/if}
-				</button>
 
 				<!-- Close Search Button -->
 				<button
@@ -1177,12 +1160,14 @@
 
 	/* Vertical Mode (left side) */
 	.results-grid.is-vertical {
-		flex-direction: column;
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 10px;
+		padding: 8px 12px 24px 12px;
 		overflow-y: auto;
 		overflow-x: hidden;
-		align-items: center;
-		padding: 8px 12px;
-		gap: 10px;
+		align-content: start;
+		--card-width: calc((380px - 24px - 10px) / 2);
 	}
 
 	.results-grid.is-vertical::-webkit-scrollbar {
@@ -1206,6 +1191,11 @@
 		width: 100%;
 		display: flex;
 		justify-content: center;
+	}
+
+	.results-grid.is-vertical .staggered-card :global(.card-shell),
+	.results-grid.is-vertical .staggered-card :global(.card-container) {
+		width: 100%;
 	}
 
 	@keyframes card-pop-in {

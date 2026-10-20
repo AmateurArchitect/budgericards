@@ -260,11 +260,6 @@
 		</div>
 	</main>
 
-	<!-- Undocked / Floating Search Panel -->
-	{#if searchStore.isOpen && !searchStore.isDocked}
-		<SearchPanel />
-	{/if}
-
 	<!-- Left Deck Quick Actions Sidebar -->
 	<DeckQuickActionsSidebar />
 

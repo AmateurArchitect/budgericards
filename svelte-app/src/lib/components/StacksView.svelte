@@ -1609,6 +1609,24 @@
 		contain: layout;
 	}
 
+	.deck-curve-container::-webkit-scrollbar {
+		height: 6px;
+		width: 6px;
+	}
+
+	.deck-curve-container::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.deck-curve-container::-webkit-scrollbar-thumb {
+		background: rgba(255, 255, 255, 0.15);
+		border-radius: 3px;
+	}
+
+	.deck-curve-container::-webkit-scrollbar-thumb:hover {
+		background: rgba(255, 255, 255, 0.3);
+	}
+
 	.curve-layout {
 		display: grid;
 		column-gap: var(--column-gap);
@@ -1966,10 +1984,9 @@
 	}
 
 	.scroll-spacer-right {
-		/* Subtract the scrollbar gutter to maintain visual symmetry and allow flex-shrink so scrollbars never cause horizontal overflow */
-		width: calc(var(--base-margin) - var(--scrollbar-width));
-		min-width: 0;
-		flex-shrink: 1;
+		width: var(--base-margin);
+		min-width: var(--base-margin);
+		flex-shrink: 0;
 	}
 
 	.drag-over {
