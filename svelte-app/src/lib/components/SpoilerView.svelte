@@ -189,7 +189,7 @@
 		<div class="empty-state" in:fade={{ duration: 150 }}>
 			<div class="deck-empty-content">
 				<p class="empty-state-text">
-					To get started, <button class="empty-action-link" onclick={() => (settingsStore.deckViewMode = 'list')}>paste a decklist</button> or <button class="empty-action-link" onclick={() => searchStore.openSearch()}>search for cards</button>
+					To get started, <button class="empty-action-link" onclick={() => (settingsStore.deckViewMode = 'list')}>paste a decklist</button> or <button class="empty-action-link" onclick={() => searchStore.openPalette()}>search for cards</button>
 				</p>
 			</div>
 		</div>

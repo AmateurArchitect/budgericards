@@ -1,5 +1,6 @@
 <script>
 	import SearchPanel from "$lib/components/SearchPanel.svelte";
+	import CommandPalette from "$lib/components/CommandPalette.svelte";
 	import DeckHeader from "$lib/components/DeckHeader.svelte";
 	import StacksView from "$lib/components/StacksView.svelte";
 	import TableView from "$lib/components/TableView.svelte";
@@ -268,6 +269,7 @@
 
 	<MaybeboardCleanupModal bind:isOpen={interactionStore.maybeboardCleanupModal.isOpen} />
 	<SideboardPanel />
+	<CommandPalette />
 
 	{#if showHelpModal}
 		<!-- svelte-ignore a11y_click_events_have_key_events -->

@@ -9,18 +9,12 @@
 	let { onHelpClick = undefined } = $props();
 
 	function handleSearchClick() {
-		if (searchStore.isOpen) {
+		if (searchStore.isPaletteOpen) {
+			searchStore.closePalette();
+		} else if (searchStore.isOpen) {
 			searchStore.closeSearch();
 		} else {
-			searchStore.openSearch();
-			setTimeout(() => {
-				const inputEl =
-					document.querySelector(".panel-search-input input") ||
-					document.querySelector(".search-panel-input input") ||
-					document.querySelector(".panel-search-input") ||
-					document.querySelector(".header-search-input input");
-				/** @type {HTMLElement | null} */ (inputEl)?.focus();
-			}, 60);
+			searchStore.openPalette();
 		}
 	}
 </script>
@@ -46,11 +40,11 @@
 
 		<div class="toolbar-divider" aria-hidden="true"></div>
 
-		<!-- Card Search Button (Primary Focus) -->
+		<!-- Card Search Button (Primary Focus - Opens Command Palette) -->
 		<button
 			type="button"
 			class="toolbar-btn search-trigger-btn"
-			class:active={searchStore.isOpen}
+			class:active={searchStore.isOpen || searchStore.isPaletteOpen}
 			onclick={handleSearchClick}
 			aria-label="Card search (⌘/ or /)"
 			title="Card Search (⌘/ or /)"

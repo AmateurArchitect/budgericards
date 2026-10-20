@@ -87,74 +87,7 @@
 
 	/** @param {any} card */
 	function addSearchCard(card) {
-		if (!card) return;
-		const isLocalBoard = ["sideboard", "maybeboard"].includes(searchStore.collection);
-		const currentBoard = searchStore.collection;
-		const price =
-			searchStore.collection === "scryfall"
-				? card.prices?.usd
-					? parseFloat(card.prices.usd)
-					: null
-				: priceStore.getPrice(card.name);
-
-		if (isLocalBoard) {
-			deckStore.moveCard(
-				card.name,
-				currentBoard,
-				deckStore.activeBoard,
-				card.id,
-				price,
-			);
-		} else {
-			let targetBoard = deckStore.activeBoard;
-			const meta = card.type_line
-				? card
-				: deckStore.metadata[card.name?.toLowerCase()] || card;
-			const typeLine = (meta.type_line || "").toLowerCase();
-			const oracle = (meta.oracle_text || "").toLowerCase();
-			const facesOracle = (meta.card_faces || [])
-				.map((/** @type {any} */ f) => (f.oracle_text || "").toLowerCase())
-				.join(" ");
-			const isLegendaryCreature =
-				typeLine.includes("legendary") && typeLine.includes("creature");
-			const isPlaneswalker = typeLine.includes("planeswalker");
-			const canBeCommander =
-				oracle.includes("can be your commander") ||
-				facesOracle.includes("can be your commander");
-			const isCompanion =
-				oracle.includes("companion —") ||
-				facesOracle.includes("companion —");
-			const isCommander = isCommanderFormat(deckStore.format);
-
-			const isCommanderCandidate =
-				isLegendaryCreature ||
-				canBeCommander ||
-				(deckStore.format === "Brawl" && isPlaneswalker);
-
-			const isDeckEmpty = deckStore.totalCount === 0;
-			const isFormatUnset =
-				!deckStore.format ||
-				deckStore.format === "List" ||
-				deckStore.format === "None" ||
-				deckStore.format === "Draft";
-
-			if (isDeckEmpty && isFormatUnset && isCommanderCandidate) {
-				deckStore.format = "Commander";
-				targetBoard = "commander";
-				toastStore.show(
-					`Set format to Commander with ${card.name} as commander.`,
-				);
-			} else if (
-				isCommander &&
-				deckStore.commander.length === 0 &&
-				isCommanderCandidate
-			) {
-				targetBoard = "commander";
-			} else if (isCompanion && deckStore.companion.length === 0) {
-				targetBoard = "companion";
-			}
-			deckStore.addCard(card.name, targetBoard, price, card);
-		}
+		searchStore.addCardToDeck(card);
 	}
 
 	/** @param {DragEvent} e */

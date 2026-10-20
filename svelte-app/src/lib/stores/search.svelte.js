@@ -4,6 +4,8 @@ import { deckStore } from "$lib/stores/deck.svelte.js";
 import { settingsStore } from "$lib/stores/settings.svelte.js";
 import { syncManager } from "$lib/syncManager.svelte";
 import { runLocalSearch, isPrintingQuery } from "$lib/localSearch";
+import { isCommanderFormat } from "$lib/constants/formats.js";
+import { toastStore } from "$lib/stores/toast.svelte.js";
 
 function createSearch() {
 	let state = $state({
@@ -15,6 +17,7 @@ function createSearch() {
 		isCollapsed: false,
 		isFocused: false,
 		isOpen: false,
+		isPaletteOpen: false,
 		hasTriggered: false,
 		filters: {
 			colors: /** @type {string[]} */ ([]),
@@ -797,9 +800,49 @@ function createSearch() {
 			return state.isOpen || state.isFocused || state.query.length > 0 || state.results.length > 0 || ['sideboard', 'maybeboard'].includes(state.collection); 
 		},
 		set isOpen(val) { state.isOpen = val; },
-		openSearch() {
+		get isPaletteOpen() {
+			return state.isPaletteOpen;
+		},
+		openPalette(initialQuery = "") {
+			state.isPaletteOpen = true;
+			if (initialQuery) {
+				state.query = initialQuery;
+			}
+		},
+		closePalette() {
+			state.isPaletteOpen = false;
+		},
+		togglePalette() {
+			state.isPaletteOpen = !state.isPaletteOpen;
+		},
+		/**
+		 * Opens the docked search panel with an optional query
+		 * @param {string} [query]
+		 */
+		openSearchWithQuery(query) {
+			state.isPaletteOpen = false;
+			if (typeof query === "string") {
+				state.query = query;
+			}
 			state.isOpen = true;
 			state.isFocused = true;
+			if (state.query && state.query.trim().length > 0) {
+				performSearch();
+			}
+		},
+		/**
+		 * @param {string | null} [query]
+		 */
+		openSearch(query = null) {
+			state.isPaletteOpen = false;
+			if (typeof query === "string") {
+				state.query = query;
+			}
+			state.isOpen = true;
+			state.isFocused = true;
+			if (state.query && state.query.trim().length > 0) {
+				performSearch();
+			}
 		},
 		closeSearch() {
 			state.isOpen = false;
@@ -814,6 +857,7 @@ function createSearch() {
 			state.highlightedIndex = 0;
 		},
 		reset() {
+			state.isPaletteOpen = false;
 			state.isOpen = false;
 			state.isFocused = false;
 			state.isCollapsed = false;
@@ -834,7 +878,84 @@ function createSearch() {
 			if (this.isOpen) {
 				this.closeSearch();
 			} else {
-				this.openSearch();
+				this.openPalette();
+			}
+		},
+		/**
+		 * Standard card adder used by both the Command Palette and the Search Panel
+		 * @param {any} card
+		 * @param {string} [targetBoardOverride]
+		 */
+		addCardToDeck(card, targetBoardOverride = undefined) {
+			if (!card) return;
+			const isLocalBoard = ["sideboard", "maybeboard"].includes(state.collection);
+			const currentBoard = state.collection;
+			const price =
+				state.collection === "scryfall"
+					? card.prices?.usd
+						? parseFloat(card.prices.usd)
+						: null
+					: priceStore.getPrice(card.name);
+
+			if (isLocalBoard && !targetBoardOverride) {
+				deckStore.moveCard(
+					card.name,
+					currentBoard,
+					deckStore.activeBoard,
+					card.id,
+					price,
+				);
+			} else {
+				let targetBoard = targetBoardOverride || deckStore.activeBoard;
+				const meta = card.type_line
+					? card
+					: deckStore.metadata[card.name?.toLowerCase()] || card;
+				const typeLine = (meta.type_line || meta.type || "").toLowerCase();
+				const oracle = (meta.oracle_text || meta.text || "").toLowerCase();
+				const facesOracle = (meta.card_faces || [])
+					.map((/** @type {any} */ f) => (f.oracle_text || "").toLowerCase())
+					.join(" ");
+				const isLegendaryCreature =
+					typeLine.includes("legendary") && typeLine.includes("creature");
+				const isPlaneswalker = typeLine.includes("planeswalker");
+				const canBeCommander =
+					oracle.includes("can be your commander") ||
+					facesOracle.includes("can be your commander");
+				const isCompanion =
+					oracle.includes("companion —") ||
+					facesOracle.includes("companion —");
+				const isCommander = isCommanderFormat(deckStore.format);
+
+				const isCommanderCandidate =
+					isLegendaryCreature ||
+					canBeCommander ||
+					(deckStore.format === "Brawl" && isPlaneswalker);
+
+				const isDeckEmpty = deckStore.totalCount === 0;
+				const isFormatUnset =
+					!deckStore.format ||
+					deckStore.format === "List" ||
+					deckStore.format === "None" ||
+					deckStore.format === "Draft";
+
+				if (isDeckEmpty && isFormatUnset && isCommanderCandidate && !targetBoardOverride) {
+					deckStore.format = "Commander";
+					targetBoard = "commander";
+					toastStore.show(
+						`Set format to Commander with ${card.name} as commander.`,
+					);
+				} else if (
+					isCommander &&
+					deckStore.commander.length === 0 &&
+					isCommanderCandidate &&
+					!targetBoardOverride
+				) {
+					targetBoard = "commander";
+				} else if (isCompanion && deckStore.companion.length === 0 && !targetBoardOverride) {
+					targetBoard = "companion";
+				}
+				deckStore.addCard(card.name, targetBoard, price, card);
+				toastStore.show(`Added ${card.name} to ${targetBoard}.`);
 			}
 		},
 		get panelPosition() {

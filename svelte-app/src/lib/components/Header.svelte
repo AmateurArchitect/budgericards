@@ -459,18 +459,22 @@
 			(e.key === "/" || e.key.toLowerCase() === "k" || e.key === " ")
 		) {
 			e.preventDefault();
-			if (searchStore.isOpen) {
+			if (searchStore.isPaletteOpen) {
+				searchStore.closePalette();
+			} else if (searchStore.isOpen) {
 				searchStore.closeSearch();
 			} else {
-				searchStore.openSearch();
-				setTimeout(() => {
-					const inputEl =
-						document.querySelector(".panel-search-input input") ||
-						document.querySelector(".header-search-input input") ||
-						document.querySelector(".panel-search-input") ||
-						document.querySelector(".header-search-input");
-					/** @type {HTMLElement | null} */ (inputEl)?.focus();
-				}, 50);
+				if (isDeckPage) {
+					searchStore.openPalette();
+				} else {
+					searchStore.openSearch();
+					setTimeout(() => {
+						const inputEl =
+							document.querySelector(".header-search-input input") ||
+							document.querySelector(".header-search-input");
+						/** @type {HTMLElement | null} */ (inputEl)?.focus();
+					}, 50);
+				}
 			}
 			return;
 		}
@@ -478,23 +482,31 @@
 		// Fallback: '/' shortcut when NOT typing inside any input and NOT inside an open modal
 		if (e.key === "/" && !isInput && !isCmdOrCtrl && !isModalOpen) {
 			e.preventDefault();
-			if (!searchStore.isOpen) {
-				searchStore.openSearch();
+			if (searchStore.isPaletteOpen) {
+				searchStore.closePalette();
+			} else if (!searchStore.isOpen) {
+				if (isDeckPage) {
+					searchStore.openPalette();
+				} else {
+					searchStore.openSearch();
+					setTimeout(() => {
+						const inputEl =
+							document.querySelector(".header-search-input input") ||
+							document.querySelector(".header-search-input");
+						/** @type {HTMLElement | null} */ (inputEl)?.focus();
+					}, 50);
+				}
 			}
-			setTimeout(() => {
-				const inputEl =
-					document.querySelector(".panel-search-input input") ||
-					document.querySelector(".header-search-input input") ||
-					document.querySelector(".panel-search-input") ||
-					document.querySelector(".header-search-input");
-				/** @type {HTMLElement | null} */ (inputEl)?.focus();
-			}, 50);
 			return;
 		}
 
-		// Escape closes search when search is open
-		if (e.key === "Escape" && searchStore.isOpen) {
-			searchStore.closeSearch();
+		// Escape closes search or palette when open
+		if (e.key === "Escape") {
+			if (searchStore.isPaletteOpen) {
+				searchStore.closePalette();
+			} else if (searchStore.isOpen) {
+				searchStore.closeSearch();
+			}
 		}
 	}
 </script>
