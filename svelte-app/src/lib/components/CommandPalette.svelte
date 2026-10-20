@@ -8,7 +8,7 @@
 	import { scryfallFetch } from "$lib/api/scryfall.js";
 	import { fade, scale } from "svelte/transition";
 	import { cubicOut } from "svelte/easing";
-	import { Search, X, Plus, Layers, Tags } from "lucide-svelte";
+	import { Search, X, Layers, Tags } from "lucide-svelte";
 
 	let query = $state("");
 	let selectedIndex = $state(0);
@@ -404,49 +404,42 @@
 								title={card.name}
 							>
 								<span class="card-name-text">{card.name}</span>
+
 								{#if selectedIndex === idx}
-									<kbd class="key-cap active-enter-badge">↵</kbd>
+									<div class="row-actions">
+										<button
+											type="button"
+											class="row-action-btn"
+											onclick={(e) => {
+												e.stopPropagation();
+												handlePrinting(card);
+											}}
+											title="Change printing (P)"
+										>
+											<Layers size={11} />
+											<span>Printing</span>
+											<kbd class="key-cap">P</kbd>
+										</button>
+
+										<button
+											type="button"
+											class="row-action-btn"
+											onclick={(e) => {
+												e.stopPropagation();
+												handleTag(card);
+											}}
+											title="Edit tags (T)"
+										>
+											<Tags size={11} />
+											<span>Tags</span>
+											<kbd class="key-cap">T</kbd>
+										</button>
+
+										<kbd class="key-cap row-enter-badge" title="Add to deck (Enter)">↵</kbd>
+									</div>
 								{/if}
 							</button>
 						{/each}
-					</div>
-
-					<!-- Integrated action toolbar for the selected card -->
-					<div class="card-actions-bar">
-						<div class="card-actions-left">
-							<button
-								type="button"
-								class="card-action-btn"
-								onclick={() => handlePrinting(selectedCard)}
-								title="Change printings (P)"
-							>
-								<Layers size={12} />
-								<span>Printing</span>
-								<kbd class="key-cap">P</kbd>
-							</button>
-
-							<button
-								type="button"
-								class="card-action-btn"
-								onclick={() => handleTag(selectedCard)}
-								title="Edit tags (T)"
-							>
-								<Tags size={12} />
-								<span>Tags</span>
-								<kbd class="key-cap">T</kbd>
-							</button>
-						</div>
-
-						<button
-							type="button"
-							class="card-action-btn add-btn"
-							onclick={() => selectCard(selectedCard)}
-							title="Add to deck (Enter)"
-						>
-							<Plus size={12} />
-							<span>Add</span>
-							<kbd class="key-cap">↵</kbd>
-						</button>
 					</div>
 
 					<!-- Regular Popover Card Thingy displayed outside the container next to the card name -->
@@ -498,7 +491,7 @@
 	}
 
 	.command-palette-wrapper {
-		width: 440px;
+		width: 460px;
 		max-width: 100%;
 		display: flex;
 		flex-direction: column;
@@ -605,7 +598,7 @@
 	}
 
 	.card-names-list {
-		max-height: 180px;
+		max-height: 190px;
 		overflow-y: auto;
 		padding: 4px;
 		display: flex;
@@ -628,7 +621,9 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		gap: 8px;
 		padding: 4px 8px;
+		min-height: 29px;
 		border-radius: var(--radius-sm);
 		border: none;
 		background: transparent;
@@ -651,69 +646,58 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		flex: 1;
+		min-width: 0;
 	}
 
-	.active-enter-badge {
-		border-color: hsla(0, 0%, 100%, 0.4);
-		color: #ffffff;
-		background: hsla(0, 0%, 100%, 0.2);
-	}
-
-	/* Bottom actions bar */
-	.card-actions-bar {
+	/* Row action buttons appearing on the right of the active card line */
+	.row-actions {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		gap: 6px;
-		padding: 5px 8px;
-		border-top: 1px solid hsla(var(--border) / 0.5);
-		background: hsla(var(--muted) / 0.15);
-		border-bottom-left-radius: inherit;
-		border-bottom-right-radius: inherit;
+		gap: 4px;
+		flex-shrink: 0;
 	}
 
-	.card-actions-left {
-		display: flex;
-		align-items: center;
-		gap: 5px;
-	}
-
-	.card-action-btn {
+	.row-action-btn {
 		display: inline-flex;
 		align-items: center;
-		gap: 5px;
-		padding: 3px 7px;
+		gap: 4px;
+		padding: 2px 6px;
 		border-radius: var(--radius-sm);
-		font-size: 0.74rem;
+		border: 1px solid rgba(255, 255, 255, 0.28);
+		background: rgba(255, 255, 255, 0.15);
+		color: #ffffff;
+		font-size: 0.72rem;
 		font-weight: 500;
 		cursor: pointer;
 		user-select: none;
-		border: 1px solid hsla(var(--border) / 0.5);
-		background: hsla(var(--muted) / 0.25);
-		color: var(--text-primary, #ffffff);
 		transition: all 0.1s ease;
 	}
 
-	.card-action-btn:hover {
-		background: hsl(var(--primary) / 0.9);
-		border-color: hsl(var(--primary));
-		color: #ffffff;
+	.row-action-btn:hover {
+		background: rgba(255, 255, 255, 0.3);
+		border-color: rgba(255, 255, 255, 0.55);
+		transform: scale(1.02);
 	}
 
-	.card-action-btn:hover .key-cap {
-		border-color: hsla(0, 0%, 100%, 0.4);
+	.row-action-btn .key-cap {
+		background: rgba(0, 0, 0, 0.25);
+		border-color: rgba(255, 255, 255, 0.35);
 		color: #ffffff;
-		background: hsla(0, 0%, 100%, 0.15);
+		font-size: 0.6rem;
+		min-width: 1rem;
+		height: 1rem;
+		padding: 0 3px;
 	}
 
-	.card-action-btn.add-btn {
-		background: hsl(var(--primary));
-		border-color: hsl(var(--primary));
+	.row-enter-badge {
+		border-color: rgba(255, 255, 255, 0.35);
 		color: #ffffff;
-	}
-
-	.card-action-btn.add-btn:hover {
-		background: hsl(var(--primary) / 0.85);
+		background: rgba(0, 0, 0, 0.25);
+		font-size: 0.65rem;
+		min-width: 1.125rem;
+		height: 1.125rem;
+		padding: 0 4px;
 	}
 
 	/* Regular Popover Card Thingy outside container */
