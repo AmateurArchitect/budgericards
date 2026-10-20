@@ -3,6 +3,7 @@
 	import { deckStore } from "$lib/stores/deck.svelte.js";
 	import { priceStore } from "$lib/stores/prices.svelte.js";
 	import { interactionStore } from "$lib/stores/interaction.svelte.js";
+	import { settingsStore } from "$lib/stores/settings.svelte.js";
 	import { db } from "$lib/db";
 	import { scryfallFetch } from "$lib/api/scryfall.js";
 	import { fade, scale } from "svelte/transition";
@@ -15,7 +16,11 @@
 	let isSearching = $state(false);
 	/** @type {HTMLInputElement | null} */
 	let inputEl = $state(null);
-	let listEl = $state(/** @type {HTMLElement | null} */ (null));
+	/** @type {HTMLElement | null} */
+	let listEl = $state(null);
+	/** @type {HTMLElement | null} */
+	let dropdownEl = $state(null);
+	let popoverOnLeft = $state(false);
 
 	// When palette opens, reset query and focus input
 	$effect(() => {
@@ -62,10 +67,10 @@
 					localMatches = await db.cards
 						.where("name")
 						.startsWithIgnoreCase(q)
-						.limit(8)
+						.limit(6)
 						.toArray();
 
-					if (localMatches.length < 8) {
+					if (localMatches.length < 6) {
 						const lower = q.toLowerCase();
 						const substring = await db.cards
 							.filter(
@@ -73,7 +78,7 @@
 									c.name.toLowerCase().includes(lower) &&
 									!c.name.toLowerCase().startsWith(lower),
 							)
-							.limit(8 - localMatches.length)
+							.limit(6 - localMatches.length)
 							.toArray();
 						localMatches = [...localMatches, ...substring];
 					}
@@ -101,7 +106,7 @@
 							const names = json.data || [];
 							if (currentSeq !== searchSeq) return;
 
-							const cards = names.slice(0, 8).map((/** @type {string} */ name) => {
+							const cards = names.slice(0, 6).map((/** @type {string} */ name) => {
 								const meta = deckStore.metadata[name.toLowerCase()] || {};
 								const localPrice = priceStore.getPrice(name);
 								return {
@@ -139,6 +144,14 @@
 		})();
 	});
 
+	// Check screen boundaries to flip the popover card if near right edge
+	$effect(() => {
+		if (matchedCards.length > 0 && dropdownEl) {
+			const rect = dropdownEl.getBoundingClientRect();
+			popoverOnLeft = rect.right + 260 > window.innerWidth;
+		}
+	});
+
 	let selectedCard = $derived(
 		matchedCards.length > 0 &&
 			selectedIndex >= 0 &&
@@ -146,6 +159,18 @@
 			? matchedCards[selectedIndex]
 			: null,
 	);
+
+	let selectedPrice = $derived.by(() => {
+		if (!selectedCard) return null;
+		if (
+			selectedCard.prices?.usd !== undefined &&
+			selectedCard.prices?.usd !== null
+		) {
+			const p = parseFloat(selectedCard.prices.usd);
+			if (!isNaN(p)) return p;
+		}
+		return priceStore.getPrice(selectedCard.name);
+	});
 
 	let previewImgUrl = $derived.by(() => {
 		if (!selectedCard) return "";
@@ -314,15 +339,14 @@
 		}}
 	>
 		<div
-			class="command-palette"
-			class:has-matches={matchedCards.length > 0}
+			class="command-palette-wrapper"
 			transition:scale={{ duration: 140, start: 0.97, easing: cubicOut }}
 			role="dialog"
 			aria-label="Card search command palette"
 			aria-modal="true"
 		>
-			<!-- Integrated Search Bar Header -->
-			<div class="palette-header">
+			<!-- 1. Standalone Search Bar -->
+			<div class="palette-search-bar">
 				<Search size={15} class="header-search-icon" />
 				<input
 					bind:this={inputEl}
@@ -359,12 +383,15 @@
 				</div>
 			</div>
 
-			<!-- Visually integrated Card List and Preview area -->
+			<!-- 2. Separated Card List Dropdown with popover card next to it -->
 			{#if matchedCards.length > 0 && selectedCard}
-				<div class="palette-divider"></div>
-				<div class="palette-body">
-					<!-- Left: Pure list of card names -->
-					<div class="card-names-list" bind:this={listEl} role="listbox">
+				<div
+					class="card-list-dropdown"
+					bind:this={dropdownEl}
+					role="listbox"
+					transition:scale={{ duration: 120, start: 0.98, easing: cubicOut }}
+				>
+					<div class="card-names-list" bind:this={listEl}>
 						{#each matchedCards as card, idx}
 							<button
 								type="button"
@@ -377,20 +404,62 @@
 								title={card.name}
 							>
 								<span class="card-name-text">{card.name}</span>
+								{#if selectedIndex === idx}
+									<kbd class="key-cap active-enter-badge">↵</kbd>
+								{/if}
 							</button>
 						{/each}
 					</div>
 
-					<div class="vertical-divider"></div>
+					<!-- Integrated action toolbar for the selected card -->
+					<div class="card-actions-bar">
+						<div class="card-actions-left">
+							<button
+								type="button"
+								class="card-action-btn"
+								onclick={() => handlePrinting(selectedCard)}
+								title="Change printings (P)"
+							>
+								<Layers size={12} />
+								<span>Printing</span>
+								<kbd class="key-cap">P</kbd>
+							</button>
 
-					<!-- Right: Selected card preview & option buttons -->
-					<div class="card-details-pane">
-						<div class="preview-img-container">
-							{#if previewImgUrl}
+							<button
+								type="button"
+								class="card-action-btn"
+								onclick={() => handleTag(selectedCard)}
+								title="Edit tags (T)"
+							>
+								<Tags size={12} />
+								<span>Tags</span>
+								<kbd class="key-cap">T</kbd>
+							</button>
+						</div>
+
+						<button
+							type="button"
+							class="card-action-btn add-btn"
+							onclick={() => selectCard(selectedCard)}
+							title="Add to deck (Enter)"
+						>
+							<Plus size={12} />
+							<span>Add</span>
+							<kbd class="key-cap">↵</kbd>
+						</button>
+					</div>
+
+					<!-- Regular Popover Card Thingy displayed outside the container next to the card name -->
+					{#if previewImgUrl}
+						<div
+							class="card-popover"
+							class:popover-left={popoverOnLeft}
+							in:fade={{ duration: 100 }}
+						>
+							<div class="card-popover-container">
 								<img
 									src={previewImgUrl}
 									alt={selectedCard.name}
-									class="card-preview-img"
 									onerror={(e) => {
 										const el = /** @type {HTMLImageElement} */ (e.currentTarget);
 										if (!el.src.includes("&fuzzy=")) {
@@ -398,56 +467,14 @@
 										}
 									}}
 								/>
-							{:else}
-								<div class="preview-placeholder">
-									<span>No Preview</span>
-								</div>
-							{/if}
-						</div>
-
-						<div class="card-actions-wrapper">
-							<button
-								type="button"
-								class="palette-action-btn add-btn"
-								onclick={() => selectCard(selectedCard)}
-								title="Add to deck (Enter)"
-							>
-								<div class="btn-left">
-									<Plus size={13} />
-									<span>Add Card</span>
-								</div>
-								<kbd class="key-cap">↵</kbd>
-							</button>
-
-							<div class="secondary-actions-row">
-								<button
-									type="button"
-									class="palette-action-btn secondary-btn"
-									onclick={() => handlePrinting(selectedCard)}
-									title="Change printings (P)"
-								>
-									<div class="btn-left">
-										<Layers size={13} />
-										<span>Printing</span>
+								{#if selectedPrice !== null && (settingsStore?.showPrices ?? true)}
+									<div class="tooltip-price" in:fade={{ duration: 150 }}>
+										${Number(selectedPrice).toFixed(2)}
 									</div>
-									<kbd class="key-cap">P</kbd>
-								</button>
-
-								<button
-									type="button"
-									class="palette-action-btn secondary-btn"
-									onclick={() => handleTag(selectedCard)}
-									title="Edit tags (T)"
-								>
-									<div class="btn-left">
-										<Tags size={13} />
-										<span>Tags</span>
-									</div>
-									<kbd class="key-cap">T</kbd>
-								</button>
+								{/if}
 							</div>
 						</div>
-					</div>
+					{/if}
 				</div>
 			{/if}
 		</div>
@@ -458,7 +485,7 @@
 	.command-palette-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.7);
+		background: rgba(0, 0, 0, 0.65);
 		backdrop-filter: blur(6px);
 		-webkit-backdrop-filter: blur(6px);
 		z-index: 1500;
@@ -470,33 +497,28 @@
 		padding-right: 1rem;
 	}
 
-	/* Single visually integrated container styled like ContextMenu */
-	.command-palette {
-		width: 480px;
+	.command-palette-wrapper {
+		width: 440px;
 		max-width: 100%;
-		background: hsl(var(--popover));
-		border: 1px solid hsla(var(--border) / 0.6);
-		border-radius: var(--radius);
-		box-shadow:
-			0 15px 35px -5px rgba(0, 0, 0, 0.55),
-			0 0 0 1px hsla(255, 100%, 100%, 0.04);
-		overflow: hidden;
+		display: flex;
+		flex-direction: column;
 		user-select: none;
-		outline: none;
-		transition: width 0.15s ease;
+		position: relative;
 	}
 
-	.command-palette.has-matches {
-		width: 520px;
-	}
-
-	/* Integrated search bar header */
-	.palette-header {
+	/* Standalone search bar */
+	.palette-search-bar {
+		width: 100%;
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		padding: 6px 8px 6px 12px;
-		background: transparent;
+		background: hsl(var(--popover));
+		border: 1px solid hsla(var(--border) / 0.6);
+		border-radius: var(--radius);
+		box-shadow:
+			0 12px 30px -5px rgba(0, 0, 0, 0.5),
+			0 0 0 1px hsla(255, 100%, 100%, 0.04);
 	}
 
 	:global(.header-search-icon) {
@@ -568,26 +590,24 @@
 		color: #ffffff;
 	}
 
-	/* Divider between header and list */
-	.palette-divider {
-		height: 1px;
-		background: hsla(var(--border) / 0.5);
+	/* Card list dropdown separated from search bar */
+	.card-list-dropdown {
+		margin-top: 6px;
+		width: 100%;
+		background: hsl(var(--popover));
+		border: 1px solid hsla(var(--border) / 0.6);
+		border-radius: var(--radius);
+		box-shadow:
+			0 15px 35px -5px rgba(0, 0, 0, 0.55),
+			0 0 0 1px hsla(255, 100%, 100%, 0.04);
+		position: relative;
+		overflow: visible;
 	}
 
-	/* Body containing list and preview */
-	.palette-body {
-		display: flex;
-		align-items: stretch;
-		min-height: 250px;
-		max-height: 290px;
-	}
-
-	/* Left column: Card names list */
 	.card-names-list {
-		flex: 1;
-		min-width: 0;
+		max-height: 180px;
 		overflow-y: auto;
-		padding: 5px;
+		padding: 4px;
 		display: flex;
 		flex-direction: column;
 		gap: 1px;
@@ -607,7 +627,8 @@
 	.card-name-item {
 		display: flex;
 		align-items: center;
-		padding: 5px 8px;
+		justify-content: space-between;
+		padding: 4px 8px;
 		border-radius: var(--radius-sm);
 		border: none;
 		background: transparent;
@@ -632,74 +653,38 @@
 		text-overflow: ellipsis;
 	}
 
-	.vertical-divider {
-		width: 1px;
-		background: hsla(var(--border) / 0.5);
-		flex-shrink: 0;
+	.active-enter-badge {
+		border-color: hsla(0, 0%, 100%, 0.4);
+		color: #ffffff;
+		background: hsla(0, 0%, 100%, 0.2);
 	}
 
-	/* Right column: Card details & preview */
-	.card-details-pane {
-		width: 185px;
-		flex-shrink: 0;
-		background: hsla(var(--muted) / 0.12);
-		padding: 8px;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: space-between;
-		gap: 8px;
-	}
-
-	.preview-img-container {
-		width: 100%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex: 1;
-		min-height: 0;
-	}
-
-	.card-preview-img {
-		max-width: 130px;
-		max-height: 182px;
-		width: auto;
-		height: auto;
-		aspect-ratio: 63 / 88;
-		border-radius: 6px;
-		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
-		border: 1px solid rgba(255, 255, 255, 0.08);
-		object-fit: cover;
-	}
-
-	.preview-placeholder {
-		width: 130px;
-		height: 182px;
-		border-radius: 6px;
-		border: 1px dashed hsla(var(--border) / 0.6);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: hsl(var(--muted-foreground));
-		font-size: 0.75rem;
-	}
-
-	.card-actions-wrapper {
-		width: 100%;
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-
-	.palette-action-btn {
+	/* Bottom actions bar */
+	.card-actions-bar {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 6px;
-		width: 100%;
-		padding: 4px 7px;
+		padding: 5px 8px;
+		border-top: 1px solid hsla(var(--border) / 0.5);
+		background: hsla(var(--muted) / 0.15);
+		border-bottom-left-radius: inherit;
+		border-bottom-right-radius: inherit;
+	}
+
+	.card-actions-left {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+	}
+
+	.card-action-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		padding: 3px 7px;
 		border-radius: var(--radius-sm);
-		font-size: 0.76rem;
+		font-size: 0.74rem;
 		font-weight: 500;
 		cursor: pointer;
 		user-select: none;
@@ -709,51 +694,84 @@
 		transition: all 0.1s ease;
 	}
 
-	.palette-action-btn:hover {
+	.card-action-btn:hover {
 		background: hsl(var(--primary) / 0.9);
 		border-color: hsl(var(--primary));
 		color: #ffffff;
 	}
 
-	.palette-action-btn:hover .key-cap {
+	.card-action-btn:hover .key-cap {
 		border-color: hsla(0, 0%, 100%, 0.4);
 		color: #ffffff;
 		background: hsla(0, 0%, 100%, 0.15);
 	}
 
-	.palette-action-btn.add-btn {
+	.card-action-btn.add-btn {
 		background: hsl(var(--primary));
 		border-color: hsl(var(--primary));
 		color: #ffffff;
 	}
 
-	.palette-action-btn.add-btn:hover {
+	.card-action-btn.add-btn:hover {
 		background: hsl(var(--primary) / 0.85);
 	}
 
-	.secondary-actions-row {
-		display: flex;
-		gap: 4px;
+	/* Regular Popover Card Thingy outside container */
+	.card-popover {
+		position: absolute;
+		left: calc(100% + 10px);
+		top: 0;
+		width: 240px;
+		border-radius: 12px;
+		box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.8);
+		pointer-events: none;
+		z-index: 100;
+	}
+
+	.card-popover.popover-left {
+		left: auto;
+		right: calc(100% + 10px);
+	}
+
+	.card-popover-container {
 		width: 100%;
-	}
-
-	.secondary-actions-row .palette-action-btn {
-		flex: 1;
-		min-width: 0;
-		padding: 4px 5px;
-	}
-
-	.btn-left {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-		min-width: 0;
-	}
-
-	.btn-left span {
-		white-space: nowrap;
+		position: relative;
+		border-radius: 12px;
 		overflow: hidden;
-		text-overflow: ellipsis;
+		background: #000;
+	}
+
+	.card-popover-container::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+		border-radius: inherit;
+		pointer-events: none;
+	}
+
+	.card-popover-container img {
+		width: 100%;
+		height: auto;
+		display: block;
+		aspect-ratio: 63 / 88;
+		object-fit: cover;
+	}
+
+	.tooltip-price {
+		position: absolute;
+		bottom: 10px;
+		left: 10px;
+		background: rgba(0, 0, 0, 0.75);
+		backdrop-filter: blur(4px);
+		-webkit-backdrop-filter: blur(4px);
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		border-radius: 6px;
+		padding: 3px 7px;
+		font-size: 0.82rem;
+		font-weight: 700;
+		color: #4ade80;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 	}
 
 	/* Keyboard shortcut badge styled like ContextMenu */
