@@ -56,6 +56,7 @@
 		(async () => {
 			try {
 				// 1. Check local IndexedDB first
+				/** @type {any[]} */
 				let localMatches = [];
 				try {
 					localMatches = await db.cards
@@ -100,7 +101,7 @@
 							const names = json.data || [];
 							if (currentSeq !== searchSeq) return;
 
-							const cards = names.slice(0, 8).map((name) => {
+							const cards = names.slice(0, 8).map((/** @type {string} */ name) => {
 								const meta = deckStore.metadata[name.toLowerCase()] || {};
 								const localPrice = priceStore.getPrice(name);
 								return {
