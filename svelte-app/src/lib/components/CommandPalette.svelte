@@ -8,7 +8,7 @@
 	import { scryfallFetch } from "$lib/api/scryfall.js";
 	import { fade, scale } from "svelte/transition";
 	import { cubicOut } from "svelte/easing";
-	import { Search, X, Layers, Tags } from "lucide-svelte";
+	import { X, Layers, Tags } from "lucide-svelte";
 
 	let query = $state("");
 	let selectedIndex = $state(0);
@@ -249,18 +249,7 @@
 		]);
 	}
 
-	let isSyntaxQuery = $derived(/[:<>=]/.test(query.trim()));
 
-	/** @param {string} syntaxText */
-	function appendSyntax(syntaxText) {
-		const trimmed = query.trim();
-		if (!trimmed) {
-			query = syntaxText + " ";
-		} else {
-			query = trimmed + " " + syntaxText + " ";
-		}
-		inputEl?.focus();
-	}
 
 	function scrollActiveIntoView() {
 		setTimeout(() => {
@@ -382,12 +371,10 @@
 
 				<!-- 2. Integrated Search Bar -->
 				<div class="palette-search-bar">
-					<Search size={16} class="header-search-icon" />
 					<input
 						bind:this={inputEl}
 						type="text"
 						class="palette-input"
-						placeholder="Type a card name or enter search syntax..."
 						bind:value={query}
 						onkeydown={handleKeydown}
 						autocomplete="off"
@@ -407,7 +394,7 @@
 					</div>
 				</div>
 
-				<!-- 3. Results / Syntax Action / Empty Hints Area -->
+				<!-- 3. Results Area -->
 				{#if matchedCards.length > 0 && selectedCard}
 					<div class="palette-divider" aria-hidden="true"></div>
 					<div class="card-names-list" bind:this={listEl} role="listbox">
@@ -460,97 +447,6 @@
 								{/if}
 							</div>
 						{/each}
-					</div>
-				{:else if isSyntaxQuery}
-					<div class="palette-divider" aria-hidden="true"></div>
-					<!-- svelte-ignore a11y_click_events_have_key_events -->
-					<div
-						class="palette-action-row"
-						onclick={openSidePanel}
-						role="button"
-						tabindex="-1"
-						title="Run syntax search in panel (Enter)"
-					>
-						<div class="palette-action-left">
-							<div class="palette-action-badge">
-								<Search size={14} />
-							</div>
-							<div class="palette-action-text">
-								<span class="action-label">Search syntax in panel:</span>
-								<strong class="action-highlight">{query.trim()}</strong>
-							</div>
-						</div>
-						<div class="palette-action-right">
-							<span class="action-shortcut-hint">Open panel</span>
-							<kbd class="key-cap">↵</kbd>
-						</div>
-					</div>
-				{:else if query.trim().length > 0 && !isSearching}
-					<div class="palette-divider" aria-hidden="true"></div>
-					<!-- svelte-ignore a11y_click_events_have_key_events -->
-					<div
-						class="palette-action-row"
-						onclick={openSidePanel}
-						role="button"
-						tabindex="-1"
-						title="Search full database in panel (Enter)"
-					>
-						<div class="palette-action-left">
-							<div class="palette-action-badge">
-								<Search size={14} />
-							</div>
-							<div class="palette-action-text">
-								<span class="action-label">Search all cards for:</span>
-								<strong class="action-highlight">{query.trim()}</strong>
-							</div>
-						</div>
-						<div class="palette-action-right">
-							<span class="action-shortcut-hint">Open panel</span>
-							<kbd class="key-cap">↵</kbd>
-						</div>
-					</div>
-				{:else if !query.trim()}
-					<div class="palette-divider" aria-hidden="true"></div>
-					<div class="palette-empty-hints">
-						<span class="hints-label">Search syntax examples</span>
-						<div class="syntax-chips">
-							<button
-								type="button"
-								class="syntax-chip"
-								onclick={() => appendSyntax("t:instant")}
-								title="Filter by card type (e.g. t:creature, t:instant)"
-							>
-								<span class="chip-code">t:instant</span>
-								<span class="chip-desc">Type</span>
-							</button>
-							<button
-								type="button"
-								class="syntax-chip"
-								onclick={() => appendSyntax("c:blue")}
-								title="Filter by color (e.g. c:blue, c:w)"
-							>
-								<span class="chip-code">c:blue</span>
-								<span class="chip-desc">Color</span>
-							</button>
-							<button
-								type="button"
-								class="syntax-chip"
-								onclick={() => appendSyntax("o:draw")}
-								title="Filter by card text (e.g. o:draw, o:counter)"
-							>
-								<span class="chip-code">o:draw</span>
-								<span class="chip-desc">Text</span>
-							</button>
-							<button
-								type="button"
-								class="syntax-chip"
-								onclick={() => appendSyntax("cmc<=2")}
-								title="Filter by mana value (e.g. cmc<=2, cmc=3)"
-							>
-								<span class="chip-code">cmc&lt;=2</span>
-								<span class="chip-desc">Mana</span>
-							</button>
-						</div>
 					</div>
 				{/if}
 			</div>
@@ -642,7 +538,7 @@
 
 	.palette-title {
 		margin: 0;
-		font-size: 1.15rem;
+		font-size: 1.125rem;
 		font-weight: 600;
 		color: var(--text-primary, #ffffff);
 		letter-spacing: -0.015em;
@@ -651,7 +547,7 @@
 
 	.palette-subtitle {
 		margin: 0;
-		font-size: 0.84rem;
+		font-size: 0.875rem;
 		color: hsl(var(--muted-foreground));
 		line-height: 1.4;
 	}
@@ -665,7 +561,7 @@
 		border: 1px solid hsla(var(--border) / 0.5);
 		background: hsla(var(--muted) / 0.35);
 		color: hsl(var(--muted-foreground));
-		font-size: 0.76rem;
+		font-size: 0.75rem;
 		font-weight: 500;
 		cursor: pointer;
 		user-select: none;
@@ -698,13 +594,8 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		padding: 10px 14px 10px 18px;
+		padding: 10px 14px 10px 20px;
 		background: hsla(var(--muted) / 0.18);
-	}
-
-	:global(.header-search-icon) {
-		color: hsl(var(--muted-foreground));
-		flex-shrink: 0;
 	}
 
 	.palette-input {
@@ -714,13 +605,8 @@
 		border: none;
 		outline: none;
 		color: var(--text-primary, #ffffff);
-		font-size: 0.92rem;
+		font-size: 0.875rem;
 		font-family: inherit;
-	}
-
-	.palette-input::placeholder {
-		color: hsl(var(--muted-foreground) / 0.7);
-		font-size: 0.88rem;
 	}
 
 	.header-actions {
@@ -739,7 +625,7 @@
 		border: 1px solid hsla(var(--border) / 0.5);
 		background: hsla(var(--muted) / 0.35);
 		color: var(--text-primary, #ffffff);
-		font-size: 0.76rem;
+		font-size: 0.75rem;
 		font-weight: 500;
 		cursor: pointer;
 		user-select: none;
@@ -756,132 +642,6 @@
 		border-color: hsla(0, 0%, 100%, 0.4);
 		color: #ffffff;
 		background: hsla(0, 0%, 100%, 0.15);
-	}
-
-	/* Action Row for syntax search or fallback */
-	.palette-action-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 10px 16px;
-		cursor: pointer;
-		background: transparent;
-		transition: background 0.12s ease;
-	}
-
-	.palette-action-row:hover {
-		background: hsla(var(--muted) / 0.45);
-	}
-
-	.palette-action-left {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		min-width: 0;
-	}
-
-	.palette-action-badge {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 26px;
-		height: 26px;
-		border-radius: var(--radius-sm, 6px);
-		background: hsl(var(--primary) / 0.2);
-		color: hsl(var(--primary));
-		flex-shrink: 0;
-	}
-
-	.palette-action-text {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		font-size: 0.85rem;
-		color: var(--text-primary, #ffffff);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.action-label {
-		color: hsl(var(--muted-foreground));
-	}
-
-	.action-highlight {
-		color: #ffffff;
-		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-		background: hsla(var(--muted) / 0.6);
-		padding: 1px 6px;
-		border-radius: 4px;
-		font-size: 0.82rem;
-	}
-
-	.palette-action-right {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		flex-shrink: 0;
-	}
-
-	.action-shortcut-hint {
-		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground));
-	}
-
-	/* Empty State Hints & Syntax Chips */
-	.palette-empty-hints {
-		padding: 12px 18px 14px 18px;
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-		background: hsla(var(--muted) / 0.12);
-	}
-
-	.hints-label {
-		font-size: 0.72rem;
-		font-weight: 600;
-		color: hsl(var(--muted-foreground));
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.syntax-chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 6px;
-	}
-
-	.syntax-chip {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 3px 8px;
-		border-radius: var(--radius-sm, 6px);
-		border: 1px solid hsla(var(--border) / 0.5);
-		background: hsla(var(--muted) / 0.35);
-		color: var(--text-primary, #ffffff);
-		font-size: 0.75rem;
-		cursor: pointer;
-		user-select: none;
-		transition: all 0.12s ease;
-	}
-
-	.syntax-chip:hover {
-		background: hsl(var(--primary) / 0.22);
-		border-color: hsl(var(--primary) / 0.55);
-		color: #ffffff;
-		transform: translateY(-1px);
-	}
-
-	.chip-code {
-		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-		font-weight: 600;
-		color: hsl(var(--primary));
-	}
-
-	.chip-desc {
-		color: hsl(var(--muted-foreground));
-		font-size: 0.7rem;
 	}
 
 	/* Card names list */
@@ -916,7 +676,7 @@
 		border: none;
 		background: transparent;
 		color: var(--text-primary, #ffffff);
-		font-size: 0.85rem;
+		font-size: 0.875rem;
 		font-weight: 500;
 		text-align: left;
 		cursor: pointer;
@@ -955,7 +715,7 @@
 		border: 1px solid rgba(255, 255, 255, 0.28);
 		background: rgba(255, 255, 255, 0.15);
 		color: #ffffff;
-		font-size: 0.72rem;
+		font-size: 0.75rem;
 		font-weight: 500;
 		cursor: pointer;
 		user-select: none;
