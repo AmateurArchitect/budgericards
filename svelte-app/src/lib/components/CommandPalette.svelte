@@ -249,6 +249,19 @@
 		]);
 	}
 
+	let isSyntaxQuery = $derived(/[:<>=]/.test(query.trim()));
+
+	/** @param {string} syntaxText */
+	function appendSyntax(syntaxText) {
+		const trimmed = query.trim();
+		if (!trimmed) {
+			query = syntaxText + " ";
+		} else {
+			query = trimmed + " " + syntaxText + " ";
+		}
+		inputEl?.focus();
+	}
+
 	function scrollActiveIntoView() {
 		setTimeout(() => {
 			const activeEl = listEl?.querySelector(".card-name-item.active");
@@ -345,53 +358,59 @@
 			aria-label="Card search command palette"
 			aria-modal="true"
 		>
-			<!-- 1. Standalone Search Bar -->
-			<div class="palette-search-bar">
-				<Search size={15} class="header-search-icon" />
-				<input
-					bind:this={inputEl}
-					type="text"
-					class="palette-input"
-					placeholder="Type a card name..."
-					bind:value={query}
-					onkeydown={handleKeydown}
-					autocomplete="off"
-					spellcheck="false"
-				/>
-
-				<div class="header-actions">
-					<button
-						type="button"
-						class="header-action-btn search-trigger-btn"
-						onclick={openSidePanel}
-						title="Open card search panel (Enter or ⌘↵)"
-					>
-						<span>Search</span>
-						<kbd class="key-cap">{matchedCards.length > 0 ? "⌘↵" : "↵"}</kbd>
-					</button>
+			<div class="command-palette-card" bind:this={dropdownEl}>
+				<!-- 1. Header (Above the search bar) -->
+				<div class="palette-header">
+					<div class="palette-header-text">
+						<h2 class="palette-title">Add Cards</h2>
+						<p class="palette-subtitle">Type a card name or enter search syntax</p>
+					</div>
 
 					<button
 						type="button"
-						class="header-action-btn close-btn"
+						class="palette-close-btn"
 						onclick={() => searchStore.closePalette()}
 						title="Close (Esc)"
 						aria-label="Close"
 					>
-						<X size={13} />
+						<X size={14} />
 						<kbd class="key-cap">esc</kbd>
 					</button>
 				</div>
-			</div>
 
-			<!-- 2. Separated Card List Dropdown with popover card next to it -->
-			{#if matchedCards.length > 0 && selectedCard}
-				<div
-					class="card-list-dropdown"
-					bind:this={dropdownEl}
-					role="listbox"
-					transition:scale={{ duration: 120, start: 0.98, easing: cubicOut }}
-				>
-					<div class="card-names-list" bind:this={listEl}>
+				<div class="palette-divider" aria-hidden="true"></div>
+
+				<!-- 2. Integrated Search Bar -->
+				<div class="palette-search-bar">
+					<Search size={16} class="header-search-icon" />
+					<input
+						bind:this={inputEl}
+						type="text"
+						class="palette-input"
+						placeholder="Type a card name or enter search syntax..."
+						bind:value={query}
+						onkeydown={handleKeydown}
+						autocomplete="off"
+						spellcheck="false"
+					/>
+
+					<div class="header-actions">
+						<button
+							type="button"
+							class="header-action-btn search-trigger-btn"
+							onclick={openSidePanel}
+							title="Open card search panel (Enter or ⌘↵)"
+						>
+							<span>Search</span>
+							<kbd class="key-cap">{matchedCards.length > 0 ? "⌘↵" : "↵"}</kbd>
+						</button>
+					</div>
+				</div>
+
+				<!-- 3. Results / Syntax Action / Empty Hints Area -->
+				{#if matchedCards.length > 0 && selectedCard}
+					<div class="palette-divider" aria-hidden="true"></div>
+					<div class="card-names-list" bind:this={listEl} role="listbox">
 						{#each matchedCards as card, idx}
 							<!-- svelte-ignore a11y_click_events_have_key_events -->
 							<div
@@ -442,33 +461,124 @@
 							</div>
 						{/each}
 					</div>
-
-					<!-- Regular Popover Card Thingy displayed outside the container next to the card name -->
-					{#if previewImgUrl}
-						<div
-							class="card-popover"
-							class:popover-left={popoverOnLeft}
-							in:fade={{ duration: 100 }}
-						>
-							<div class="card-popover-container">
-								<img
-									src={previewImgUrl}
-									alt={selectedCard.name}
-									onerror={(e) => {
-										const el = /** @type {HTMLImageElement} */ (e.currentTarget);
-										if (!el.src.includes("&fuzzy=")) {
-											el.src = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(selectedCard.name)}&format=image&version=normal`;
-										}
-									}}
-								/>
-								{#if selectedPrice !== null && (settingsStore?.showPrices ?? true)}
-									<div class="tooltip-price" in:fade={{ duration: 150 }}>
-										${Number(selectedPrice).toFixed(2)}
-									</div>
-								{/if}
+				{:else if isSyntaxQuery}
+					<div class="palette-divider" aria-hidden="true"></div>
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<div
+						class="palette-action-row"
+						onclick={openSidePanel}
+						role="button"
+						tabindex="-1"
+						title="Run syntax search in panel (Enter)"
+					>
+						<div class="palette-action-left">
+							<div class="palette-action-badge">
+								<Search size={14} />
+							</div>
+							<div class="palette-action-text">
+								<span class="action-label">Search syntax in panel:</span>
+								<strong class="action-highlight">{query.trim()}</strong>
 							</div>
 						</div>
-					{/if}
+						<div class="palette-action-right">
+							<span class="action-shortcut-hint">Open panel</span>
+							<kbd class="key-cap">↵</kbd>
+						</div>
+					</div>
+				{:else if query.trim().length > 0 && !isSearching}
+					<div class="palette-divider" aria-hidden="true"></div>
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<div
+						class="palette-action-row"
+						onclick={openSidePanel}
+						role="button"
+						tabindex="-1"
+						title="Search full database in panel (Enter)"
+					>
+						<div class="palette-action-left">
+							<div class="palette-action-badge">
+								<Search size={14} />
+							</div>
+							<div class="palette-action-text">
+								<span class="action-label">Search all cards for:</span>
+								<strong class="action-highlight">{query.trim()}</strong>
+							</div>
+						</div>
+						<div class="palette-action-right">
+							<span class="action-shortcut-hint">Open panel</span>
+							<kbd class="key-cap">↵</kbd>
+						</div>
+					</div>
+				{:else if !query.trim()}
+					<div class="palette-divider" aria-hidden="true"></div>
+					<div class="palette-empty-hints">
+						<span class="hints-label">Search syntax examples</span>
+						<div class="syntax-chips">
+							<button
+								type="button"
+								class="syntax-chip"
+								onclick={() => appendSyntax("t:instant")}
+								title="Filter by card type (e.g. t:creature, t:instant)"
+							>
+								<span class="chip-code">t:instant</span>
+								<span class="chip-desc">Type</span>
+							</button>
+							<button
+								type="button"
+								class="syntax-chip"
+								onclick={() => appendSyntax("c:blue")}
+								title="Filter by color (e.g. c:blue, c:w)"
+							>
+								<span class="chip-code">c:blue</span>
+								<span class="chip-desc">Color</span>
+							</button>
+							<button
+								type="button"
+								class="syntax-chip"
+								onclick={() => appendSyntax("o:draw")}
+								title="Filter by card text (e.g. o:draw, o:counter)"
+							>
+								<span class="chip-code">o:draw</span>
+								<span class="chip-desc">Text</span>
+							</button>
+							<button
+								type="button"
+								class="syntax-chip"
+								onclick={() => appendSyntax("cmc<=2")}
+								title="Filter by mana value (e.g. cmc<=2, cmc=3)"
+							>
+								<span class="chip-code">cmc&lt;=2</span>
+								<span class="chip-desc">Mana</span>
+							</button>
+						</div>
+					</div>
+				{/if}
+			</div>
+
+			<!-- Popover Card displayed outside the container next to the card name -->
+			{#if previewImgUrl && matchedCards.length > 0 && selectedCard}
+				<div
+					class="card-popover"
+					class:popover-left={popoverOnLeft}
+					in:fade={{ duration: 100 }}
+				>
+					<div class="card-popover-container">
+						<img
+							src={previewImgUrl}
+							alt={selectedCard.name}
+							onerror={(e) => {
+								const el = /** @type {HTMLImageElement} */ (e.currentTarget);
+								if (!el.src.includes("&fuzzy=")) {
+									el.src = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(selectedCard.name)}&format=image&version=normal`;
+								}
+							}}
+						/>
+						{#if selectedPrice !== null && (settingsStore?.showPrices ?? true)}
+							<div class="tooltip-price" in:fade={{ duration: 150 }}>
+								${Number(selectedPrice).toFixed(2)}
+							</div>
+						{/if}
+					</div>
 				</div>
 			{/if}
 		</div>
@@ -492,7 +602,7 @@
 	}
 
 	.command-palette-wrapper {
-		width: 460px;
+		width: 540px;
 		max-width: 100%;
 		display: flex;
 		flex-direction: column;
@@ -500,19 +610,96 @@
 		position: relative;
 	}
 
-	/* Standalone search bar */
+	/* Unified Card Container */
+	.command-palette-card {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		background: hsl(var(--popover));
+		border: 1px solid hsla(var(--border) / 0.65);
+		border-radius: 14px;
+		box-shadow:
+			0 24px 48px -10px rgba(0, 0, 0, 0.7),
+			0 0 0 1px hsla(255, 100%, 100%, 0.05);
+		overflow: hidden;
+	}
+
+	/* Header above search bar */
+	.palette-header {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+		padding: 16px 20px 14px 20px;
+		background: transparent;
+	}
+
+	.palette-header-text {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.palette-title {
+		margin: 0;
+		font-size: 1.15rem;
+		font-weight: 600;
+		color: var(--text-primary, #ffffff);
+		letter-spacing: -0.015em;
+		line-height: 1.25;
+	}
+
+	.palette-subtitle {
+		margin: 0;
+		font-size: 0.84rem;
+		color: hsl(var(--muted-foreground));
+		line-height: 1.4;
+	}
+
+	.palette-close-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 4px 8px;
+		border-radius: var(--radius-sm, 6px);
+		border: 1px solid hsla(var(--border) / 0.5);
+		background: hsla(var(--muted) / 0.35);
+		color: hsl(var(--muted-foreground));
+		font-size: 0.76rem;
+		font-weight: 500;
+		cursor: pointer;
+		user-select: none;
+		flex-shrink: 0;
+		transition: all 0.15s ease;
+	}
+
+	.palette-close-btn:hover {
+		background: hsla(0, 70%, 50%, 0.2);
+		border-color: hsla(0, 70%, 50%, 0.4);
+		color: #ffffff;
+	}
+
+	.palette-close-btn:hover .key-cap {
+		border-color: hsla(0, 0%, 100%, 0.4);
+		color: #ffffff;
+		background: hsla(0, 0%, 100%, 0.15);
+	}
+
+	/* Clean subtle divider line */
+	.palette-divider {
+		height: 1px;
+		width: 100%;
+		background: hsla(var(--border) / 0.5);
+	}
+
+	/* Integrated search bar */
 	.palette-search-bar {
 		width: 100%;
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		padding: 6px 8px 6px 12px;
-		background: hsl(var(--popover));
-		border: 1px solid hsla(var(--border) / 0.6);
-		border-radius: var(--radius);
-		box-shadow:
-			0 12px 30px -5px rgba(0, 0, 0, 0.5),
-			0 0 0 1px hsla(255, 100%, 100%, 0.04);
+		gap: 10px;
+		padding: 10px 14px 10px 18px;
+		background: hsla(var(--muted) / 0.18);
 	}
 
 	:global(.header-search-icon) {
@@ -547,10 +734,10 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 5px;
-		padding: 3px 7px;
+		padding: 4px 8px;
 		border-radius: var(--radius-sm);
 		border: 1px solid hsla(var(--border) / 0.5);
-		background: hsla(var(--muted) / 0.3);
+		background: hsla(var(--muted) / 0.35);
 		color: var(--text-primary, #ffffff);
 		font-size: 0.76rem;
 		font-weight: 500;
@@ -571,40 +758,140 @@
 		background: hsla(0, 0%, 100%, 0.15);
 	}
 
-	.header-action-btn.close-btn {
+	/* Action Row for syntax search or fallback */
+	.palette-action-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 10px 16px;
+		cursor: pointer;
 		background: transparent;
-		border-color: hsla(var(--border) / 0.4);
+		transition: background 0.12s ease;
+	}
+
+	.palette-action-row:hover {
+		background: hsla(var(--muted) / 0.45);
+	}
+
+	.palette-action-left {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-width: 0;
+	}
+
+	.palette-action-badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 26px;
+		height: 26px;
+		border-radius: var(--radius-sm, 6px);
+		background: hsl(var(--primary) / 0.2);
+		color: hsl(var(--primary));
+		flex-shrink: 0;
+	}
+
+	.palette-action-text {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 0.85rem;
+		color: var(--text-primary, #ffffff);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.action-label {
 		color: hsl(var(--muted-foreground));
-		padding: 3px 5px;
 	}
 
-	.header-action-btn.close-btn:hover {
-		background: hsla(0, 70%, 50%, 0.2);
-		border-color: hsla(0, 70%, 50%, 0.4);
+	.action-highlight {
 		color: #ffffff;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+		background: hsla(var(--muted) / 0.6);
+		padding: 1px 6px;
+		border-radius: 4px;
+		font-size: 0.82rem;
 	}
 
-	/* Card list dropdown separated from search bar */
-	.card-list-dropdown {
-		margin-top: 6px;
-		width: 100%;
-		background: hsl(var(--popover));
-		border: 1px solid hsla(var(--border) / 0.6);
-		border-radius: var(--radius);
-		box-shadow:
-			0 15px 35px -5px rgba(0, 0, 0, 0.55),
-			0 0 0 1px hsla(255, 100%, 100%, 0.04);
-		position: relative;
-		overflow: visible;
+	.palette-action-right {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		flex-shrink: 0;
 	}
 
-	.card-names-list {
-		max-height: 190px;
-		overflow-y: auto;
-		padding: 4px;
+	.action-shortcut-hint {
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+	}
+
+	/* Empty State Hints & Syntax Chips */
+	.palette-empty-hints {
+		padding: 12px 18px 14px 18px;
 		display: flex;
 		flex-direction: column;
-		gap: 1px;
+		gap: 8px;
+		background: hsla(var(--muted) / 0.12);
+	}
+
+	.hints-label {
+		font-size: 0.72rem;
+		font-weight: 600;
+		color: hsl(var(--muted-foreground));
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.syntax-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+
+	.syntax-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 3px 8px;
+		border-radius: var(--radius-sm, 6px);
+		border: 1px solid hsla(var(--border) / 0.5);
+		background: hsla(var(--muted) / 0.35);
+		color: var(--text-primary, #ffffff);
+		font-size: 0.75rem;
+		cursor: pointer;
+		user-select: none;
+		transition: all 0.12s ease;
+	}
+
+	.syntax-chip:hover {
+		background: hsl(var(--primary) / 0.22);
+		border-color: hsl(var(--primary) / 0.55);
+		color: #ffffff;
+		transform: translateY(-1px);
+	}
+
+	.chip-code {
+		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+		font-weight: 600;
+		color: hsl(var(--primary));
+	}
+
+	.chip-desc {
+		color: hsl(var(--muted-foreground));
+		font-size: 0.7rem;
+	}
+
+	/* Card names list */
+	.card-names-list {
+		max-height: 210px;
+		overflow-y: auto;
+		padding: 6px;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
 		scrollbar-width: thin;
 		scrollbar-color: hsla(var(--border) / 0.8) transparent;
 	}
@@ -623,8 +910,8 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 8px;
-		padding: 4px 8px;
-		min-height: 29px;
+		padding: 5px 10px;
+		min-height: 30px;
 		border-radius: var(--radius-sm);
 		border: none;
 		background: transparent;
@@ -701,10 +988,10 @@
 		padding: 0 4px;
 	}
 
-	/* Regular Popover Card Thingy outside container */
+	/* Popover Card outside container */
 	.card-popover {
 		position: absolute;
-		left: calc(100% + 10px);
+		left: calc(100% + 14px);
 		top: 0;
 		width: 240px;
 		border-radius: 12px;
@@ -715,7 +1002,7 @@
 
 	.card-popover.popover-left {
 		left: auto;
-		right: calc(100% + 10px);
+		right: calc(100% + 14px);
 	}
 
 	.card-popover-container {
