@@ -490,8 +490,8 @@
 		display: flex;
 		align-items: flex-start;
 		justify-content: center;
-		padding-top: max(2rem, calc(100vh - 414px));
-		padding-bottom: calc(1.25rem + 48px + 24px);
+		padding-top: 13.5rem;
+		padding-bottom: 2rem;
 		padding-left: 1rem;
 		padding-right: 1rem;
 	}
