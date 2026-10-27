@@ -486,13 +486,12 @@
 		position: fixed;
 		inset: 0;
 		background: rgba(0, 0, 0, 0.65);
-		backdrop-filter: blur(6px);
-		-webkit-backdrop-filter: blur(6px);
 		z-index: 1500;
 		display: flex;
 		align-items: flex-start;
 		justify-content: center;
-		padding-top: 14vh;
+		padding-top: max(2rem, calc(100vh - 414px));
+		padding-bottom: calc(1.25rem + 48px + 24px);
 		padding-left: 1rem;
 		padding-right: 1rem;
 	}
